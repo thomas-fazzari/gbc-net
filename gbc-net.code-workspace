@@ -1,0 +1,40 @@
+{
+	"folders": [
+		{
+			"name": "Core",
+			"path": "src/GbcNet.Core"
+		},
+		{
+			"name": "GUI",
+			"path": "src/GbcNet.Gui"
+		},
+		{
+			"name": "Tests",
+			"path": "tests/GbcNet.Tests"
+		},
+		{
+			"name": "Skills",
+			"path": ".agents/skills"
+		}
+	],
+	"extensions": {
+		"recommendations": [
+			"csharpier.csharpier-vscode",
+			"ms-dotnettools.csharp",
+			"ms-dotnettools.csdevkit",
+			"ms-dotnettools.vscode-dotnet-runtime",
+			"ms-vscode.test-adapter-converter"
+		]
+	},
+	"settings": {
+		"dotnet.defaultSolution": "GbcNet.slnx",
+		"[csharp]": {
+			"editor.defaultFormatter": "csharpier.csharpier-vscode",
+			"editor.formatOnSave": true
+		},
+		"[xml]": {
+			"editor.defaultFormatter": "csharpier.csharpier-vscode",
+			"editor.formatOnSave": true
+		}
+	}
+}
