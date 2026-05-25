@@ -10,8 +10,6 @@ internal sealed class Sm83Cpu(MemoryBus bus)
 {
     private const ushort PostBootProgramCounter = 0x0100;
     private const ushort PostBootStackPointer = 0xFFFE;
-    private const byte NopOpcode = 0x00;
-    private const int NopMachineCycles = 1;
 
     private readonly MemoryBus _bus = bus;
 
@@ -29,24 +27,31 @@ internal sealed class Sm83Cpu(MemoryBus bus)
     /// </returns>
     public int Step()
     {
-        byte opcode = FetchOpcode();
-        return opcode switch
-        {
-            NopOpcode => NopMachineCycles,
-            _ => throw new NotSupportedException(
+        byte opcode = FetchByte();
+        Sm83Instruction instruction =
+            Sm83InstructionSet.Find(opcode)
+            ?? throw new NotSupportedException(
                 string.Format(
                     CultureInfo.InvariantCulture,
                     "Opcode 0x{0:X2} is not supported yet.",
                     opcode
                 )
-            ),
-        };
+            );
+
+        byte firstOperand = instruction.ByteLength > 1 ? FetchByte() : (byte)0;
+        byte secondOperand = instruction.ByteLength > 2 ? FetchByte() : (byte)0;
+
+        instruction.Execute(this, firstOperand, secondOperand);
+        return instruction.MachineCycles;
     }
 
-    private byte FetchOpcode()
+    /// <summary>
+    /// Reads the byte at PC and advances PC by one.
+    /// </summary>
+    private byte FetchByte()
     {
-        byte opcode = _bus.ReadByte(Registers.PC);
+        byte value = _bus.ReadByte(Registers.PC);
         Registers.PC = unchecked((ushort)(Registers.PC + 1));
-        return opcode;
+        return value;
     }
 }

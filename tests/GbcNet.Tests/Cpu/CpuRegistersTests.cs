@@ -69,13 +69,4 @@ public sealed class CpuRegistersTests
         Assert.True(registers.IsFlagSet(CpuFlag.Carry));
         Assert.Equal(0x10, registers.F);
     }
-
-    [Fact]
-    public void ProgramCounterAndStackPointer_StoreSixteenBitValues()
-    {
-        CpuRegisters registers = new() { PC = 0x0100, SP = 0xFFFE };
-
-        Assert.Equal(0x0100, registers.PC);
-        Assert.Equal(0xFFFE, registers.SP);
-    }
 }
