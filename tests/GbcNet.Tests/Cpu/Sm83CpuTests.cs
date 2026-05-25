@@ -167,6 +167,74 @@ public sealed class Sm83CpuTests
     }
 
     [Fact]
+    public void Step_IncrementsRegisterPairsWithoutChangingFlags()
+    {
+        Sm83Cpu cpu = CreateCpu(bytes =>
+        {
+            bytes[0x0100] = 0x03;
+            bytes[0x0101] = 0x13;
+            bytes[0x0102] = 0x23;
+            bytes[0x0103] = 0x33;
+        });
+        cpu.Registers.F = 0xF0;
+        cpu.Registers.BC = 0x00FF;
+        cpu.Registers.DE = 0xFFFF;
+        cpu.Registers.HL = 0x1234;
+        cpu.Registers.SP = 0xFFFE;
+
+        Assert.Equal(2, cpu.Step());
+        Assert.Equal(0x0100, cpu.Registers.BC);
+        Assert.Equal(0xF0, cpu.Registers.F);
+
+        Assert.Equal(2, cpu.Step());
+        Assert.Equal(0x0000, cpu.Registers.DE);
+        Assert.Equal(0xF0, cpu.Registers.F);
+
+        Assert.Equal(2, cpu.Step());
+        Assert.Equal(0x1235, cpu.Registers.HL);
+        Assert.Equal(0xF0, cpu.Registers.F);
+
+        Assert.Equal(2, cpu.Step());
+        Assert.Equal(0xFFFF, cpu.Registers.SP);
+        Assert.Equal(0xF0, cpu.Registers.F);
+        Assert.Equal(0x0104, cpu.Registers.PC);
+    }
+
+    [Fact]
+    public void Step_DecrementsRegisterPairsWithoutChangingFlags()
+    {
+        Sm83Cpu cpu = CreateCpu(bytes =>
+        {
+            bytes[0x0100] = 0x0B;
+            bytes[0x0101] = 0x1B;
+            bytes[0x0102] = 0x2B;
+            bytes[0x0103] = 0x3B;
+        });
+        cpu.Registers.F = 0xF0;
+        cpu.Registers.BC = 0x0100;
+        cpu.Registers.DE = 0x0000;
+        cpu.Registers.HL = 0x1234;
+        cpu.Registers.SP = 0x0001;
+
+        Assert.Equal(2, cpu.Step());
+        Assert.Equal(0x00FF, cpu.Registers.BC);
+        Assert.Equal(0xF0, cpu.Registers.F);
+
+        Assert.Equal(2, cpu.Step());
+        Assert.Equal(0xFFFF, cpu.Registers.DE);
+        Assert.Equal(0xF0, cpu.Registers.F);
+
+        Assert.Equal(2, cpu.Step());
+        Assert.Equal(0x1233, cpu.Registers.HL);
+        Assert.Equal(0xF0, cpu.Registers.F);
+
+        Assert.Equal(2, cpu.Step());
+        Assert.Equal(0x0000, cpu.Registers.SP);
+        Assert.Equal(0xF0, cpu.Registers.F);
+        Assert.Equal(0x0104, cpu.Registers.PC);
+    }
+
+    [Fact]
     public void Step_RejectsUnsupportedOpcode()
     {
         Sm83Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0xFF);

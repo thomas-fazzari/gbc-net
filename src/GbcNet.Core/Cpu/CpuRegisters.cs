@@ -124,17 +124,69 @@ internal sealed class CpuRegisters
     /// </summary>
     public ushort SP { get; set; }
 
+    /// <summary>
+    /// Returns whether a CPU flag is set in F.
+    /// </summary>
     public bool IsFlagSet(CpuFlag flag) => (F & (byte)flag) != 0;
 
+    /// <summary>
+    /// Sets or clears a CPU flag while preserving the other flag bits.
+    /// </summary>
     public void SetFlag(CpuFlag flag, bool isSet)
     {
         F = isSet ? (byte)(F | (byte)flag) : (byte)(F & ~(byte)flag);
     }
 
+    /// <summary>
+    /// Reads an SM83 r16 register pair.
+    /// </summary>
+    public ushort GetRegisterPair(Sm83RegisterPair registerPair) =>
+        registerPair switch
+        {
+            Sm83RegisterPair.BC => BC,
+            Sm83RegisterPair.DE => DE,
+            Sm83RegisterPair.HL => HL,
+            Sm83RegisterPair.SP => SP,
+            _ => throw new ArgumentOutOfRangeException(nameof(registerPair)),
+        };
+
+    /// <summary>
+    /// Writes an SM83 r16 register pair.
+    /// </summary>
+    public void SetRegisterPair(Sm83RegisterPair registerPair, ushort value)
+    {
+        switch (registerPair)
+        {
+            case Sm83RegisterPair.BC:
+                BC = value;
+                return;
+            case Sm83RegisterPair.DE:
+                DE = value;
+                return;
+            case Sm83RegisterPair.HL:
+                HL = value;
+                return;
+            case Sm83RegisterPair.SP:
+                SP = value;
+                return;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(registerPair));
+        }
+    }
+
+    /// <summary>
+    /// Gets the high byte of a 16-bit register pair value.
+    /// </summary>
     private static byte HighByte(ushort value) => (byte)(value >> 8);
 
+    /// <summary>
+    /// Gets the low byte of a 16-bit register pair value.
+    /// </summary>
     private static byte LowByte(ushort value) => (byte)value;
 
+    /// <summary>
+    /// Combines high and low register bytes into a 16-bit register pair value.
+    /// </summary>
     private static ushort JoinBytes(byte highByte, byte lowByte) =>
         (ushort)((highByte << 8) | lowByte);
 }
@@ -163,4 +215,30 @@ internal enum CpuFlag : byte
     /// Zero flag, bit 7.
     /// </summary>
     Zero = 0x80,
+}
+
+/// <summary>
+/// SM83 16-bit register pairs used by r16 instructions.
+/// </summary>
+internal enum Sm83RegisterPair : byte
+{
+    /// <summary>
+    /// BC register pair.
+    /// </summary>
+    BC = 0,
+
+    /// <summary>
+    /// DE register pair.
+    /// </summary>
+    DE = 1,
+
+    /// <summary>
+    /// HL register pair.
+    /// </summary>
+    HL = 2,
+
+    /// <summary>
+    /// Stack pointer.
+    /// </summary>
+    SP = 3,
 }

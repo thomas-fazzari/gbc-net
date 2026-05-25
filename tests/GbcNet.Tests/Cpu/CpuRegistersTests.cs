@@ -69,4 +69,31 @@ public sealed class CpuRegistersTests
         Assert.True(registers.IsFlagSet(CpuFlag.Carry));
         Assert.Equal(0x10, registers.F);
     }
+
+    [Fact]
+    public void RegisterPairAccessors_ReadAndWriteR16Pairs()
+    {
+        CpuRegisters registers = new()
+        {
+            BC = 0x1234,
+            DE = 0x5678,
+            HL = 0x9ABC,
+            SP = 0xDEF0,
+        };
+
+        Assert.Equal(0x1234, registers.GetRegisterPair(Sm83RegisterPair.BC));
+        Assert.Equal(0x5678, registers.GetRegisterPair(Sm83RegisterPair.DE));
+        Assert.Equal(0x9ABC, registers.GetRegisterPair(Sm83RegisterPair.HL));
+        Assert.Equal(0xDEF0, registers.GetRegisterPair(Sm83RegisterPair.SP));
+
+        registers.SetRegisterPair(Sm83RegisterPair.BC, 0x1111);
+        registers.SetRegisterPair(Sm83RegisterPair.DE, 0x2222);
+        registers.SetRegisterPair(Sm83RegisterPair.HL, 0x3333);
+        registers.SetRegisterPair(Sm83RegisterPair.SP, 0x4444);
+
+        Assert.Equal(0x1111, registers.BC);
+        Assert.Equal(0x2222, registers.DE);
+        Assert.Equal(0x3333, registers.HL);
+        Assert.Equal(0x4444, registers.SP);
+    }
 }
