@@ -168,9 +168,9 @@ public sealed record CartridgeHeader(
         }
 
         byte checksum = 0;
-        for (int address = TitleStartAddress; address < HeaderChecksumAddress; address++)
+        for (int offset = TitleStartAddress; offset < HeaderChecksumAddress; offset++)
         {
-            checksum = unchecked((byte)(checksum - rom[address] - 1));
+            checksum = unchecked((byte)(checksum - rom[offset] - 1));
         }
 
         return checksum;
