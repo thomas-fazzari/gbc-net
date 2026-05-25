@@ -17,6 +17,8 @@ internal static class Arithmetic8Instructions
     private const byte DecrementHOpcode = 0x25;
     private const byte IncrementLOpcode = 0x2C;
     private const byte DecrementLOpcode = 0x2D;
+    private const byte IncrementAddressHlOpcode = 0x34;
+    private const byte DecrementAddressHlOpcode = 0x35;
     private const byte IncrementAOpcode = 0x3C;
     private const byte DecrementAOpcode = 0x3D;
 
@@ -27,6 +29,7 @@ internal static class Arithmetic8Instructions
 
     private const byte NoOperandByteLength = 1;
 
+    private const int AddressHlMachineCycles = 3;
     private const int RegisterMachineCycles = 1;
 
     /// <summary>
@@ -46,6 +49,8 @@ internal static class Arithmetic8Instructions
         MapDecrementRegister(builder, DecrementHOpcode, Register8.H);
         MapIncrementRegister(builder, IncrementLOpcode, Register8.L);
         MapDecrementRegister(builder, DecrementLOpcode, Register8.L);
+        MapIncrementAddressHl(builder, IncrementAddressHlOpcode);
+        MapDecrementAddressHl(builder, DecrementAddressHlOpcode);
         MapIncrementRegister(builder, IncrementAOpcode, Register8.A);
         MapDecrementRegister(builder, DecrementAOpcode, Register8.A);
     }
@@ -85,17 +90,38 @@ internal static class Arithmetic8Instructions
     }
 
     /// <summary>
+    /// Maps INC [HL], which updates Z, N, and H while preserving C.
+    /// </summary>
+    private static void MapIncrementAddressHl(OpcodeTableBuilder builder, byte opcode)
+    {
+        builder.Map(
+            opcode,
+            NoOperandByteLength,
+            AddressHlMachineCycles,
+            static (cpu, _, _) => IncrementAddressHl(cpu)
+        );
+    }
+
+    /// <summary>
+    /// Maps DEC [HL], which updates Z, N, and H while preserving C.
+    /// </summary>
+    private static void MapDecrementAddressHl(OpcodeTableBuilder builder, byte opcode)
+    {
+        builder.Map(
+            opcode,
+            NoOperandByteLength,
+            AddressHlMachineCycles,
+            static (cpu, _, _) => DecrementAddressHl(cpu)
+        );
+    }
+
+    /// <summary>
     /// Increments the selected r8 register and updates the INC r8 flags.
     /// </summary>
     private static void IncrementRegister(Cpu cpu, Register8 register)
     {
         byte value = cpu.Registers.GetRegister(register);
-        byte result = unchecked((byte)(value + 1));
-
-        cpu.Registers.SetRegister(register, result);
-        cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
-        cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: false);
-        cpu.Registers.SetFlag(CpuFlag.HalfCarry, (value & HalfCarryMask) == HalfCarryMask);
+        cpu.Registers.SetRegister(register, IncrementByte(cpu, value));
     }
 
     /// <summary>
@@ -104,11 +130,52 @@ internal static class Arithmetic8Instructions
     private static void DecrementRegister(Cpu cpu, Register8 register)
     {
         byte value = cpu.Registers.GetRegister(register);
+        cpu.Registers.SetRegister(register, DecrementByte(cpu, value));
+    }
+
+    /// <summary>
+    /// Increments the byte at HL and updates the INC [HL] flags.
+    /// </summary>
+    private static void IncrementAddressHl(Cpu cpu)
+    {
+        ushort address = cpu.Registers.HL;
+        byte value = cpu.ReadByte(address);
+        cpu.WriteByte(address, IncrementByte(cpu, value));
+    }
+
+    /// <summary>
+    /// Decrements the byte at HL and updates the DEC [HL] flags.
+    /// </summary>
+    private static void DecrementAddressHl(Cpu cpu)
+    {
+        ushort address = cpu.Registers.HL;
+        byte value = cpu.ReadByte(address);
+        cpu.WriteByte(address, DecrementByte(cpu, value));
+    }
+
+    /// <summary>
+    /// Increments one byte and applies INC r8/[HL] flag effects.
+    /// </summary>
+    private static byte IncrementByte(Cpu cpu, byte value)
+    {
+        byte result = unchecked((byte)(value + 1));
+
+        cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
+        cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: false);
+        cpu.Registers.SetFlag(CpuFlag.HalfCarry, (value & HalfCarryMask) == HalfCarryMask);
+        return result;
+    }
+
+    /// <summary>
+    /// Decrements one byte and applies DEC r8/[HL] flag effects.
+    /// </summary>
+    private static byte DecrementByte(Cpu cpu, byte value)
+    {
         byte result = unchecked((byte)(value - 1));
 
-        cpu.Registers.SetRegister(register, result);
         cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
         cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: true);
         cpu.Registers.SetFlag(CpuFlag.HalfCarry, (value & HalfCarryMask) == 0);
+        return result;
     }
 }

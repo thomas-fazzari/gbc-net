@@ -285,6 +285,32 @@ public sealed class CpuTests
     }
 
     [Theory]
+    [InlineData(0x34, 0x0F, 0xD0, 0x10, 0x30)]
+    [InlineData(0x34, 0xFF, 0x10, 0x00, 0xB0)]
+    [InlineData(0x35, 0x10, 0x90, 0x0F, 0x70)]
+    [InlineData(0x35, 0x01, 0xB0, 0x00, 0xD0)]
+    public void Step_UpdatesMemoryAtHlAndFlags(
+        byte opcode,
+        byte initialValue,
+        byte initialFlags,
+        byte expectedValue,
+        byte expectedFlags
+    )
+    {
+        Sm83Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
+        cpu.Registers.HL = 0xC100;
+        cpu.Registers.F = initialFlags;
+        cpu.WriteByte(0xC100, initialValue);
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(3, machineCycles);
+        Assert.Equal(expectedValue, cpu.ReadByte(0xC100));
+        Assert.Equal(expectedFlags, cpu.Registers.F);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+    }
+
+    [Theory]
     [InlineData(0x09, BcRegisterPair, 0x0001, 0x0002, 0xF0, 0x0003, 0x80)]
     [InlineData(0x19, DeRegisterPair, 0x0FFF, 0x0001, 0x80, 0x1000, 0xA0)]
     [InlineData(0x29, HlRegisterPair, 0x8000, 0x8000, 0x00, 0x0000, 0x10)]
@@ -329,8 +355,6 @@ public sealed class CpuTests
         return new Sm83Cpu(new MemoryBus(cartridge.Value));
     }
 
-    private static string DescribeErrors(IReadOnlyList<FluentResults.IError> errors)
-    {
-        return string.Join(Environment.NewLine, errors.Select(error => error.Message));
-    }
+    private static string DescribeErrors(IReadOnlyList<IError> errors) =>
+        string.Join(Environment.NewLine, errors.Select(error => error.Message));
 }
