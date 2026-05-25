@@ -65,6 +65,108 @@ public sealed class Sm83CpuTests
     }
 
     [Fact]
+    public void Step_StoresAccumulatorThroughRegisterPairAddresses()
+    {
+        Sm83Cpu cpu = CreateCpu(bytes =>
+        {
+            bytes[0x0100] = 0x02;
+            bytes[0x0101] = 0x12;
+        });
+
+        cpu.Registers.A = 0xAB;
+        cpu.Registers.BC = 0xC000;
+
+        Assert.Equal(2, cpu.Step());
+        Assert.Equal(0xAB, cpu.ReadByte(0xC000));
+        Assert.Equal(0x0101, cpu.Registers.PC);
+
+        cpu.Registers.A = 0xCD;
+        cpu.Registers.DE = 0xC001;
+
+        Assert.Equal(2, cpu.Step());
+        Assert.Equal(0xCD, cpu.ReadByte(0xC001));
+        Assert.Equal(0x0102, cpu.Registers.PC);
+    }
+
+    [Fact]
+    public void Step_LoadsAccumulatorThroughRegisterPairAddresses()
+    {
+        Sm83Cpu cpu = CreateCpu(bytes =>
+        {
+            bytes[0x0100] = 0x0A;
+            bytes[0x0101] = 0x1A;
+        });
+        cpu.Registers.BC = 0xC002;
+        cpu.Registers.DE = 0xC003;
+        cpu.WriteByte(0xC002, 0x34);
+        cpu.WriteByte(0xC003, 0x56);
+
+        Assert.Equal(2, cpu.Step());
+        Assert.Equal(0x34, cpu.Registers.A);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+
+        Assert.Equal(2, cpu.Step());
+        Assert.Equal(0x56, cpu.Registers.A);
+        Assert.Equal(0x0102, cpu.Registers.PC);
+    }
+
+    [Fact]
+    public void Step_LoadsThroughHlAndUpdatesHl()
+    {
+        Sm83Cpu cpu = CreateCpu(bytes =>
+        {
+            bytes[0x0100] = 0x22;
+            bytes[0x0101] = 0x2A;
+            bytes[0x0102] = 0x32;
+            bytes[0x0103] = 0x3A;
+        });
+        cpu.Registers.HL = 0xC010;
+        cpu.Registers.A = 0x44;
+
+        Assert.Equal(2, cpu.Step());
+        Assert.Equal(0x44, cpu.ReadByte(0xC010));
+        Assert.Equal(0xC011, cpu.Registers.HL);
+
+        cpu.WriteByte(0xC011, 0x55);
+
+        Assert.Equal(2, cpu.Step());
+        Assert.Equal(0x55, cpu.Registers.A);
+        Assert.Equal(0xC012, cpu.Registers.HL);
+
+        cpu.Registers.A = 0x66;
+
+        Assert.Equal(2, cpu.Step());
+        Assert.Equal(0x66, cpu.ReadByte(0xC012));
+        Assert.Equal(0xC011, cpu.Registers.HL);
+
+        cpu.WriteByte(0xC011, 0x77);
+
+        Assert.Equal(2, cpu.Step());
+        Assert.Equal(0x77, cpu.Registers.A);
+        Assert.Equal(0xC010, cpu.Registers.HL);
+        Assert.Equal(0x0104, cpu.Registers.PC);
+    }
+
+    [Fact]
+    public void Step_StoresStackPointerAtImmediate16Address()
+    {
+        Sm83Cpu cpu = CreateCpu(bytes =>
+        {
+            bytes[0x0100] = 0x08;
+            bytes[0x0101] = 0x20;
+            bytes[0x0102] = 0xC0;
+        });
+        cpu.Registers.SP = 0xBEEF;
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(5, machineCycles);
+        Assert.Equal(0xEF, cpu.ReadByte(0xC020));
+        Assert.Equal(0xBE, cpu.ReadByte(0xC021));
+        Assert.Equal(0x0103, cpu.Registers.PC);
+    }
+
+    [Fact]
     public void Step_RejectsUnsupportedOpcode()
     {
         Sm83Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0xFF);

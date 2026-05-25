@@ -46,6 +46,19 @@ internal sealed class Sm83Cpu(MemoryBus bus)
     }
 
     /// <summary>
+    /// Reads one byte from CPU-visible memory.
+    /// </summary>
+    internal byte ReadByte(ushort address) => _bus.ReadByte(address);
+
+    /// <summary>
+    /// Writes one byte to CPU-visible memory.
+    /// </summary>
+    internal void WriteByte(ushort address, byte value)
+    {
+        _bus.WriteByte(address, value);
+    }
+
+    /// <summary>
     /// Reads the byte at PC and advances PC by one.
     /// </summary>
     private byte FetchByte()

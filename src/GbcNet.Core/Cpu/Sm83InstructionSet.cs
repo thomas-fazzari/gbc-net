@@ -10,16 +10,27 @@ internal static class Sm83InstructionSet
     // Implemented primary opcodes.
     private const byte NopOpcode = 0x00;
     private const byte LoadBcImmediate16Opcode = 0x01;
+    private const byte LoadAddressBcFromAOpcode = 0x02;
+    private const byte LoadAddressImmediate16FromStackPointerOpcode = 0x08;
+    private const byte LoadAFromAddressBcOpcode = 0x0A;
     private const byte LoadDeImmediate16Opcode = 0x11;
+    private const byte LoadAddressDeFromAOpcode = 0x12;
+    private const byte LoadAFromAddressDeOpcode = 0x1A;
     private const byte LoadHlImmediate16Opcode = 0x21;
+    private const byte LoadAddressHlIncrementFromAOpcode = 0x22;
+    private const byte LoadAFromAddressHlIncrementOpcode = 0x2A;
     private const byte LoadSpImmediate16Opcode = 0x31;
+    private const byte LoadAddressHlDecrementFromAOpcode = 0x32;
+    private const byte LoadAFromAddressHlDecrementOpcode = 0x3A;
 
     // Total instruction lengths in bytes, including the opcode byte.
-    private const byte NopByteLength = 1;
+    private const byte NoOperandByteLength = 1;
     private const byte Immediate16ByteLength = 3;
 
     private const int NopMachineCycles = 1;
+    private const int LoadRegisterPairAddressMachineCycles = 2;
     private const int LoadRegisterPairImmediate16MachineCycles = 3;
+    private const int LoadImmediate16AddressFromStackPointerMachineCycles = 5;
 
     private static readonly Sm83Instruction?[] _instructions = CreateInstructions();
 
@@ -34,13 +45,34 @@ internal static class Sm83InstructionSet
     {
         var instructions = new Sm83Instruction?[OpcodeCount];
 
-        Map(instructions, NopOpcode, NopByteLength, NopMachineCycles, ExecuteNop);
+        Map(instructions, NopOpcode, NoOperandByteLength, NopMachineCycles, ExecuteNop);
         Map(
             instructions,
             LoadBcImmediate16Opcode,
             Immediate16ByteLength,
             LoadRegisterPairImmediate16MachineCycles,
             ExecuteLoadBcImmediate16
+        );
+        Map(
+            instructions,
+            LoadAddressBcFromAOpcode,
+            NoOperandByteLength,
+            LoadRegisterPairAddressMachineCycles,
+            ExecuteLoadAddressBcFromA
+        );
+        Map(
+            instructions,
+            LoadAddressImmediate16FromStackPointerOpcode,
+            Immediate16ByteLength,
+            LoadImmediate16AddressFromStackPointerMachineCycles,
+            ExecuteLoadAddressImmediate16FromStackPointer
+        );
+        Map(
+            instructions,
+            LoadAFromAddressBcOpcode,
+            NoOperandByteLength,
+            LoadRegisterPairAddressMachineCycles,
+            ExecuteLoadAFromAddressBc
         );
         Map(
             instructions,
@@ -51,6 +83,20 @@ internal static class Sm83InstructionSet
         );
         Map(
             instructions,
+            LoadAddressDeFromAOpcode,
+            NoOperandByteLength,
+            LoadRegisterPairAddressMachineCycles,
+            ExecuteLoadAddressDeFromA
+        );
+        Map(
+            instructions,
+            LoadAFromAddressDeOpcode,
+            NoOperandByteLength,
+            LoadRegisterPairAddressMachineCycles,
+            ExecuteLoadAFromAddressDe
+        );
+        Map(
+            instructions,
             LoadHlImmediate16Opcode,
             Immediate16ByteLength,
             LoadRegisterPairImmediate16MachineCycles,
@@ -58,10 +104,38 @@ internal static class Sm83InstructionSet
         );
         Map(
             instructions,
+            LoadAddressHlIncrementFromAOpcode,
+            NoOperandByteLength,
+            LoadRegisterPairAddressMachineCycles,
+            ExecuteLoadAddressHlIncrementFromA
+        );
+        Map(
+            instructions,
+            LoadAFromAddressHlIncrementOpcode,
+            NoOperandByteLength,
+            LoadRegisterPairAddressMachineCycles,
+            ExecuteLoadAFromAddressHlIncrement
+        );
+        Map(
+            instructions,
             LoadSpImmediate16Opcode,
             Immediate16ByteLength,
             LoadRegisterPairImmediate16MachineCycles,
             ExecuteLoadSpImmediate16
+        );
+        Map(
+            instructions,
+            LoadAddressHlDecrementFromAOpcode,
+            NoOperandByteLength,
+            LoadRegisterPairAddressMachineCycles,
+            ExecuteLoadAddressHlDecrementFromA
+        );
+        Map(
+            instructions,
+            LoadAFromAddressHlDecrementOpcode,
+            NoOperandByteLength,
+            LoadRegisterPairAddressMachineCycles,
+            ExecuteLoadAFromAddressHlDecrement
         );
 
         return instructions;
@@ -92,9 +166,38 @@ internal static class Sm83InstructionSet
         cpu.Registers.BC = ReadImmediate16(lowByte, highByte);
     }
 
+    private static void ExecuteLoadAddressBcFromA(Sm83Cpu cpu, byte lowByte, byte highByte)
+    {
+        cpu.WriteByte(cpu.Registers.BC, cpu.Registers.A);
+    }
+
+    private static void ExecuteLoadAddressImmediate16FromStackPointer(
+        Sm83Cpu cpu,
+        byte lowByte,
+        byte highByte
+    )
+    {
+        WriteLittleEndianWord(cpu, ReadImmediate16(lowByte, highByte), cpu.Registers.SP);
+    }
+
+    private static void ExecuteLoadAFromAddressBc(Sm83Cpu cpu, byte lowByte, byte highByte)
+    {
+        cpu.Registers.A = cpu.ReadByte(cpu.Registers.BC);
+    }
+
     private static void ExecuteLoadDeImmediate16(Sm83Cpu cpu, byte lowByte, byte highByte)
     {
         cpu.Registers.DE = ReadImmediate16(lowByte, highByte);
+    }
+
+    private static void ExecuteLoadAddressDeFromA(Sm83Cpu cpu, byte lowByte, byte highByte)
+    {
+        cpu.WriteByte(cpu.Registers.DE, cpu.Registers.A);
+    }
+
+    private static void ExecuteLoadAFromAddressDe(Sm83Cpu cpu, byte lowByte, byte highByte)
+    {
+        cpu.Registers.A = cpu.ReadByte(cpu.Registers.DE);
     }
 
     private static void ExecuteLoadHlImmediate16(Sm83Cpu cpu, byte lowByte, byte highByte)
@@ -102,9 +205,37 @@ internal static class Sm83InstructionSet
         cpu.Registers.HL = ReadImmediate16(lowByte, highByte);
     }
 
+    private static void ExecuteLoadAddressHlIncrementFromA(Sm83Cpu cpu, byte lowByte, byte highByte)
+    {
+        ushort address = cpu.Registers.HL;
+        cpu.WriteByte(address, cpu.Registers.A);
+        cpu.Registers.HL = unchecked((ushort)(address + 1));
+    }
+
+    private static void ExecuteLoadAFromAddressHlIncrement(Sm83Cpu cpu, byte lowByte, byte highByte)
+    {
+        ushort address = cpu.Registers.HL;
+        cpu.Registers.A = cpu.ReadByte(address);
+        cpu.Registers.HL = unchecked((ushort)(address + 1));
+    }
+
     private static void ExecuteLoadSpImmediate16(Sm83Cpu cpu, byte lowByte, byte highByte)
     {
         cpu.Registers.SP = ReadImmediate16(lowByte, highByte);
+    }
+
+    private static void ExecuteLoadAddressHlDecrementFromA(Sm83Cpu cpu, byte lowByte, byte highByte)
+    {
+        ushort address = cpu.Registers.HL;
+        cpu.WriteByte(address, cpu.Registers.A);
+        cpu.Registers.HL = unchecked((ushort)(address - 1));
+    }
+
+    private static void ExecuteLoadAFromAddressHlDecrement(Sm83Cpu cpu, byte lowByte, byte highByte)
+    {
+        ushort address = cpu.Registers.HL;
+        cpu.Registers.A = cpu.ReadByte(address);
+        cpu.Registers.HL = unchecked((ushort)(address - 1));
     }
 
     #endregion Handlers
@@ -114,4 +245,13 @@ internal static class Sm83InstructionSet
     /// </summary>
     private static ushort ReadImmediate16(byte lowByte, byte highByte) =>
         (ushort)((highByte << 8) | lowByte);
+
+    /// <summary>
+    /// Writes a 16-bit value as low byte, then high byte.
+    /// </summary>
+    private static void WriteLittleEndianWord(Sm83Cpu cpu, ushort address, ushort value)
+    {
+        cpu.WriteByte(address, (byte)value);
+        cpu.WriteByte(unchecked((ushort)(address + 1)), (byte)(value >> 8));
+    }
 }
