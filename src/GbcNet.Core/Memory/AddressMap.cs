@@ -1,7 +1,7 @@
 namespace GbcNet.Core.Memory;
 
 /// <summary>
-/// Defines the 16-bit Game Boy memory map ranges from Pan Docs.
+/// Defines the 16-bit Game Boy memory map ranges.
 /// </summary>
 internal static class AddressMap
 {
