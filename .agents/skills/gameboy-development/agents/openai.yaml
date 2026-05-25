@@ -1,0 +1,4 @@
+interface:
+  display_name: "Game Boy Development"
+  short_description: "Source-first Game Boy hardware encyclopedia"
+  default_prompt: "Use gameboy-development to design, implement, debug, or review Game Boy hardware behavior from bundled Pan Docs chapters."

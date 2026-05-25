@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Project Path="src/GbcNet.Core/GbcNet.Core.csproj" />
+  <Folder Name="/Tests/">
+    <Project Path="tests/GbcNet.Tests/GbcNet.Tests.csproj" />
+  </Folder>
+</Solution>
