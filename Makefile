@@ -1,4 +1,5 @@
 SOLUTION = GbcNet.slnx
+APP = src/GbcNet.Gui/GbcNet.Gui.csproj
 CONFIGURATION ?= Debug
 
 .PHONY: install
@@ -14,6 +15,10 @@ lint:
 .PHONY: test
 test:
 	dotnet test $(SOLUTION) --configuration $(CONFIGURATION)
+
+.PHONY: run
+run:
+	dotnet run --project $(APP) --configuration $(CONFIGURATION)
 
 .PHONY: fix
 fix:

@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+         x:Class="GbcNet.Gui.MainWindow"
+        Title="GbcNet"
+        Width="960"
+        Height="720"
+        MinWidth="640"
+        MinHeight="576"
+        WindowStartupLocation="CenterScreen"
+        Background="#101010">
+    <NativeMenu.Menu>
+        <NativeMenu>
+            <NativeMenuItem Header="File">
+                <NativeMenu>
+                    <NativeMenuItem Header="Open ROM..." Gesture="Meta+O" />
+                    <NativeMenuItemSeparator />
+                    <NativeMenuItem Header="Close" Gesture="Meta+W" />
+                </NativeMenu>
+            </NativeMenuItem>
+            <NativeMenuItem Header="Emulation">
+                <NativeMenu>
+                    <NativeMenuItem Header="Pause" Gesture="Space" />
+                    <NativeMenuItem Header="Reset" Gesture="Meta+R" />
+                </NativeMenu>
+            </NativeMenuItem>
+        </NativeMenu>
+    </NativeMenu.Menu>
+
+    <Border Background="#050505" />
+</Window>
