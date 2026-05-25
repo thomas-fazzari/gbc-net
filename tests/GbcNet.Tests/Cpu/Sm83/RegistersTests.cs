@@ -1,13 +1,13 @@
-using GbcNet.Core.Cpu;
+using GbcNet.Core.Cpu.Sm83;
 
-namespace GbcNet.Tests.Cpu;
+namespace GbcNet.Tests.Cpu.Sm83;
 
-public sealed class CpuRegistersTests
+public sealed class RegistersTests
 {
     [Fact]
     public void PairProperties_ReflectEightBitRegisters()
     {
-        CpuRegisters registers = new()
+        Registers registers = new()
         {
             A = 0x12,
             F = 0x30,
@@ -28,7 +28,7 @@ public sealed class CpuRegistersTests
     [Fact]
     public void PairProperties_SplitSixteenBitValues()
     {
-        CpuRegisters registers = new()
+        Registers registers = new()
         {
             AF = 0x123F,
             BC = 0x4567,
@@ -49,7 +49,7 @@ public sealed class CpuRegistersTests
     [Fact]
     public void F_MasksUnusedLowerNibble()
     {
-        CpuRegisters registers = new() { F = 0xFF };
+        Registers registers = new() { F = 0xFF };
 
         Assert.Equal(0xF0, registers.F);
     }
@@ -57,7 +57,7 @@ public sealed class CpuRegistersTests
     [Fact]
     public void SetFlag_UpdatesOnlySelectedFlag()
     {
-        CpuRegisters registers = new();
+        Registers registers = new();
 
         registers.SetFlag(CpuFlag.Zero, isSet: true);
         registers.SetFlag(CpuFlag.Carry, isSet: true);
@@ -73,7 +73,7 @@ public sealed class CpuRegistersTests
     [Fact]
     public void RegisterPairAccessors_ReadAndWriteR16Pairs()
     {
-        CpuRegisters registers = new()
+        Registers registers = new()
         {
             BC = 0x1234,
             DE = 0x5678,
@@ -81,15 +81,15 @@ public sealed class CpuRegistersTests
             SP = 0xDEF0,
         };
 
-        Assert.Equal(0x1234, registers.GetRegisterPair(Sm83RegisterPair.BC));
-        Assert.Equal(0x5678, registers.GetRegisterPair(Sm83RegisterPair.DE));
-        Assert.Equal(0x9ABC, registers.GetRegisterPair(Sm83RegisterPair.HL));
-        Assert.Equal(0xDEF0, registers.GetRegisterPair(Sm83RegisterPair.SP));
+        Assert.Equal(0x1234, registers.GetRegisterPair(RegisterPair.BC));
+        Assert.Equal(0x5678, registers.GetRegisterPair(RegisterPair.DE));
+        Assert.Equal(0x9ABC, registers.GetRegisterPair(RegisterPair.HL));
+        Assert.Equal(0xDEF0, registers.GetRegisterPair(RegisterPair.SP));
 
-        registers.SetRegisterPair(Sm83RegisterPair.BC, 0x1111);
-        registers.SetRegisterPair(Sm83RegisterPair.DE, 0x2222);
-        registers.SetRegisterPair(Sm83RegisterPair.HL, 0x3333);
-        registers.SetRegisterPair(Sm83RegisterPair.SP, 0x4444);
+        registers.SetRegisterPair(RegisterPair.BC, 0x1111);
+        registers.SetRegisterPair(RegisterPair.DE, 0x2222);
+        registers.SetRegisterPair(RegisterPair.HL, 0x3333);
+        registers.SetRegisterPair(RegisterPair.SP, 0x4444);
 
         Assert.Equal(0x1111, registers.BC);
         Assert.Equal(0x2222, registers.DE);

@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Cpu;
+namespace GbcNet.Core.Cpu.Sm83;
 
 /// <summary>
 /// Describes one executable SM83 opcode entry.
@@ -12,10 +12,10 @@ namespace GbcNet.Core.Cpu;
 /// <param name="execute">
 /// Instruction body. Operand bytes are passed in program order after the opcode.
 /// </param>
-internal sealed class Sm83Instruction(
+internal sealed class Instruction(
     byte byteLength,
     int machineCycles,
-    Action<Sm83Cpu, byte, byte> execute
+    Action<Cpu, byte, byte> execute
 )
 {
     /// <summary>
@@ -31,5 +31,5 @@ internal sealed class Sm83Instruction(
     /// <summary>
     /// Instruction body. Operand bytes are passed in program order after the opcode.
     /// </summary>
-    public Action<Sm83Cpu, byte, byte> Execute { get; } = execute;
+    public Action<Cpu, byte, byte> Execute { get; } = execute;
 }

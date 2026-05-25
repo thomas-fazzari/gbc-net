@@ -1,9 +1,9 @@
-namespace GbcNet.Core.Cpu;
+namespace GbcNet.Core.Cpu.Sm83;
 
 /// <summary>
 /// Stores SM83 CPU registers and exposes 16-bit register pairs.
 /// </summary>
-internal sealed class CpuRegisters
+internal sealed class Registers
 {
     /// <summary>
     /// Keeps only the four SM83 flag bits stored in F.
@@ -140,33 +140,33 @@ internal sealed class CpuRegisters
     /// <summary>
     /// Reads an SM83 r16 register pair.
     /// </summary>
-    public ushort GetRegisterPair(Sm83RegisterPair registerPair) =>
+    public ushort GetRegisterPair(RegisterPair registerPair) =>
         registerPair switch
         {
-            Sm83RegisterPair.BC => BC,
-            Sm83RegisterPair.DE => DE,
-            Sm83RegisterPair.HL => HL,
-            Sm83RegisterPair.SP => SP,
+            RegisterPair.BC => BC,
+            RegisterPair.DE => DE,
+            RegisterPair.HL => HL,
+            RegisterPair.SP => SP,
             _ => throw new ArgumentOutOfRangeException(nameof(registerPair)),
         };
 
     /// <summary>
     /// Writes an SM83 r16 register pair.
     /// </summary>
-    public void SetRegisterPair(Sm83RegisterPair registerPair, ushort value)
+    public void SetRegisterPair(RegisterPair registerPair, ushort value)
     {
         switch (registerPair)
         {
-            case Sm83RegisterPair.BC:
+            case RegisterPair.BC:
                 BC = value;
                 return;
-            case Sm83RegisterPair.DE:
+            case RegisterPair.DE:
                 DE = value;
                 return;
-            case Sm83RegisterPair.HL:
+            case RegisterPair.HL:
                 HL = value;
                 return;
-            case Sm83RegisterPair.SP:
+            case RegisterPair.SP:
                 SP = value;
                 return;
             default:
@@ -220,7 +220,7 @@ internal enum CpuFlag : byte
 /// <summary>
 /// SM83 16-bit register pairs used by r16 instructions.
 /// </summary>
-internal enum Sm83RegisterPair : byte
+internal enum RegisterPair : byte
 {
     /// <summary>
     /// BC register pair.

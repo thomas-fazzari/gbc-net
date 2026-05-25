@@ -1,12 +1,12 @@
 using System.Globalization;
 using GbcNet.Core.Memory;
 
-namespace GbcNet.Core.Cpu;
+namespace GbcNet.Core.Cpu.Sm83;
 
 /// <summary>
 /// Executes SM83 instructions against the CPU-visible memory bus.
 /// </summary>
-internal sealed class Sm83Cpu(MemoryBus bus)
+internal sealed class Cpu(MemoryBus bus)
 {
     private const ushort PostBootProgramCounter = 0x0100;
     private const ushort PostBootStackPointer = 0xFFFE;
@@ -16,7 +16,7 @@ internal sealed class Sm83Cpu(MemoryBus bus)
     /// <summary>
     /// Mutable SM83 register file.
     /// </summary>
-    public CpuRegisters Registers { get; } =
+    public Registers Registers { get; } =
         new() { PC = PostBootProgramCounter, SP = PostBootStackPointer };
 
     /// <summary>
@@ -28,8 +28,8 @@ internal sealed class Sm83Cpu(MemoryBus bus)
     public int Step()
     {
         byte opcode = FetchByte();
-        Sm83Instruction instruction =
-            Sm83InstructionSet.Find(opcode)
+        Instruction instruction =
+            InstructionSet.Find(opcode)
             ?? throw new NotSupportedException(
                 string.Format(
                     CultureInfo.InvariantCulture,

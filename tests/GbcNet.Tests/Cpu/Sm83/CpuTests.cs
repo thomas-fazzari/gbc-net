@@ -1,13 +1,19 @@
 using FluentResults;
 using GbcNet.Core.Cartridges;
-using GbcNet.Core.Cpu;
+using GbcNet.Core.Cpu.Sm83;
 using GbcNet.Core.Memory;
 using GbcNet.Tests.Cartridges;
+using Sm83Cpu = GbcNet.Core.Cpu.Sm83.Cpu;
 
-namespace GbcNet.Tests.Cpu;
+namespace GbcNet.Tests.Cpu.Sm83;
 
-public sealed class Sm83CpuTests
+public sealed class CpuTests
 {
+    private const byte BcRegisterPair = (byte)RegisterPair.BC;
+    private const byte DeRegisterPair = (byte)RegisterPair.DE;
+    private const byte HlRegisterPair = (byte)RegisterPair.HL;
+    private const byte SpRegisterPair = (byte)RegisterPair.SP;
+
     [Fact]
     public void Constructor_InitializesDmgPostBootProgramCounterAndStackPointer()
     {
@@ -232,6 +238,34 @@ public sealed class Sm83CpuTests
         Assert.Equal(0x0000, cpu.Registers.SP);
         Assert.Equal(0xF0, cpu.Registers.F);
         Assert.Equal(0x0104, cpu.Registers.PC);
+    }
+
+    [Theory]
+    [InlineData(0x09, BcRegisterPair, 0x0001, 0x0002, 0xF0, 0x0003, 0x80)]
+    [InlineData(0x19, DeRegisterPair, 0x0FFF, 0x0001, 0x80, 0x1000, 0xA0)]
+    [InlineData(0x29, HlRegisterPair, 0x8000, 0x8000, 0x00, 0x0000, 0x10)]
+    [InlineData(0x39, SpRegisterPair, 0xFFFF, 0x0001, 0xC0, 0x0000, 0xB0)]
+    public void Step_AddsRegisterPairToHlAndUpdatesFlags(
+        byte opcode,
+        byte sourceRegisterPair,
+        ushort initialHl,
+        ushort sourceValue,
+        byte initialFlags,
+        ushort expectedHl,
+        byte expectedFlags
+    )
+    {
+        Sm83Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
+        cpu.Registers.HL = initialHl;
+        cpu.Registers.SetRegisterPair((RegisterPair)sourceRegisterPair, sourceValue);
+        cpu.Registers.F = initialFlags;
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(2, machineCycles);
+        Assert.Equal(expectedHl, cpu.Registers.HL);
+        Assert.Equal(expectedFlags, cpu.Registers.F);
+        Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
     [Fact]
