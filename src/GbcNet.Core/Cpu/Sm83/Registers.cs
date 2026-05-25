@@ -138,6 +138,55 @@ internal sealed class Registers
     }
 
     /// <summary>
+    /// Reads an SM83 r8 register.
+    /// </summary>
+    public byte GetRegister(Register8 register) =>
+        register switch
+        {
+            Register8.B => B,
+            Register8.C => C,
+            Register8.D => D,
+            Register8.E => E,
+            Register8.H => H,
+            Register8.L => L,
+            Register8.A => A,
+            _ => throw new ArgumentOutOfRangeException(nameof(register)),
+        };
+
+    /// <summary>
+    /// Writes an SM83 r8 register.
+    /// </summary>
+    public void SetRegister(Register8 register, byte value)
+    {
+        switch (register)
+        {
+            case Register8.B:
+                B = value;
+                return;
+            case Register8.C:
+                C = value;
+                return;
+            case Register8.D:
+                D = value;
+                return;
+            case Register8.E:
+                E = value;
+                return;
+            case Register8.H:
+                H = value;
+                return;
+            case Register8.L:
+                L = value;
+                return;
+            case Register8.A:
+                A = value;
+                return;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(register));
+        }
+    }
+
+    /// <summary>
     /// Reads an SM83 r16 register pair.
     /// </summary>
     public ushort GetRegisterPair(RegisterPair registerPair) =>
@@ -215,6 +264,50 @@ internal enum CpuFlag : byte
     /// Zero flag, bit 7.
     /// </summary>
     Zero = 0x80,
+}
+
+/// <summary>
+/// SM83 8-bit CPU registers used by r8 instructions.
+/// </summary>
+/// <remarks>
+/// Values match the r8 opcode encoding; value 6 is [HL], not a CPU register.
+/// </remarks>
+internal enum Register8 : byte
+{
+    /// <summary>
+    /// B register.
+    /// </summary>
+    B = 0,
+
+    /// <summary>
+    /// C register.
+    /// </summary>
+    C = 1,
+
+    /// <summary>
+    /// D register.
+    /// </summary>
+    D = 2,
+
+    /// <summary>
+    /// E register.
+    /// </summary>
+    E = 3,
+
+    /// <summary>
+    /// H register.
+    /// </summary>
+    H = 4,
+
+    /// <summary>
+    /// L register.
+    /// </summary>
+    L = 5,
+
+    /// <summary>
+    /// Accumulator register.
+    /// </summary>
+    A = 7,
 }
 
 /// <summary>

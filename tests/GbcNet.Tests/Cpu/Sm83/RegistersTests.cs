@@ -71,6 +71,45 @@ public sealed class RegistersTests
     }
 
     [Fact]
+    public void RegisterAccessors_ReadAndWriteR8Registers()
+    {
+        Registers registers = new()
+        {
+            A = 0x12,
+            B = 0x34,
+            C = 0x56,
+            D = 0x78,
+            E = 0x9A,
+            H = 0xBC,
+            L = 0xDE,
+        };
+
+        Assert.Equal(0x34, registers.GetRegister(Register8.B));
+        Assert.Equal(0x56, registers.GetRegister(Register8.C));
+        Assert.Equal(0x78, registers.GetRegister(Register8.D));
+        Assert.Equal(0x9A, registers.GetRegister(Register8.E));
+        Assert.Equal(0xBC, registers.GetRegister(Register8.H));
+        Assert.Equal(0xDE, registers.GetRegister(Register8.L));
+        Assert.Equal(0x12, registers.GetRegister(Register8.A));
+
+        registers.SetRegister(Register8.B, 0x01);
+        registers.SetRegister(Register8.C, 0x23);
+        registers.SetRegister(Register8.D, 0x45);
+        registers.SetRegister(Register8.E, 0x67);
+        registers.SetRegister(Register8.H, 0x89);
+        registers.SetRegister(Register8.L, 0xAB);
+        registers.SetRegister(Register8.A, 0xCD);
+
+        Assert.Equal(0x01, registers.B);
+        Assert.Equal(0x23, registers.C);
+        Assert.Equal(0x45, registers.D);
+        Assert.Equal(0x67, registers.E);
+        Assert.Equal(0x89, registers.H);
+        Assert.Equal(0xAB, registers.L);
+        Assert.Equal(0xCD, registers.A);
+    }
+
+    [Fact]
     public void RegisterPairAccessors_ReadAndWriteR16Pairs()
     {
         Registers registers = new()

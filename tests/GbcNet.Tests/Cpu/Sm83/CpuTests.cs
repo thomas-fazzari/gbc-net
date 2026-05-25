@@ -9,6 +9,13 @@ namespace GbcNet.Tests.Cpu.Sm83;
 
 public sealed class CpuTests
 {
+    private const byte ARegister = (byte)Register8.A;
+    private const byte BRegister = (byte)Register8.B;
+    private const byte CRegister = (byte)Register8.C;
+    private const byte DRegister = (byte)Register8.D;
+    private const byte ERegister = (byte)Register8.E;
+    private const byte HRegister = (byte)Register8.H;
+    private const byte LRegister = (byte)Register8.L;
     private const byte BcRegisterPair = (byte)RegisterPair.BC;
     private const byte DeRegisterPair = (byte)RegisterPair.DE;
     private const byte HlRegisterPair = (byte)RegisterPair.HL;
@@ -238,6 +245,43 @@ public sealed class CpuTests
         Assert.Equal(0x0000, cpu.Registers.SP);
         Assert.Equal(0xF0, cpu.Registers.F);
         Assert.Equal(0x0104, cpu.Registers.PC);
+    }
+
+    [Theory]
+    [InlineData(0x04, BRegister, 0x0F, 0xD0, 0x10, 0x30)]
+    [InlineData(0x0C, CRegister, 0xFF, 0x10, 0x00, 0xB0)]
+    [InlineData(0x14, DRegister, 0x00, 0xF0, 0x01, 0x10)]
+    [InlineData(0x1C, ERegister, 0x7E, 0x00, 0x7F, 0x00)]
+    [InlineData(0x24, HRegister, 0x2F, 0x10, 0x30, 0x30)]
+    [InlineData(0x2C, LRegister, 0xFE, 0x10, 0xFF, 0x10)]
+    [InlineData(0x3C, ARegister, 0xFF, 0x00, 0x00, 0xA0)]
+    [InlineData(0x05, BRegister, 0x10, 0x90, 0x0F, 0x70)]
+    [InlineData(0x0D, CRegister, 0x01, 0xB0, 0x00, 0xD0)]
+    [InlineData(0x15, DRegister, 0x00, 0x00, 0xFF, 0x60)]
+    [InlineData(0x1D, ERegister, 0x20, 0x10, 0x1F, 0x70)]
+    [InlineData(0x25, HRegister, 0x02, 0x10, 0x01, 0x50)]
+    [InlineData(0x2D, LRegister, 0xF0, 0x10, 0xEF, 0x70)]
+    [InlineData(0x3D, ARegister, 0xFF, 0x00, 0xFE, 0x40)]
+    public void Step_UpdatesRegistersAndFlags(
+        byte opcode,
+        byte register,
+        byte initialValue,
+        byte initialFlags,
+        byte expectedValue,
+        byte expectedFlags
+    )
+    {
+        Sm83Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
+        var register8 = (Register8)register;
+        cpu.Registers.SetRegister(register8, initialValue);
+        cpu.Registers.F = initialFlags;
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(1, machineCycles);
+        Assert.Equal(expectedValue, cpu.Registers.GetRegister(register8));
+        Assert.Equal(expectedFlags, cpu.Registers.F);
+        Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
     [Theory]
