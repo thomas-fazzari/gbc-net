@@ -24,6 +24,7 @@ internal static class InstructionSet
         LoadRegisterPairInstructions.Map(builder);
         Arithmetic8Instructions.Map(builder);
         Arithmetic16Instructions.Map(builder);
+        RotateInstructions.Map(builder);
 
         return instructions;
     }
