@@ -154,6 +154,25 @@ public sealed class CpuTests
     }
 
     [Fact]
+    public void Step_LoadsImmediate8IntoMemoryAtHlWithoutChangingFlags()
+    {
+        Sm83Cpu cpu = CreateCpu(bytes =>
+        {
+            bytes[0x0100] = 0x36;
+            bytes[0x0101] = 0x9A;
+        });
+        cpu.Registers.HL = 0xC123;
+        cpu.Registers.F = 0xF0;
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(3, machineCycles);
+        Assert.Equal(0x9A, cpu.ReadByte(0xC123));
+        Assert.Equal(0xF0, cpu.Registers.F);
+        Assert.Equal(0x0102, cpu.Registers.PC);
+    }
+
+    [Fact]
     public void Step_LoadsThroughHlAndUpdatesHl()
     {
         Sm83Cpu cpu = CreateCpu(bytes =>
