@@ -123,6 +123,36 @@ public sealed class CpuTests
         Assert.Equal(0x0102, cpu.Registers.PC);
     }
 
+    [Theory]
+    [InlineData(0x06, BRegister, 0x12)]
+    [InlineData(0x0E, CRegister, 0x23)]
+    [InlineData(0x16, DRegister, 0x34)]
+    [InlineData(0x1E, ERegister, 0x45)]
+    [InlineData(0x26, HRegister, 0x56)]
+    [InlineData(0x2E, LRegister, 0x67)]
+    [InlineData(0x3E, ARegister, 0x78)]
+    public void Step_LoadsImmediate8IntoRegistersWithoutChangingFlags(
+        byte opcode,
+        byte register,
+        byte value
+    )
+    {
+        Sm83Cpu cpu = CreateCpu(bytes =>
+        {
+            bytes[0x0100] = opcode;
+            bytes[0x0101] = value;
+        });
+        var register8 = (Register8)register;
+        cpu.Registers.F = 0xF0;
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(2, machineCycles);
+        Assert.Equal(value, cpu.Registers.GetRegister(register8));
+        Assert.Equal(0xF0, cpu.Registers.F);
+        Assert.Equal(0x0102, cpu.Registers.PC);
+    }
+
     [Fact]
     public void Step_LoadsThroughHlAndUpdatesHl()
     {

@@ -20,6 +20,7 @@ internal static class InstructionSet
         var builder = new OpcodeTableBuilder(instructions);
 
         ControlInstructions.Map(builder);
+        Load8Instructions.Map(builder);
         LoadRegisterPairInstructions.Map(builder);
         Arithmetic8Instructions.Map(builder);
         Arithmetic16Instructions.Map(builder);
