@@ -41,18 +41,15 @@ internal sealed class MemoryBus(Cartridge cartridge)
     {
         return address switch
         {
-            >= AddressMap.RomStart and <= AddressMap.RomEnd => cartridge.ReadRom(address),
-            >= AddressMap.VideoRamStart and <= AddressMap.VideoRamEnd => _videoRam.Read(address),
-            >= AddressMap.ExternalRamStart and <= AddressMap.ExternalRamEnd => 0xFF,
-            >= AddressMap.WorkRamStart and <= AddressMap.WorkRamEnd => _workRam.Read(address),
-            >= AddressMap.EchoRamStart and <= AddressMap.EchoRamEnd => _workRam.Read(address),
-            >= AddressMap.ObjectAttributeMemoryStart and <= AddressMap.ObjectAttributeMemoryEnd =>
-                _objectAttributeMemory.Read(address),
-            >= AddressMap.NotUsableStart and <= AddressMap.NotUsableEnd => 0x00,
-            >= AddressMap.IoRegistersStart and <= AddressMap.IoRegistersEnd => _ioRegisters.Read(
-                address
-            ),
-            >= AddressMap.HighRamStart and <= AddressMap.HighRamEnd => _highRam.Read(address),
+            <= AddressMap.RomEnd => cartridge.ReadRom(address),
+            <= AddressMap.VideoRamEnd => _videoRam.Read(address),
+            <= AddressMap.ExternalRamEnd => 0xFF,
+            <= AddressMap.WorkRamEnd => _workRam.Read(address),
+            <= AddressMap.EchoRamEnd => _workRam.Read(address),
+            <= AddressMap.ObjectAttributeMemoryEnd => _objectAttributeMemory.Read(address),
+            <= AddressMap.NotUsableEnd => 0x00,
+            <= AddressMap.IoRegistersEnd => _ioRegisters.Read(address),
+            <= AddressMap.HighRamEnd => _highRam.Read(address),
             AddressMap.InterruptEnableRegister => _interruptEnable,
         };
     }
@@ -61,25 +58,26 @@ internal sealed class MemoryBus(Cartridge cartridge)
     {
         switch (address)
         {
-            case >= AddressMap.RomStart and <= AddressMap.RomEnd:
-            case >= AddressMap.ExternalRamStart and <= AddressMap.ExternalRamEnd:
-            case >= AddressMap.NotUsableStart and <= AddressMap.NotUsableEnd:
+            case <= AddressMap.RomEnd:
                 return;
-            case >= AddressMap.VideoRamStart and <= AddressMap.VideoRamEnd:
+            case <= AddressMap.VideoRamEnd:
                 _videoRam.Write(address, value);
                 return;
-            case >= AddressMap.WorkRamStart and <= AddressMap.WorkRamEnd:
-            case >= AddressMap.EchoRamStart and <= AddressMap.EchoRamEnd:
+            case <= AddressMap.ExternalRamEnd:
+                return;
+            case <= AddressMap.WorkRamEnd:
+            case <= AddressMap.EchoRamEnd:
                 _workRam.Write(address, value);
                 return;
-            case >= AddressMap.ObjectAttributeMemoryStart
-            and <= AddressMap.ObjectAttributeMemoryEnd:
+            case <= AddressMap.ObjectAttributeMemoryEnd:
                 _objectAttributeMemory.Write(address, value);
                 return;
-            case >= AddressMap.IoRegistersStart and <= AddressMap.IoRegistersEnd:
+            case <= AddressMap.NotUsableEnd:
+                return;
+            case <= AddressMap.IoRegistersEnd:
                 _ioRegisters.Write(address, value);
                 return;
-            case >= AddressMap.HighRamStart and <= AddressMap.HighRamEnd:
+            case <= AddressMap.HighRamEnd:
                 _highRam.Write(address, value);
                 return;
             case AddressMap.InterruptEnableRegister:
