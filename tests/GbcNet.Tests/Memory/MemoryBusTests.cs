@@ -150,7 +150,7 @@ public sealed class MemoryBusTests
         return new MemoryBus(cartridge.Value);
     }
 
-    private static string DescribeErrors(IReadOnlyList<FluentResults.IError> errors)
+    private static string DescribeErrors(IReadOnlyList<IError> errors)
     {
         return string.Join(Environment.NewLine, errors.Select(error => error.Message));
     }

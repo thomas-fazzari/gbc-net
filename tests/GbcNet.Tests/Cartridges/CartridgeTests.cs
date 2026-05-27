@@ -145,13 +145,13 @@ public sealed class CartridgeTests
         Assert.Equal(rom[0x7FFF], result.Value.ReadRom(0x7FFF));
     }
 
-    private static CartridgeLoadErrorCode GetErrorCode(FluentResults.IError error)
+    private static CartridgeLoadErrorCode GetErrorCode(IError error)
     {
         CartridgeLoadError cartridgeError = Assert.IsType<CartridgeLoadError>(error);
         return cartridgeError.Code;
     }
 
-    private static string DescribeErrors(IReadOnlyList<FluentResults.IError> errors)
+    private static string DescribeErrors(IReadOnlyList<IError> errors)
     {
         return string.Join(Environment.NewLine, errors.Select(error => error.Message));
     }

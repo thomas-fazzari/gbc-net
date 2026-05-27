@@ -7,7 +7,7 @@ internal static class TestRomFactory
     /// <summary>
     /// Official Nintendo logo bytes stored at cartridge header addresses 0104-0133.
     /// </summary>
-    private static readonly byte[] NintendoLogo =
+    private static readonly byte[] _nintendoLogo =
     [
         0xCE,
         0xED,
@@ -62,7 +62,7 @@ internal static class TestRomFactory
     public static byte[] Create(Action<byte[]>? configure = null)
     {
         byte[] rom = new byte[32 * 1024];
-        NintendoLogo.CopyTo(rom, 0x0104);
+        _nintendoLogo.CopyTo(rom, 0x0104);
         "TEST ROM"u8.CopyTo(rom.AsSpan(0x0134));
         rom[0x0147] = (byte)CartridgeType.RomOnly;
         rom[0x0148] = 0x00;
