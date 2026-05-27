@@ -35,6 +35,8 @@ internal static class Arithmetic8Instructions
     private const byte AndAccumulatorRegisterOperandEndOpcode = 0xA7;
     private const byte XorAccumulatorRegisterOperandStartOpcode = 0xA8;
     private const byte XorAccumulatorRegisterOperandEndOpcode = 0xAF;
+    private const byte OrAccumulatorRegisterOperandStartOpcode = 0xB0;
+    private const byte OrAccumulatorRegisterOperandEndOpcode = 0xB7;
 
     /// <summary>
     /// Executes one A,r8 accumulator operation after the source operand has been decoded.
@@ -149,6 +151,12 @@ internal static class Arithmetic8Instructions
             XorAccumulatorRegisterOperandStartOpcode,
             XorAccumulatorRegisterOperandEndOpcode,
             XorAccumulatorRegisterOperand
+        );
+        MapAccumulatorRegisterOperand(
+            builder,
+            OrAccumulatorRegisterOperandStartOpcode,
+            OrAccumulatorRegisterOperandEndOpcode,
+            OrAccumulatorRegisterOperand
         );
     }
 
@@ -343,6 +351,19 @@ internal static class Arithmetic8Instructions
     }
 
     /// <summary>
+    /// Applies bitwise OR between the selected r8 operand and A, then updates OR A, r8 flags.
+    /// </summary>
+    private static int OrAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    {
+        byte value = Register8Operands.Read(cpu, source);
+        OrAccumulator(cpu, value);
+
+        return Register8Operands.UsesMemory(source)
+            ? AccumulatorAddressHlOperandMachineCycles
+            : AccumulatorRegisterOperandMachineCycles;
+    }
+
+    /// <summary>
     /// Increments one byte and applies INC r8/[HL] flag effects.
     /// </summary>
     private static byte IncrementByte(Cpu cpu, byte value)
@@ -433,6 +454,20 @@ internal static class Arithmetic8Instructions
     private static void XorAccumulator(Cpu cpu, byte value)
     {
         byte result = (byte)(cpu.Registers.A ^ value);
+
+        cpu.Registers.A = result;
+        cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
+        cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: false);
+        cpu.Registers.SetFlag(CpuFlag.HalfCarry, isSet: false);
+        cpu.Registers.SetFlag(CpuFlag.Carry, isSet: false);
+    }
+
+    /// <summary>
+    /// Applies bitwise OR with A, then applies OR A flag effects.
+    /// </summary>
+    private static void OrAccumulator(Cpu cpu, byte value)
+    {
+        byte result = (byte)(cpu.Registers.A | value);
 
         cpu.Registers.A = result;
         cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
