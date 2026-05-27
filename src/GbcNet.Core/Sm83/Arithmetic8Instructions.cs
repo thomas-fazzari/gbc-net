@@ -27,6 +27,8 @@ internal static class Arithmetic8Instructions
     private const byte AddAccumulatorRegisterOperandEndOpcode = 0x87;
     private const byte AddWithCarryAccumulatorRegisterOperandStartOpcode = 0x88;
     private const byte AddWithCarryAccumulatorRegisterOperandEndOpcode = 0x8F;
+    private const byte SubtractAccumulatorRegisterOperandStartOpcode = 0x90;
+    private const byte SubtractAccumulatorRegisterOperandEndOpcode = 0x97;
 
     /// <summary>
     /// Low 4 bits used to detect H for 8-bit arithmetic.
@@ -103,6 +105,7 @@ internal static class Arithmetic8Instructions
         MapDecrementRegister(builder, DecrementAOpcode, Register8.A);
         MapAddAccumulatorRegisterOperand(builder);
         MapAddWithCarryAccumulatorRegisterOperand(builder);
+        MapSubtractAccumulatorRegisterOperand(builder);
     }
 
     /// <summary>
@@ -220,6 +223,27 @@ internal static class Arithmetic8Instructions
     }
 
     /// <summary>
+    /// Maps SUB A, r8 instructions, which set N and update Z, H, and C.
+    /// </summary>
+    private static void MapSubtractAccumulatorRegisterOperand(OpcodeTableBuilder builder)
+    {
+        for (
+            int opcode = SubtractAccumulatorRegisterOperandStartOpcode;
+            opcode <= SubtractAccumulatorRegisterOperandEndOpcode;
+            opcode++
+        )
+        {
+            byte opcodeByte = (byte)opcode;
+            Register8Operand source = Register8Operands.DecodeSource(opcodeByte);
+            builder.Map(
+                opcodeByte,
+                NoOperandByteLength,
+                (cpu, _, _) => SubtractAccumulatorRegisterOperand(cpu, source)
+            );
+        }
+    }
+
+    /// <summary>
     /// Increments the selected r8 register and updates the INC r8 flags.
     /// </summary>
     private static void IncrementRegister(Cpu cpu, Register8 register)
@@ -285,6 +309,19 @@ internal static class Arithmetic8Instructions
     }
 
     /// <summary>
+    /// Subtracts the selected r8 operand from A and updates SUB A, r8 flags.
+    /// </summary>
+    private static int SubtractAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    {
+        byte value = Register8Operands.Read(cpu, source);
+        SubtractAccumulator(cpu, value, borrow: 0);
+
+        return Register8Operands.UsesMemory(source)
+            ? AccumulatorAddressHlArithmeticMachineCycles
+            : AccumulatorRegisterArithmeticMachineCycles;
+    }
+
+    /// <summary>
     /// Increments one byte and applies INC r8/[HL] flag effects.
     /// </summary>
     private static byte IncrementByte(Cpu cpu, byte value)
@@ -330,6 +367,30 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static bool HasLowNibbleAddCarry(byte left, byte right, int carry) =>
         (left & HalfCarryMask) + (right & HalfCarryMask) + carry > HalfCarryMask;
+
+    /// <summary>
+    /// Subtracts one byte and an optional borrow from A, then applies SUB/SBC A flag effects.
+    /// </summary>
+    private static void SubtractAccumulator(Cpu cpu, byte value, int borrow)
+    {
+        byte accumulator = cpu.Registers.A;
+        int result = accumulator - value - borrow;
+
+        cpu.Registers.A = unchecked((byte)result);
+        cpu.Registers.SetFlag(CpuFlag.Zero, cpu.Registers.A == 0);
+        cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: true);
+        cpu.Registers.SetFlag(
+            CpuFlag.HalfCarry,
+            HasLowNibbleSubtractionBorrow(accumulator, value, borrow)
+        );
+        cpu.Registers.SetFlag(CpuFlag.Carry, result < 0);
+    }
+
+    /// <summary>
+    /// Returns whether subtracting a byte and borrow input borrows from bit 4.
+    /// </summary>
+    private static bool HasLowNibbleSubtractionBorrow(byte left, byte right, int borrow) =>
+        (left & HalfCarryMask) < (right & HalfCarryMask) + borrow;
 
     /// <summary>
     /// Adjusts A to a packed BCD result using the N, H, and C flags from the previous operation.
