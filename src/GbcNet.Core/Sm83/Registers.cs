@@ -11,11 +11,6 @@ internal sealed class Registers
     private const byte FlagsMask = 0xF0;
 
     /// <summary>
-    /// Stores F while forcing unused bits 3-0 to zero.
-    /// </summary>
-    private byte _flagsRegister;
-
-    /// <summary>
     /// Accumulator register.
     /// </summary>
     public byte A { get; set; }
@@ -58,8 +53,8 @@ internal sealed class Registers
     /// </remarks>
     public byte F
     {
-        get => _flagsRegister;
-        set => _flagsRegister = (byte)(value & FlagsMask);
+        get;
+        set => field = (byte)(value & FlagsMask);
     }
 
     /// <summary>

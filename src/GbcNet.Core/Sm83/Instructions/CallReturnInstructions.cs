@@ -26,8 +26,6 @@ internal static class CallReturnInstructions
     private const int RestartMachineCycles = 4;
 
     private const int ConditionOpcodeStep = 0x08;
-    private const byte ConditionCodeMask = 0x03;
-    private const int ConditionCodeShift = 3;
     private const int RestartOpcodeStep = 0x08;
     private const byte RestartTargetMask = 0x38;
 
@@ -57,7 +55,7 @@ internal static class CallReturnInstructions
         )
         {
             byte opcodeByte = (byte)opcode;
-            ConditionCode conditionCode = DecodeConditionCode(opcodeByte);
+            ConditionCode conditionCode = InstructionOperands.DecodeConditionCode(opcodeByte);
             builder.Map(
                 opcodeByte,
                 NoOperandByteLength,
@@ -78,7 +76,7 @@ internal static class CallReturnInstructions
         )
         {
             byte opcodeByte = (byte)opcode;
-            ConditionCode conditionCode = DecodeConditionCode(opcodeByte);
+            ConditionCode conditionCode = InstructionOperands.DecodeConditionCode(opcodeByte);
             builder.Map(
                 opcodeByte,
                 Immediate16ByteLength,
@@ -176,12 +174,6 @@ internal static class CallReturnInstructions
         Call(cpu, targetAddress);
         return RestartMachineCycles;
     }
-
-    /// <summary>
-    /// Decodes the condition code stored in opcode bits 4-3.
-    /// </summary>
-    private static ConditionCode DecodeConditionCode(byte opcode) =>
-        (ConditionCode)((opcode >> ConditionCodeShift) & ConditionCodeMask);
 
     /// <summary>
     /// Decodes the RST target address stored in opcode bits 5-3.

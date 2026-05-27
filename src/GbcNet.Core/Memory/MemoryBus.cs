@@ -7,8 +7,6 @@ namespace GbcNet.Core.Memory;
 /// </summary>
 internal sealed class MemoryBus(Cartridge cartridge)
 {
-    private readonly Cartridge _cartridge = cartridge;
-
     /// <summary>
     /// Plain backing store for HRAM at FF80-FFFE.
     /// </summary>
@@ -43,7 +41,7 @@ internal sealed class MemoryBus(Cartridge cartridge)
     {
         return address switch
         {
-            >= AddressMap.RomStart and <= AddressMap.RomEnd => _cartridge.ReadRom(address),
+            >= AddressMap.RomStart and <= AddressMap.RomEnd => cartridge.ReadRom(address),
             >= AddressMap.VideoRamStart and <= AddressMap.VideoRamEnd => _videoRam.Read(address),
             >= AddressMap.ExternalRamStart and <= AddressMap.ExternalRamEnd => 0xFF,
             >= AddressMap.WorkRamStart and <= AddressMap.WorkRamEnd => _workRam.Read(address),

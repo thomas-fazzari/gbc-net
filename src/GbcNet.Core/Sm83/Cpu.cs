@@ -11,8 +11,6 @@ internal sealed class Cpu(MemoryBus bus)
     private const ushort PostBootProgramCounter = 0x0100;
     private const ushort PostBootStackPointer = 0xFFFE;
 
-    private readonly MemoryBus _bus = bus;
-
     /// <summary>
     /// Mutable SM83 register file.
     /// </summary>
@@ -47,14 +45,14 @@ internal sealed class Cpu(MemoryBus bus)
     /// <summary>
     /// Reads one byte from CPU-visible memory.
     /// </summary>
-    internal byte ReadByte(ushort address) => _bus.ReadByte(address);
+    internal byte ReadByte(ushort address) => bus.ReadByte(address);
 
     /// <summary>
     /// Writes one byte to CPU-visible memory.
     /// </summary>
     internal void WriteByte(ushort address, byte value)
     {
-        _bus.WriteByte(address, value);
+        bus.WriteByte(address, value);
     }
 
     /// <summary>
@@ -88,7 +86,7 @@ internal sealed class Cpu(MemoryBus bus)
     /// </summary>
     private byte FetchByte()
     {
-        byte value = _bus.ReadByte(Registers.PC);
+        byte value = bus.ReadByte(Registers.PC);
         Registers.PC = unchecked((ushort)(Registers.PC + 1));
         return value;
     }
