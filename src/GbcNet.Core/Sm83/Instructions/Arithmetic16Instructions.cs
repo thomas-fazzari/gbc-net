@@ -17,6 +17,7 @@ internal static class Arithmetic16Instructions
     private const byte IncrementSpOpcode = 0x33;
     private const byte AddHlSpOpcode = 0x39;
     private const byte DecrementSpOpcode = 0x3B;
+    private const byte AddStackPointerImmediate8Opcode = 0xE8;
 
     /// <summary>
     /// Low 12 bits used to detect the H flag for ADD HL, r16.
@@ -24,8 +25,10 @@ internal static class Arithmetic16Instructions
     private const ushort AddHlHalfCarryMask = 0x0FFF;
 
     private const byte NoOperandByteLength = 1;
+    private const byte Immediate8ByteLength = 2;
 
     private const int AddHlRegisterPairMachineCycles = 2;
+    private const int AddStackPointerImmediate8MachineCycles = 4;
     private const int IncrementDecrementRegisterPairMachineCycles = 2;
 
     /// <summary>
@@ -48,6 +51,11 @@ internal static class Arithmetic16Instructions
         MapIncrementRegisterPair(builder, IncrementSpOpcode, RegisterPair.SP);
         MapAddHlRegisterPair(builder, AddHlSpOpcode, RegisterPair.SP);
         MapDecrementRegisterPair(builder, DecrementSpOpcode, RegisterPair.SP);
+        builder.Map(
+            AddStackPointerImmediate8Opcode,
+            Immediate8ByteLength,
+            ExecuteAddStackPointerImmediate8
+        );
     }
 
     /// <summary>
@@ -141,6 +149,20 @@ internal static class Arithmetic16Instructions
     {
         ushort value = cpu.Registers.GetRegisterPair(registerPair);
         cpu.Registers.SetRegisterPair(registerPair, unchecked((ushort)(value - 1)));
+    }
+
+    /// <summary>
+    /// Executes ADD SP, imm8 using the SP+signed-imm8 flag rules.
+    /// </summary>
+    private static int ExecuteAddStackPointerImmediate8(Cpu cpu, byte offset, byte highByte)
+    {
+        (ushort value, byte flags) = InstructionOperands.AddSignedImmediate8WithFlags(
+            cpu.Registers.SP,
+            offset
+        );
+        cpu.Registers.SP = value;
+        cpu.Registers.F = flags;
+        return AddStackPointerImmediate8MachineCycles;
     }
 
     /// <summary>

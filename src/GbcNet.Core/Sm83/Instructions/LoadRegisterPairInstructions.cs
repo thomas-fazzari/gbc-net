@@ -18,11 +18,14 @@ internal static class LoadRegisterPairInstructions
     private const byte LoadSpImmediate16Opcode = 0x31;
     private const byte LoadAddressHlDecrementFromAOpcode = 0x32;
     private const byte LoadAFromAddressHlDecrementOpcode = 0x3A;
+    private const byte LoadHlFromStackPointerPlusImmediate8Opcode = 0xF8;
     private const byte LoadStackPointerFromHlOpcode = 0xF9;
 
     private const byte NoOperandByteLength = 1;
+    private const byte Immediate8ByteLength = 2;
     private const byte Immediate16ByteLength = 3;
 
+    private const int LoadHlFromStackPointerPlusImmediate8MachineCycles = 3;
     private const int LoadRegisterPairAddressMachineCycles = 2;
     private const int LoadRegisterPairImmediate16MachineCycles = 3;
     private const int LoadImmediate16AddressFromStackPointerMachineCycles = 5;
@@ -84,6 +87,11 @@ internal static class LoadRegisterPairInstructions
             LoadAFromAddressHlDecrementOpcode,
             NoOperandByteLength,
             ExecuteLoadAFromAddressHlDecrement
+        );
+        builder.Map(
+            LoadHlFromStackPointerPlusImmediate8Opcode,
+            Immediate8ByteLength,
+            ExecuteLoadHlFromStackPointerPlusImmediate8
         );
         builder.Map(
             LoadStackPointerFromHlOpcode,
@@ -211,6 +219,24 @@ internal static class LoadRegisterPairInstructions
         cpu.Registers.A = cpu.ReadByte(address);
         cpu.Registers.HL = unchecked((ushort)(address - 1));
         return LoadRegisterPairAddressMachineCycles;
+    }
+
+    /// <summary>
+    /// Executes LD HL, SP+imm8 using the SP+signed-imm8 flag rules.
+    /// </summary>
+    private static int ExecuteLoadHlFromStackPointerPlusImmediate8(
+        Cpu cpu,
+        byte offset,
+        byte highByte
+    )
+    {
+        (ushort value, byte flags) = InstructionOperands.AddSignedImmediate8WithFlags(
+            cpu.Registers.SP,
+            offset
+        );
+        cpu.Registers.HL = value;
+        cpu.Registers.F = flags;
+        return LoadHlFromStackPointerPlusImmediate8MachineCycles;
     }
 
     /// <summary>
