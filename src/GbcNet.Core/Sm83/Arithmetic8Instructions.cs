@@ -23,9 +23,11 @@ internal static class Arithmetic8Instructions
     private const byte DecrementAddressHlOpcode = 0x35;
     private const byte IncrementAOpcode = 0x3C;
     private const byte DecrementAOpcode = 0x3D;
+    private const byte AddAccumulatorRegisterOperandStartOpcode = 0x80;
+    private const byte AddAccumulatorRegisterOperandEndOpcode = 0x87;
 
     /// <summary>
-    /// Low 4 bits used to detect H for INC and DEC r8.
+    /// Low 4 bits used to detect H for 8-bit arithmetic.
     /// </summary>
     private const byte HalfCarryMask = 0x0F;
 
@@ -52,6 +54,8 @@ internal static class Arithmetic8Instructions
     private const byte NoOperandByteLength = 1;
 
     private const int AddressHlMachineCycles = 3;
+    private const int AddAccumulatorAddressHlMachineCycles = 2;
+    private const int AddAccumulatorRegisterMachineCycles = 1;
     private const int ComplementAccumulatorMachineCycles = 1;
     private const int DecimalAdjustAccumulatorMachineCycles = 1;
     private const int RegisterMachineCycles = 1;
@@ -95,6 +99,7 @@ internal static class Arithmetic8Instructions
         MapDecrementAddressHl(builder, DecrementAddressHlOpcode);
         MapIncrementRegister(builder, IncrementAOpcode, Register8.A);
         MapDecrementRegister(builder, DecrementAOpcode, Register8.A);
+        MapAddAccumulatorRegisterOperand(builder);
     }
 
     /// <summary>
@@ -170,6 +175,27 @@ internal static class Arithmetic8Instructions
     }
 
     /// <summary>
+    /// Maps ADD A, r8 instructions, which reset N and update Z, H, and C.
+    /// </summary>
+    private static void MapAddAccumulatorRegisterOperand(OpcodeTableBuilder builder)
+    {
+        for (
+            int opcode = AddAccumulatorRegisterOperandStartOpcode;
+            opcode <= AddAccumulatorRegisterOperandEndOpcode;
+            opcode++
+        )
+        {
+            byte opcodeByte = (byte)opcode;
+            Register8Operand source = Register8Operands.DecodeSource(opcodeByte);
+            builder.Map(
+                opcodeByte,
+                NoOperandByteLength,
+                (cpu, _, _) => AddAccumulatorRegisterOperand(cpu, source)
+            );
+        }
+    }
+
+    /// <summary>
     /// Increments the selected r8 register and updates the INC r8 flags.
     /// </summary>
     private static void IncrementRegister(Cpu cpu, Register8 register)
@@ -208,6 +234,19 @@ internal static class Arithmetic8Instructions
     }
 
     /// <summary>
+    /// Adds the selected r8 operand to A and updates ADD A, r8 flags.
+    /// </summary>
+    private static int AddAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    {
+        byte value = Register8Operands.Read(cpu, source);
+        AddAccumulator(cpu, value);
+
+        return Register8Operands.UsesMemory(source)
+            ? AddAccumulatorAddressHlMachineCycles
+            : AddAccumulatorRegisterMachineCycles;
+    }
+
+    /// <summary>
     /// Increments one byte and applies INC r8/[HL] flag effects.
     /// </summary>
     private static byte IncrementByte(Cpu cpu, byte value)
@@ -232,6 +271,27 @@ internal static class Arithmetic8Instructions
         cpu.Registers.SetFlag(CpuFlag.HalfCarry, (value & HalfCarryMask) == 0);
         return result;
     }
+
+    /// <summary>
+    /// Adds one byte to A and applies ADD A flag effects.
+    /// </summary>
+    private static void AddAccumulator(Cpu cpu, byte value)
+    {
+        byte accumulator = cpu.Registers.A;
+        int result = accumulator + value;
+
+        cpu.Registers.A = unchecked((byte)result);
+        cpu.Registers.SetFlag(CpuFlag.Zero, cpu.Registers.A == 0);
+        cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: false);
+        cpu.Registers.SetFlag(CpuFlag.HalfCarry, HasLowNibbleAddCarry(accumulator, value));
+        cpu.Registers.SetFlag(CpuFlag.Carry, result > byte.MaxValue);
+    }
+
+    /// <summary>
+    /// Returns whether adding two bytes carries from bit 3 into bit 4.
+    /// </summary>
+    private static bool HasLowNibbleAddCarry(byte left, byte right) =>
+        (left & HalfCarryMask) + (right & HalfCarryMask) > HalfCarryMask;
 
     /// <summary>
     /// Adjusts A to a packed BCD result using the N, H, and C flags from the previous operation.

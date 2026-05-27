@@ -20,16 +20,6 @@ internal static class Load8Instructions
     private const byte NoOperandByteLength = 1;
     private const byte Immediate8ByteLength = 2;
 
-    /// <summary>
-    /// Mask for one r8 operand after shifting it to bits 2-0.
-    /// </summary>
-    private const byte RegisterOperandMask = 0x07;
-
-    /// <summary>
-    /// Right shift for the destination r8 operand encoded in opcode bits 5-3.
-    /// </summary>
-    private const int DestinationRegisterOperandShift = 3;
-
     private const int LoadAddressHlRegisterOperandMachineCycles = 2;
     private const int LoadAddressHlImmediate8MachineCycles = 3;
     private const int LoadRegisterOperandMachineCycles = 1;
@@ -95,12 +85,11 @@ internal static class Load8Instructions
                 continue;
             }
 
-            var destination = (Register8Operand)(
-                (opcode >> DestinationRegisterOperandShift) & RegisterOperandMask
-            );
-            var source = (Register8Operand)(opcode & RegisterOperandMask);
+            byte opcodeByte = (byte)opcode;
+            Register8Operand destination = Register8Operands.DecodeDestination(opcodeByte);
+            Register8Operand source = Register8Operands.DecodeSource(opcodeByte);
             builder.Map(
-                (byte)opcode,
+                opcodeByte,
                 NoOperandByteLength,
                 (cpu, _, _) => LoadRegisterOperand(cpu, destination, source)
             );
@@ -116,33 +105,11 @@ internal static class Load8Instructions
         Register8Operand source
     )
     {
-        byte value = ReadRegisterOperand(cpu, source);
-        WriteRegisterOperand(cpu, destination, value);
+        byte value = Register8Operands.Read(cpu, source);
+        Register8Operands.Write(cpu, destination, value);
 
-        return destination is Register8Operand.AddressHl || source is Register8Operand.AddressHl
+        return Register8Operands.UsesMemory(destination) || Register8Operands.UsesMemory(source)
             ? LoadAddressHlRegisterOperandMachineCycles
             : LoadRegisterOperandMachineCycles;
-    }
-
-    /// <summary>
-    /// Reads either a CPU register or the byte at HL.
-    /// </summary>
-    private static byte ReadRegisterOperand(Cpu cpu, Register8Operand operand) =>
-        operand is Register8Operand.AddressHl
-            ? cpu.ReadByte(cpu.Registers.HL)
-            : cpu.Registers.GetRegister((Register8)operand);
-
-    /// <summary>
-    /// Writes either a CPU register or the byte at HL.
-    /// </summary>
-    private static void WriteRegisterOperand(Cpu cpu, Register8Operand operand, byte value)
-    {
-        if (operand is Register8Operand.AddressHl)
-        {
-            cpu.WriteByte(cpu.Registers.HL, value);
-            return;
-        }
-
-        cpu.Registers.SetRegister((Register8)operand, value);
     }
 }
