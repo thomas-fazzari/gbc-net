@@ -18,6 +18,7 @@ internal static class LoadRegisterPairInstructions
     private const byte LoadSpImmediate16Opcode = 0x31;
     private const byte LoadAddressHlDecrementFromAOpcode = 0x32;
     private const byte LoadAFromAddressHlDecrementOpcode = 0x3A;
+    private const byte LoadStackPointerFromHlOpcode = 0xF9;
 
     private const byte NoOperandByteLength = 1;
     private const byte Immediate16ByteLength = 3;
@@ -25,6 +26,7 @@ internal static class LoadRegisterPairInstructions
     private const int LoadRegisterPairAddressMachineCycles = 2;
     private const int LoadRegisterPairImmediate16MachineCycles = 3;
     private const int LoadImmediate16AddressFromStackPointerMachineCycles = 5;
+    private const int LoadStackPointerFromHlMachineCycles = 2;
 
     /// <summary>
     /// Maps implemented r16 and r16mem load instructions into the opcode table.
@@ -82,6 +84,11 @@ internal static class LoadRegisterPairInstructions
             LoadAFromAddressHlDecrementOpcode,
             NoOperandByteLength,
             ExecuteLoadAFromAddressHlDecrement
+        );
+        builder.Map(
+            LoadStackPointerFromHlOpcode,
+            NoOperandByteLength,
+            ExecuteLoadStackPointerFromHl
         );
     }
 
@@ -204,6 +211,15 @@ internal static class LoadRegisterPairInstructions
         cpu.Registers.A = cpu.ReadByte(address);
         cpu.Registers.HL = unchecked((ushort)(address - 1));
         return LoadRegisterPairAddressMachineCycles;
+    }
+
+    /// <summary>
+    /// Executes LD SP, HL by copying HL into the stack pointer without changing flags.
+    /// </summary>
+    private static int ExecuteLoadStackPointerFromHl(Cpu cpu, byte lowByte, byte highByte)
+    {
+        cpu.Registers.SP = cpu.Registers.HL;
+        return LoadStackPointerFromHlMachineCycles;
     }
 
     /// <summary>
