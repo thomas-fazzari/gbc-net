@@ -1,12 +1,13 @@
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Interrupts;
+using GbcNet.Core.Timers;
 
 namespace GbcNet.Core.Memory;
 
 /// <summary>
 /// Routes CPU-visible 16-bit addresses to the currently modeled DMG memory regions.
 /// </summary>
-internal sealed class MemoryBus(Cartridge cartridge)
+internal sealed class MemoryBus
 {
     /// <summary>
     /// Plain backing store for HRAM at FF80-FFFE.
@@ -35,23 +36,40 @@ internal sealed class MemoryBus(Cartridge cartridge)
     private readonly MappedMemory _videoRam = new(AddressMap.VideoRamStart, AddressMap.VideoRamEnd);
 
     private readonly WorkRam _workRam = new();
+    private readonly Cartridge _cartridge;
 
     /// <summary>
     /// Interrupt request and enable registers routed through FF0F and FFFF.
     /// </summary>
-    public InterruptController Interrupts { get; } = new();
+    public InterruptController Interrupts { get; }
+
+    /// <summary>
+    /// Divider and timer registers routed through FF04-FF07.
+    /// </summary>
+    public TimerController Timers { get; }
+
+    public MemoryBus(Cartridge cartridge)
+    {
+        _cartridge = cartridge;
+        Interrupts = new InterruptController();
+        Timers = new TimerController(Interrupts);
+    }
 
     public byte ReadByte(ushort address)
     {
         return address switch
         {
-            <= AddressMap.RomEnd => cartridge.ReadRom(address),
+            <= AddressMap.RomEnd => _cartridge.ReadRom(address),
             <= AddressMap.VideoRamEnd => _videoRam.Read(address),
             <= AddressMap.ExternalRamEnd => 0xFF,
             <= AddressMap.WorkRamEnd => _workRam.Read(address),
             <= AddressMap.EchoRamEnd => _workRam.Read(address),
             <= AddressMap.ObjectAttributeMemoryEnd => _objectAttributeMemory.Read(address),
             <= AddressMap.NotUsableEnd => 0x00,
+            AddressMap.DividerRegister => Timers.ReadDivider(),
+            AddressMap.TimerCounterRegister => Timers.TimerCounter,
+            AddressMap.TimerModuloRegister => Timers.TimerModulo,
+            AddressMap.TimerControlRegister => Timers.ReadTimerControl(),
             AddressMap.InterruptFlagRegister => Interrupts.ReadInterruptFlag(),
             <= AddressMap.IoRegistersEnd => _ioRegisters.Read(address),
             <= AddressMap.HighRamEnd => _highRam.Read(address),
@@ -78,6 +96,18 @@ internal sealed class MemoryBus(Cartridge cartridge)
                 _objectAttributeMemory.Write(address, value);
                 return;
             case <= AddressMap.NotUsableEnd:
+                return;
+            case AddressMap.DividerRegister:
+                Timers.ResetDivider();
+                return;
+            case AddressMap.TimerCounterRegister:
+                Timers.TimerCounter = value;
+                return;
+            case AddressMap.TimerModuloRegister:
+                Timers.TimerModulo = value;
+                return;
+            case AddressMap.TimerControlRegister:
+                Timers.WriteTimerControl(value);
                 return;
             case AddressMap.InterruptFlagRegister:
                 Interrupts.WriteInterruptFlag(value);

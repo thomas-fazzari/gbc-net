@@ -1,4 +1,3 @@
-using FluentResults;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Memory;
 using GbcNet.Tests.Cartridges;
@@ -140,6 +139,25 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
+    public void ReadWriteByte_RoutesTimerRegisters()
+    {
+        MemoryBus bus = CreateBus();
+        bus.Timers.Tick(256);
+
+        Assert.Equal(0x01, bus.ReadByte(AddressMap.DividerRegister));
+
+        bus.WriteByte(AddressMap.DividerRegister, 0xFF);
+        bus.WriteByte(AddressMap.TimerCounterRegister, 0x12);
+        bus.WriteByte(AddressMap.TimerModuloRegister, 0x34);
+        bus.WriteByte(AddressMap.TimerControlRegister, 0b0000_0101);
+
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.DividerRegister));
+        Assert.Equal(0x12, bus.ReadByte(AddressMap.TimerCounterRegister));
+        Assert.Equal(0x34, bus.ReadByte(AddressMap.TimerModuloRegister));
+        Assert.Equal(0b1111_1101, bus.ReadByte(AddressMap.TimerControlRegister));
+    }
+
+    [Fact]
     public void ReadWriteByte_ExternalRamIsUnmappedForRomOnlyCartridge()
     {
         MemoryBus bus = CreateBus();
@@ -157,13 +175,7 @@ public sealed class MemoryBusTests
 
     private static MemoryBus CreateBus(byte[] rom)
     {
-        Result<Cartridge> cartridge = Cartridge.Load(rom);
-        Assert.True(cartridge.IsSuccess, DescribeErrors(cartridge.Errors));
-        return new MemoryBus(cartridge.Value);
-    }
-
-    private static string DescribeErrors(IReadOnlyList<IError> errors)
-    {
-        return string.Join(Environment.NewLine, errors.Select(error => error.Message));
+        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        return new MemoryBus(cartridge);
     }
 }

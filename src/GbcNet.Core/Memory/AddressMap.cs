@@ -81,6 +81,26 @@ internal static class AddressMap
     public const ushort IoRegistersStart = 0xFF00;
 
     /// <summary>
+    /// Address of DIV, the CPU-visible high byte of the internal divider counter.
+    /// </summary>
+    public const ushort DividerRegister = 0xFF04;
+
+    /// <summary>
+    /// Address of TIMA, the programmable timer counter.
+    /// </summary>
+    public const ushort TimerCounterRegister = 0xFF05;
+
+    /// <summary>
+    /// Address of TMA, the value reloaded into TIMA after overflow.
+    /// </summary>
+    public const ushort TimerModuloRegister = 0xFF06;
+
+    /// <summary>
+    /// Address of TAC, the timer enable and clock select register.
+    /// </summary>
+    public const ushort TimerControlRegister = 0xFF07;
+
+    /// <summary>
     /// Address of the interrupt flag register.
     /// </summary>
     public const ushort InterruptFlagRegister = 0xFF0F;

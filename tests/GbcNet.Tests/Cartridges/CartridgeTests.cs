@@ -10,16 +10,15 @@ public sealed class CartridgeTests
     {
         byte[] rom = TestRomFactory.Create();
 
-        Result<Cartridge> result = Cartridge.Load(rom);
+        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
-        Assert.True(result.IsSuccess, DescribeErrors(result.Errors));
-        Assert.Equal("TEST ROM", result.Value.Header.Title);
-        Assert.Equal(CgbSupport.None, result.Value.Header.CgbSupport);
-        Assert.Equal(CartridgeType.RomOnly, result.Value.Header.CartridgeType);
-        Assert.Equal(32 * 1024, result.Value.Header.RomSizeBytes);
-        Assert.Equal(2, result.Value.Header.RomBankCount);
-        Assert.Equal(0, result.Value.Header.RamSizeBytes);
-        Assert.Equal(0, result.Value.Header.RamBankCount);
+        Assert.Equal("TEST ROM", cartridge.Header.Title);
+        Assert.Equal(CgbSupport.None, cartridge.Header.CgbSupport);
+        Assert.Equal(CartridgeType.RomOnly, cartridge.Header.CartridgeType);
+        Assert.Equal(32 * 1024, cartridge.Header.RomSizeBytes);
+        Assert.Equal(2, cartridge.Header.RomBankCount);
+        Assert.Equal(0, cartridge.Header.RamSizeBytes);
+        Assert.Equal(0, cartridge.Header.RamBankCount);
     }
 
     [Fact]
@@ -27,10 +26,9 @@ public sealed class CartridgeTests
     {
         byte[] rom = TestRomFactory.Create(bytes => bytes[0x0143] = 0x80);
 
-        Result<Cartridge> result = Cartridge.Load(rom);
+        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
-        Assert.True(result.IsSuccess, DescribeErrors(result.Errors));
-        Assert.Equal(CgbSupport.Enhanced, result.Value.Header.CgbSupport);
+        Assert.Equal(CgbSupport.Enhanced, cartridge.Header.CgbSupport);
     }
 
     [Fact]
@@ -42,10 +40,9 @@ public sealed class CartridgeTests
             bytes[0x0143] = 0x80;
         });
 
-        Result<Cartridge> result = Cartridge.Load(rom);
+        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
-        Assert.True(result.IsSuccess, DescribeErrors(result.Errors));
-        Assert.Equal("FIFTEENCHARROM!", result.Value.Header.Title);
+        Assert.Equal("FIFTEENCHARROM!", cartridge.Header.Title);
     }
 
     [Fact]
@@ -58,10 +55,9 @@ public sealed class CartridgeTests
             bytes[0x014B] = 0x33;
         });
 
-        Result<Cartridge> result = Cartridge.Load(rom);
+        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
-        Assert.True(result.IsSuccess, DescribeErrors(result.Errors));
-        Assert.Equal("ELEVENCHARS", result.Value.Header.Title);
+        Assert.Equal("ELEVENCHARS", cartridge.Header.Title);
     }
 
     [Fact]
@@ -69,10 +65,9 @@ public sealed class CartridgeTests
     {
         byte[] rom = TestRomFactory.Create(bytes => bytes[0x0143] = 0xC0);
 
-        Result<Cartridge> result = Cartridge.Load(rom);
+        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
-        Assert.True(result.IsSuccess, DescribeErrors(result.Errors));
-        Assert.Equal(CgbSupport.Required, result.Value.Header.CgbSupport);
+        Assert.Equal(CgbSupport.Required, cartridge.Header.CgbSupport);
     }
 
     [Fact]
@@ -137,22 +132,16 @@ public sealed class CartridgeTests
         byte[] rom = TestRomFactory.Create();
         rom[0x0000] = 0x31;
         rom[0x4000] = 0xC3;
-        Result<Cartridge> result = Cartridge.Load(rom);
+        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
-        Assert.True(result.IsSuccess, DescribeErrors(result.Errors));
-        Assert.Equal(0x31, result.Value.ReadRom(0x0000));
-        Assert.Equal(0xC3, result.Value.ReadRom(0x4000));
-        Assert.Equal(rom[0x7FFF], result.Value.ReadRom(0x7FFF));
+        Assert.Equal(0x31, cartridge.ReadRom(0x0000));
+        Assert.Equal(0xC3, cartridge.ReadRom(0x4000));
+        Assert.Equal(rom[0x7FFF], cartridge.ReadRom(0x7FFF));
     }
 
     private static CartridgeLoadErrorCode GetErrorCode(IError error)
     {
         CartridgeLoadError cartridgeError = Assert.IsType<CartridgeLoadError>(error);
         return cartridgeError.Code;
-    }
-
-    private static string DescribeErrors(IReadOnlyList<IError> errors)
-    {
-        return string.Join(Environment.NewLine, errors.Select(error => error.Message));
     }
 }
