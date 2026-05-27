@@ -39,11 +39,24 @@ internal static class Arithmetic8Instructions
     private const byte OrAccumulatorRegisterOperandEndOpcode = 0xB7;
     private const byte CompareAccumulatorRegisterOperandStartOpcode = 0xB8;
     private const byte CompareAccumulatorRegisterOperandEndOpcode = 0xBF;
+    private const byte AddAccumulatorImmediateOpcode = 0xC6;
+    private const byte AddWithCarryAccumulatorImmediateOpcode = 0xCE;
+    private const byte SubtractAccumulatorImmediateOpcode = 0xD6;
+    private const byte SubtractWithCarryAccumulatorImmediateOpcode = 0xDE;
+    private const byte AndAccumulatorImmediateOpcode = 0xE6;
+    private const byte XorAccumulatorImmediateOpcode = 0xEE;
+    private const byte OrAccumulatorImmediateOpcode = 0xF6;
+    private const byte CompareAccumulatorImmediateOpcode = 0xFE;
 
     /// <summary>
     /// Executes one A,r8 accumulator operation after the source operand has been decoded.
     /// </summary>
     private delegate int AccumulatorRegisterOperandExecutor(Cpu cpu, Register8Operand source);
+
+    /// <summary>
+    /// Applies one A,imm8 accumulator operation after the immediate byte has been fetched.
+    /// </summary>
+    private delegate void AccumulatorImmediateOperandExecutor(Cpu cpu, byte value);
 
     /// <summary>
     /// Low 4 bits used to detect H for 8-bit arithmetic.
@@ -71,8 +84,10 @@ internal static class Arithmetic8Instructions
     private const byte DecimalHighCarryThreshold = 0x9F;
 
     private const byte NoOperandByteLength = 1;
+    private const byte Immediate8ByteLength = 2;
 
     private const int AddressHlMachineCycles = 3;
+    private const int AccumulatorImmediateOperandMachineCycles = 2;
     private const int AccumulatorAddressHlOperandMachineCycles = 2;
     private const int AccumulatorRegisterOperandMachineCycles = 1;
     private const int ComplementAccumulatorMachineCycles = 1;
@@ -165,6 +180,34 @@ internal static class Arithmetic8Instructions
             CompareAccumulatorRegisterOperandStartOpcode,
             CompareAccumulatorRegisterOperandEndOpcode,
             CompareAccumulatorRegisterOperand
+        );
+        MapAccumulatorImmediateOperand(
+            builder,
+            AddAccumulatorImmediateOpcode,
+            static (cpu, value) => AddAccumulator(cpu, value, carry: 0)
+        );
+        MapAccumulatorImmediateOperand(
+            builder,
+            AddWithCarryAccumulatorImmediateOpcode,
+            AddWithCarryAccumulator
+        );
+        MapAccumulatorImmediateOperand(
+            builder,
+            SubtractAccumulatorImmediateOpcode,
+            static (cpu, value) => SubtractAccumulator(cpu, value, borrow: 0)
+        );
+        MapAccumulatorImmediateOperand(
+            builder,
+            SubtractWithCarryAccumulatorImmediateOpcode,
+            SubtractWithCarryAccumulator
+        );
+        MapAccumulatorImmediateOperand(builder, AndAccumulatorImmediateOpcode, AndAccumulator);
+        MapAccumulatorImmediateOperand(builder, XorAccumulatorImmediateOpcode, XorAccumulator);
+        MapAccumulatorImmediateOperand(builder, OrAccumulatorImmediateOpcode, OrAccumulator);
+        MapAccumulatorImmediateOperand(
+            builder,
+            CompareAccumulatorImmediateOpcode,
+            CompareAccumulator
         );
     }
 
@@ -297,8 +340,7 @@ internal static class Arithmetic8Instructions
     private static int AddWithCarryAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
         byte value = Register8Operands.Read(cpu, source);
-        int carry = cpu.Registers.IsFlagSet(CpuFlag.Carry) ? 1 : 0;
-        AddAccumulator(cpu, value, carry);
+        AddWithCarryAccumulator(cpu, value);
 
         return Register8Operands.UsesMemory(source)
             ? AccumulatorAddressHlOperandMachineCycles
@@ -324,8 +366,7 @@ internal static class Arithmetic8Instructions
     private static int SubtractWithCarryAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
         byte value = Register8Operands.Read(cpu, source);
-        int borrow = cpu.Registers.IsFlagSet(CpuFlag.Carry) ? 1 : 0;
-        SubtractAccumulator(cpu, value, borrow);
+        SubtractWithCarryAccumulator(cpu, value);
 
         return Register8Operands.UsesMemory(source)
             ? AccumulatorAddressHlOperandMachineCycles
@@ -426,6 +467,15 @@ internal static class Arithmetic8Instructions
     }
 
     /// <summary>
+    /// Adds one byte and the C flag to A, then applies ADC A flag effects.
+    /// </summary>
+    private static void AddWithCarryAccumulator(Cpu cpu, byte value)
+    {
+        int carry = cpu.Registers.IsFlagSet(CpuFlag.Carry) ? 1 : 0;
+        AddAccumulator(cpu, value, carry);
+    }
+
+    /// <summary>
     /// Returns whether adding two bytes and a carry input carries from bit 3 into bit 4.
     /// </summary>
     private static bool HasLowNibbleAddCarry(byte left, byte right, int carry) =>
@@ -447,6 +497,15 @@ internal static class Arithmetic8Instructions
             HasLowNibbleSubtractionBorrow(accumulator, value, borrow)
         );
         cpu.Registers.SetFlag(CpuFlag.Carry, result < 0);
+    }
+
+    /// <summary>
+    /// Subtracts one byte and the C flag from A, then applies SBC A flag effects.
+    /// </summary>
+    private static void SubtractWithCarryAccumulator(Cpu cpu, byte value)
+    {
+        int borrow = cpu.Registers.IsFlagSet(CpuFlag.Carry) ? 1 : 0;
+        SubtractAccumulator(cpu, value, borrow);
     }
 
     /// <summary>
@@ -530,6 +589,26 @@ internal static class Arithmetic8Instructions
             Register8Operand source = Register8Operands.DecodeSource(opcodeByte);
             builder.Map(opcodeByte, NoOperandByteLength, (cpu, _, _) => execute(cpu, source));
         }
+    }
+
+    /// <summary>
+    /// Maps an A,imm8 instruction whose operand byte is fetched after the opcode.
+    /// </summary>
+    private static void MapAccumulatorImmediateOperand(
+        OpcodeTableBuilder builder,
+        byte opcode,
+        AccumulatorImmediateOperandExecutor execute
+    )
+    {
+        builder.Map(
+            opcode,
+            Immediate8ByteLength,
+            (cpu, value, _) =>
+            {
+                execute(cpu, value);
+                return AccumulatorImmediateOperandMachineCycles;
+            }
+        );
     }
 
     /// <summary>

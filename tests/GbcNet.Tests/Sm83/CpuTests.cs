@@ -340,6 +340,40 @@ public sealed class CpuTests
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
+    [Theory]
+    [InlineData(0xC6, 0xF0, 0x12, 0x23, 0x35, 0x00)]
+    [InlineData(0xCE, 0x10, 0x0F, 0x00, 0x10, 0x20)]
+    [InlineData(0xD6, 0x00, 0x10, 0x01, 0x0F, 0x60)]
+    [InlineData(0xDE, 0x10, 0x10, 0x0F, 0x00, 0xE0)]
+    [InlineData(0xE6, 0xF0, 0xF0, 0x0F, 0x00, 0xA0)]
+    [InlineData(0xEE, 0xF0, 0x33, 0x33, 0x00, 0x80)]
+    [InlineData(0xF6, 0xF0, 0x00, 0x00, 0x00, 0x80)]
+    [InlineData(0xFE, 0xF0, 0x42, 0x42, 0x42, 0xC0)]
+    public void Step_ExecutesAccumulatorImmediateOperandAndUpdatesFlags(
+        byte opcode,
+        byte initialFlags,
+        byte initialA,
+        byte value,
+        byte expectedA,
+        byte expectedFlags
+    )
+    {
+        Cpu cpu = CreateCpu(bytes =>
+        {
+            bytes[0x0100] = opcode;
+            bytes[0x0101] = value;
+        });
+        cpu.Registers.A = initialA;
+        cpu.Registers.F = initialFlags;
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(2, machineCycles);
+        Assert.Equal(expectedA, cpu.Registers.A);
+        Assert.Equal(expectedFlags, cpu.Registers.F);
+        Assert.Equal(0x0102, cpu.Registers.PC);
+    }
+
     [Fact]
     public void Step_AddsMemoryAtHlToAccumulatorAndUpdatesFlags()
     {
