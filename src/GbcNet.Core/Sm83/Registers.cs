@@ -270,7 +270,8 @@ internal enum CpuFlag : byte
 /// SM83 8-bit CPU registers used by r8 instructions.
 /// </summary>
 /// <remarks>
-/// Values match the r8 opcode encoding; value 6 is [HL], not a CPU register.
+/// Values match the r8 opcode encoding for real registers; encoding value 6 is [HL], not a CPU
+/// register.
 /// </remarks>
 internal enum Register8 : byte
 {
@@ -303,6 +304,52 @@ internal enum Register8 : byte
     /// L register.
     /// </summary>
     L = 5,
+
+    /// <summary>
+    /// Accumulator register.
+    /// </summary>
+    A = 7,
+}
+
+/// <summary>
+/// SM83 r8 instruction operands encoded in opcode bits.
+/// </summary>
+internal enum Register8Operand : byte
+{
+    /// <summary>
+    /// B register.
+    /// </summary>
+    B = 0,
+
+    /// <summary>
+    /// C register.
+    /// </summary>
+    C = 1,
+
+    /// <summary>
+    /// D register.
+    /// </summary>
+    D = 2,
+
+    /// <summary>
+    /// E register.
+    /// </summary>
+    E = 3,
+
+    /// <summary>
+    /// H register.
+    /// </summary>
+    H = 4,
+
+    /// <summary>
+    /// L register.
+    /// </summary>
+    L = 5,
+
+    /// <summary>
+    /// Byte stored at the address in HL.
+    /// </summary>
+    AddressHl = 6,
 
     /// <summary>
     /// Accumulator register.

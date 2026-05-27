@@ -223,6 +223,73 @@ public sealed class CpuTests
     }
 
     [Theory]
+    [InlineData(0x41, CRegister, 0x23, BRegister)]
+    [InlineData(0x5A, DRegister, 0x34, ERegister)]
+    [InlineData(0x7C, HRegister, 0x56, ARegister)]
+    public void Step_LoadsRegisterIntoRegisterWithoutChangingFlags(
+        byte opcode,
+        byte source,
+        byte sourceValue,
+        byte destination
+    )
+    {
+        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
+        var sourceRegister = (Register8)source;
+        var destinationRegister = (Register8)destination;
+        cpu.Registers.SetRegister(sourceRegister, sourceValue);
+        cpu.Registers.F = 0xF0;
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(1, machineCycles);
+        Assert.Equal(sourceValue, cpu.Registers.GetRegister(destinationRegister));
+        Assert.Equal(0xF0, cpu.Registers.F);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+    }
+
+    [Theory]
+    [InlineData(0x46, BRegister)]
+    [InlineData(0x7E, ARegister)]
+    public void Step_LoadsMemoryAtHlIntoRegisterWithoutChangingFlags(byte opcode, byte destination)
+    {
+        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
+        var destinationRegister = (Register8)destination;
+        cpu.Registers.HL = 0xC123;
+        cpu.Registers.F = 0xF0;
+        cpu.WriteByte(0xC123, 0x9A);
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(2, machineCycles);
+        Assert.Equal(0x9A, cpu.Registers.GetRegister(destinationRegister));
+        Assert.Equal(0xF0, cpu.Registers.F);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+    }
+
+    [Theory]
+    [InlineData(0x70, BRegister, 0x12)]
+    [InlineData(0x77, ARegister, 0x34)]
+    public void Step_LoadsRegisterIntoMemoryAtHlWithoutChangingFlags(
+        byte opcode,
+        byte source,
+        byte sourceValue
+    )
+    {
+        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
+        var sourceRegister = (Register8)source;
+        cpu.Registers.HL = 0xC123;
+        cpu.Registers.SetRegister(sourceRegister, sourceValue);
+        cpu.Registers.F = 0xF0;
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(2, machineCycles);
+        Assert.Equal(sourceValue, cpu.ReadByte(0xC123));
+        Assert.Equal(0xF0, cpu.Registers.F);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+    }
+
+    [Theory]
     [InlineData(0x07, 0x80, 0xE0, 0x01, 0x10)]
     [InlineData(0x07, 0x01, 0xF0, 0x02, 0x00)]
     [InlineData(0x0F, 0x01, 0xE0, 0x80, 0x10)]
@@ -535,14 +602,16 @@ public sealed class CpuTests
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
-    [Fact]
-    public void Step_RejectsUnsupportedOpcode()
+    [Theory]
+    [InlineData(0x76, "Opcode 0x76 is not supported yet.")]
+    [InlineData(0xFF, "Opcode 0xFF is not supported yet.")]
+    public void Step_RejectsUnsupportedOpcode(byte opcode, string expectedMessage)
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0xFF);
+        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() => cpu.Step());
 
-        Assert.Equal("Opcode 0xFF is not supported yet.", exception.Message);
+        Assert.Equal(expectedMessage, exception.Message);
     }
 
     private static Cpu CreateCpu(Action<byte[]>? configure = null)
