@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace GbcNet.Core.Sm83;
 
 /// <summary>
@@ -6,7 +8,10 @@ namespace GbcNet.Core.Sm83;
 internal static class ControlInstructions
 {
     private const byte NopOpcode = 0x00;
+    private const byte CbPrefixOpcode = 0xCB;
+
     private const byte NoOperandByteLength = 1;
+    private const byte PrefixedInstructionByteLength = 2;
 
     private const int NopMachineCycles = 1;
 
@@ -16,5 +21,24 @@ internal static class ControlInstructions
     public static void Map(OpcodeTableBuilder builder)
     {
         builder.Map(NopOpcode, NoOperandByteLength, static (_, _, _) => NopMachineCycles);
+        builder.Map(CbPrefixOpcode, PrefixedInstructionByteLength, ExecuteCbPrefix);
+    }
+
+    /// <summary>
+    /// Executes a CB-prefixed opcode from the separate prefixed instruction table.
+    /// </summary>
+    private static int ExecuteCbPrefix(Cpu cpu, byte prefixedOpcode, byte _)
+    {
+        Instruction instruction =
+            CbInstructionSet.Find(prefixedOpcode)
+            ?? throw new NotSupportedException(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "CB opcode 0x{0:X2} is not supported yet.",
+                    prefixedOpcode
+                )
+            );
+
+        return instruction.Execute(cpu, 0, 0);
     }
 }
