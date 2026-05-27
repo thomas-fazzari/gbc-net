@@ -338,7 +338,10 @@ public sealed class CpuTests
     [InlineData(0x88, BRegister, 0xE0, 0x12, 0x23, 0x35, 0x00)]
     [InlineData(0x89, CRegister, 0x10, 0x0F, 0x00, 0x10, 0x20)]
     [InlineData(0x8F, ARegister, 0x10, 0xFF, 0xFF, 0xFF, 0x30)]
-    public void Step_AddsRegisterOperandAndCarryToAccumulatorAndUpdatesFlags(
+    [InlineData(0x98, BRegister, 0x00, 0x35, 0x23, 0x12, 0x40)]
+    [InlineData(0x99, CRegister, 0x10, 0x10, 0x0F, 0x00, 0xE0)]
+    [InlineData(0x9F, ARegister, 0x10, 0x00, 0x00, 0xFF, 0x70)]
+    public void Step_UsesCarryFlagForAccumulatorRegisterArithmeticAndUpdatesFlags(
         byte opcode,
         byte source,
         byte initialFlags,
@@ -423,6 +426,24 @@ public sealed class CpuTests
         Assert.Equal(0x1F, cpu.Registers.A);
         Assert.Equal(0x60, cpu.Registers.F);
         Assert.Equal(0x01, cpu.ReadByte(0xC123));
+        Assert.Equal(0x0101, cpu.Registers.PC);
+    }
+
+    [Fact]
+    public void Step_SubtractsMemoryAtHlAndCarryFromAccumulatorAndUpdatesFlags()
+    {
+        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0x9E);
+        cpu.Registers.A = 0x01;
+        cpu.Registers.HL = 0xC123;
+        cpu.Registers.F = (byte)CpuFlag.Carry;
+        cpu.WriteByte(0xC123, 0x00);
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(2, machineCycles);
+        Assert.Equal(0x00, cpu.Registers.A);
+        Assert.Equal(0xC0, cpu.Registers.F);
+        Assert.Equal(0x00, cpu.ReadByte(0xC123));
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 

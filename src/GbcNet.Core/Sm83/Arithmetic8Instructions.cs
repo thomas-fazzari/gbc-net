@@ -29,6 +29,8 @@ internal static class Arithmetic8Instructions
     private const byte AddWithCarryAccumulatorRegisterOperandEndOpcode = 0x8F;
     private const byte SubtractAccumulatorRegisterOperandStartOpcode = 0x90;
     private const byte SubtractAccumulatorRegisterOperandEndOpcode = 0x97;
+    private const byte SubtractWithCarryAccumulatorRegisterOperandStartOpcode = 0x98;
+    private const byte SubtractWithCarryAccumulatorRegisterOperandEndOpcode = 0x9F;
 
     /// <summary>
     /// Low 4 bits used to detect H for 8-bit arithmetic.
@@ -106,6 +108,7 @@ internal static class Arithmetic8Instructions
         MapAddAccumulatorRegisterOperand(builder);
         MapAddWithCarryAccumulatorRegisterOperand(builder);
         MapSubtractAccumulatorRegisterOperand(builder);
+        MapSubtractWithCarryAccumulatorRegisterOperand(builder);
     }
 
     /// <summary>
@@ -244,6 +247,27 @@ internal static class Arithmetic8Instructions
     }
 
     /// <summary>
+    /// Maps SBC A, r8 instructions, which subtract the carry flag and update Z, N, H, and C.
+    /// </summary>
+    private static void MapSubtractWithCarryAccumulatorRegisterOperand(OpcodeTableBuilder builder)
+    {
+        for (
+            int opcode = SubtractWithCarryAccumulatorRegisterOperandStartOpcode;
+            opcode <= SubtractWithCarryAccumulatorRegisterOperandEndOpcode;
+            opcode++
+        )
+        {
+            byte opcodeByte = (byte)opcode;
+            Register8Operand source = Register8Operands.DecodeSource(opcodeByte);
+            builder.Map(
+                opcodeByte,
+                NoOperandByteLength,
+                (cpu, _, _) => SubtractWithCarryAccumulatorRegisterOperand(cpu, source)
+            );
+        }
+    }
+
+    /// <summary>
     /// Increments the selected r8 register and updates the INC r8 flags.
     /// </summary>
     private static void IncrementRegister(Cpu cpu, Register8 register)
@@ -315,6 +339,20 @@ internal static class Arithmetic8Instructions
     {
         byte value = Register8Operands.Read(cpu, source);
         SubtractAccumulator(cpu, value, borrow: 0);
+
+        return Register8Operands.UsesMemory(source)
+            ? AccumulatorAddressHlArithmeticMachineCycles
+            : AccumulatorRegisterArithmeticMachineCycles;
+    }
+
+    /// <summary>
+    /// Subtracts the selected r8 operand and C flag from A, then updates SBC A, r8 flags.
+    /// </summary>
+    private static int SubtractWithCarryAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    {
+        byte value = Register8Operands.Read(cpu, source);
+        int borrow = cpu.Registers.IsFlagSet(CpuFlag.Carry) ? 1 : 0;
+        SubtractAccumulator(cpu, value, borrow);
 
         return Register8Operands.UsesMemory(source)
             ? AccumulatorAddressHlArithmeticMachineCycles
