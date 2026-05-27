@@ -62,8 +62,11 @@ internal static class Arithmetic16Instructions
         builder.Map(
             opcode,
             NoOperandByteLength,
-            AddHlRegisterPairMachineCycles,
-            (cpu, _, _) => AddHlRegisterPair(cpu, registerPair)
+            (cpu, _, _) =>
+            {
+                AddHlRegisterPair(cpu, registerPair);
+                return AddHlRegisterPairMachineCycles;
+            }
         );
     }
 
@@ -79,8 +82,11 @@ internal static class Arithmetic16Instructions
         builder.Map(
             opcode,
             NoOperandByteLength,
-            IncrementDecrementRegisterPairMachineCycles,
-            (cpu, _, _) => IncrementRegisterPair(cpu, registerPair)
+            (cpu, _, _) =>
+            {
+                IncrementRegisterPair(cpu, registerPair);
+                return IncrementDecrementRegisterPairMachineCycles;
+            }
         );
     }
 
@@ -96,8 +102,11 @@ internal static class Arithmetic16Instructions
         builder.Map(
             opcode,
             NoOperandByteLength,
-            IncrementDecrementRegisterPairMachineCycles,
-            (cpu, _, _) => DecrementRegisterPair(cpu, registerPair)
+            (cpu, _, _) =>
+            {
+                DecrementRegisterPair(cpu, registerPair);
+                return IncrementDecrementRegisterPairMachineCycles;
+            }
         );
     }
 

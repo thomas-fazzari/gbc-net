@@ -40,7 +40,6 @@ internal static class LoadRegisterPairInstructions
         builder.Map(
             LoadAddressImmediate16FromStackPointerOpcode,
             Immediate16ByteLength,
-            LoadImmediate16AddressFromStackPointerMachineCycles,
             ExecuteLoadAddressImmediate16FromStackPointer
         );
         MapReadAccumulatorFromRegisterPairAddress(
@@ -65,13 +64,11 @@ internal static class LoadRegisterPairInstructions
         builder.Map(
             LoadAddressHlIncrementFromAOpcode,
             NoOperandByteLength,
-            LoadRegisterPairAddressMachineCycles,
             ExecuteLoadAddressHlIncrementFromA
         );
         builder.Map(
             LoadAFromAddressHlIncrementOpcode,
             NoOperandByteLength,
-            LoadRegisterPairAddressMachineCycles,
             ExecuteLoadAFromAddressHlIncrement
         );
 
@@ -79,13 +76,11 @@ internal static class LoadRegisterPairInstructions
         builder.Map(
             LoadAddressHlDecrementFromAOpcode,
             NoOperandByteLength,
-            LoadRegisterPairAddressMachineCycles,
             ExecuteLoadAddressHlDecrementFromA
         );
         builder.Map(
             LoadAFromAddressHlDecrementOpcode,
             NoOperandByteLength,
-            LoadRegisterPairAddressMachineCycles,
             ExecuteLoadAFromAddressHlDecrement
         );
     }
@@ -102,9 +97,11 @@ internal static class LoadRegisterPairInstructions
         builder.Map(
             opcode,
             Immediate16ByteLength,
-            LoadRegisterPairImmediate16MachineCycles,
             (cpu, lowByte, highByte) =>
-                LoadRegisterPairImmediate16(cpu, registerPair, lowByte, highByte)
+            {
+                LoadRegisterPairImmediate16(cpu, registerPair, lowByte, highByte);
+                return LoadRegisterPairImmediate16MachineCycles;
+            }
         );
     }
 
@@ -120,8 +117,11 @@ internal static class LoadRegisterPairInstructions
         builder.Map(
             opcode,
             NoOperandByteLength,
-            LoadRegisterPairAddressMachineCycles,
-            (cpu, _, _) => WriteAccumulatorToRegisterPairAddress(cpu, registerPair)
+            (cpu, _, _) =>
+            {
+                WriteAccumulatorToRegisterPairAddress(cpu, registerPair);
+                return LoadRegisterPairAddressMachineCycles;
+            }
         );
     }
 
@@ -137,61 +137,69 @@ internal static class LoadRegisterPairInstructions
         builder.Map(
             opcode,
             NoOperandByteLength,
-            LoadRegisterPairAddressMachineCycles,
-            (cpu, _, _) => ReadAccumulatorFromRegisterPairAddress(cpu, registerPair)
+            (cpu, _, _) =>
+            {
+                ReadAccumulatorFromRegisterPairAddress(cpu, registerPair);
+                return LoadRegisterPairAddressMachineCycles;
+            }
         );
     }
 
     /// <summary>
     /// Executes LD [imm16], SP by writing SP as a little-endian word.
     /// </summary>
-    private static void ExecuteLoadAddressImmediate16FromStackPointer(
+    private static int ExecuteLoadAddressImmediate16FromStackPointer(
         Cpu cpu,
         byte lowByte,
         byte highByte
     )
     {
         WriteLittleEndianWord(cpu, ReadImmediate16(lowByte, highByte), cpu.Registers.SP);
+        return LoadImmediate16AddressFromStackPointerMachineCycles;
     }
 
     /// <summary>
     /// Executes LD [HL+], A by writing A, then incrementing HL.
     /// </summary>
-    private static void ExecuteLoadAddressHlIncrementFromA(Cpu cpu, byte lowByte, byte highByte)
+    private static int ExecuteLoadAddressHlIncrementFromA(Cpu cpu, byte lowByte, byte highByte)
     {
         ushort address = cpu.Registers.HL;
         cpu.WriteByte(address, cpu.Registers.A);
         cpu.Registers.HL = unchecked((ushort)(address + 1));
+        return LoadRegisterPairAddressMachineCycles;
     }
 
     /// <summary>
     /// Executes LD A, [HL+] by reading A, then incrementing HL.
     /// </summary>
-    private static void ExecuteLoadAFromAddressHlIncrement(Cpu cpu, byte lowByte, byte highByte)
+    private static int ExecuteLoadAFromAddressHlIncrement(Cpu cpu, byte lowByte, byte highByte)
     {
         ushort address = cpu.Registers.HL;
         cpu.Registers.A = cpu.ReadByte(address);
         cpu.Registers.HL = unchecked((ushort)(address + 1));
+        return LoadRegisterPairAddressMachineCycles;
     }
 
     /// <summary>
     /// Executes LD [HL-], A by writing A, then decrementing HL.
     /// </summary>
-    private static void ExecuteLoadAddressHlDecrementFromA(Cpu cpu, byte lowByte, byte highByte)
+    private static int ExecuteLoadAddressHlDecrementFromA(Cpu cpu, byte lowByte, byte highByte)
     {
         ushort address = cpu.Registers.HL;
         cpu.WriteByte(address, cpu.Registers.A);
         cpu.Registers.HL = unchecked((ushort)(address - 1));
+        return LoadRegisterPairAddressMachineCycles;
     }
 
     /// <summary>
     /// Executes LD A, [HL-] by reading A, then decrementing HL.
     /// </summary>
-    private static void ExecuteLoadAFromAddressHlDecrement(Cpu cpu, byte lowByte, byte highByte)
+    private static int ExecuteLoadAFromAddressHlDecrement(Cpu cpu, byte lowByte, byte highByte)
     {
         ushort address = cpu.Registers.HL;
         cpu.Registers.A = cpu.ReadByte(address);
         cpu.Registers.HL = unchecked((ushort)(address - 1));
+        return LoadRegisterPairAddressMachineCycles;
     }
 
     /// <summary>

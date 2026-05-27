@@ -20,14 +20,20 @@ internal static class FlagInstructions
         builder.Map(
             SetCarryFlagOpcode,
             NoOperandByteLength,
-            CarryFlagMachineCycles,
-            static (cpu, _, _) => SetCarryFlag(cpu)
+            static (cpu, _, _) =>
+            {
+                SetCarryFlag(cpu);
+                return CarryFlagMachineCycles;
+            }
         );
         builder.Map(
             ComplementCarryFlagOpcode,
             NoOperandByteLength,
-            CarryFlagMachineCycles,
-            static (cpu, _, _) => ComplementCarryFlag(cpu)
+            static (cpu, _, _) =>
+            {
+                ComplementCarryFlag(cpu);
+                return CarryFlagMachineCycles;
+            }
         );
     }
 

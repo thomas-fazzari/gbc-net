@@ -41,8 +41,7 @@ internal sealed class Cpu(MemoryBus bus)
         byte firstOperand = instruction.ByteLength > 1 ? FetchByte() : (byte)0;
         byte secondOperand = instruction.ByteLength > 2 ? FetchByte() : (byte)0;
 
-        instruction.Execute(this, firstOperand, secondOperand);
-        return instruction.MachineCycles;
+        return instruction.Execute(this, firstOperand, secondOperand);
     }
 
     /// <summary>

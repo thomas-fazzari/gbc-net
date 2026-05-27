@@ -74,14 +74,20 @@ internal static class Arithmetic8Instructions
         builder.Map(
             DecimalAdjustAccumulatorOpcode,
             NoOperandByteLength,
-            DecimalAdjustAccumulatorMachineCycles,
-            static (cpu, _, _) => DecimalAdjustAccumulator(cpu)
+            static (cpu, _, _) =>
+            {
+                DecimalAdjustAccumulator(cpu);
+                return DecimalAdjustAccumulatorMachineCycles;
+            }
         );
         builder.Map(
             ComplementAccumulatorOpcode,
             NoOperandByteLength,
-            ComplementAccumulatorMachineCycles,
-            static (cpu, _, _) => ComplementAccumulator(cpu)
+            static (cpu, _, _) =>
+            {
+                ComplementAccumulator(cpu);
+                return ComplementAccumulatorMachineCycles;
+            }
         );
         MapIncrementRegister(builder, IncrementLOpcode, Register8.L);
         MapDecrementRegister(builder, DecrementLOpcode, Register8.L);
@@ -103,8 +109,11 @@ internal static class Arithmetic8Instructions
         builder.Map(
             opcode,
             NoOperandByteLength,
-            RegisterMachineCycles,
-            (cpu, _, _) => IncrementRegister(cpu, register)
+            (cpu, _, _) =>
+            {
+                IncrementRegister(cpu, register);
+                return RegisterMachineCycles;
+            }
         );
     }
 
@@ -120,8 +129,11 @@ internal static class Arithmetic8Instructions
         builder.Map(
             opcode,
             NoOperandByteLength,
-            RegisterMachineCycles,
-            (cpu, _, _) => DecrementRegister(cpu, register)
+            (cpu, _, _) =>
+            {
+                DecrementRegister(cpu, register);
+                return RegisterMachineCycles;
+            }
         );
     }
 
@@ -133,8 +145,11 @@ internal static class Arithmetic8Instructions
         builder.Map(
             opcode,
             NoOperandByteLength,
-            AddressHlMachineCycles,
-            static (cpu, _, _) => IncrementAddressHl(cpu)
+            static (cpu, _, _) =>
+            {
+                IncrementAddressHl(cpu);
+                return AddressHlMachineCycles;
+            }
         );
     }
 
@@ -146,8 +161,11 @@ internal static class Arithmetic8Instructions
         builder.Map(
             opcode,
             NoOperandByteLength,
-            AddressHlMachineCycles,
-            static (cpu, _, _) => DecrementAddressHl(cpu)
+            static (cpu, _, _) =>
+            {
+                DecrementAddressHl(cpu);
+                return AddressHlMachineCycles;
+            }
         );
     }
 

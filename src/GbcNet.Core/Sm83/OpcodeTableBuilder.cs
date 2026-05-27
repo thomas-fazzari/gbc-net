@@ -8,13 +8,8 @@ internal readonly struct OpcodeTableBuilder(Instruction?[] instructions)
     /// <summary>
     /// Stores one implemented primary opcode in the instruction table.
     /// </summary>
-    public void Map(
-        byte opcode,
-        byte byteLength,
-        int machineCycles,
-        Action<Cpu, byte, byte> execute
-    )
+    public void Map(byte opcode, byte byteLength, InstructionExecutor execute)
     {
-        instructions[opcode] = new Instruction(byteLength, machineCycles, execute);
+        instructions[opcode] = new Instruction(byteLength, execute);
     }
 }

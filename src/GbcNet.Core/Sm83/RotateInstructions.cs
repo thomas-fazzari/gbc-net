@@ -32,26 +32,38 @@ internal static class RotateInstructions
         builder.Map(
             RotateLeftCircularAccumulatorOpcode,
             NoOperandByteLength,
-            AccumulatorRotateMachineCycles,
-            static (cpu, _, _) => RotateLeftCircularAccumulator(cpu)
+            static (cpu, _, _) =>
+            {
+                RotateLeftCircularAccumulator(cpu);
+                return AccumulatorRotateMachineCycles;
+            }
         );
         builder.Map(
             RotateRightCircularAccumulatorOpcode,
             NoOperandByteLength,
-            AccumulatorRotateMachineCycles,
-            static (cpu, _, _) => RotateRightCircularAccumulator(cpu)
+            static (cpu, _, _) =>
+            {
+                RotateRightCircularAccumulator(cpu);
+                return AccumulatorRotateMachineCycles;
+            }
         );
         builder.Map(
             RotateLeftAccumulatorOpcode,
             NoOperandByteLength,
-            AccumulatorRotateMachineCycles,
-            static (cpu, _, _) => RotateLeftAccumulator(cpu)
+            static (cpu, _, _) =>
+            {
+                RotateLeftAccumulator(cpu);
+                return AccumulatorRotateMachineCycles;
+            }
         );
         builder.Map(
             RotateRightAccumulatorOpcode,
             NoOperandByteLength,
-            AccumulatorRotateMachineCycles,
-            static (cpu, _, _) => RotateRightAccumulator(cpu)
+            static (cpu, _, _) =>
+            {
+                RotateRightAccumulator(cpu);
+                return AccumulatorRotateMachineCycles;
+            }
         );
     }
 

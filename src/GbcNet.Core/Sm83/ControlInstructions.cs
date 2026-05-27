@@ -15,6 +15,6 @@ internal static class ControlInstructions
     /// </summary>
     public static void Map(OpcodeTableBuilder builder)
     {
-        builder.Map(NopOpcode, NoOperandByteLength, NopMachineCycles, static (_, _, _) => { });
+        builder.Map(NopOpcode, NoOperandByteLength, static (_, _, _) => NopMachineCycles);
     }
 }

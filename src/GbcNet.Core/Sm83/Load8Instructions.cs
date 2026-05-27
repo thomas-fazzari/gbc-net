@@ -33,8 +33,11 @@ internal static class Load8Instructions
         builder.Map(
             LoadAddressHlImmediate8Opcode,
             Immediate8ByteLength,
-            LoadAddressHlImmediate8MachineCycles,
-            static (cpu, value, _) => cpu.WriteByte(cpu.Registers.HL, value)
+            static (cpu, value, _) =>
+            {
+                cpu.WriteByte(cpu.Registers.HL, value);
+                return LoadAddressHlImmediate8MachineCycles;
+            }
         );
         MapLoadRegisterImmediate8(builder, LoadAImmediate8Opcode, Register8.A);
     }
@@ -51,8 +54,11 @@ internal static class Load8Instructions
         builder.Map(
             opcode,
             Immediate8ByteLength,
-            LoadRegisterImmediate8MachineCycles,
-            (cpu, value, _) => cpu.Registers.SetRegister(register, value)
+            (cpu, value, _) =>
+            {
+                cpu.Registers.SetRegister(register, value);
+                return LoadRegisterImmediate8MachineCycles;
+            }
         );
     }
 }
