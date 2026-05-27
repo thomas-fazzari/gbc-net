@@ -2,27 +2,25 @@ using GbcNet.Core.Sm83;
 
 namespace GbcNet.Tests.Sm83;
 
-public sealed class CbInstructionTests
+public sealed class CbSetResetInstructionTests
 {
     private const byte ARegister = (byte)Register8.A;
     private const byte BRegister = (byte)Register8.B;
-    private const byte HRegister = (byte)Register8.H;
 
-    private const byte HalfCarryAndCarryFlags = (byte)CpuFlag.HalfCarry | (byte)CpuFlag.Carry;
-
-    private const byte ZeroHalfCarryAndCarryFlags =
-        (byte)CpuFlag.Zero | (byte)CpuFlag.HalfCarry | (byte)CpuFlag.Carry;
+    private const byte AllFlags = 0xF0;
 
     [Theory]
-    [InlineData(0x40, BRegister, 0x01, HalfCarryAndCarryFlags)]
-    [InlineData(0x40, BRegister, 0x00, ZeroHalfCarryAndCarryFlags)]
-    [InlineData(0x7C, HRegister, 0x80, HalfCarryAndCarryFlags)]
-    [InlineData(0x7F, ARegister, 0x00, ZeroHalfCarryAndCarryFlags)]
-    public void Step_ExecutesPrefixedBitRegisterOperand(
+    [InlineData(0x80, BRegister, 0xFF, 0xFE)]
+    [InlineData(0x87, ARegister, 0x01, 0x00)]
+    [InlineData(0xBF, ARegister, 0x80, 0x00)]
+    [InlineData(0xC0, BRegister, 0x00, 0x01)]
+    [InlineData(0xC7, ARegister, 0x00, 0x01)]
+    [InlineData(0xFF, ARegister, 0x00, 0x80)]
+    public void Step_ExecutesPrefixedSetResetRegisterOperand(
         byte prefixedOpcode,
         byte register,
         byte value,
-        byte expectedFlags
+        byte expectedValue
     )
     {
         Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
@@ -32,24 +30,25 @@ public sealed class CbInstructionTests
         });
         var register8 = (Register8)register;
         cpu.Registers.SetRegister(register8, value);
-        cpu.Registers.F = (byte)CpuFlag.Carry;
+        cpu.Registers.F = AllFlags;
 
         int machineCycles = cpu.Step();
 
         Assert.Equal(2, machineCycles);
-        Assert.Equal(value, cpu.Registers.GetRegister(register8));
-        Assert.Equal(expectedFlags, cpu.Registers.F);
+        Assert.Equal(expectedValue, cpu.Registers.GetRegister(register8));
+        Assert.Equal(AllFlags, cpu.Registers.F);
         Assert.Equal(0x0102, cpu.Registers.PC);
     }
 
     [Theory]
-    [InlineData(0x46, 0x01, HalfCarryAndCarryFlags)]
-    [InlineData(0x46, 0x00, ZeroHalfCarryAndCarryFlags)]
-    [InlineData(0x7E, 0x80, HalfCarryAndCarryFlags)]
-    public void Step_ExecutesPrefixedBitAddressHlOperand(
+    [InlineData(0x86, 0xFF, 0xFE)]
+    [InlineData(0xBE, 0x80, 0x00)]
+    [InlineData(0xC6, 0x00, 0x01)]
+    [InlineData(0xFE, 0x00, 0x80)]
+    public void Step_ExecutesPrefixedSetResetAddressHlOperand(
         byte prefixedOpcode,
         byte value,
-        byte expectedFlags
+        byte expectedValue
     )
     {
         Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
@@ -58,26 +57,26 @@ public sealed class CbInstructionTests
             bytes[0x0101] = prefixedOpcode;
         });
         cpu.Registers.HL = 0xC123;
-        cpu.Registers.F = (byte)CpuFlag.Carry;
+        cpu.Registers.F = AllFlags;
         cpu.WriteByte(0xC123, value);
 
         int machineCycles = cpu.Step();
 
-        Assert.Equal(3, machineCycles);
-        Assert.Equal(value, cpu.ReadByte(0xC123));
-        Assert.Equal(expectedFlags, cpu.Registers.F);
+        Assert.Equal(4, machineCycles);
+        Assert.Equal(expectedValue, cpu.ReadByte(0xC123));
+        Assert.Equal(AllFlags, cpu.Registers.F);
         Assert.Equal(0x0102, cpu.Registers.PC);
     }
 
     [Fact]
-    public void Step_ExecutesEveryPrefixedBitOpcode()
+    public void Step_ExecutesEveryPrefixedSetResetOpcode()
     {
-        for (byte prefixedOpcode = 0x40; prefixedOpcode <= 0x7F; prefixedOpcode++)
+        for (int prefixedOpcode = 0x80; prefixedOpcode <= 0xFF; prefixedOpcode++)
         {
             Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
             {
                 bytes[0x0100] = 0xCB;
-                bytes[0x0101] = prefixedOpcode;
+                bytes[0x0101] = (byte)prefixedOpcode;
             });
             cpu.Registers.A = 0xFF;
             cpu.Registers.B = 0xFF;
@@ -86,11 +85,13 @@ public sealed class CbInstructionTests
             cpu.Registers.E = 0xFF;
             cpu.Registers.H = 0xC1;
             cpu.Registers.L = 0x23;
+            cpu.Registers.F = AllFlags;
             cpu.WriteByte(0xC123, 0xFF);
 
             int machineCycles = cpu.Step();
 
-            Assert.Equal((prefixedOpcode & 0x07) == 0x06 ? 3 : 2, machineCycles);
+            Assert.Equal((prefixedOpcode & 0x07) == 0x06 ? 4 : 2, machineCycles);
+            Assert.Equal(AllFlags, cpu.Registers.F);
             Assert.Equal(0x0102, cpu.Registers.PC);
         }
     }

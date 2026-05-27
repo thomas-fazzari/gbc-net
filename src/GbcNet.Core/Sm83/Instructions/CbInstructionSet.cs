@@ -20,7 +20,7 @@ internal static class CbInstructionSet
         var builder = new OpcodeTableBuilder(instructions);
 
         CbRotateShiftInstructions.Map(builder);
-        BitInstructions.Map(builder);
+        BitSetResetInstructions.Map(builder);
 
         return instructions;
     }
