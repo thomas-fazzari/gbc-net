@@ -25,6 +25,8 @@ internal static class Arithmetic8Instructions
     private const byte DecrementAOpcode = 0x3D;
     private const byte AddAccumulatorRegisterOperandStartOpcode = 0x80;
     private const byte AddAccumulatorRegisterOperandEndOpcode = 0x87;
+    private const byte AddWithCarryAccumulatorRegisterOperandStartOpcode = 0x88;
+    private const byte AddWithCarryAccumulatorRegisterOperandEndOpcode = 0x8F;
 
     /// <summary>
     /// Low 4 bits used to detect H for 8-bit arithmetic.
@@ -54,8 +56,8 @@ internal static class Arithmetic8Instructions
     private const byte NoOperandByteLength = 1;
 
     private const int AddressHlMachineCycles = 3;
-    private const int AddAccumulatorAddressHlMachineCycles = 2;
-    private const int AddAccumulatorRegisterMachineCycles = 1;
+    private const int AccumulatorAddressHlArithmeticMachineCycles = 2;
+    private const int AccumulatorRegisterArithmeticMachineCycles = 1;
     private const int ComplementAccumulatorMachineCycles = 1;
     private const int DecimalAdjustAccumulatorMachineCycles = 1;
     private const int RegisterMachineCycles = 1;
@@ -100,6 +102,7 @@ internal static class Arithmetic8Instructions
         MapIncrementRegister(builder, IncrementAOpcode, Register8.A);
         MapDecrementRegister(builder, DecrementAOpcode, Register8.A);
         MapAddAccumulatorRegisterOperand(builder);
+        MapAddWithCarryAccumulatorRegisterOperand(builder);
     }
 
     /// <summary>
@@ -196,6 +199,27 @@ internal static class Arithmetic8Instructions
     }
 
     /// <summary>
+    /// Maps ADC A, r8 instructions, which add the carry flag and update Z, N, H, and C.
+    /// </summary>
+    private static void MapAddWithCarryAccumulatorRegisterOperand(OpcodeTableBuilder builder)
+    {
+        for (
+            int opcode = AddWithCarryAccumulatorRegisterOperandStartOpcode;
+            opcode <= AddWithCarryAccumulatorRegisterOperandEndOpcode;
+            opcode++
+        )
+        {
+            byte opcodeByte = (byte)opcode;
+            Register8Operand source = Register8Operands.DecodeSource(opcodeByte);
+            builder.Map(
+                opcodeByte,
+                NoOperandByteLength,
+                (cpu, _, _) => AddWithCarryAccumulatorRegisterOperand(cpu, source)
+            );
+        }
+    }
+
+    /// <summary>
     /// Increments the selected r8 register and updates the INC r8 flags.
     /// </summary>
     private static void IncrementRegister(Cpu cpu, Register8 register)
@@ -239,11 +263,25 @@ internal static class Arithmetic8Instructions
     private static int AddAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
         byte value = Register8Operands.Read(cpu, source);
-        AddAccumulator(cpu, value);
+        AddAccumulator(cpu, value, carry: 0);
 
         return Register8Operands.UsesMemory(source)
-            ? AddAccumulatorAddressHlMachineCycles
-            : AddAccumulatorRegisterMachineCycles;
+            ? AccumulatorAddressHlArithmeticMachineCycles
+            : AccumulatorRegisterArithmeticMachineCycles;
+    }
+
+    /// <summary>
+    /// Adds the selected r8 operand and C flag to A, then updates ADC A, r8 flags.
+    /// </summary>
+    private static int AddWithCarryAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    {
+        byte value = Register8Operands.Read(cpu, source);
+        int carry = cpu.Registers.IsFlagSet(CpuFlag.Carry) ? 1 : 0;
+        AddAccumulator(cpu, value, carry);
+
+        return Register8Operands.UsesMemory(source)
+            ? AccumulatorAddressHlArithmeticMachineCycles
+            : AccumulatorRegisterArithmeticMachineCycles;
     }
 
     /// <summary>
@@ -273,25 +311,25 @@ internal static class Arithmetic8Instructions
     }
 
     /// <summary>
-    /// Adds one byte to A and applies ADD A flag effects.
+    /// Adds one byte and an optional carry to A, then applies ADD/ADC A flag effects.
     /// </summary>
-    private static void AddAccumulator(Cpu cpu, byte value)
+    private static void AddAccumulator(Cpu cpu, byte value, int carry)
     {
         byte accumulator = cpu.Registers.A;
-        int result = accumulator + value;
+        int result = accumulator + value + carry;
 
         cpu.Registers.A = unchecked((byte)result);
         cpu.Registers.SetFlag(CpuFlag.Zero, cpu.Registers.A == 0);
         cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: false);
-        cpu.Registers.SetFlag(CpuFlag.HalfCarry, HasLowNibbleAddCarry(accumulator, value));
+        cpu.Registers.SetFlag(CpuFlag.HalfCarry, HasLowNibbleAddCarry(accumulator, value, carry));
         cpu.Registers.SetFlag(CpuFlag.Carry, result > byte.MaxValue);
     }
 
     /// <summary>
-    /// Returns whether adding two bytes carries from bit 3 into bit 4.
+    /// Returns whether adding two bytes and a carry input carries from bit 3 into bit 4.
     /// </summary>
-    private static bool HasLowNibbleAddCarry(byte left, byte right) =>
-        (left & HalfCarryMask) + (right & HalfCarryMask) > HalfCarryMask;
+    private static bool HasLowNibbleAddCarry(byte left, byte right, int carry) =>
+        (left & HalfCarryMask) + (right & HalfCarryMask) + carry > HalfCarryMask;
 
     /// <summary>
     /// Adjusts A to a packed BCD result using the N, H, and C flags from the previous operation.
