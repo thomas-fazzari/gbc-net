@@ -37,6 +37,8 @@ internal static class Arithmetic8Instructions
     private const byte XorAccumulatorRegisterOperandEndOpcode = 0xAF;
     private const byte OrAccumulatorRegisterOperandStartOpcode = 0xB0;
     private const byte OrAccumulatorRegisterOperandEndOpcode = 0xB7;
+    private const byte CompareAccumulatorRegisterOperandStartOpcode = 0xB8;
+    private const byte CompareAccumulatorRegisterOperandEndOpcode = 0xBF;
 
     /// <summary>
     /// Executes one A,r8 accumulator operation after the source operand has been decoded.
@@ -157,6 +159,12 @@ internal static class Arithmetic8Instructions
             OrAccumulatorRegisterOperandStartOpcode,
             OrAccumulatorRegisterOperandEndOpcode,
             OrAccumulatorRegisterOperand
+        );
+        MapAccumulatorRegisterOperand(
+            builder,
+            CompareAccumulatorRegisterOperandStartOpcode,
+            CompareAccumulatorRegisterOperandEndOpcode,
+            CompareAccumulatorRegisterOperand
         );
     }
 
@@ -364,6 +372,19 @@ internal static class Arithmetic8Instructions
     }
 
     /// <summary>
+    /// Compares the selected r8 operand with A and updates CP A, r8 flags without changing A.
+    /// </summary>
+    private static int CompareAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    {
+        byte value = Register8Operands.Read(cpu, source);
+        CompareAccumulator(cpu, value);
+
+        return Register8Operands.UsesMemory(source)
+            ? AccumulatorAddressHlOperandMachineCycles
+            : AccumulatorRegisterOperandMachineCycles;
+    }
+
+    /// <summary>
     /// Increments one byte and applies INC r8/[HL] flag effects.
     /// </summary>
     private static byte IncrementByte(Cpu cpu, byte value)
@@ -474,6 +495,23 @@ internal static class Arithmetic8Instructions
         cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: false);
         cpu.Registers.SetFlag(CpuFlag.HalfCarry, isSet: false);
         cpu.Registers.SetFlag(CpuFlag.Carry, isSet: false);
+    }
+
+    /// <summary>
+    /// Compares one byte with A by applying SUB A flag effects without storing the result.
+    /// </summary>
+    private static void CompareAccumulator(Cpu cpu, byte value)
+    {
+        byte accumulator = cpu.Registers.A;
+        int result = accumulator - value;
+
+        cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
+        cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: true);
+        cpu.Registers.SetFlag(
+            CpuFlag.HalfCarry,
+            HasLowNibbleSubtractionBorrow(accumulator, value, borrow: 0)
+        );
+        cpu.Registers.SetFlag(CpuFlag.Carry, result < 0);
     }
 
     /// <summary>
