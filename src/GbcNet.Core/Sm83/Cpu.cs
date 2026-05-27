@@ -12,6 +12,16 @@ internal sealed class Cpu(MemoryBus bus)
     private const ushort PostBootStackPointer = 0xFFFE;
 
     /// <summary>
+    /// CPU-internal IME flag. When set, enabled and requested interrupts may be serviced.
+    /// </summary>
+    public bool Ime { get; internal set; }
+
+    /// <summary>
+    /// Indicates that EI has scheduled IME to become set after one more instruction.
+    /// </summary>
+    public bool ImeEnablePending { get; private set; }
+
+    /// <summary>
     /// Mutable SM83 register file.
     /// </summary>
     public Registers Registers { get; } =
@@ -25,21 +35,38 @@ internal sealed class Cpu(MemoryBus bus)
     /// </returns>
     public int Step()
     {
-        byte opcode = FetchByte();
-        Instruction instruction =
-            InstructionSet.Find(opcode)
-            ?? throw new NotSupportedException(
-                string.Format(
-                    CultureInfo.InvariantCulture,
-                    "Opcode 0x{0:X2} is not supported yet.",
-                    opcode
-                )
-            );
+        bool enableImeAfterThisInstruction = ImeEnablePending;
+        int machineCycles = ExecuteNextInstruction();
 
-        byte firstOperand = instruction.ByteLength > 1 ? FetchByte() : (byte)0;
-        byte secondOperand = instruction.ByteLength > 2 ? FetchByte() : (byte)0;
+        if (!enableImeAfterThisInstruction || !ImeEnablePending)
+        {
+            return machineCycles;
+        }
 
-        return instruction.Execute(this, firstOperand, secondOperand);
+        Ime = true;
+        ImeEnablePending = false;
+
+        return machineCycles;
+    }
+
+    /// <summary>
+    /// Disables interrupt servicing immediately and cancels any delayed EI effect.
+    /// </summary>
+    internal void DisableInterrupts()
+    {
+        Ime = false;
+        ImeEnablePending = false;
+    }
+
+    /// <summary>
+    /// Schedules interrupt servicing to become enabled after the following instruction.
+    /// </summary>
+    internal void EnableInterruptsAfterNextInstruction()
+    {
+        if (!Ime && !ImeEnablePending)
+        {
+            ImeEnablePending = true;
+        }
     }
 
     /// <summary>
@@ -79,6 +106,25 @@ internal sealed class Cpu(MemoryBus bus)
         Registers.SP = unchecked((ushort)(Registers.SP + 1));
 
         return (ushort)((highByte << 8) | lowByte);
+    }
+
+    private int ExecuteNextInstruction()
+    {
+        byte opcode = FetchByte();
+        Instruction instruction =
+            InstructionSet.Find(opcode)
+            ?? throw new NotSupportedException(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "Opcode 0x{0:X2} is not supported yet.",
+                    opcode
+                )
+            );
+
+        byte firstOperand = instruction.ByteLength > 1 ? FetchByte() : (byte)0;
+        byte secondOperand = instruction.ByteLength > 2 ? FetchByte() : (byte)0;
+
+        return instruction.Execute(this, firstOperand, secondOperand);
     }
 
     /// <summary>
