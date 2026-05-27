@@ -1,7 +1,7 @@
 using System.Globalization;
 using GbcNet.Core.Memory;
 
-namespace GbcNet.Core.Cpu.Sm83;
+namespace GbcNet.Core.Sm83;
 
 /// <summary>
 /// Executes SM83 instructions against the CPU-visible memory bus.

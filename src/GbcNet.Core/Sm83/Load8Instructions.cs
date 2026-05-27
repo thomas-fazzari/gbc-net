@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Cpu.Sm83;
+namespace GbcNet.Core.Sm83;
 
 /// <summary>
 /// SM83 8-bit load instructions.

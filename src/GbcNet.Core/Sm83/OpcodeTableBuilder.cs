@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Cpu.Sm83;
+namespace GbcNet.Core.Sm83;
 
 /// <summary>
 /// Builds the SM83 opcode table while keeping instruction construction in one place.

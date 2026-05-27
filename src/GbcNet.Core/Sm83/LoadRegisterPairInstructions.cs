@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Cpu.Sm83;
+namespace GbcNet.Core.Sm83;
 
 /// <summary>
 /// SM83 load instructions that use r16 or r16mem operands.

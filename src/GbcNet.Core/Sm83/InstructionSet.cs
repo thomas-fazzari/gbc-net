@@ -1,4 +1,6 @@
-namespace GbcNet.Core.Cpu.Sm83;
+using GbcNet.Core.Sm83;
+
+namespace GbcNet.Core.Sm83;
 
 /// <summary>
 /// SM83 primary opcode table.

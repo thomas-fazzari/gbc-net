@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Cpu.Sm83;
+namespace GbcNet.Core.Sm83;
 
 /// <summary>
 /// Stores SM83 CPU registers and exposes 16-bit register pairs.

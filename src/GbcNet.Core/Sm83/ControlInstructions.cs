@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Cpu.Sm83;
+namespace GbcNet.Core.Sm83;
 
 /// <summary>
 /// SM83 control and no-operation instructions.

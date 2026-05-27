@@ -1,6 +1,6 @@
-using GbcNet.Core.Cpu.Sm83;
+using GbcNet.Core.Sm83;
 
-namespace GbcNet.Tests.Cpu.Sm83;
+namespace GbcNet.Tests.Sm83;
 
 public sealed class RegistersTests
 {
