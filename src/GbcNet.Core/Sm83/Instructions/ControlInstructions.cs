@@ -9,6 +9,7 @@ internal static class ControlInstructions
 {
     private const byte NopOpcode = 0x00;
     private const byte CbPrefixOpcode = 0xCB;
+    private const byte HaltOpcode = 0x76;
     private const byte DisableInterruptsOpcode = 0xF3;
     private const byte EnableInterruptsOpcode = 0xFB;
 
@@ -16,6 +17,7 @@ internal static class ControlInstructions
     private const byte PrefixedInstructionByteLength = 2;
 
     private const int NopMachineCycles = 1;
+    private const int HaltMachineCycles = 1;
     private const int InterruptMasterEnableMachineCycles = 1;
 
     /// <summary>
@@ -25,6 +27,15 @@ internal static class ControlInstructions
     {
         builder.Map(NopOpcode, NoOperandByteLength, static (_, _, _) => NopMachineCycles);
         builder.Map(CbPrefixOpcode, PrefixedInstructionByteLength, ExecuteCbPrefix);
+        builder.Map(
+            HaltOpcode,
+            NoOperandByteLength,
+            static (cpu, _, _) =>
+            {
+                cpu.Halt();
+                return HaltMachineCycles;
+            }
+        );
         builder.Map(
             DisableInterruptsOpcode,
             NoOperandByteLength,

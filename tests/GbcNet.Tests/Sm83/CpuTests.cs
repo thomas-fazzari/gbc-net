@@ -776,15 +776,14 @@ public sealed class CpuTests
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
-    [Theory]
-    [InlineData(0x76, "Opcode 0x76 is not supported yet.")]
-    [InlineData(0xD3, "Opcode 0xD3 is not supported yet.")]
-    public void Step_RejectsUnsupportedOpcode(byte opcode, string expectedMessage)
+    [Fact]
+    public void Step_RejectsUnsupportedOpcode()
     {
+        const byte opcode = 0xD3;
         Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() => cpu.Step());
 
-        Assert.Equal(expectedMessage, exception.Message);
+        Assert.Equal("Opcode 0xD3 is not supported yet.", exception.Message);
     }
 }

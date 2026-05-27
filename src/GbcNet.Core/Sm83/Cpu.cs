@@ -17,6 +17,18 @@ internal sealed class Cpu(MemoryBus bus)
     /// </summary>
     private const int InterruptServiceMachineCycles = 5;
 
+    private const int HaltedMachineCycles = 1;
+
+    /// <summary>
+    /// Indicates that HALT has stopped opcode fetching until an interrupt becomes pending.
+    /// </summary>
+    public bool Halted { get; private set; }
+
+    /// <summary>
+    /// Indicates that the next opcode fetch must not advance PC because of the HALT bug.
+    /// </summary>
+    public bool HaltBugPending { get; private set; }
+
     /// <summary>
     /// CPU-internal IME flag. When set, enabled and requested interrupts may be serviced.
     /// </summary>
@@ -44,6 +56,11 @@ internal sealed class Cpu(MemoryBus bus)
         if (TryServiceInterrupt(out int interruptMachineCycles))
         {
             return interruptMachineCycles;
+        }
+
+        if (Halted)
+        {
+            return StepHalted();
         }
 
         bool enableImeAfterThisInstruction = ImeEnablePending;
@@ -90,6 +107,29 @@ internal sealed class Cpu(MemoryBus bus)
     }
 
     /// <summary>
+    /// Executes HALT by stopping fetches or triggering the documented HALT bug edge cases.
+    /// </summary>
+    internal void Halt()
+    {
+        if (!bus.Interrupts.HasRequestedAndEnabledInterrupt)
+        {
+            Halted = true;
+            return;
+        }
+
+        if (ImeEnablePending)
+        {
+            Registers.PC = unchecked((ushort)(Registers.PC - 1));
+            return;
+        }
+
+        if (!Ime)
+        {
+            HaltBugPending = true;
+        }
+    }
+
+    /// <summary>
     /// Reads one byte from CPU-visible memory.
     /// </summary>
     internal byte ReadByte(ushort address) => bus.ReadByte(address);
@@ -131,6 +171,8 @@ internal sealed class Cpu(MemoryBus bus)
     private int ExecuteNextInstruction()
     {
         byte opcode = FetchByte();
+        ApplyHaltBugToFetchedOpcode();
+
         Instruction instruction =
             InstructionSet.Find(opcode)
             ?? throw new NotSupportedException(
@@ -147,6 +189,16 @@ internal sealed class Cpu(MemoryBus bus)
         return instruction.Execute(this, firstOperand, secondOperand);
     }
 
+    private int StepHalted()
+    {
+        if (bus.Interrupts.HasRequestedAndEnabledInterrupt)
+        {
+            Halted = false;
+        }
+
+        return HaltedMachineCycles;
+    }
+
     private bool TryServiceInterrupt(out int machineCycles)
     {
         if (
@@ -159,12 +211,24 @@ internal sealed class Cpu(MemoryBus bus)
         }
 
         bus.Interrupts.Clear(source);
+        Halted = false;
         Ime = false;
         PushWord(Registers.PC);
         Registers.PC = vector;
 
         machineCycles = InterruptServiceMachineCycles;
         return true;
+    }
+
+    private void ApplyHaltBugToFetchedOpcode()
+    {
+        if (!HaltBugPending)
+        {
+            return;
+        }
+
+        HaltBugPending = false;
+        Registers.PC = unchecked((ushort)(Registers.PC - 1));
     }
 
     /// <summary>
