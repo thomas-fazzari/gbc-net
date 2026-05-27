@@ -201,6 +201,34 @@ public sealed class CpuTests
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
+    [Theory]
+    [InlineData(0x00, 0x00, 0x00, 0x80)]
+    [InlineData(0x0A, 0x00, 0x10, 0x00)]
+    [InlineData(0x10, 0x20, 0x16, 0x00)]
+    [InlineData(0xA0, 0x00, 0x00, 0x90)]
+    [InlineData(0x23, 0x10, 0x83, 0x10)]
+    [InlineData(0x0F, 0x60, 0x09, 0x40)]
+    [InlineData(0x33, 0x50, 0xD3, 0x50)]
+    [InlineData(0x00, 0x70, 0x9A, 0x50)]
+    public void Step_DecimalAdjustsAccumulatorAndUpdatesFlags(
+        byte initialA,
+        byte initialFlags,
+        byte expectedA,
+        byte expectedFlags
+    )
+    {
+        Sm83Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0x27);
+        cpu.Registers.A = initialA;
+        cpu.Registers.F = initialFlags;
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(1, machineCycles);
+        Assert.Equal(expectedA, cpu.Registers.A);
+        Assert.Equal(expectedFlags, cpu.Registers.F);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+    }
+
     [Fact]
     public void Step_LoadsThroughHlAndUpdatesHl()
     {

@@ -15,6 +15,7 @@ internal static class Arithmetic8Instructions
     private const byte DecrementEOpcode = 0x1D;
     private const byte IncrementHOpcode = 0x24;
     private const byte DecrementHOpcode = 0x25;
+    private const byte DecimalAdjustAccumulatorOpcode = 0x27;
     private const byte IncrementLOpcode = 0x2C;
     private const byte DecrementLOpcode = 0x2D;
     private const byte IncrementAddressHlOpcode = 0x34;
@@ -27,9 +28,30 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private const byte HalfCarryMask = 0x0F;
 
+    /// <summary>
+    /// Low BCD digit adjustment used by DAA.
+    /// </summary>
+    private const byte DecimalLowAdjust = 0x06;
+
+    /// <summary>
+    /// Maximum value of one packed BCD digit.
+    /// </summary>
+    private const byte DecimalDigitMax = 9;
+
+    /// <summary>
+    /// High BCD digit adjustment used by DAA.
+    /// </summary>
+    private const byte DecimalHighAdjust = 0x60;
+
+    /// <summary>
+    /// Highest post-low-adjust value that does not require a high BCD carry.
+    /// </summary>
+    private const byte DecimalHighCarryThreshold = 0x9F;
+
     private const byte NoOperandByteLength = 1;
 
     private const int AddressHlMachineCycles = 3;
+    private const int DecimalAdjustAccumulatorMachineCycles = 1;
     private const int RegisterMachineCycles = 1;
 
     /// <summary>
@@ -47,6 +69,12 @@ internal static class Arithmetic8Instructions
         MapDecrementRegister(builder, DecrementEOpcode, Register8.E);
         MapIncrementRegister(builder, IncrementHOpcode, Register8.H);
         MapDecrementRegister(builder, DecrementHOpcode, Register8.H);
+        builder.Map(
+            DecimalAdjustAccumulatorOpcode,
+            NoOperandByteLength,
+            DecimalAdjustAccumulatorMachineCycles,
+            static (cpu, _, _) => DecimalAdjustAccumulator(cpu)
+        );
         MapIncrementRegister(builder, IncrementLOpcode, Register8.L);
         MapDecrementRegister(builder, DecrementLOpcode, Register8.L);
         MapIncrementAddressHl(builder, IncrementAddressHlOpcode);
@@ -177,5 +205,48 @@ internal static class Arithmetic8Instructions
         cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: true);
         cpu.Registers.SetFlag(CpuFlag.HalfCarry, (value & HalfCarryMask) == 0);
         return result;
+    }
+
+    /// <summary>
+    /// Adjusts A to a packed BCD result using the N, H, and C flags from the previous operation.
+    /// </summary>
+    private static void DecimalAdjustAccumulator(Cpu cpu)
+    {
+        int value = cpu.Registers.A;
+        bool subtract = cpu.Registers.IsFlagSet(CpuFlag.Subtract);
+        bool carry = cpu.Registers.IsFlagSet(CpuFlag.Carry);
+        bool halfCarry = cpu.Registers.IsFlagSet(CpuFlag.HalfCarry);
+
+        if (subtract)
+        {
+            if (halfCarry)
+            {
+                value -= DecimalLowAdjust;
+            }
+
+            if (carry)
+            {
+                value -= DecimalHighAdjust;
+            }
+        }
+        else
+        {
+            if (halfCarry || (value & HalfCarryMask) > DecimalDigitMax)
+            {
+                value += DecimalLowAdjust;
+            }
+
+            if (carry || value > DecimalHighCarryThreshold)
+            {
+                value += DecimalHighAdjust;
+                carry = true;
+            }
+        }
+
+        byte result = unchecked((byte)value);
+        cpu.Registers.A = result;
+        cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
+        cpu.Registers.SetFlag(CpuFlag.HalfCarry, isSet: false);
+        cpu.Registers.SetFlag(CpuFlag.Carry, carry);
     }
 }
