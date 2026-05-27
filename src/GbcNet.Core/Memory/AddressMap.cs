@@ -81,6 +81,11 @@ internal static class AddressMap
     public const ushort IoRegistersStart = 0xFF00;
 
     /// <summary>
+    /// Address of the interrupt flag register.
+    /// </summary>
+    public const ushort InterruptFlagRegister = 0xFF0F;
+
+    /// <summary>
     /// Last address of I/O registers.
     /// </summary>
     public const ushort IoRegistersEnd = 0xFF7F;

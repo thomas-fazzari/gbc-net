@@ -122,9 +122,21 @@ public sealed class MemoryBusTests
     {
         MemoryBus bus = CreateBus();
 
-        bus.WriteByte(0xFFFF, 0x1F);
+        bus.WriteByte(0xFFFF, 0xF1);
 
-        Assert.Equal(0x1F, bus.ReadByte(0xFFFF));
+        Assert.Equal(0xF1, bus.ReadByte(0xFFFF));
+        Assert.Equal(0xF1, bus.Interrupts.InterruptEnable);
+    }
+
+    [Fact]
+    public void ReadWriteByte_RoutesInterruptFlagRegister()
+    {
+        MemoryBus bus = CreateBus();
+
+        bus.WriteByte(0xFF0F, 0xFF);
+
+        Assert.Equal(0xFF, bus.ReadByte(0xFF0F));
+        Assert.Equal(0x1F, bus.Interrupts.InterruptFlag);
     }
 
     [Fact]

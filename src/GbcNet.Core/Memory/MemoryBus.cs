@@ -1,4 +1,5 @@
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Interrupts;
 
 namespace GbcNet.Core.Memory;
 
@@ -35,7 +36,10 @@ internal sealed class MemoryBus(Cartridge cartridge)
 
     private readonly WorkRam _workRam = new();
 
-    private byte _interruptEnable;
+    /// <summary>
+    /// Interrupt request and enable registers routed through FF0F and FFFF.
+    /// </summary>
+    public InterruptController Interrupts { get; } = new();
 
     public byte ReadByte(ushort address)
     {
@@ -48,9 +52,10 @@ internal sealed class MemoryBus(Cartridge cartridge)
             <= AddressMap.EchoRamEnd => _workRam.Read(address),
             <= AddressMap.ObjectAttributeMemoryEnd => _objectAttributeMemory.Read(address),
             <= AddressMap.NotUsableEnd => 0x00,
+            AddressMap.InterruptFlagRegister => Interrupts.ReadInterruptFlag(),
             <= AddressMap.IoRegistersEnd => _ioRegisters.Read(address),
             <= AddressMap.HighRamEnd => _highRam.Read(address),
-            AddressMap.InterruptEnableRegister => _interruptEnable,
+            AddressMap.InterruptEnableRegister => Interrupts.InterruptEnable,
         };
     }
 
@@ -74,6 +79,9 @@ internal sealed class MemoryBus(Cartridge cartridge)
                 return;
             case <= AddressMap.NotUsableEnd:
                 return;
+            case AddressMap.InterruptFlagRegister:
+                Interrupts.WriteInterruptFlag(value);
+                return;
             case <= AddressMap.IoRegistersEnd:
                 _ioRegisters.Write(address, value);
                 return;
@@ -81,7 +89,7 @@ internal sealed class MemoryBus(Cartridge cartridge)
                 _highRam.Write(address, value);
                 return;
             case AddressMap.InterruptEnableRegister:
-                _interruptEnable = value;
+                Interrupts.InterruptEnable = value;
                 return;
         }
     }
