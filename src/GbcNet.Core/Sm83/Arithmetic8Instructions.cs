@@ -33,6 +33,8 @@ internal static class Arithmetic8Instructions
     private const byte SubtractWithCarryAccumulatorRegisterOperandEndOpcode = 0x9F;
     private const byte AndAccumulatorRegisterOperandStartOpcode = 0xA0;
     private const byte AndAccumulatorRegisterOperandEndOpcode = 0xA7;
+    private const byte XorAccumulatorRegisterOperandStartOpcode = 0xA8;
+    private const byte XorAccumulatorRegisterOperandEndOpcode = 0xAF;
 
     /// <summary>
     /// Executes one A,r8 accumulator operation after the source operand has been decoded.
@@ -141,6 +143,12 @@ internal static class Arithmetic8Instructions
             AndAccumulatorRegisterOperandStartOpcode,
             AndAccumulatorRegisterOperandEndOpcode,
             AndAccumulatorRegisterOperand
+        );
+        MapAccumulatorRegisterOperand(
+            builder,
+            XorAccumulatorRegisterOperandStartOpcode,
+            XorAccumulatorRegisterOperandEndOpcode,
+            XorAccumulatorRegisterOperand
         );
     }
 
@@ -322,6 +330,19 @@ internal static class Arithmetic8Instructions
     }
 
     /// <summary>
+    /// XORs the selected r8 operand with A and updates XOR A, r8 flags.
+    /// </summary>
+    private static int XorAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    {
+        byte value = Register8Operands.Read(cpu, source);
+        XorAccumulator(cpu, value);
+
+        return Register8Operands.UsesMemory(source)
+            ? AccumulatorAddressHlOperandMachineCycles
+            : AccumulatorRegisterOperandMachineCycles;
+    }
+
+    /// <summary>
     /// Increments one byte and applies INC r8/[HL] flag effects.
     /// </summary>
     private static byte IncrementByte(Cpu cpu, byte value)
@@ -403,6 +424,20 @@ internal static class Arithmetic8Instructions
         cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
         cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: false);
         cpu.Registers.SetFlag(CpuFlag.HalfCarry, isSet: true);
+        cpu.Registers.SetFlag(CpuFlag.Carry, isSet: false);
+    }
+
+    /// <summary>
+    /// XORs one byte with A, then applies XOR A flag effects.
+    /// </summary>
+    private static void XorAccumulator(Cpu cpu, byte value)
+    {
+        byte result = (byte)(cpu.Registers.A ^ value);
+
+        cpu.Registers.A = result;
+        cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
+        cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: false);
+        cpu.Registers.SetFlag(CpuFlag.HalfCarry, isSet: false);
         cpu.Registers.SetFlag(CpuFlag.Carry, isSet: false);
     }
 

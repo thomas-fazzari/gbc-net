@@ -306,6 +306,9 @@ public sealed class CpuTests
     [InlineData(0xA0, BRegister, 0xF0, 0xF0, 0x0F, 0x00, 0xA0)]
     [InlineData(0xA1, CRegister, 0xF0, 0xF3, 0x33, 0x33, 0x20)]
     [InlineData(0xA7, ARegister, 0xF0, 0x5A, 0x5A, 0x5A, 0x20)]
+    [InlineData(0xA8, BRegister, 0xF0, 0xF0, 0x0F, 0xFF, 0x00)]
+    [InlineData(0xA9, CRegister, 0xF0, 0x33, 0x33, 0x00, 0x80)]
+    [InlineData(0xAF, ARegister, 0xF0, 0x5A, 0x5A, 0x00, 0x80)]
     public void Step_UpdatesAccumulatorFromRegisterOperandAndFlags(
         byte opcode,
         byte source,
@@ -416,6 +419,24 @@ public sealed class CpuTests
         Assert.Equal(2, machineCycles);
         Assert.Equal(0x00, cpu.Registers.A);
         Assert.Equal(0xA0, cpu.Registers.F);
+        Assert.Equal(0x0F, cpu.ReadByte(0xC123));
+        Assert.Equal(0x0101, cpu.Registers.PC);
+    }
+
+    [Fact]
+    public void Step_XorsMemoryAtHlWithAccumulatorAndUpdatesFlags()
+    {
+        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0xAE);
+        cpu.Registers.A = 0xF0;
+        cpu.Registers.HL = 0xC123;
+        cpu.Registers.F = 0xF0;
+        cpu.WriteByte(0xC123, 0x0F);
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(2, machineCycles);
+        Assert.Equal(0xFF, cpu.Registers.A);
+        Assert.Equal(0x00, cpu.Registers.F);
         Assert.Equal(0x0F, cpu.ReadByte(0xC123));
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
