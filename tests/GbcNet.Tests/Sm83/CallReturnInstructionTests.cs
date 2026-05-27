@@ -1,9 +1,13 @@
+using GbcNet.Core.Memory;
 using GbcNet.Core.Sm83;
 
 namespace GbcNet.Tests.Sm83;
 
 public sealed class CallReturnInstructionTests
 {
+    private const byte VBlankInterrupt = 0b0000_0001;
+    private const ushort VBlankVector = 0x0040;
+
     [Fact]
     public void Step_CallsImmediate16AndPushesReturnAddress()
     {
@@ -75,6 +79,57 @@ public sealed class CallReturnInstructionTests
         Assert.Equal(0x5678, cpu.Registers.PC);
         Assert.Equal(0xC102, cpu.Registers.SP);
         Assert.Equal(0xF0, cpu.Registers.F);
+    }
+
+    [Fact]
+    public void Step_ReturnsFromInterruptAndEnablesInterruptMasterEnableImmediately()
+    {
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        {
+            bytes[0x0100] = 0xFB;
+            bytes[0x0101] = 0xD9;
+        });
+        cpu.Registers.SP = 0xC100;
+        cpu.Registers.F = 0xF0;
+        cpu.WriteByte(0xC100, 0x78);
+        cpu.WriteByte(0xC101, 0x56);
+
+        Assert.Equal(1, cpu.Step());
+        Assert.True(cpu.ImeEnablePending);
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(4, machineCycles);
+        Assert.Equal(0x5678, cpu.Registers.PC);
+        Assert.Equal(0xC102, cpu.Registers.SP);
+        Assert.True(cpu.Ime);
+        Assert.False(cpu.ImeEnablePending);
+        Assert.Equal(0xF0, cpu.Registers.F);
+    }
+
+    [Fact]
+    public void Step_ServicesPendingInterruptOnStepAfterReturnFromInterrupt()
+    {
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        {
+            bytes[0x0100] = 0xD9;
+            bytes[0x5678] = 0x00;
+        });
+        cpu.Registers.SP = 0xC100;
+        cpu.WriteByte(0xC100, 0x78);
+        cpu.WriteByte(0xC101, 0x56);
+        cpu.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        cpu.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+
+        Assert.Equal(4, cpu.Step());
+        Assert.True(cpu.Ime);
+        Assert.Equal(0x5678, cpu.Registers.PC);
+        Assert.Equal(0xE1, cpu.ReadByte(AddressMap.InterruptFlagRegister));
+
+        Assert.Equal(5, cpu.Step());
+        Assert.False(cpu.Ime);
+        Assert.Equal(VBlankVector, cpu.Registers.PC);
+        Assert.Equal(0xE0, cpu.ReadByte(AddressMap.InterruptFlagRegister));
     }
 
     [Theory]

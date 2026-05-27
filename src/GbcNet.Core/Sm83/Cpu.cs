@@ -81,6 +81,15 @@ internal sealed class Cpu(MemoryBus bus)
     }
 
     /// <summary>
+    /// Enables interrupt servicing immediately and cancels any delayed EI effect.
+    /// </summary>
+    internal void EnableInterruptsImmediately()
+    {
+        Ime = true;
+        ImeEnablePending = false;
+    }
+
+    /// <summary>
     /// Reads one byte from CPU-visible memory.
     /// </summary>
     internal byte ReadByte(ushort address) => bus.ReadByte(address);

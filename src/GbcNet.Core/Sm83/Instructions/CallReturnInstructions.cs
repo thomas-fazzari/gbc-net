@@ -8,6 +8,7 @@ internal static class CallReturnInstructions
     private const byte ReturnConditionStartOpcode = 0xC0;
     private const byte ReturnConditionEndOpcode = 0xD8;
     private const byte ReturnOpcode = 0xC9;
+    private const byte ReturnInterruptOpcode = 0xD9;
     private const byte CallConditionStartOpcode = 0xC4;
     private const byte CallConditionEndOpcode = 0xDC;
     private const byte CallImmediate16Opcode = 0xCD;
@@ -23,6 +24,7 @@ internal static class CallReturnInstructions
     private const int ReturnMachineCycles = 4;
     private const int ReturnConditionTakenMachineCycles = 5;
     private const int ReturnConditionNotTakenMachineCycles = 2;
+    private const int ReturnInterruptMachineCycles = 4;
     private const int RestartMachineCycles = 4;
 
     private const int ConditionOpcodeStep = 0x08;
@@ -36,6 +38,11 @@ internal static class CallReturnInstructions
     {
         MapReturnCondition(builder);
         builder.Map(ReturnOpcode, NoOperandByteLength, static (cpu, _, _) => Return(cpu));
+        builder.Map(
+            ReturnInterruptOpcode,
+            NoOperandByteLength,
+            static (cpu, _, _) => ReturnInterrupt(cpu)
+        );
 
         MapCallCondition(builder);
         builder.Map(CallImmediate16Opcode, Immediate16ByteLength, CallImmediate16);
@@ -150,6 +157,16 @@ internal static class CallReturnInstructions
     {
         cpu.Registers.PC = cpu.PopWord();
         return ReturnMachineCycles;
+    }
+
+    /// <summary>
+    /// Executes RETI by popping PC and immediately re-enabling interrupt servicing.
+    /// </summary>
+    private static int ReturnInterrupt(Cpu cpu)
+    {
+        cpu.Registers.PC = cpu.PopWord();
+        cpu.EnableInterruptsImmediately();
+        return ReturnInterruptMachineCycles;
     }
 
     /// <summary>
