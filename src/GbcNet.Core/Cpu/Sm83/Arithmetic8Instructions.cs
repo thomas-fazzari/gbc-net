@@ -16,6 +16,7 @@ internal static class Arithmetic8Instructions
     private const byte IncrementHOpcode = 0x24;
     private const byte DecrementHOpcode = 0x25;
     private const byte DecimalAdjustAccumulatorOpcode = 0x27;
+    private const byte ComplementAccumulatorOpcode = 0x2F;
     private const byte IncrementLOpcode = 0x2C;
     private const byte DecrementLOpcode = 0x2D;
     private const byte IncrementAddressHlOpcode = 0x34;
@@ -51,6 +52,7 @@ internal static class Arithmetic8Instructions
     private const byte NoOperandByteLength = 1;
 
     private const int AddressHlMachineCycles = 3;
+    private const int ComplementAccumulatorMachineCycles = 1;
     private const int DecimalAdjustAccumulatorMachineCycles = 1;
     private const int RegisterMachineCycles = 1;
 
@@ -74,6 +76,12 @@ internal static class Arithmetic8Instructions
             NoOperandByteLength,
             DecimalAdjustAccumulatorMachineCycles,
             static (cpu, _, _) => DecimalAdjustAccumulator(cpu)
+        );
+        builder.Map(
+            ComplementAccumulatorOpcode,
+            NoOperandByteLength,
+            ComplementAccumulatorMachineCycles,
+            static (cpu, _, _) => ComplementAccumulator(cpu)
         );
         MapIncrementRegister(builder, IncrementLOpcode, Register8.L);
         MapDecrementRegister(builder, DecrementLOpcode, Register8.L);
@@ -248,5 +256,15 @@ internal static class Arithmetic8Instructions
         cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
         cpu.Registers.SetFlag(CpuFlag.HalfCarry, isSet: false);
         cpu.Registers.SetFlag(CpuFlag.Carry, carry);
+    }
+
+    /// <summary>
+    /// Complements every bit in A, sets N and H, and preserves Z and C.
+    /// </summary>
+    private static void ComplementAccumulator(Cpu cpu)
+    {
+        cpu.Registers.A = (byte)~cpu.Registers.A;
+        cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: true);
+        cpu.Registers.SetFlag(CpuFlag.HalfCarry, isSet: true);
     }
 }
