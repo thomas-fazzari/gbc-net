@@ -101,11 +101,11 @@ public sealed class CbInstructionTests
         Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0xCB;
-            bytes[0x0101] = 0x00;
+            bytes[0x0101] = 0x80;
         });
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() => cpu.Step());
 
-        Assert.Equal("CB opcode 0x00 is not supported yet.", exception.Message);
+        Assert.Equal("CB opcode 0x80 is not supported yet.", exception.Message);
     }
 }

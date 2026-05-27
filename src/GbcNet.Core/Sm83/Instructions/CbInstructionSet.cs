@@ -19,6 +19,7 @@ internal static class CbInstructionSet
         var instructions = new Instruction?[OpcodeCount];
         var builder = new OpcodeTableBuilder(instructions);
 
+        CbRotateShiftInstructions.Map(builder);
         BitInstructions.Map(builder);
 
         return instructions;
