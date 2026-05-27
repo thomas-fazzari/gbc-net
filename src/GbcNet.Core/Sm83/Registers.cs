@@ -224,6 +224,43 @@ internal sealed class Registers
     }
 
     /// <summary>
+    /// Reads an SM83 r16stk register pair.
+    /// </summary>
+    public ushort GetStackRegisterPair(StackRegisterPair registerPair) =>
+        registerPair switch
+        {
+            StackRegisterPair.BC => BC,
+            StackRegisterPair.DE => DE,
+            StackRegisterPair.HL => HL,
+            StackRegisterPair.AF => AF,
+            _ => throw new ArgumentOutOfRangeException(nameof(registerPair)),
+        };
+
+    /// <summary>
+    /// Writes an SM83 r16stk register pair.
+    /// </summary>
+    public void SetStackRegisterPair(StackRegisterPair registerPair, ushort value)
+    {
+        switch (registerPair)
+        {
+            case StackRegisterPair.BC:
+                BC = value;
+                return;
+            case StackRegisterPair.DE:
+                DE = value;
+                return;
+            case StackRegisterPair.HL:
+                HL = value;
+                return;
+            case StackRegisterPair.AF:
+                AF = value;
+                return;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(registerPair));
+        }
+    }
+
+    /// <summary>
     /// Gets the high byte of a 16-bit register pair value.
     /// </summary>
     private static byte HighByte(ushort value) => (byte)(value >> 8);
@@ -381,4 +418,30 @@ internal enum RegisterPair : byte
     /// Stack pointer.
     /// </summary>
     SP = 3,
+}
+
+/// <summary>
+/// SM83 16-bit register pairs used by stack instructions.
+/// </summary>
+internal enum StackRegisterPair : byte
+{
+    /// <summary>
+    /// BC register pair.
+    /// </summary>
+    BC = 0,
+
+    /// <summary>
+    /// DE register pair.
+    /// </summary>
+    DE = 1,
+
+    /// <summary>
+    /// HL register pair.
+    /// </summary>
+    HL = 2,
+
+    /// <summary>
+    /// Accumulator and flags register pair.
+    /// </summary>
+    AF = 3,
 }

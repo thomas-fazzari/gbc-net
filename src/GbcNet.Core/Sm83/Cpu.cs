@@ -58,6 +58,32 @@ internal sealed class Cpu(MemoryBus bus)
     }
 
     /// <summary>
+    /// Pushes a 16-bit value on the stack as high byte, then low byte.
+    /// </summary>
+    internal void PushWord(ushort value)
+    {
+        Registers.SP = unchecked((ushort)(Registers.SP - 1));
+        WriteByte(Registers.SP, (byte)(value >> 8));
+
+        Registers.SP = unchecked((ushort)(Registers.SP - 1));
+        WriteByte(Registers.SP, (byte)value);
+    }
+
+    /// <summary>
+    /// Pops a 16-bit value from the stack by reading low byte, then high byte.
+    /// </summary>
+    internal ushort PopWord()
+    {
+        byte lowByte = ReadByte(Registers.SP);
+        Registers.SP = unchecked((ushort)(Registers.SP + 1));
+
+        byte highByte = ReadByte(Registers.SP);
+        Registers.SP = unchecked((ushort)(Registers.SP + 1));
+
+        return (ushort)((highByte << 8) | lowByte);
+    }
+
+    /// <summary>
     /// Reads the byte at PC and advances PC by one.
     /// </summary>
     private byte FetchByte()

@@ -22,6 +22,7 @@ internal static class InstructionSet
         ControlInstructions.Map(builder);
         Load8Instructions.Map(builder);
         LoadRegisterPairInstructions.Map(builder);
+        StackInstructions.Map(builder);
         Arithmetic8Instructions.Map(builder);
         Arithmetic16Instructions.Map(builder);
         RotateInstructions.Map(builder);

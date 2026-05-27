@@ -1,8 +1,4 @@
-using FluentResults;
-using GbcNet.Core.Cartridges;
-using GbcNet.Core.Memory;
 using GbcNet.Core.Sm83;
-using GbcNet.Tests.Cartridges;
 
 namespace GbcNet.Tests.Sm83;
 
@@ -23,7 +19,7 @@ public sealed class CpuTests
     [Fact]
     public void Constructor_InitializesDmgPostBootProgramCounterAndStackPointer()
     {
-        Cpu cpu = CreateCpu();
+        Cpu cpu = CpuTestFactory.CreateCpu();
 
         Assert.Equal(0x0100, cpu.Registers.PC);
         Assert.Equal(0xFFFE, cpu.Registers.SP);
@@ -32,7 +28,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_ExecutesNop()
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0x00);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0x00);
 
         int machineCycles = cpu.Step();
 
@@ -46,7 +42,7 @@ public sealed class CpuTests
     [InlineData(0x80, 0x0082)]
     public void Step_JumpsRelativeToNextInstruction(byte offset, ushort expectedPc)
     {
-        Cpu cpu = CreateCpu(bytes =>
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0x18;
             bytes[0x0101] = offset;
@@ -77,7 +73,7 @@ public sealed class CpuTests
         int expectedMachineCycles
     )
     {
-        Cpu cpu = CreateCpu(bytes =>
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = opcode;
             bytes[0x0101] = offset;
@@ -94,7 +90,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_LoadsImmediate16IntoRegisterPairs()
     {
-        Cpu cpu = CreateCpu(bytes =>
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0x01;
             bytes[0x0101] = 0x34;
@@ -130,7 +126,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_StoresAccumulatorThroughRegisterPairAddresses()
     {
-        Cpu cpu = CreateCpu(bytes =>
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0x02;
             bytes[0x0101] = 0x12;
@@ -154,7 +150,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_LoadsAccumulatorThroughRegisterPairAddresses()
     {
-        Cpu cpu = CreateCpu(bytes =>
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0x0A;
             bytes[0x0101] = 0x1A;
@@ -187,7 +183,7 @@ public sealed class CpuTests
         byte value
     )
     {
-        Cpu cpu = CreateCpu(bytes =>
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = opcode;
             bytes[0x0101] = value;
@@ -206,7 +202,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_LoadsImmediate8IntoMemoryAtHlWithoutChangingFlags()
     {
-        Cpu cpu = CreateCpu(bytes =>
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0x36;
             bytes[0x0101] = 0x9A;
@@ -233,7 +229,7 @@ public sealed class CpuTests
         byte destination
     )
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
         var sourceRegister = (Register8)source;
         var destinationRegister = (Register8)destination;
         cpu.Registers.SetRegister(sourceRegister, sourceValue);
@@ -252,7 +248,7 @@ public sealed class CpuTests
     [InlineData(0x7E, ARegister)]
     public void Step_LoadsMemoryAtHlIntoRegisterWithoutChangingFlags(byte opcode, byte destination)
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
         var destinationRegister = (Register8)destination;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = 0xF0;
@@ -275,7 +271,7 @@ public sealed class CpuTests
         byte sourceValue
     )
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
         var sourceRegister = (Register8)source;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.SetRegister(sourceRegister, sourceValue);
@@ -326,7 +322,7 @@ public sealed class CpuTests
         byte expectedFlags
     )
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
         var sourceRegister = (Register8)source;
         cpu.Registers.A = initialA;
         cpu.Registers.SetRegister(sourceRegister, sourceValue);
@@ -358,7 +354,7 @@ public sealed class CpuTests
         byte expectedFlags
     )
     {
-        Cpu cpu = CreateCpu(bytes =>
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = opcode;
             bytes[0x0101] = value;
@@ -377,7 +373,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_AddsMemoryAtHlToAccumulatorAndUpdatesFlags()
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0x86);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0x86);
         cpu.Registers.A = 0x0F;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = 0xF0;
@@ -395,7 +391,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_AddsMemoryAtHlAndCarryToAccumulatorAndUpdatesFlags()
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0x8E);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0x8E);
         cpu.Registers.A = 0xFE;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = (byte)CpuFlag.Carry;
@@ -413,7 +409,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_SubtractsMemoryAtHlFromAccumulatorAndUpdatesFlags()
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0x96);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0x96);
         cpu.Registers.A = 0x20;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = 0x00;
@@ -431,7 +427,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_SubtractsMemoryAtHlAndCarryFromAccumulatorAndUpdatesFlags()
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0x9E);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0x9E);
         cpu.Registers.A = 0x01;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = (byte)CpuFlag.Carry;
@@ -449,7 +445,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_AndsMemoryAtHlWithAccumulatorAndUpdatesFlags()
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0xA6);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0xA6);
         cpu.Registers.A = 0xF0;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = 0xF0;
@@ -467,7 +463,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_XorsMemoryAtHlWithAccumulatorAndUpdatesFlags()
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0xAE);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0xAE);
         cpu.Registers.A = 0xF0;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = 0xF0;
@@ -485,7 +481,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_OrsMemoryAtHlWithAccumulatorAndUpdatesFlags()
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0xB6);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0xB6);
         cpu.Registers.A = 0xF0;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = 0xF0;
@@ -503,7 +499,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_ComparesMemoryAtHlWithAccumulatorAndUpdatesFlags()
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0xBE);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0xBE);
         cpu.Registers.A = 0x20;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = 0xF0;
@@ -535,7 +531,7 @@ public sealed class CpuTests
         byte expectedFlags
     )
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
         cpu.Registers.A = initialA;
         cpu.Registers.F = initialFlags;
 
@@ -563,7 +559,7 @@ public sealed class CpuTests
         byte expectedFlags
     )
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0x27);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0x27);
         cpu.Registers.A = initialA;
         cpu.Registers.F = initialFlags;
 
@@ -585,7 +581,7 @@ public sealed class CpuTests
         byte expectedFlags
     )
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0x2F);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0x2F);
         cpu.Registers.A = initialA;
         cpu.Registers.F = initialFlags;
 
@@ -604,7 +600,7 @@ public sealed class CpuTests
     [InlineData(0x3F, 0x80, 0x90)]
     public void Step_UpdatesCarryFlagOperations(byte opcode, byte initialFlags, byte expectedFlags)
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
         cpu.Registers.A = 0x42;
         cpu.Registers.F = initialFlags;
 
@@ -619,7 +615,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_LoadsThroughHlAndUpdatesHl()
     {
-        Cpu cpu = CreateCpu(bytes =>
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0x22;
             bytes[0x0101] = 0x2A;
@@ -656,7 +652,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_StoresStackPointerAtImmediate16Address()
     {
-        Cpu cpu = CreateCpu(bytes =>
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0x08;
             bytes[0x0101] = 0x20;
@@ -675,7 +671,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_IncrementsRegisterPairsWithoutChangingFlags()
     {
-        Cpu cpu = CreateCpu(bytes =>
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0x03;
             bytes[0x0101] = 0x13;
@@ -709,7 +705,7 @@ public sealed class CpuTests
     [Fact]
     public void Step_DecrementsRegisterPairsWithoutChangingFlags()
     {
-        Cpu cpu = CreateCpu(bytes =>
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0x0B;
             bytes[0x0101] = 0x1B;
@@ -764,7 +760,7 @@ public sealed class CpuTests
         byte expectedFlags
     )
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
         var register8 = (Register8)register;
         cpu.Registers.SetRegister(register8, initialValue);
         cpu.Registers.F = initialFlags;
@@ -790,7 +786,7 @@ public sealed class CpuTests
         byte expectedFlags
     )
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
         cpu.Registers.HL = 0xC100;
         cpu.Registers.F = initialFlags;
         cpu.WriteByte(0xC100, initialValue);
@@ -818,7 +814,7 @@ public sealed class CpuTests
         byte expectedFlags
     )
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
         cpu.Registers.HL = initialHl;
         cpu.Registers.SetRegisterPair((RegisterPair)sourceRegisterPair, sourceValue);
         cpu.Registers.F = initialFlags;
@@ -836,20 +832,10 @@ public sealed class CpuTests
     [InlineData(0xFF, "Opcode 0xFF is not supported yet.")]
     public void Step_RejectsUnsupportedOpcode(byte opcode, string expectedMessage)
     {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
+        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() => cpu.Step());
 
         Assert.Equal(expectedMessage, exception.Message);
     }
-
-    private static Cpu CreateCpu(Action<byte[]>? configure = null)
-    {
-        Result<Cartridge> cartridge = Cartridge.Load(TestRomFactory.Create(configure));
-        Assert.True(cartridge.IsSuccess, DescribeErrors(cartridge.Errors));
-        return new Cpu(new MemoryBus(cartridge.Value));
-    }
-
-    private static string DescribeErrors(IReadOnlyList<IError> errors) =>
-        string.Join(Environment.NewLine, errors.Select(error => error.Message));
 }
