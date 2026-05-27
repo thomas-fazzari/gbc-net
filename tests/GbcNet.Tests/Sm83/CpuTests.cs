@@ -290,12 +290,26 @@ public sealed class CpuTests
     }
 
     [Theory]
-    [InlineData(0x80, BRegister, 0x12, 0x23, 0x35, 0x00)]
-    [InlineData(0x81, CRegister, 0x8F, 0x71, 0x00, 0xB0)]
-    [InlineData(0x87, ARegister, 0x80, 0x80, 0x00, 0x90)]
-    public void Step_AddsRegisterOperandToAccumulatorAndUpdatesFlags(
+    [InlineData(0x80, BRegister, 0xF0, 0x12, 0x23, 0x35, 0x00)]
+    [InlineData(0x81, CRegister, 0xF0, 0x8F, 0x71, 0x00, 0xB0)]
+    [InlineData(0x87, ARegister, 0xF0, 0x80, 0x80, 0x00, 0x90)]
+    [InlineData(0x88, BRegister, 0xE0, 0x12, 0x23, 0x35, 0x00)]
+    [InlineData(0x89, CRegister, 0x10, 0x0F, 0x00, 0x10, 0x20)]
+    [InlineData(0x8F, ARegister, 0x10, 0xFF, 0xFF, 0xFF, 0x30)]
+    [InlineData(0x90, BRegister, 0x00, 0x35, 0x23, 0x12, 0x40)]
+    [InlineData(0x91, CRegister, 0x00, 0x10, 0x01, 0x0F, 0x60)]
+    [InlineData(0x97, ARegister, 0x00, 0x42, 0x42, 0x00, 0xC0)]
+    [InlineData(0x92, DRegister, 0x00, 0x00, 0x01, 0xFF, 0x70)]
+    [InlineData(0x98, BRegister, 0x00, 0x35, 0x23, 0x12, 0x40)]
+    [InlineData(0x99, CRegister, 0x10, 0x10, 0x0F, 0x00, 0xE0)]
+    [InlineData(0x9F, ARegister, 0x10, 0x00, 0x00, 0xFF, 0x70)]
+    [InlineData(0xA0, BRegister, 0xF0, 0xF0, 0x0F, 0x00, 0xA0)]
+    [InlineData(0xA1, CRegister, 0xF0, 0xF3, 0x33, 0x33, 0x20)]
+    [InlineData(0xA7, ARegister, 0xF0, 0x5A, 0x5A, 0x5A, 0x20)]
+    public void Step_UpdatesAccumulatorFromRegisterOperandAndFlags(
         byte opcode,
         byte source,
+        byte initialFlags,
         byte initialA,
         byte sourceValue,
         byte expectedA,
@@ -306,7 +320,7 @@ public sealed class CpuTests
         var sourceRegister = (Register8)source;
         cpu.Registers.A = initialA;
         cpu.Registers.SetRegister(sourceRegister, sourceValue);
-        cpu.Registers.F = 0xF0;
+        cpu.Registers.F = initialFlags;
 
         int machineCycles = cpu.Step();
 
@@ -334,37 +348,6 @@ public sealed class CpuTests
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
-    [Theory]
-    [InlineData(0x88, BRegister, 0xE0, 0x12, 0x23, 0x35, 0x00)]
-    [InlineData(0x89, CRegister, 0x10, 0x0F, 0x00, 0x10, 0x20)]
-    [InlineData(0x8F, ARegister, 0x10, 0xFF, 0xFF, 0xFF, 0x30)]
-    [InlineData(0x98, BRegister, 0x00, 0x35, 0x23, 0x12, 0x40)]
-    [InlineData(0x99, CRegister, 0x10, 0x10, 0x0F, 0x00, 0xE0)]
-    [InlineData(0x9F, ARegister, 0x10, 0x00, 0x00, 0xFF, 0x70)]
-    public void Step_UsesCarryFlagForAccumulatorRegisterArithmeticAndUpdatesFlags(
-        byte opcode,
-        byte source,
-        byte initialFlags,
-        byte initialA,
-        byte sourceValue,
-        byte expectedA,
-        byte expectedFlags
-    )
-    {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
-        var sourceRegister = (Register8)source;
-        cpu.Registers.A = initialA;
-        cpu.Registers.SetRegister(sourceRegister, sourceValue);
-        cpu.Registers.F = initialFlags;
-
-        int machineCycles = cpu.Step();
-
-        Assert.Equal(1, machineCycles);
-        Assert.Equal(expectedA, cpu.Registers.A);
-        Assert.Equal(expectedFlags, cpu.Registers.F);
-        Assert.Equal(0x0101, cpu.Registers.PC);
-    }
-
     [Fact]
     public void Step_AddsMemoryAtHlAndCarryToAccumulatorAndUpdatesFlags()
     {
@@ -380,34 +363,6 @@ public sealed class CpuTests
         Assert.Equal(0x00, cpu.Registers.A);
         Assert.Equal(0xB0, cpu.Registers.F);
         Assert.Equal(0x01, cpu.ReadByte(0xC123));
-        Assert.Equal(0x0101, cpu.Registers.PC);
-    }
-
-    [Theory]
-    [InlineData(0x90, BRegister, 0x35, 0x23, 0x12, 0x40)]
-    [InlineData(0x91, CRegister, 0x10, 0x01, 0x0F, 0x60)]
-    [InlineData(0x97, ARegister, 0x42, 0x42, 0x00, 0xC0)]
-    [InlineData(0x92, DRegister, 0x00, 0x01, 0xFF, 0x70)]
-    public void Step_SubtractsRegisterOperandFromAccumulatorAndUpdatesFlags(
-        byte opcode,
-        byte source,
-        byte initialA,
-        byte sourceValue,
-        byte expectedA,
-        byte expectedFlags
-    )
-    {
-        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = opcode);
-        var sourceRegister = (Register8)source;
-        cpu.Registers.A = initialA;
-        cpu.Registers.SetRegister(sourceRegister, sourceValue);
-        cpu.Registers.F = 0x00;
-
-        int machineCycles = cpu.Step();
-
-        Assert.Equal(1, machineCycles);
-        Assert.Equal(expectedA, cpu.Registers.A);
-        Assert.Equal(expectedFlags, cpu.Registers.F);
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
@@ -444,6 +399,24 @@ public sealed class CpuTests
         Assert.Equal(0x00, cpu.Registers.A);
         Assert.Equal(0xC0, cpu.Registers.F);
         Assert.Equal(0x00, cpu.ReadByte(0xC123));
+        Assert.Equal(0x0101, cpu.Registers.PC);
+    }
+
+    [Fact]
+    public void Step_AndsMemoryAtHlWithAccumulatorAndUpdatesFlags()
+    {
+        Cpu cpu = CreateCpu(bytes => bytes[0x0100] = 0xA6);
+        cpu.Registers.A = 0xF0;
+        cpu.Registers.HL = 0xC123;
+        cpu.Registers.F = 0xF0;
+        cpu.WriteByte(0xC123, 0x0F);
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(2, machineCycles);
+        Assert.Equal(0x00, cpu.Registers.A);
+        Assert.Equal(0xA0, cpu.Registers.F);
+        Assert.Equal(0x0F, cpu.ReadByte(0xC123));
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 

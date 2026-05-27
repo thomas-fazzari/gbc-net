@@ -31,6 +31,13 @@ internal static class Arithmetic8Instructions
     private const byte SubtractAccumulatorRegisterOperandEndOpcode = 0x97;
     private const byte SubtractWithCarryAccumulatorRegisterOperandStartOpcode = 0x98;
     private const byte SubtractWithCarryAccumulatorRegisterOperandEndOpcode = 0x9F;
+    private const byte AndAccumulatorRegisterOperandStartOpcode = 0xA0;
+    private const byte AndAccumulatorRegisterOperandEndOpcode = 0xA7;
+
+    /// <summary>
+    /// Executes one A,r8 accumulator operation after the source operand has been decoded.
+    /// </summary>
+    private delegate int AccumulatorRegisterOperandExecutor(Cpu cpu, Register8Operand source);
 
     /// <summary>
     /// Low 4 bits used to detect H for 8-bit arithmetic.
@@ -60,8 +67,8 @@ internal static class Arithmetic8Instructions
     private const byte NoOperandByteLength = 1;
 
     private const int AddressHlMachineCycles = 3;
-    private const int AccumulatorAddressHlArithmeticMachineCycles = 2;
-    private const int AccumulatorRegisterArithmeticMachineCycles = 1;
+    private const int AccumulatorAddressHlOperandMachineCycles = 2;
+    private const int AccumulatorRegisterOperandMachineCycles = 1;
     private const int ComplementAccumulatorMachineCycles = 1;
     private const int DecimalAdjustAccumulatorMachineCycles = 1;
     private const int RegisterMachineCycles = 1;
@@ -105,10 +112,36 @@ internal static class Arithmetic8Instructions
         MapDecrementAddressHl(builder, DecrementAddressHlOpcode);
         MapIncrementRegister(builder, IncrementAOpcode, Register8.A);
         MapDecrementRegister(builder, DecrementAOpcode, Register8.A);
-        MapAddAccumulatorRegisterOperand(builder);
-        MapAddWithCarryAccumulatorRegisterOperand(builder);
-        MapSubtractAccumulatorRegisterOperand(builder);
-        MapSubtractWithCarryAccumulatorRegisterOperand(builder);
+        MapAccumulatorRegisterOperand(
+            builder,
+            AddAccumulatorRegisterOperandStartOpcode,
+            AddAccumulatorRegisterOperandEndOpcode,
+            AddAccumulatorRegisterOperand
+        );
+        MapAccumulatorRegisterOperand(
+            builder,
+            AddWithCarryAccumulatorRegisterOperandStartOpcode,
+            AddWithCarryAccumulatorRegisterOperandEndOpcode,
+            AddWithCarryAccumulatorRegisterOperand
+        );
+        MapAccumulatorRegisterOperand(
+            builder,
+            SubtractAccumulatorRegisterOperandStartOpcode,
+            SubtractAccumulatorRegisterOperandEndOpcode,
+            SubtractAccumulatorRegisterOperand
+        );
+        MapAccumulatorRegisterOperand(
+            builder,
+            SubtractWithCarryAccumulatorRegisterOperandStartOpcode,
+            SubtractWithCarryAccumulatorRegisterOperandEndOpcode,
+            SubtractWithCarryAccumulatorRegisterOperand
+        );
+        MapAccumulatorRegisterOperand(
+            builder,
+            AndAccumulatorRegisterOperandStartOpcode,
+            AndAccumulatorRegisterOperandEndOpcode,
+            AndAccumulatorRegisterOperand
+        );
     }
 
     /// <summary>
@@ -184,90 +217,6 @@ internal static class Arithmetic8Instructions
     }
 
     /// <summary>
-    /// Maps ADD A, r8 instructions, which reset N and update Z, H, and C.
-    /// </summary>
-    private static void MapAddAccumulatorRegisterOperand(OpcodeTableBuilder builder)
-    {
-        for (
-            int opcode = AddAccumulatorRegisterOperandStartOpcode;
-            opcode <= AddAccumulatorRegisterOperandEndOpcode;
-            opcode++
-        )
-        {
-            byte opcodeByte = (byte)opcode;
-            Register8Operand source = Register8Operands.DecodeSource(opcodeByte);
-            builder.Map(
-                opcodeByte,
-                NoOperandByteLength,
-                (cpu, _, _) => AddAccumulatorRegisterOperand(cpu, source)
-            );
-        }
-    }
-
-    /// <summary>
-    /// Maps ADC A, r8 instructions, which add the carry flag and update Z, N, H, and C.
-    /// </summary>
-    private static void MapAddWithCarryAccumulatorRegisterOperand(OpcodeTableBuilder builder)
-    {
-        for (
-            int opcode = AddWithCarryAccumulatorRegisterOperandStartOpcode;
-            opcode <= AddWithCarryAccumulatorRegisterOperandEndOpcode;
-            opcode++
-        )
-        {
-            byte opcodeByte = (byte)opcode;
-            Register8Operand source = Register8Operands.DecodeSource(opcodeByte);
-            builder.Map(
-                opcodeByte,
-                NoOperandByteLength,
-                (cpu, _, _) => AddWithCarryAccumulatorRegisterOperand(cpu, source)
-            );
-        }
-    }
-
-    /// <summary>
-    /// Maps SUB A, r8 instructions, which set N and update Z, H, and C.
-    /// </summary>
-    private static void MapSubtractAccumulatorRegisterOperand(OpcodeTableBuilder builder)
-    {
-        for (
-            int opcode = SubtractAccumulatorRegisterOperandStartOpcode;
-            opcode <= SubtractAccumulatorRegisterOperandEndOpcode;
-            opcode++
-        )
-        {
-            byte opcodeByte = (byte)opcode;
-            Register8Operand source = Register8Operands.DecodeSource(opcodeByte);
-            builder.Map(
-                opcodeByte,
-                NoOperandByteLength,
-                (cpu, _, _) => SubtractAccumulatorRegisterOperand(cpu, source)
-            );
-        }
-    }
-
-    /// <summary>
-    /// Maps SBC A, r8 instructions, which subtract the carry flag and update Z, N, H, and C.
-    /// </summary>
-    private static void MapSubtractWithCarryAccumulatorRegisterOperand(OpcodeTableBuilder builder)
-    {
-        for (
-            int opcode = SubtractWithCarryAccumulatorRegisterOperandStartOpcode;
-            opcode <= SubtractWithCarryAccumulatorRegisterOperandEndOpcode;
-            opcode++
-        )
-        {
-            byte opcodeByte = (byte)opcode;
-            Register8Operand source = Register8Operands.DecodeSource(opcodeByte);
-            builder.Map(
-                opcodeByte,
-                NoOperandByteLength,
-                (cpu, _, _) => SubtractWithCarryAccumulatorRegisterOperand(cpu, source)
-            );
-        }
-    }
-
-    /// <summary>
     /// Increments the selected r8 register and updates the INC r8 flags.
     /// </summary>
     private static void IncrementRegister(Cpu cpu, Register8 register)
@@ -314,8 +263,8 @@ internal static class Arithmetic8Instructions
         AddAccumulator(cpu, value, carry: 0);
 
         return Register8Operands.UsesMemory(source)
-            ? AccumulatorAddressHlArithmeticMachineCycles
-            : AccumulatorRegisterArithmeticMachineCycles;
+            ? AccumulatorAddressHlOperandMachineCycles
+            : AccumulatorRegisterOperandMachineCycles;
     }
 
     /// <summary>
@@ -328,8 +277,8 @@ internal static class Arithmetic8Instructions
         AddAccumulator(cpu, value, carry);
 
         return Register8Operands.UsesMemory(source)
-            ? AccumulatorAddressHlArithmeticMachineCycles
-            : AccumulatorRegisterArithmeticMachineCycles;
+            ? AccumulatorAddressHlOperandMachineCycles
+            : AccumulatorRegisterOperandMachineCycles;
     }
 
     /// <summary>
@@ -341,8 +290,8 @@ internal static class Arithmetic8Instructions
         SubtractAccumulator(cpu, value, borrow: 0);
 
         return Register8Operands.UsesMemory(source)
-            ? AccumulatorAddressHlArithmeticMachineCycles
-            : AccumulatorRegisterArithmeticMachineCycles;
+            ? AccumulatorAddressHlOperandMachineCycles
+            : AccumulatorRegisterOperandMachineCycles;
     }
 
     /// <summary>
@@ -355,8 +304,21 @@ internal static class Arithmetic8Instructions
         SubtractAccumulator(cpu, value, borrow);
 
         return Register8Operands.UsesMemory(source)
-            ? AccumulatorAddressHlArithmeticMachineCycles
-            : AccumulatorRegisterArithmeticMachineCycles;
+            ? AccumulatorAddressHlOperandMachineCycles
+            : AccumulatorRegisterOperandMachineCycles;
+    }
+
+    /// <summary>
+    /// ANDs the selected r8 operand with A and updates AND A, r8 flags.
+    /// </summary>
+    private static int AndAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    {
+        byte value = Register8Operands.Read(cpu, source);
+        AndAccumulator(cpu, value);
+
+        return Register8Operands.UsesMemory(source)
+            ? AccumulatorAddressHlOperandMachineCycles
+            : AccumulatorRegisterOperandMachineCycles;
     }
 
     /// <summary>
@@ -429,6 +391,38 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static bool HasLowNibbleSubtractionBorrow(byte left, byte right, int borrow) =>
         (left & HalfCarryMask) < (right & HalfCarryMask) + borrow;
+
+    /// <summary>
+    /// ANDs one byte with A, then applies AND A flag effects.
+    /// </summary>
+    private static void AndAccumulator(Cpu cpu, byte value)
+    {
+        byte result = (byte)(cpu.Registers.A & value);
+
+        cpu.Registers.A = result;
+        cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
+        cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: false);
+        cpu.Registers.SetFlag(CpuFlag.HalfCarry, isSet: true);
+        cpu.Registers.SetFlag(CpuFlag.Carry, isSet: false);
+    }
+
+    /// <summary>
+    /// Maps an inclusive A,r8 opcode range using the low three opcode bits as source operand.
+    /// </summary>
+    private static void MapAccumulatorRegisterOperand(
+        OpcodeTableBuilder builder,
+        byte startOpcode,
+        byte endOpcode,
+        AccumulatorRegisterOperandExecutor execute
+    )
+    {
+        for (int opcode = startOpcode; opcode <= endOpcode; opcode++)
+        {
+            byte opcodeByte = (byte)opcode;
+            Register8Operand source = Register8Operands.DecodeSource(opcodeByte);
+            builder.Map(opcodeByte, NoOperandByteLength, (cpu, _, _) => execute(cpu, source));
+        }
+    }
 
     /// <summary>
     /// Adjusts A to a packed BCD result using the N, H, and C flags from the previous operation.
