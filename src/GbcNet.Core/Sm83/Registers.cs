@@ -138,6 +138,19 @@ internal sealed class Registers
     }
 
     /// <summary>
+    /// Evaluates an SM83 condition code against the current Z and C flags.
+    /// </summary>
+    public bool IsConditionMet(ConditionCode conditionCode) =>
+        conditionCode switch
+        {
+            ConditionCode.NotZero => !IsFlagSet(CpuFlag.Zero),
+            ConditionCode.Zero => IsFlagSet(CpuFlag.Zero),
+            ConditionCode.NotCarry => !IsFlagSet(CpuFlag.Carry),
+            ConditionCode.Carry => IsFlagSet(CpuFlag.Carry),
+            _ => throw new ArgumentOutOfRangeException(nameof(conditionCode)),
+        };
+
+    /// <summary>
     /// Reads an SM83 r8 register.
     /// </summary>
     public byte GetRegister(Register8 register) =>

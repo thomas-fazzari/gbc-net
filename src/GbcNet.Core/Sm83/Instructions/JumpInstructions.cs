@@ -38,22 +38,22 @@ internal static class JumpInstructions
         builder.Map(
             JumpRelativeNotZeroImmediate8Opcode,
             Immediate8ByteLength,
-            static (cpu, offset, _) => JumpRelativeImmediate8If(cpu, offset, JumpCondition.NotZero)
+            static (cpu, offset, _) => JumpRelativeImmediate8If(cpu, offset, ConditionCode.NotZero)
         );
         builder.Map(
             JumpRelativeZeroImmediate8Opcode,
             Immediate8ByteLength,
-            static (cpu, offset, _) => JumpRelativeImmediate8If(cpu, offset, JumpCondition.Zero)
+            static (cpu, offset, _) => JumpRelativeImmediate8If(cpu, offset, ConditionCode.Zero)
         );
         builder.Map(
             JumpRelativeNotCarryImmediate8Opcode,
             Immediate8ByteLength,
-            static (cpu, offset, _) => JumpRelativeImmediate8If(cpu, offset, JumpCondition.NotCarry)
+            static (cpu, offset, _) => JumpRelativeImmediate8If(cpu, offset, ConditionCode.NotCarry)
         );
         builder.Map(
             JumpRelativeCarryImmediate8Opcode,
             Immediate8ByteLength,
-            static (cpu, offset, _) => JumpRelativeImmediate8If(cpu, offset, JumpCondition.Carry)
+            static (cpu, offset, _) => JumpRelativeImmediate8If(cpu, offset, ConditionCode.Carry)
         );
     }
 
@@ -69,9 +69,9 @@ internal static class JumpInstructions
     /// <summary>
     /// Executes JR cond, imm8 after the offset byte has already been fetched.
     /// </summary>
-    private static int JumpRelativeImmediate8If(Cpu cpu, byte offset, JumpCondition condition)
+    private static int JumpRelativeImmediate8If(Cpu cpu, byte offset, ConditionCode conditionCode)
     {
-        if (!IsConditionMet(cpu, condition))
+        if (!cpu.Registers.IsConditionMet(conditionCode))
         {
             return JumpRelativeConditionalNotTakenMachineCycles;
         }
@@ -87,43 +87,4 @@ internal static class JumpInstructions
     {
         cpu.Registers.PC = unchecked((ushort)(cpu.Registers.PC + (sbyte)offset));
     }
-
-    /// <summary>
-    /// Evaluates an SM83 condition code against the current Z and C flags.
-    /// </summary>
-    private static bool IsConditionMet(Cpu cpu, JumpCondition condition) =>
-        condition switch
-        {
-            JumpCondition.NotZero => !cpu.Registers.IsFlagSet(CpuFlag.Zero),
-            JumpCondition.Zero => cpu.Registers.IsFlagSet(CpuFlag.Zero),
-            JumpCondition.NotCarry => !cpu.Registers.IsFlagSet(CpuFlag.Carry),
-            JumpCondition.Carry => cpu.Registers.IsFlagSet(CpuFlag.Carry),
-            _ => throw new ArgumentOutOfRangeException(nameof(condition)),
-        };
-}
-
-/// <summary>
-/// SM83 condition codes used by conditional relative jumps.
-/// </summary>
-internal enum JumpCondition : byte
-{
-    /// <summary>
-    /// Z flag is reset.
-    /// </summary>
-    NotZero = 0,
-
-    /// <summary>
-    /// Z flag is set.
-    /// </summary>
-    Zero = 1,
-
-    /// <summary>
-    /// C flag is reset.
-    /// </summary>
-    NotCarry = 2,
-
-    /// <summary>
-    /// C flag is set.
-    /// </summary>
-    Carry = 3,
 }

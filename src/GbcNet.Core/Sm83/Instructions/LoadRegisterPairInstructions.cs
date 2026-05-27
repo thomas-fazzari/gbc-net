@@ -154,7 +154,11 @@ internal static class LoadRegisterPairInstructions
         byte highByte
     )
     {
-        WriteLittleEndianWord(cpu, ReadImmediate16(lowByte, highByte), cpu.Registers.SP);
+        WriteLittleEndianWord(
+            cpu,
+            InstructionOperands.ReadImmediate16(lowByte, highByte),
+            cpu.Registers.SP
+        );
         return LoadImmediate16AddressFromStackPointerMachineCycles;
     }
 
@@ -203,12 +207,6 @@ internal static class LoadRegisterPairInstructions
     }
 
     /// <summary>
-    /// Combines an imm16 operand stored by the SM83 as low byte, then high byte.
-    /// </summary>
-    private static ushort ReadImmediate16(byte lowByte, byte highByte) =>
-        (ushort)((highByte << 8) | lowByte);
-
-    /// <summary>
     /// Loads an imm16 operand into the selected r16 register pair.
     /// </summary>
     private static void LoadRegisterPairImmediate16(
@@ -218,7 +216,10 @@ internal static class LoadRegisterPairInstructions
         byte highByte
     )
     {
-        cpu.Registers.SetRegisterPair(registerPair, ReadImmediate16(lowByte, highByte));
+        cpu.Registers.SetRegisterPair(
+            registerPair,
+            InstructionOperands.ReadImmediate16(lowByte, highByte)
+        );
     }
 
     /// <summary>

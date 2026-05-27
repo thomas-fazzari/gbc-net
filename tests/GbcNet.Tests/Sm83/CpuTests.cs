@@ -829,7 +829,7 @@ public sealed class CpuTests
 
     [Theory]
     [InlineData(0x76, "Opcode 0x76 is not supported yet.")]
-    [InlineData(0xFF, "Opcode 0xFF is not supported yet.")]
+    [InlineData(0xD3, "Opcode 0xD3 is not supported yet.")]
     public void Step_RejectsUnsupportedOpcode(byte opcode, string expectedMessage)
     {
         Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
