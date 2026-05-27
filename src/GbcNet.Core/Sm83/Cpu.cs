@@ -1,4 +1,5 @@
 using System.Globalization;
+using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
 
 namespace GbcNet.Core.Sm83;
@@ -10,6 +11,11 @@ internal sealed class Cpu(MemoryBus bus)
 {
     private const ushort PostBootProgramCounter = 0x0100;
     private const ushort PostBootStackPointer = 0xFFFE;
+
+    /// <summary>
+    /// Hardware interrupt service sequence duration: two waits, two stack writes, one vector load.
+    /// </summary>
+    private const int InterruptServiceMachineCycles = 5;
 
     /// <summary>
     /// CPU-internal IME flag. When set, enabled and requested interrupts may be serviced.
@@ -35,6 +41,11 @@ internal sealed class Cpu(MemoryBus bus)
     /// </returns>
     public int Step()
     {
+        if (TryServiceInterrupt(out int interruptMachineCycles))
+        {
+            return interruptMachineCycles;
+        }
+
         bool enableImeAfterThisInstruction = ImeEnablePending;
         int machineCycles = ExecuteNextInstruction();
 
@@ -125,6 +136,26 @@ internal sealed class Cpu(MemoryBus bus)
         byte secondOperand = instruction.ByteLength > 2 ? FetchByte() : (byte)0;
 
         return instruction.Execute(this, firstOperand, secondOperand);
+    }
+
+    private bool TryServiceInterrupt(out int machineCycles)
+    {
+        if (
+            !Ime
+            || !bus.Interrupts.TryGetHighestPriority(out InterruptSource source, out ushort vector)
+        )
+        {
+            machineCycles = 0;
+            return false;
+        }
+
+        bus.Interrupts.Clear(source);
+        Ime = false;
+        PushWord(Registers.PC);
+        Registers.PC = vector;
+
+        machineCycles = InterruptServiceMachineCycles;
+        return true;
     }
 
     /// <summary>
