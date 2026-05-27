@@ -1,5 +1,3 @@
-using GbcNet.Core.Sm83;
-
 namespace GbcNet.Core.Sm83;
 
 /// <summary>
@@ -28,6 +26,7 @@ internal static class InstructionSet
         Arithmetic16Instructions.Map(builder);
         RotateInstructions.Map(builder);
         FlagInstructions.Map(builder);
+        JumpInstructions.Map(builder);
 
         return instructions;
     }

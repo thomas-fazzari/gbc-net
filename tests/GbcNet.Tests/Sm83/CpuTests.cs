@@ -40,6 +40,26 @@ public sealed class CpuTests
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
+    [Theory]
+    [InlineData(0x02, 0x0104)]
+    [InlineData(0xFE, 0x0100)]
+    [InlineData(0x80, 0x0082)]
+    public void Step_JumpsRelativeToNextInstruction(byte offset, ushort expectedPc)
+    {
+        Cpu cpu = CreateCpu(bytes =>
+        {
+            bytes[0x0100] = 0x18;
+            bytes[0x0101] = offset;
+        });
+        cpu.Registers.F = 0xF0;
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(3, machineCycles);
+        Assert.Equal(expectedPc, cpu.Registers.PC);
+        Assert.Equal(0xF0, cpu.Registers.F);
+    }
+
     [Fact]
     public void Step_LoadsImmediate16IntoRegisterPairs()
     {
