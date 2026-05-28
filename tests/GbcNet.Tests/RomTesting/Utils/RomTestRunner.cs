@@ -1,45 +1,71 @@
-using System.Text;
 using GbcNet.Core;
 using GbcNet.Core.Cartridges;
+using GbcNet.Tests.RomTesting.Utils.ResultObservers;
 
 namespace GbcNet.Tests.RomTesting.Utils;
 
 internal static class RomTestRunner
 {
-    private const string PassedMarker = "Passed";
-    private const string FailedMarker = "Failed";
-
     public static RomTestResult Run(byte[] rom, int maxMachineCycles)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxMachineCycles);
 
         Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
-        var serialOutput = new StringBuilder();
-        string output = string.Empty;
+        IRomResultObserver[] observers =
+        [
+            new BlarggSerialResultObserver(gameBoy),
+            new BlarggMemoryResultObserver(),
+        ];
         int machineCycles = 0;
-
-        gameBoy.SerialByteTransferred += (_, e) =>
-        {
-            serialOutput.Append((char)e.Value);
-            output = serialOutput.ToString();
-        };
 
         while (machineCycles < maxMachineCycles)
         {
             machineCycles += gameBoy.Step();
 
-            if (output.Contains(PassedMarker, StringComparison.Ordinal))
+            RomTestResult? result = CreateTerminalResult(gameBoy, observers, machineCycles);
+            if (result is not null)
             {
-                return new RomTestResult(RomTestStatus.Passed, output, machineCycles);
-            }
-
-            if (output.Contains(FailedMarker, StringComparison.Ordinal))
-            {
-                return new RomTestResult(RomTestStatus.Failed, output, machineCycles);
+                return result;
             }
         }
 
-        return new RomTestResult(RomTestStatus.TimedOut, output, machineCycles);
+        return RomTestResult.TimedOut(machineCycles, GetSnapshots(observers));
     }
+
+    private static RomTestResult? CreateTerminalResult(
+        GameBoy gameBoy,
+        IReadOnlyList<IRomResultObserver> observers,
+        int machineCycles
+    )
+    {
+        RomTestObservation[] terminalObservations =
+        [
+            .. observers.Select(observer => observer.Observe(gameBoy)).OfType<RomTestObservation>(),
+        ];
+
+        if (terminalObservations.Length == 0)
+        {
+            return null;
+        }
+
+        if (terminalObservations.Select(result => result.Status).Distinct().Skip(1).Any())
+        {
+            return RomTestResult.FromObservations(
+                RomTestStatus.Failed,
+                machineCycles,
+                terminalObservations,
+                "ROM result observers disagree."
+            );
+        }
+
+        return RomTestResult.FromObservations(
+            terminalObservations[0].Status.GetValueOrDefault(),
+            machineCycles,
+            terminalObservations
+        );
+    }
+
+    private static RomTestObservation[] GetSnapshots(IReadOnlyList<IRomResultObserver> observers) =>
+        [.. observers.Select(observer => observer.Snapshot)];
 }

@@ -61,6 +61,11 @@ public sealed class GameBoy
     }
 
     /// <summary>
+    /// Reads CPU-visible memory for debugger and test harness inspection
+    /// </summary>
+    internal byte DebugReadByte(ushort address) => Bus.ReadByte(address);
+
+    /// <summary>
     /// Hardware model selected for this emulation instance.
     /// </summary>
     public HardwareModel HardwareModel { get; }

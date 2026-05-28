@@ -19,6 +19,6 @@ public sealed class BlarggMemoryTimingRomTests
 
         RomTestResult result = RomTestRunner.Run(rom, MaxMachineCycles);
 
-        Assert.Equal(RomTestStatus.Passed, result.Status);
+        Assert.True(result.Status is RomTestStatus.Passed, result.ToFailureMessage());
     }
 }
