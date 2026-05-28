@@ -12,7 +12,6 @@ internal sealed class DmaController
 
     private byte _sourceHighByte;
     private int _nextOffset;
-    private bool _isTransferActive;
     private bool _skipNextTick;
 
     /// <summary>
@@ -23,7 +22,7 @@ internal sealed class DmaController
     /// <summary>
     /// Indicates that OAM DMA currently owns the memory bus for CPU-visible memory regions.
     /// </summary>
-    public bool IsActive => _isTransferActive;
+    public bool IsActive { get; private set; }
 
     /// <summary>
     /// Starts an OAM DMA transfer from sourceHighByte * 0x100.
@@ -32,7 +31,7 @@ internal sealed class DmaController
     {
         _sourceHighByte = sourceHighByte;
         _nextOffset = 0;
-        _isTransferActive = true;
+        IsActive = true;
         _skipNextTick = true;
     }
 
@@ -49,7 +48,7 @@ internal sealed class DmaController
         ArgumentNullException.ThrowIfNull(readSourceByte);
         ArgumentNullException.ThrowIfNull(writeOamByte);
 
-        if (!_isTransferActive || machineCycles == 0)
+        if (!IsActive || machineCycles == 0)
         {
             return;
         }
@@ -70,7 +69,7 @@ internal sealed class DmaController
     {
         _sourceHighByte = value;
         _nextOffset = 0;
-        _isTransferActive = false;
+        IsActive = false;
         _skipNextTick = false;
     }
 
@@ -93,7 +92,7 @@ internal sealed class DmaController
 
         if (_nextOffset == TransferLength)
         {
-            _isTransferActive = false;
+            IsActive = false;
         }
     }
 }
