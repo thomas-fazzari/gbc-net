@@ -1,7 +1,7 @@
 namespace GbcNet.Tests.RomTesting.Utils;
 
-[CollectionDefinition(Name)]
-public static class RomTestingGroup
+[CollectionDefinition]
+public sealed class RomTestingGroup
 {
-    public const string Name = "RomTesting";
+    private RomTestingGroup() { }
 }

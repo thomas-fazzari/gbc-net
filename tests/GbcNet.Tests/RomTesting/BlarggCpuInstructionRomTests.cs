@@ -2,7 +2,7 @@ using GbcNet.Tests.RomTesting.Utils;
 
 namespace GbcNet.Tests.RomTesting;
 
-[Collection(RomTestingGroup.Name)]
+[Collection<RomTestingGroup>]
 public sealed class BlarggCpuInstructionRomTests
 {
     private const int MaxMachineCycles = 5_000_000;
