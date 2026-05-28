@@ -34,13 +34,18 @@ public sealed class SerialControllerTests
     {
         var interrupts = new InterruptController();
         var serial = new SerialController(interrupts);
+        byte? transferredByte = null;
+        serial.ByteTransferred += (_, e) => transferredByte = e.Value;
+        serial.TransferData = 0x41;
         serial.WriteControl(0x81);
+        serial.TransferData = 0x00;
 
         serial.Tick(512 * 8);
 
         Assert.Equal(0xFF, serial.TransferData);
         Assert.Equal(0x7F, serial.ReadControl());
         Assert.Equal(0b0000_1000, interrupts.InterruptFlag);
+        Assert.Equal((byte)0x41, transferredByte);
     }
 
     [Fact]
@@ -48,6 +53,8 @@ public sealed class SerialControllerTests
     {
         var interrupts = new InterruptController();
         var serial = new SerialController(interrupts);
+        byte? transferredByte = null;
+        serial.ByteTransferred += (_, e) => transferredByte = e.Value;
         serial.WriteControl(0x80);
 
         serial.Tick(512 * 8);
@@ -55,6 +62,7 @@ public sealed class SerialControllerTests
         Assert.Equal(0x00, serial.TransferData);
         Assert.Equal(0xFE, serial.ReadControl());
         Assert.Equal(0x00, interrupts.InterruptFlag);
+        Assert.Null(transferredByte);
     }
 
     [Fact]
@@ -62,6 +70,8 @@ public sealed class SerialControllerTests
     {
         var interrupts = new InterruptController();
         var serial = new SerialController(interrupts);
+        byte? transferredByte = null;
+        serial.ByteTransferred += (_, e) => transferredByte = e.Value;
         serial.SetControlState(0x81);
 
         serial.Tick(512 * 8);
@@ -69,5 +79,6 @@ public sealed class SerialControllerTests
         Assert.Equal(0x00, serial.TransferData);
         Assert.Equal(0xFF, serial.ReadControl());
         Assert.Equal(0x00, interrupts.InterruptFlag);
+        Assert.Null(transferredByte);
     }
 }

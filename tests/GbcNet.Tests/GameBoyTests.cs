@@ -35,16 +35,19 @@ public sealed class GameBoyTests
             Cartridge.Load(TestRomFactory.Create(bytes => bytes[0x0100] = HaltOpcode))
         );
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
-        gameBoy.Bus.WriteByte(AddressMap.SerialTransferDataRegister, 0x00);
+        byte? transferredByte = null;
+        gameBoy.SerialByteTransferred += (_, e) => transferredByte = e.Value;
+        gameBoy.Bus.WriteByte(AddressMap.SerialTransferDataRegister, 0x41);
         gameBoy.Bus.WriteByte(AddressMap.SerialTransferControlRegister, 0x81);
 
-        for (int step = 0; step < 128; step++)
+        for (int step = 0; step < 1024; step++)
         {
             gameBoy.Step();
         }
 
-        Assert.Equal(0x01, gameBoy.Bus.ReadByte(AddressMap.SerialTransferDataRegister));
-        Assert.Equal(0xFF, gameBoy.Bus.ReadByte(AddressMap.SerialTransferControlRegister));
+        Assert.Equal(0xFF, gameBoy.Bus.ReadByte(AddressMap.SerialTransferDataRegister));
+        Assert.Equal(0x7F, gameBoy.Bus.ReadByte(AddressMap.SerialTransferControlRegister));
+        Assert.Equal((byte)0x41, transferredByte);
     }
 
     [Fact]

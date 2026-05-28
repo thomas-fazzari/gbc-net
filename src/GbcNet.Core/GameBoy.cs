@@ -1,6 +1,7 @@
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
+using GbcNet.Core.Serial;
 using GbcNet.Core.Sm83;
 
 namespace GbcNet.Core;
@@ -23,10 +24,16 @@ public sealed class GameBoy
     public GameBoy(Cartridge cartridge, HardwareModel hardwareModel)
     {
         Bus = new MemoryBus(cartridge);
+        Bus.Serial.ByteTransferred += OnSerialByteTransferred;
         _cpu = new Cpu(Bus);
         HardwareModel = hardwareModel;
         PostBootState.Apply(hardwareModel, cartridge, _cpu, Bus);
     }
+
+    /// <summary>
+    /// Raised when a serial transfer completes, carrying the byte latched at transfer start.
+    /// </summary>
+    public event EventHandler<SerialByteTransferredEventArgs>? SerialByteTransferred;
 
     /// <summary>
     /// Executes one CPU step and advances hardware that runs from CPU cycles.
@@ -59,4 +66,9 @@ public sealed class GameBoy
     public HardwareModel HardwareModel { get; }
 
     internal MemoryBus Bus { get; }
+
+    private void OnSerialByteTransferred(object? sender, SerialByteTransferredEventArgs e)
+    {
+        SerialByteTransferred?.Invoke(this, e);
+    }
 }

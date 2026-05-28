@@ -43,9 +43,15 @@ internal sealed class SerialController(InterruptController interrupts)
     private const byte DisconnectedInputBit = 0x01;
 
     private byte _control;
+    private byte _outgoingTransferData;
     private int _elapsedTransferCycles;
     private int _transferredBitCount;
     private bool _transferActive;
+
+    /// <summary>
+    /// Raised when a serial transfer completes, carrying the byte latched at transfer start.
+    /// </summary>
+    internal event EventHandler<SerialByteTransferredEventArgs>? ByteTransferred;
 
     /// <summary>
     /// SB register at FF01, holding outgoing and incoming serial data.
@@ -66,6 +72,7 @@ internal sealed class SerialController(InterruptController interrupts)
         _elapsedTransferCycles = 0;
         _transferredBitCount = 0;
         _transferActive = (_control & TransferStartMask) != 0;
+        _outgoingTransferData = _transferActive ? TransferData : (byte)0;
     }
 
     /// <summary>
@@ -77,6 +84,7 @@ internal sealed class SerialController(InterruptController interrupts)
         _elapsedTransferCycles = 0;
         _transferredBitCount = 0;
         _transferActive = false;
+        _outgoingTransferData = 0;
     }
 
     /// <summary>
@@ -123,5 +131,6 @@ internal sealed class SerialController(InterruptController interrupts)
         _transferredBitCount = 0;
         _transferActive = false;
         interrupts.Request(InterruptSource.Serial);
+        ByteTransferred?.Invoke(this, new SerialByteTransferredEventArgs(_outgoingTransferData));
     }
 }
