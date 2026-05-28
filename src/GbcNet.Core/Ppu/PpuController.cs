@@ -1,12 +1,18 @@
+using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
 
 namespace GbcNet.Core.Ppu;
 
 /// <summary>
-/// Stores CPU-visible LCD/PPU register state.
+/// Stores CPU-visible LCD/PPU register state and advances minimal DMG PPU timing.
 /// </summary>
-internal sealed class PpuController
+internal sealed class PpuController(InterruptController interrupts)
 {
+    /// <summary>
+    /// LCDC bit 7 enables LCD/PPU timing.
+    /// </summary>
+    private const byte LcdEnableMask = 0x80;
+
     /// <summary>
     /// STAT bit 7 reads back as set.
     /// </summary>
@@ -18,6 +24,26 @@ internal sealed class PpuController
     private const byte StatusInterruptSelectMask = 0x78;
 
     /// <summary>
+    /// STAT bit 3 enables Mode 0 LCD STAT interrupts.
+    /// </summary>
+    private const byte StatusMode0InterruptSelectMask = 0x08;
+
+    /// <summary>
+    /// STAT bit 4 enables Mode 1 LCD STAT interrupts.
+    /// </summary>
+    private const byte StatusMode1InterruptSelectMask = 0x10;
+
+    /// <summary>
+    /// STAT bit 5 enables Mode 2 LCD STAT interrupts.
+    /// </summary>
+    private const byte StatusMode2InterruptSelectMask = 0x20;
+
+    /// <summary>
+    /// STAT bit 6 enables LYC=LY LCD STAT interrupts.
+    /// </summary>
+    private const byte StatusLycEqualsLyInterruptSelectMask = 0x40;
+
+    /// <summary>
     /// STAT bit 2 is set when LY equals LYC.
     /// </summary>
     private const byte StatusLycEqualsLyMask = 0x04;
@@ -26,6 +52,51 @@ internal sealed class PpuController
     /// STAT bits 1-0 expose the current PPU mode.
     /// </summary>
     private const byte StatusModeMask = 0x03;
+
+    /// <summary>
+    /// STAT mode 0, horizontal blank.
+    /// </summary>
+    private const byte ModeHBlank = 0;
+
+    /// <summary>
+    /// STAT mode 1, vertical blank.
+    /// </summary>
+    private const byte ModeVBlank = 1;
+
+    /// <summary>
+    /// STAT mode 2, OAM scan.
+    /// </summary>
+    private const byte ModeOamScan = 2;
+
+    /// <summary>
+    /// STAT mode 3, drawing pixels.
+    /// </summary>
+    private const byte ModeDrawing = 3;
+
+    /// <summary>
+    /// One PPU scanline is 456 dots.
+    /// </summary>
+    private const int ScanlineDots = 456;
+
+    /// <summary>
+    /// Mode 2 lasts 80 dots on visible scanlines.
+    /// </summary>
+    private const int OamScanDots = 80;
+
+    /// <summary>
+    /// Fixed minimal Mode 3 length used until pixel fetch penalties are modeled.
+    /// </summary>
+    private const int DrawingEndDots = OamScanDots + 172;
+
+    /// <summary>
+    /// First LY value in VBlank.
+    /// </summary>
+    private const byte VBlankStartLine = 144;
+
+    /// <summary>
+    /// LY wraps after line 153.
+    /// </summary>
+    private const byte LastScanline = 153;
 
     private byte _control;
     private byte _statusInterruptSelect;
@@ -39,7 +110,9 @@ internal sealed class PpuController
     private byte _objectPalette1;
     private byte _windowY;
     private byte _windowX;
-    private bool _lycEqualsLy;
+    private int _lineDots;
+    private bool _lycEqualsLy = true;
+    private bool _statInterruptLine;
 
     /// <summary>
     /// Returns whether an address is owned by the LCD/PPU register block.
@@ -53,9 +126,8 @@ internal sealed class PpuController
     /// <summary>
     /// Reads an LCD/PPU register at FF40-FF45 or FF47-FF4B.
     /// </summary>
-    public byte ReadRegister(ushort address)
-    {
-        return address switch
+    public byte ReadRegister(ushort address) =>
+        address switch
         {
             AddressMap.LcdControlRegister => _control,
             AddressMap.LcdStatusRegister => ReadStatus(),
@@ -70,7 +142,6 @@ internal sealed class PpuController
             AddressMap.WindowXRegister => _windowX,
             _ => throw CreateUnsupportedRegisterException(address),
         };
-    }
 
     /// <summary>
     /// Writes an LCD/PPU register as the CPU sees it.
@@ -79,14 +150,55 @@ internal sealed class PpuController
     {
         switch (address)
         {
+            case AddressMap.LcdControlRegister:
+                WriteLcdControl(value);
+                return;
             case AddressMap.LcdStatusRegister:
                 _statusInterruptSelect = (byte)(value & StatusInterruptSelectMask);
+                RefreshStatInterruptLine(requestInterrupt: true);
                 return;
             case AddressMap.LcdYCoordinateRegister:
+                return;
+            case AddressMap.LcdYCompareRegister:
+                _lcdYCompare = value;
+                RefreshLycEqualsLy();
+                RefreshStatInterruptLine(requestInterrupt: true);
                 return;
             default:
                 SetReadWriteRegister(address, value);
                 return;
+        }
+    }
+
+    /// <summary>
+    /// Advances LCD/PPU timing by elapsed dots.
+    /// </summary>
+    public void Tick(int tCycles)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(tCycles);
+
+        if (!IsLcdEnabled || tCycles == 0)
+        {
+            return;
+        }
+
+        RefreshPpuState(requestStatInterrupt: true);
+
+        int remainingCycles = tCycles;
+        while (remainingCycles > 0)
+        {
+            int nextBoundary = GetNextTimingBoundary();
+            int elapsedCycles = Math.Min(remainingCycles, nextBoundary - _lineDots);
+            _lineDots += elapsedCycles;
+            remainingCycles -= elapsedCycles;
+
+            if (_lineDots == ScanlineDots)
+            {
+                AdvanceScanline();
+                continue;
+            }
+
+            RefreshPpuState(requestStatInterrupt: true);
         }
     }
 
@@ -97,13 +209,24 @@ internal sealed class PpuController
     {
         switch (address)
         {
+            case AddressMap.LcdControlRegister:
+                _control = value;
+                return;
             case AddressMap.LcdStatusRegister:
                 _statusInterruptSelect = (byte)(value & StatusInterruptSelectMask);
                 _lycEqualsLy = (value & StatusLycEqualsLyMask) != 0;
                 _statusMode = (byte)(value & StatusModeMask);
+                RefreshStatInterruptLine(requestInterrupt: false);
                 return;
             case AddressMap.LcdYCoordinateRegister:
                 _lcdYCoordinate = value;
+                RefreshLycEqualsLy();
+                RefreshStatInterruptLine(requestInterrupt: false);
+                return;
+            case AddressMap.LcdYCompareRegister:
+                _lcdYCompare = value;
+                RefreshLycEqualsLy();
+                RefreshStatInterruptLine(requestInterrupt: false);
                 return;
             default:
                 SetReadWriteRegister(address, value);
@@ -114,24 +237,19 @@ internal sealed class PpuController
     private byte ReadStatus()
     {
         byte lycEqualsLy = _lycEqualsLy ? StatusLycEqualsLyMask : (byte)0;
-        return (byte)(StatusReadMask | _statusInterruptSelect | lycEqualsLy | _statusMode);
+        byte mode = IsLcdEnabled ? _statusMode : ModeHBlank;
+        return (byte)(StatusReadMask | _statusInterruptSelect | lycEqualsLy | mode);
     }
 
     private void SetReadWriteRegister(ushort address, byte value)
     {
         switch (address)
         {
-            case AddressMap.LcdControlRegister:
-                _control = value;
-                return;
             case AddressMap.ScrollYRegister:
                 _scrollY = value;
                 return;
             case AddressMap.ScrollXRegister:
                 _scrollX = value;
-                return;
-            case AddressMap.LcdYCompareRegister:
-                _lcdYCompare = value;
                 return;
             case AddressMap.BackgroundPaletteRegister:
                 _backgroundPalette = value;
@@ -152,6 +270,136 @@ internal sealed class PpuController
                 throw CreateUnsupportedRegisterException(address);
         }
     }
+
+    private void WriteLcdControl(byte value)
+    {
+        bool wasEnabled = IsLcdEnabled;
+        _control = value;
+
+        if (wasEnabled && !IsLcdEnabled)
+        {
+            ResetLcdTiming();
+            return;
+        }
+
+        if (!wasEnabled && IsLcdEnabled)
+        {
+            _lineDots = 0;
+            RefreshPpuState(requestStatInterrupt: true);
+        }
+    }
+
+    private bool IsLcdEnabled => (_control & LcdEnableMask) != 0;
+
+    private int GetNextTimingBoundary()
+    {
+        if (_lcdYCoordinate >= VBlankStartLine)
+        {
+            return ScanlineDots;
+        }
+
+        return _lineDots switch
+        {
+            < OamScanDots => OamScanDots,
+            < DrawingEndDots => DrawingEndDots,
+            _ => ScanlineDots,
+        };
+    }
+
+    private void AdvanceScanline()
+    {
+        _lineDots = 0;
+
+        if (_lcdYCoordinate == LastScanline)
+        {
+            _lcdYCoordinate = 0;
+        }
+        else
+        {
+            _lcdYCoordinate++;
+            if (_lcdYCoordinate == VBlankStartLine)
+            {
+                interrupts.Request(InterruptSource.VBlank);
+            }
+        }
+
+        RefreshPpuState(requestStatInterrupt: true);
+    }
+
+    private void ResetLcdTiming()
+    {
+        _lineDots = 0;
+        _lcdYCoordinate = 0;
+        _statusMode = ModeHBlank;
+        RefreshLycEqualsLy();
+        RefreshStatInterruptLine(requestInterrupt: false);
+    }
+
+    private void RefreshPpuState(bool requestStatInterrupt)
+    {
+        _statusMode = CalculateMode();
+        RefreshLycEqualsLy();
+        RefreshStatInterruptLine(requestStatInterrupt);
+    }
+
+    private byte CalculateMode()
+    {
+        if (!IsLcdEnabled)
+        {
+            return ModeHBlank;
+        }
+
+        if (_lcdYCoordinate >= VBlankStartLine)
+        {
+            return ModeVBlank;
+        }
+
+        return _lineDots switch
+        {
+            < OamScanDots => ModeOamScan,
+            < DrawingEndDots => ModeDrawing,
+            _ => ModeHBlank,
+        };
+    }
+
+    private void RefreshLycEqualsLy()
+    {
+        _lycEqualsLy = _lcdYCoordinate == _lcdYCompare;
+    }
+
+    private void RefreshStatInterruptLine(bool requestInterrupt)
+    {
+        bool statInterruptLine = IsStatInterruptLineAsserted();
+
+        if (requestInterrupt && !_statInterruptLine && statInterruptLine)
+        {
+            interrupts.Request(InterruptSource.Lcd);
+        }
+
+        _statInterruptLine = statInterruptLine;
+    }
+
+    private bool IsStatInterruptLineAsserted()
+    {
+        if (!IsLcdEnabled)
+        {
+            return false;
+        }
+
+        return (_statusInterruptSelect & GetCurrentModeInterruptSelectMask()) != 0
+            || (
+                _lycEqualsLy && (_statusInterruptSelect & StatusLycEqualsLyInterruptSelectMask) != 0
+            );
+    }
+
+    private byte GetCurrentModeInterruptSelectMask() =>
+        _statusMode switch
+        {
+            ModeHBlank => StatusMode0InterruptSelectMask,
+            ModeVBlank => StatusMode1InterruptSelectMask,
+            ModeOamScan => StatusMode2InterruptSelectMask,
+            _ => 0,
+        };
 
     private static ArgumentOutOfRangeException CreateUnsupportedRegisterException(ushort address) =>
         new(nameof(address), address, "Address must target an LCD/PPU register.");

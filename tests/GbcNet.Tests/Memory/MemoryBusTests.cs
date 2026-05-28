@@ -185,7 +185,7 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.ObjectPalette1Register, 0x5A);
 
         Assert.Equal(0x91, bus.ReadByte(AddressMap.LcdControlRegister));
-        Assert.Equal(0xFD, bus.ReadByte(AddressMap.LcdStatusRegister));
+        Assert.Equal(0xFA, bus.ReadByte(AddressMap.LcdStatusRegister));
         Assert.Equal(0x42, bus.ReadByte(AddressMap.LcdYCoordinateRegister));
         Assert.Equal(0xFC, bus.ReadByte(AddressMap.BackgroundPaletteRegister));
         Assert.Equal(0xA5, bus.ReadByte(AddressMap.ObjectPalette0Register));

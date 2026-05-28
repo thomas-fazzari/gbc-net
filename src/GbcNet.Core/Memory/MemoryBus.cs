@@ -74,7 +74,7 @@ internal sealed class MemoryBus
         Interrupts = new InterruptController();
         Timers = new TimerController(Interrupts);
         Joypad = new JoypadController(Interrupts);
-        Ppu = new PpuController();
+        Ppu = new PpuController(Interrupts);
         Dma = new DmaController();
         _readByteForDma = ReadByteBypassingDma;
         _writeOamByteForDma = WriteOamByteForDma;
