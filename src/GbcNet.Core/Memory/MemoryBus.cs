@@ -1,4 +1,5 @@
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Dma;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Ppu;
@@ -60,6 +61,11 @@ internal sealed class MemoryBus
     /// </summary>
     public PpuController Ppu { get; }
 
+    /// <summary>
+    /// OAM DMA register routed through FF46.
+    /// </summary>
+    public DmaController Dma { get; }
+
     public MemoryBus(Cartridge cartridge)
     {
         _cartridge = cartridge;
@@ -67,6 +73,7 @@ internal sealed class MemoryBus
         Timers = new TimerController(Interrupts);
         Joypad = new JoypadController(Interrupts);
         Ppu = new PpuController();
+        Dma = new DmaController();
     }
 
     /// <summary>
@@ -155,6 +162,7 @@ internal sealed class MemoryBus
             AddressMap.TimerModuloRegister => Timers.TimerModulo,
             AddressMap.TimerControlRegister => Timers.ReadTimerControl(),
             AddressMap.InterruptFlagRegister => Interrupts.ReadInterruptFlag(),
+            AddressMap.DmaRegister => Dma.ReadRegister(),
             _ => _ioRegisters.Read(address),
         };
     }
@@ -186,6 +194,9 @@ internal sealed class MemoryBus
                 return;
             case AddressMap.InterruptFlagRegister:
                 Interrupts.SetInterruptFlag(value);
+                return;
+            case AddressMap.DmaRegister:
+                Dma.StartOamTransfer(value);
                 return;
             default:
                 _ioRegisters.Write(address, value);
@@ -220,6 +231,9 @@ internal sealed class MemoryBus
                 return;
             case AddressMap.InterruptFlagRegister:
                 Interrupts.SetInterruptFlag(value);
+                return;
+            case AddressMap.DmaRegister:
+                Dma.SetRegisterState(value);
                 return;
             default:
                 _ioRegisters.Write(address, value);

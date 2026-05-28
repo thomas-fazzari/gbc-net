@@ -193,6 +193,18 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
+    public void ReadWriteByte_RoutesDmaRegisterWithoutCopyingOamYet()
+    {
+        MemoryBus bus = CreateBus();
+        bus.WriteByte(0xC000, 0x42);
+
+        bus.WriteByte(AddressMap.DmaRegister, 0xC0);
+
+        Assert.Equal(0xC0, bus.ReadByte(AddressMap.DmaRegister));
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+    }
+
+    [Fact]
     public void ReadWriteByte_ExternalRamIsUnmappedForRomOnlyCartridge()
     {
         MemoryBus bus = CreateBus();

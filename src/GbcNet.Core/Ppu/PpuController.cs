@@ -3,7 +3,7 @@ using GbcNet.Core.Memory;
 namespace GbcNet.Core.Ppu;
 
 /// <summary>
-/// Stores CPU-visible LCD/PPU registers before pixel timing is implemented.
+/// Stores CPU-visible LCD/PPU register state.
 /// </summary>
 internal sealed class PpuController
 {
