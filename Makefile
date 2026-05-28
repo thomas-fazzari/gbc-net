@@ -14,7 +14,7 @@ lint:
 
 .PHONY: test
 test:
-	dotnet test $(SOLUTION) --configuration $(CONFIGURATION)
+	dotnet test --solution $(SOLUTION) --configuration $(CONFIGURATION)
 
 .PHONY: run
 run:
