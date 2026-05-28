@@ -85,14 +85,14 @@ public sealed class CpuTests
         cpu.Registers.BC = 0xC000;
 
         Assert.Equal(2, cpu.Step());
-        Assert.Equal(0xAB, cpu.ReadByte(0xC000));
+        Assert.Equal(0xAB, CpuTestFactory.GetBus(cpu).ReadByte(0xC000));
         Assert.Equal(0x0101, cpu.Registers.PC);
 
         cpu.Registers.A = 0xCD;
         cpu.Registers.DE = 0xC001;
 
         Assert.Equal(2, cpu.Step());
-        Assert.Equal(0xCD, cpu.ReadByte(0xC001));
+        Assert.Equal(0xCD, CpuTestFactory.GetBus(cpu).ReadByte(0xC001));
         Assert.Equal(0x0102, cpu.Registers.PC);
     }
 
@@ -106,8 +106,8 @@ public sealed class CpuTests
         });
         cpu.Registers.BC = 0xC002;
         cpu.Registers.DE = 0xC003;
-        cpu.WriteByte(0xC002, 0x34);
-        cpu.WriteByte(0xC003, 0x56);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC002, 0x34);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC003, 0x56);
 
         Assert.Equal(2, cpu.Step());
         Assert.Equal(0x34, cpu.Registers.A);
@@ -162,7 +162,7 @@ public sealed class CpuTests
         int machineCycles = cpu.Step();
 
         Assert.Equal(3, machineCycles);
-        Assert.Equal(0x9A, cpu.ReadByte(0xC123));
+        Assert.Equal(0x9A, CpuTestFactory.GetBus(cpu).ReadByte(0xC123));
         Assert.Equal(0xF0, cpu.Registers.F);
         Assert.Equal(0x0102, cpu.Registers.PC);
     }
@@ -201,7 +201,7 @@ public sealed class CpuTests
         var destinationRegister = (Register8)destination;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = 0xF0;
-        cpu.WriteByte(0xC123, 0x9A);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC123, 0x9A);
 
         int machineCycles = cpu.Step();
 
@@ -229,7 +229,7 @@ public sealed class CpuTests
         int machineCycles = cpu.Step();
 
         Assert.Equal(2, machineCycles);
-        Assert.Equal(sourceValue, cpu.ReadByte(0xC123));
+        Assert.Equal(sourceValue, CpuTestFactory.GetBus(cpu).ReadByte(0xC123));
         Assert.Equal(0xF0, cpu.Registers.F);
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
@@ -326,14 +326,14 @@ public sealed class CpuTests
         cpu.Registers.A = 0x0F;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = 0xF0;
-        cpu.WriteByte(0xC123, 0x01);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC123, 0x01);
 
         int machineCycles = cpu.Step();
 
         Assert.Equal(2, machineCycles);
         Assert.Equal(0x10, cpu.Registers.A);
         Assert.Equal(0x20, cpu.Registers.F);
-        Assert.Equal(0x01, cpu.ReadByte(0xC123));
+        Assert.Equal(0x01, CpuTestFactory.GetBus(cpu).ReadByte(0xC123));
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
@@ -344,14 +344,14 @@ public sealed class CpuTests
         cpu.Registers.A = 0xFE;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = (byte)CpuFlag.Carry;
-        cpu.WriteByte(0xC123, 0x01);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC123, 0x01);
 
         int machineCycles = cpu.Step();
 
         Assert.Equal(2, machineCycles);
         Assert.Equal(0x00, cpu.Registers.A);
         Assert.Equal(0xB0, cpu.Registers.F);
-        Assert.Equal(0x01, cpu.ReadByte(0xC123));
+        Assert.Equal(0x01, CpuTestFactory.GetBus(cpu).ReadByte(0xC123));
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
@@ -362,14 +362,14 @@ public sealed class CpuTests
         cpu.Registers.A = 0x20;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = 0x00;
-        cpu.WriteByte(0xC123, 0x01);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC123, 0x01);
 
         int machineCycles = cpu.Step();
 
         Assert.Equal(2, machineCycles);
         Assert.Equal(0x1F, cpu.Registers.A);
         Assert.Equal(0x60, cpu.Registers.F);
-        Assert.Equal(0x01, cpu.ReadByte(0xC123));
+        Assert.Equal(0x01, CpuTestFactory.GetBus(cpu).ReadByte(0xC123));
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
@@ -380,14 +380,14 @@ public sealed class CpuTests
         cpu.Registers.A = 0x01;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = (byte)CpuFlag.Carry;
-        cpu.WriteByte(0xC123, 0x00);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC123, 0x00);
 
         int machineCycles = cpu.Step();
 
         Assert.Equal(2, machineCycles);
         Assert.Equal(0x00, cpu.Registers.A);
         Assert.Equal(0xC0, cpu.Registers.F);
-        Assert.Equal(0x00, cpu.ReadByte(0xC123));
+        Assert.Equal(0x00, CpuTestFactory.GetBus(cpu).ReadByte(0xC123));
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
@@ -398,14 +398,14 @@ public sealed class CpuTests
         cpu.Registers.A = 0xF0;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = 0xF0;
-        cpu.WriteByte(0xC123, 0x0F);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC123, 0x0F);
 
         int machineCycles = cpu.Step();
 
         Assert.Equal(2, machineCycles);
         Assert.Equal(0x00, cpu.Registers.A);
         Assert.Equal(0xA0, cpu.Registers.F);
-        Assert.Equal(0x0F, cpu.ReadByte(0xC123));
+        Assert.Equal(0x0F, CpuTestFactory.GetBus(cpu).ReadByte(0xC123));
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
@@ -416,14 +416,14 @@ public sealed class CpuTests
         cpu.Registers.A = 0xF0;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = 0xF0;
-        cpu.WriteByte(0xC123, 0x0F);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC123, 0x0F);
 
         int machineCycles = cpu.Step();
 
         Assert.Equal(2, machineCycles);
         Assert.Equal(0xFF, cpu.Registers.A);
         Assert.Equal(0x00, cpu.Registers.F);
-        Assert.Equal(0x0F, cpu.ReadByte(0xC123));
+        Assert.Equal(0x0F, CpuTestFactory.GetBus(cpu).ReadByte(0xC123));
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
@@ -434,14 +434,14 @@ public sealed class CpuTests
         cpu.Registers.A = 0xF0;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = 0xF0;
-        cpu.WriteByte(0xC123, 0x0F);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC123, 0x0F);
 
         int machineCycles = cpu.Step();
 
         Assert.Equal(2, machineCycles);
         Assert.Equal(0xFF, cpu.Registers.A);
         Assert.Equal(0x00, cpu.Registers.F);
-        Assert.Equal(0x0F, cpu.ReadByte(0xC123));
+        Assert.Equal(0x0F, CpuTestFactory.GetBus(cpu).ReadByte(0xC123));
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
@@ -452,14 +452,14 @@ public sealed class CpuTests
         cpu.Registers.A = 0x20;
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = 0xF0;
-        cpu.WriteByte(0xC123, 0x01);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC123, 0x01);
 
         int machineCycles = cpu.Step();
 
         Assert.Equal(2, machineCycles);
         Assert.Equal(0x20, cpu.Registers.A);
         Assert.Equal(0x60, cpu.Registers.F);
-        Assert.Equal(0x01, cpu.ReadByte(0xC123));
+        Assert.Equal(0x01, CpuTestFactory.GetBus(cpu).ReadByte(0xC123));
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
 
@@ -575,10 +575,10 @@ public sealed class CpuTests
         cpu.Registers.A = 0x44;
 
         Assert.Equal(2, cpu.Step());
-        Assert.Equal(0x44, cpu.ReadByte(0xC010));
+        Assert.Equal(0x44, CpuTestFactory.GetBus(cpu).ReadByte(0xC010));
         Assert.Equal(0xC011, cpu.Registers.HL);
 
-        cpu.WriteByte(0xC011, 0x55);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC011, 0x55);
 
         Assert.Equal(2, cpu.Step());
         Assert.Equal(0x55, cpu.Registers.A);
@@ -587,10 +587,10 @@ public sealed class CpuTests
         cpu.Registers.A = 0x66;
 
         Assert.Equal(2, cpu.Step());
-        Assert.Equal(0x66, cpu.ReadByte(0xC012));
+        Assert.Equal(0x66, CpuTestFactory.GetBus(cpu).ReadByte(0xC012));
         Assert.Equal(0xC011, cpu.Registers.HL);
 
-        cpu.WriteByte(0xC011, 0x77);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC011, 0x77);
 
         Assert.Equal(2, cpu.Step());
         Assert.Equal(0x77, cpu.Registers.A);
@@ -612,8 +612,8 @@ public sealed class CpuTests
         int machineCycles = cpu.Step();
 
         Assert.Equal(5, machineCycles);
-        Assert.Equal(0xEF, cpu.ReadByte(0xC020));
-        Assert.Equal(0xBE, cpu.ReadByte(0xC021));
+        Assert.Equal(0xEF, CpuTestFactory.GetBus(cpu).ReadByte(0xC020));
+        Assert.Equal(0xBE, CpuTestFactory.GetBus(cpu).ReadByte(0xC021));
         Assert.Equal(0x0103, cpu.Registers.PC);
     }
 
@@ -738,12 +738,12 @@ public sealed class CpuTests
         Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
         cpu.Registers.HL = 0xC100;
         cpu.Registers.F = initialFlags;
-        cpu.WriteByte(0xC100, initialValue);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC100, initialValue);
 
         int machineCycles = cpu.Step();
 
         Assert.Equal(3, machineCycles);
-        Assert.Equal(expectedValue, cpu.ReadByte(0xC100));
+        Assert.Equal(expectedValue, CpuTestFactory.GetBus(cpu).ReadByte(0xC100));
         Assert.Equal(expectedFlags, cpu.Registers.F);
         Assert.Equal(0x0101, cpu.Registers.PC);
     }

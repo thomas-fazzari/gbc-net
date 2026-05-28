@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Sm83;
+namespace GbcNet.Core.Sm83.Instructions;
 
 /// <summary>
 /// Helpers for decoding already-fetched SM83 instruction operands.

@@ -1,3 +1,5 @@
+using GbcNet.Core.Sm83.Instructions;
+
 namespace GbcNet.Core.Sm83;
 
 /// <summary>

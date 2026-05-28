@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Sm83;
+namespace GbcNet.Core.Sm83.Instructions;
 
 /// <summary>
 /// SM83 8-bit load instructions.
@@ -32,14 +32,6 @@ internal static class Load8Instructions
     /// </summary>
     private const ushort HighMemoryBaseAddress = 0xFF00;
 
-    private const int LoadAddressHlRegisterOperandMachineCycles = 2;
-    private const int LoadAddressHlImmediate8MachineCycles = 3;
-    private const int LoadAddressImmediate16AccumulatorMachineCycles = 4;
-    private const int LoadHighAddressCRegisterMachineCycles = 2;
-    private const int LoadHighAddressImmediate8MachineCycles = 3;
-    private const int LoadRegisterOperandMachineCycles = 1;
-    private const int LoadRegisterImmediate8MachineCycles = 2;
-
     /// <summary>
     /// Maps implemented 8-bit load instructions into the opcode table.
     /// </summary>
@@ -54,11 +46,7 @@ internal static class Load8Instructions
         builder.Map(
             LoadAddressHlImmediate8Opcode,
             Immediate8ByteLength,
-            static (cpu, value, _) =>
-            {
-                cpu.WriteByte(cpu.Registers.HL, value);
-                return LoadAddressHlImmediate8MachineCycles;
-            }
+            static (cpu, value, _) => cpu.WriteBus(cpu.Registers.HL, value)
         );
         MapLoadRegisterImmediate8(builder, LoadAImmediate8Opcode, Register8.A);
         MapLoadRegisterOperand(builder);
@@ -106,11 +94,7 @@ internal static class Load8Instructions
         builder.Map(
             opcode,
             Immediate8ByteLength,
-            (cpu, value, _) =>
-            {
-                cpu.Registers.SetRegister(register, value);
-                return LoadRegisterImmediate8MachineCycles;
-            }
+            (cpu, value, _) => cpu.Registers.SetRegister(register, value)
         );
     }
 
@@ -144,7 +128,7 @@ internal static class Load8Instructions
     /// <summary>
     /// Executes LD r8, r8 without changing flags.
     /// </summary>
-    private static int LoadRegisterOperand(
+    private static void LoadRegisterOperand(
         Cpu cpu,
         Register8Operand destination,
         Register8Operand source
@@ -152,80 +136,70 @@ internal static class Load8Instructions
     {
         byte value = Register8Operands.Read(cpu, source);
         Register8Operands.Write(cpu, destination, value);
-
-        return Register8Operands.UsesMemory(destination) || Register8Operands.UsesMemory(source)
-            ? LoadAddressHlRegisterOperandMachineCycles
-            : LoadRegisterOperandMachineCycles;
     }
 
     /// <summary>
     /// Executes LDH [imm8], A by writing A to FF00+imm8.
     /// </summary>
-    private static int ExecuteLoadHighAddressImmediate8FromAccumulator(
+    private static void ExecuteLoadHighAddressImmediate8FromAccumulator(
         Cpu cpu,
         byte offset,
         byte highByte
     )
     {
-        cpu.WriteByte(GetHighMemoryAddress(offset), cpu.Registers.A);
-        return LoadHighAddressImmediate8MachineCycles;
+        cpu.WriteBus(GetHighMemoryAddress(offset), cpu.Registers.A);
     }
 
     /// <summary>
     /// Executes LDH [C], A by writing A to FF00+C.
     /// </summary>
-    private static int ExecuteLoadHighAddressCFromAccumulator(Cpu cpu, byte lowByte, byte highByte)
+    private static void ExecuteLoadHighAddressCFromAccumulator(Cpu cpu, byte lowByte, byte highByte)
     {
-        cpu.WriteByte(GetHighMemoryAddress(cpu.Registers.C), cpu.Registers.A);
-        return LoadHighAddressCRegisterMachineCycles;
+        cpu.WriteBus(GetHighMemoryAddress(cpu.Registers.C), cpu.Registers.A);
     }
 
     /// <summary>
     /// Executes LD [imm16], A by writing A to the immediate address.
     /// </summary>
-    private static int ExecuteLoadAddressImmediate16FromAccumulator(
+    private static void ExecuteLoadAddressImmediate16FromAccumulator(
         Cpu cpu,
         byte lowByte,
         byte highByte
     )
     {
-        cpu.WriteByte(InstructionOperands.ReadImmediate16(lowByte, highByte), cpu.Registers.A);
-        return LoadAddressImmediate16AccumulatorMachineCycles;
+        cpu.WriteBus(InstructionOperands.ReadImmediate16(lowByte, highByte), cpu.Registers.A);
     }
 
     /// <summary>
     /// Executes LDH A, [imm8] by reading A from FF00+imm8.
     /// </summary>
-    private static int ExecuteLoadAccumulatorFromHighAddressImmediate8(
+    private static void ExecuteLoadAccumulatorFromHighAddressImmediate8(
         Cpu cpu,
         byte offset,
         byte highByte
     )
     {
-        cpu.Registers.A = cpu.ReadByte(GetHighMemoryAddress(offset));
-        return LoadHighAddressImmediate8MachineCycles;
+        cpu.Registers.A = cpu.ReadBus(GetHighMemoryAddress(offset));
     }
 
     /// <summary>
     /// Executes LDH A, [C] by reading A from FF00+C.
     /// </summary>
-    private static int ExecuteLoadAccumulatorFromHighAddressC(Cpu cpu, byte lowByte, byte highByte)
+    private static void ExecuteLoadAccumulatorFromHighAddressC(Cpu cpu, byte lowByte, byte highByte)
     {
-        cpu.Registers.A = cpu.ReadByte(GetHighMemoryAddress(cpu.Registers.C));
-        return LoadHighAddressCRegisterMachineCycles;
+        cpu.Registers.A = cpu.ReadBus(GetHighMemoryAddress(cpu.Registers.C));
     }
 
     /// <summary>
     /// Executes LD A, [imm16] by reading A from the immediate address.
     /// </summary>
-    private static int ExecuteLoadAccumulatorFromAddressImmediate16(
+    private static void ExecuteLoadAccumulatorFromAddressImmediate16(
         Cpu cpu,
         byte lowByte,
         byte highByte
     )
     {
-        cpu.Registers.A = cpu.ReadByte(InstructionOperands.ReadImmediate16(lowByte, highByte));
-        return LoadAddressImmediate16AccumulatorMachineCycles;
+        cpu.Registers.A = cpu.ReadBus(InstructionOperands.ReadImmediate16(lowByte, highByte));
     }
 
     /// <summary>

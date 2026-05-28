@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace GbcNet.Core.Sm83;
+namespace GbcNet.Core.Sm83.Instructions;
 
 /// <summary>
 /// SM83 control and no-operation instructions.
@@ -16,50 +16,30 @@ internal static class ControlInstructions
     private const byte NoOperandByteLength = 1;
     private const byte PrefixedInstructionByteLength = 2;
 
-    private const int NopMachineCycles = 1;
-    private const int HaltMachineCycles = 1;
-    private const int InterruptMasterEnableMachineCycles = 1;
-
     /// <summary>
     /// Maps implemented control instructions into the opcode table.
     /// </summary>
     public static void Map(OpcodeTableBuilder builder)
     {
-        builder.Map(NopOpcode, NoOperandByteLength, static (_, _, _) => NopMachineCycles);
+        builder.Map(NopOpcode, NoOperandByteLength, static (_, _, _) => { });
         builder.Map(CbPrefixOpcode, PrefixedInstructionByteLength, ExecuteCbPrefix);
-        builder.Map(
-            HaltOpcode,
-            NoOperandByteLength,
-            static (cpu, _, _) =>
-            {
-                cpu.Halt();
-                return HaltMachineCycles;
-            }
-        );
+        builder.Map(HaltOpcode, NoOperandByteLength, static (cpu, _, _) => cpu.Halt());
         builder.Map(
             DisableInterruptsOpcode,
             NoOperandByteLength,
-            static (cpu, _, _) =>
-            {
-                cpu.DisableInterrupts();
-                return InterruptMasterEnableMachineCycles;
-            }
+            static (cpu, _, _) => cpu.DisableInterrupts()
         );
         builder.Map(
             EnableInterruptsOpcode,
             NoOperandByteLength,
-            static (cpu, _, _) =>
-            {
-                cpu.EnableInterruptsAfterNextInstruction();
-                return InterruptMasterEnableMachineCycles;
-            }
+            static (cpu, _, _) => cpu.EnableInterruptsAfterNextInstruction()
         );
     }
 
     /// <summary>
     /// Executes a CB-prefixed opcode from the separate prefixed instruction table.
     /// </summary>
-    private static int ExecuteCbPrefix(Cpu cpu, byte prefixedOpcode, byte _)
+    private static void ExecuteCbPrefix(Cpu cpu, byte prefixedOpcode, byte _)
     {
         Instruction instruction =
             CbInstructionSet.Find(prefixedOpcode)
@@ -71,6 +51,6 @@ internal static class ControlInstructions
                 )
             );
 
-        return instruction.Execute(cpu, 0, 0);
+        instruction.Execute(cpu, 0, 0);
     }
 }

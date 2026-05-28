@@ -11,11 +11,6 @@ namespace GbcNet.Core;
 /// </summary>
 public sealed class GameBoy
 {
-    /// <summary>
-    /// One SM83 machine cycle is four T-cycles.
-    /// </summary>
-    private const int TCyclesPerMachineCycle = 4;
-
     private readonly Cpu _cpu;
 
     /// <summary>
@@ -25,7 +20,8 @@ public sealed class GameBoy
     {
         Bus = new MemoryBus(cartridge);
         Bus.Serial.ByteTransferred += OnSerialByteTransferred;
-        _cpu = new Cpu(Bus);
+        var clock = new MachineClock(Bus);
+        _cpu = new Cpu(Bus, clock.TickMachineCycle);
         HardwareModel = hardwareModel;
         PostBootState.Apply(hardwareModel, cartridge, _cpu, Bus);
     }
@@ -41,16 +37,7 @@ public sealed class GameBoy
     /// <returns>
     /// Elapsed machine cycles.
     /// </returns>
-    public int Step()
-    {
-        int machineCycles = _cpu.Step();
-        int tCycles = machineCycles * TCyclesPerMachineCycle;
-        Bus.Timers.Tick(tCycles);
-        Bus.Serial.Tick(tCycles);
-        Bus.Ppu.Tick(tCycles);
-        Bus.TickDma(machineCycles);
-        return machineCycles;
-    }
+    public int Step() => _cpu.Step();
 
     /// <summary>
     /// Updates a joypad button state for the emulated machine.
@@ -59,11 +46,6 @@ public sealed class GameBoy
     {
         Bus.Joypad.SetButtonState(button, pressed);
     }
-
-    /// <summary>
-    /// Reads CPU-visible memory for debugger and test harness inspection
-    /// </summary>
-    internal byte DebugReadByte(ushort address) => Bus.ReadByte(address);
 
     /// <summary>
     /// Hardware model selected for this emulation instance.

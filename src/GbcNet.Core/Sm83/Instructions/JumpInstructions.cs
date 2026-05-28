@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Sm83;
+namespace GbcNet.Core.Sm83.Instructions;
 
 /// <summary>
 /// SM83 jump instructions.
@@ -18,30 +18,6 @@ internal static class JumpInstructions
     private const byte NoOperandByteLength = 1;
     private const byte Immediate8ByteLength = 2;
     private const byte Immediate16ByteLength = 3;
-
-    private const int JumpHlMachineCycles = 1;
-    private const int JumpImmediate16MachineCycles = 4;
-    private const int JumpRelativeImmediate8MachineCycles = 3;
-
-    /// <summary>
-    /// M-cycles consumed when a conditional JP changes PC.
-    /// </summary>
-    private const int JumpConditionTakenMachineCycles = 4;
-
-    /// <summary>
-    /// M-cycles consumed when a conditional JP only reads its immediate target.
-    /// </summary>
-    private const int JumpConditionNotTakenMachineCycles = 3;
-
-    /// <summary>
-    /// M-cycles consumed when a conditional JR changes PC.
-    /// </summary>
-    private const int JumpRelativeConditionalTakenMachineCycles = 3;
-
-    /// <summary>
-    /// M-cycles consumed when a conditional JR only reads its offset.
-    /// </summary>
-    private const int JumpRelativeConditionalNotTakenMachineCycles = 2;
 
     private const int ConditionOpcodeStep = 0x08;
 
@@ -104,16 +80,16 @@ internal static class JumpInstructions
     /// <summary>
     /// Executes JP imm16 by setting PC to the immediate address.
     /// </summary>
-    private static int JumpImmediate16(Cpu cpu, byte lowByte, byte highByte)
+    private static void JumpImmediate16(Cpu cpu, byte lowByte, byte highByte)
     {
         cpu.Registers.PC = InstructionOperands.ReadImmediate16(lowByte, highByte);
-        return JumpImmediate16MachineCycles;
+        cpu.IdleCycle();
     }
 
     /// <summary>
     /// Executes JP cond, imm16 after the target address has already been fetched.
     /// </summary>
-    private static int JumpImmediate16If(
+    private static void JumpImmediate16If(
         Cpu cpu,
         byte lowByte,
         byte highByte,
@@ -122,43 +98,42 @@ internal static class JumpInstructions
     {
         if (!cpu.Registers.IsConditionMet(conditionCode))
         {
-            return JumpConditionNotTakenMachineCycles;
+            return;
         }
 
         cpu.Registers.PC = InstructionOperands.ReadImmediate16(lowByte, highByte);
-        return JumpConditionTakenMachineCycles;
+        cpu.IdleCycle();
     }
 
     /// <summary>
     /// Executes JP HL by setting PC to the address stored in HL.
     /// </summary>
-    private static int JumpHl(Cpu cpu)
+    private static void JumpHl(Cpu cpu)
     {
         cpu.Registers.PC = cpu.Registers.HL;
-        return JumpHlMachineCycles;
     }
 
     /// <summary>
     /// Executes JR imm8 by adding the signed offset to PC after the operand byte.
     /// </summary>
-    private static int JumpRelativeImmediate8(Cpu cpu, byte offset)
+    private static void JumpRelativeImmediate8(Cpu cpu, byte offset)
     {
         ApplyRelativeOffset(cpu, offset);
-        return JumpRelativeImmediate8MachineCycles;
+        cpu.IdleCycle();
     }
 
     /// <summary>
     /// Executes JR cond, imm8 after the offset byte has already been fetched.
     /// </summary>
-    private static int JumpRelativeImmediate8If(Cpu cpu, byte offset, ConditionCode conditionCode)
+    private static void JumpRelativeImmediate8If(Cpu cpu, byte offset, ConditionCode conditionCode)
     {
         if (!cpu.Registers.IsConditionMet(conditionCode))
         {
-            return JumpRelativeConditionalNotTakenMachineCycles;
+            return;
         }
 
         ApplyRelativeOffset(cpu, offset);
-        return JumpRelativeConditionalTakenMachineCycles;
+        cpu.IdleCycle();
     }
 
     /// <summary>

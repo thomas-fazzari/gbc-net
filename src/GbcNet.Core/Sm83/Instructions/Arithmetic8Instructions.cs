@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Sm83;
+namespace GbcNet.Core.Sm83.Instructions;
 
 /// <summary>
 /// SM83 8-bit arithmetic instructions.
@@ -51,7 +51,7 @@ internal static class Arithmetic8Instructions
     /// <summary>
     /// Executes one A,r8 accumulator operation after the source operand has been decoded.
     /// </summary>
-    private delegate int AccumulatorRegisterOperandExecutor(Cpu cpu, Register8Operand source);
+    private delegate void AccumulatorRegisterOperandExecutor(Cpu cpu, Register8Operand source);
 
     /// <summary>
     /// Applies one A,imm8 accumulator operation after the immediate byte has been fetched.
@@ -86,14 +86,6 @@ internal static class Arithmetic8Instructions
     private const byte NoOperandByteLength = 1;
     private const byte Immediate8ByteLength = 2;
 
-    private const int AddressHlMachineCycles = 3;
-    private const int AccumulatorImmediateOperandMachineCycles = 2;
-    private const int AccumulatorAddressHlOperandMachineCycles = 2;
-    private const int AccumulatorRegisterOperandMachineCycles = 1;
-    private const int ComplementAccumulatorMachineCycles = 1;
-    private const int DecimalAdjustAccumulatorMachineCycles = 1;
-    private const int RegisterMachineCycles = 1;
-
     /// <summary>
     /// Maps implemented 8-bit arithmetic instructions into the opcode table.
     /// </summary>
@@ -112,20 +104,12 @@ internal static class Arithmetic8Instructions
         builder.Map(
             DecimalAdjustAccumulatorOpcode,
             NoOperandByteLength,
-            static (cpu, _, _) =>
-            {
-                DecimalAdjustAccumulator(cpu);
-                return DecimalAdjustAccumulatorMachineCycles;
-            }
+            static (cpu, _, _) => DecimalAdjustAccumulator(cpu)
         );
         builder.Map(
             ComplementAccumulatorOpcode,
             NoOperandByteLength,
-            static (cpu, _, _) =>
-            {
-                ComplementAccumulator(cpu);
-                return ComplementAccumulatorMachineCycles;
-            }
+            static (cpu, _, _) => ComplementAccumulator(cpu)
         );
         MapIncrementRegister(builder, IncrementLOpcode, Register8.L);
         MapDecrementRegister(builder, DecrementLOpcode, Register8.L);
@@ -220,15 +204,7 @@ internal static class Arithmetic8Instructions
         Register8 register
     )
     {
-        builder.Map(
-            opcode,
-            NoOperandByteLength,
-            (cpu, _, _) =>
-            {
-                IncrementRegister(cpu, register);
-                return RegisterMachineCycles;
-            }
-        );
+        builder.Map(opcode, NoOperandByteLength, (cpu, _, _) => IncrementRegister(cpu, register));
     }
 
     /// <summary>
@@ -240,15 +216,7 @@ internal static class Arithmetic8Instructions
         Register8 register
     )
     {
-        builder.Map(
-            opcode,
-            NoOperandByteLength,
-            (cpu, _, _) =>
-            {
-                DecrementRegister(cpu, register);
-                return RegisterMachineCycles;
-            }
-        );
+        builder.Map(opcode, NoOperandByteLength, (cpu, _, _) => DecrementRegister(cpu, register));
     }
 
     /// <summary>
@@ -256,15 +224,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void MapIncrementAddressHl(OpcodeTableBuilder builder, byte opcode)
     {
-        builder.Map(
-            opcode,
-            NoOperandByteLength,
-            static (cpu, _, _) =>
-            {
-                IncrementAddressHl(cpu);
-                return AddressHlMachineCycles;
-            }
-        );
+        builder.Map(opcode, NoOperandByteLength, static (cpu, _, _) => IncrementAddressHl(cpu));
     }
 
     /// <summary>
@@ -278,7 +238,6 @@ internal static class Arithmetic8Instructions
             static (cpu, _, _) =>
             {
                 DecrementAddressHl(cpu);
-                return AddressHlMachineCycles;
             }
         );
     }
@@ -307,8 +266,8 @@ internal static class Arithmetic8Instructions
     private static void IncrementAddressHl(Cpu cpu)
     {
         ushort address = cpu.Registers.HL;
-        byte value = cpu.ReadByte(address);
-        cpu.WriteByte(address, IncrementByte(cpu, value));
+        byte value = cpu.ReadBus(address);
+        cpu.WriteBus(address, IncrementByte(cpu, value));
     }
 
     /// <summary>
@@ -317,112 +276,83 @@ internal static class Arithmetic8Instructions
     private static void DecrementAddressHl(Cpu cpu)
     {
         ushort address = cpu.Registers.HL;
-        byte value = cpu.ReadByte(address);
-        cpu.WriteByte(address, DecrementByte(cpu, value));
+        byte value = cpu.ReadBus(address);
+        cpu.WriteBus(address, DecrementByte(cpu, value));
     }
 
     /// <summary>
     /// Adds the selected r8 operand to A and updates ADD A, r8 flags.
     /// </summary>
-    private static int AddAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    private static void AddAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
         byte value = Register8Operands.Read(cpu, source);
         AddAccumulator(cpu, value, carry: 0);
-
-        return Register8Operands.UsesMemory(source)
-            ? AccumulatorAddressHlOperandMachineCycles
-            : AccumulatorRegisterOperandMachineCycles;
     }
 
     /// <summary>
     /// Adds the selected r8 operand and C flag to A, then updates ADC A, r8 flags.
     /// </summary>
-    private static int AddWithCarryAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    private static void AddWithCarryAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
         byte value = Register8Operands.Read(cpu, source);
         AddWithCarryAccumulator(cpu, value);
-
-        return Register8Operands.UsesMemory(source)
-            ? AccumulatorAddressHlOperandMachineCycles
-            : AccumulatorRegisterOperandMachineCycles;
     }
 
     /// <summary>
     /// Subtracts the selected r8 operand from A and updates SUB A, r8 flags.
     /// </summary>
-    private static int SubtractAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    private static void SubtractAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
         byte value = Register8Operands.Read(cpu, source);
         SubtractAccumulator(cpu, value, borrow: 0);
-
-        return Register8Operands.UsesMemory(source)
-            ? AccumulatorAddressHlOperandMachineCycles
-            : AccumulatorRegisterOperandMachineCycles;
     }
 
     /// <summary>
     /// Subtracts the selected r8 operand and C flag from A, then updates SBC A, r8 flags.
     /// </summary>
-    private static int SubtractWithCarryAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    private static void SubtractWithCarryAccumulatorRegisterOperand(
+        Cpu cpu,
+        Register8Operand source
+    )
     {
         byte value = Register8Operands.Read(cpu, source);
         SubtractWithCarryAccumulator(cpu, value);
-
-        return Register8Operands.UsesMemory(source)
-            ? AccumulatorAddressHlOperandMachineCycles
-            : AccumulatorRegisterOperandMachineCycles;
     }
 
     /// <summary>
     /// ANDs the selected r8 operand with A and updates AND A, r8 flags.
     /// </summary>
-    private static int AndAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    private static void AndAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
         byte value = Register8Operands.Read(cpu, source);
         AndAccumulator(cpu, value);
-
-        return Register8Operands.UsesMemory(source)
-            ? AccumulatorAddressHlOperandMachineCycles
-            : AccumulatorRegisterOperandMachineCycles;
     }
 
     /// <summary>
     /// XORs the selected r8 operand with A and updates XOR A, r8 flags.
     /// </summary>
-    private static int XorAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    private static void XorAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
         byte value = Register8Operands.Read(cpu, source);
         XorAccumulator(cpu, value);
-
-        return Register8Operands.UsesMemory(source)
-            ? AccumulatorAddressHlOperandMachineCycles
-            : AccumulatorRegisterOperandMachineCycles;
     }
 
     /// <summary>
     /// Applies bitwise OR between the selected r8 operand and A, then updates OR A, r8 flags.
     /// </summary>
-    private static int OrAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    private static void OrAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
         byte value = Register8Operands.Read(cpu, source);
         OrAccumulator(cpu, value);
-
-        return Register8Operands.UsesMemory(source)
-            ? AccumulatorAddressHlOperandMachineCycles
-            : AccumulatorRegisterOperandMachineCycles;
     }
 
     /// <summary>
     /// Compares the selected r8 operand with A and updates CP A, r8 flags without changing A.
     /// </summary>
-    private static int CompareAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    private static void CompareAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
         byte value = Register8Operands.Read(cpu, source);
         CompareAccumulator(cpu, value);
-
-        return Register8Operands.UsesMemory(source)
-            ? AccumulatorAddressHlOperandMachineCycles
-            : AccumulatorRegisterOperandMachineCycles;
     }
 
     /// <summary>
@@ -598,15 +528,7 @@ internal static class Arithmetic8Instructions
         AccumulatorImmediateOperandExecutor execute
     )
     {
-        builder.Map(
-            opcode,
-            Immediate8ByteLength,
-            (cpu, value, _) =>
-            {
-                execute(cpu, value);
-                return AccumulatorImmediateOperandMachineCycles;
-            }
-        );
+        builder.Map(opcode, Immediate8ByteLength, (cpu, value, _) => execute(cpu, value));
     }
 
     /// <summary>

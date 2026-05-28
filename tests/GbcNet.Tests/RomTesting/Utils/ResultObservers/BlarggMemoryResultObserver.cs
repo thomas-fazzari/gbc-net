@@ -30,7 +30,7 @@ internal sealed class BlarggMemoryResultObserver : IRomResultObserver
             return null;
         }
 
-        byte statusCode = gameBoy.DebugReadByte(StatusAddress);
+        byte statusCode = gameBoy.Bus.ReadByte(StatusAddress);
         string output = ReadOutput(gameBoy);
         RomTestStatus? status = statusCode switch
         {
@@ -44,16 +44,16 @@ internal sealed class BlarggMemoryResultObserver : IRomResultObserver
     }
 
     private static bool HasSignature(GameBoy gameBoy) =>
-        gameBoy.DebugReadByte(SignatureAddress) == Signature0
-        && gameBoy.DebugReadByte(SignatureAddress + 1) == Signature1
-        && gameBoy.DebugReadByte(SignatureAddress + 2) == Signature2;
+        gameBoy.Bus.ReadByte(SignatureAddress) is Signature0
+        && gameBoy.Bus.ReadByte(SignatureAddress + 1) is Signature1
+        && gameBoy.Bus.ReadByte(SignatureAddress + 2) is Signature2;
 
     private static string ReadOutput(GameBoy gameBoy)
     {
         var output = new StringBuilder();
         for (int offset = 0; offset < TextMaxLength; offset++)
         {
-            byte value = gameBoy.DebugReadByte((ushort)(TextAddress + offset));
+            byte value = gameBoy.Bus.ReadByte((ushort)(TextAddress + offset));
             if (value == 0)
             {
                 break;

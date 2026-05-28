@@ -23,7 +23,7 @@ public sealed class LoadHighInstructionTests
         int machineCycles = cpu.Step();
 
         Assert.Equal(3, machineCycles);
-        Assert.Equal(0x42, cpu.ReadByte(HighRamAddress));
+        Assert.Equal(0x42, CpuTestFactory.GetBus(cpu).ReadByte(HighRamAddress));
         Assert.Equal(0xF0, cpu.Registers.F);
         Assert.Equal(0x0102, cpu.Registers.PC);
     }
@@ -39,7 +39,7 @@ public sealed class LoadHighInstructionTests
         int machineCycles = cpu.Step();
 
         Assert.Equal(2, machineCycles);
-        Assert.Equal(0x34, cpu.ReadByte(HighRamAddress));
+        Assert.Equal(0x34, CpuTestFactory.GetBus(cpu).ReadByte(HighRamAddress));
         Assert.Equal(0xF0, cpu.Registers.F);
         Assert.Equal(0x0101, cpu.Registers.PC);
     }
@@ -52,7 +52,7 @@ public sealed class LoadHighInstructionTests
             bytes[0x0100] = 0xF0;
             bytes[0x0101] = HighRamOffset;
         });
-        cpu.WriteByte(HighRamAddress, 0xA5);
+        CpuTestFactory.GetBus(cpu).WriteByte(HighRamAddress, 0xA5);
         cpu.Registers.F = 0xF0;
 
         int machineCycles = cpu.Step();
@@ -67,7 +67,7 @@ public sealed class LoadHighInstructionTests
     public void Step_LoadsAccumulatorFromHighCAddress()
     {
         Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0xF2);
-        cpu.WriteByte(HighRamAddress, 0x5A);
+        CpuTestFactory.GetBus(cpu).WriteByte(HighRamAddress, 0x5A);
         cpu.Registers.C = HighRamOffset;
         cpu.Registers.F = 0xF0;
 

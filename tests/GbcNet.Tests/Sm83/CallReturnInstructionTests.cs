@@ -25,8 +25,8 @@ public sealed class CallReturnInstructionTests
         Assert.Equal(6, machineCycles);
         Assert.Equal(0x1234, cpu.Registers.PC);
         Assert.Equal(0xC0FE, cpu.Registers.SP);
-        Assert.Equal(0x03, cpu.ReadByte(0xC0FE));
-        Assert.Equal(0x01, cpu.ReadByte(0xC0FF));
+        Assert.Equal(0x03, CpuTestFactory.GetBus(cpu).ReadByte(0xC0FE));
+        Assert.Equal(0x01, CpuTestFactory.GetBus(cpu).ReadByte(0xC0FF));
         Assert.Equal(0xF0, cpu.Registers.F);
     }
 
@@ -59,8 +59,8 @@ public sealed class CallReturnInstructionTests
 
         if (isTaken)
         {
-            Assert.Equal(0x03, cpu.ReadByte(0xC0FE));
-            Assert.Equal(0x01, cpu.ReadByte(0xC0FF));
+            Assert.Equal(0x03, CpuTestFactory.GetBus(cpu).ReadByte(0xC0FE));
+            Assert.Equal(0x01, CpuTestFactory.GetBus(cpu).ReadByte(0xC0FF));
         }
     }
 
@@ -70,8 +70,8 @@ public sealed class CallReturnInstructionTests
         Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0xC9);
         cpu.Registers.SP = 0xC100;
         cpu.Registers.F = 0xF0;
-        cpu.WriteByte(0xC100, 0x78);
-        cpu.WriteByte(0xC101, 0x56);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC100, 0x78);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC101, 0x56);
 
         int machineCycles = cpu.Step();
 
@@ -91,8 +91,8 @@ public sealed class CallReturnInstructionTests
         });
         cpu.Registers.SP = 0xC100;
         cpu.Registers.F = 0xF0;
-        cpu.WriteByte(0xC100, 0x78);
-        cpu.WriteByte(0xC101, 0x56);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC100, 0x78);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC101, 0x56);
 
         Assert.Equal(1, cpu.Step());
         Assert.True(cpu.ImeEnablePending);
@@ -116,20 +116,20 @@ public sealed class CallReturnInstructionTests
             bytes[0x5678] = 0x00;
         });
         cpu.Registers.SP = 0xC100;
-        cpu.WriteByte(0xC100, 0x78);
-        cpu.WriteByte(0xC101, 0x56);
-        cpu.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
-        cpu.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC100, 0x78);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC101, 0x56);
+        CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
 
         Assert.Equal(4, cpu.Step());
         Assert.True(cpu.Ime);
         Assert.Equal(0x5678, cpu.Registers.PC);
-        Assert.Equal(0xE1, cpu.ReadByte(AddressMap.InterruptFlagRegister));
+        Assert.Equal(0xE1, CpuTestFactory.GetBus(cpu).ReadByte(AddressMap.InterruptFlagRegister));
 
         Assert.Equal(5, cpu.Step());
         Assert.False(cpu.Ime);
         Assert.Equal(VBlankVector, cpu.Registers.PC);
-        Assert.Equal(0xE0, cpu.ReadByte(AddressMap.InterruptFlagRegister));
+        Assert.Equal(0xE0, CpuTestFactory.GetBus(cpu).ReadByte(AddressMap.InterruptFlagRegister));
     }
 
     [Theory]
@@ -146,8 +146,8 @@ public sealed class CallReturnInstructionTests
         Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
         cpu.Registers.SP = 0xC100;
         cpu.Registers.F = flags;
-        cpu.WriteByte(0xC100, 0x78);
-        cpu.WriteByte(0xC101, 0x56);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC100, 0x78);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC101, 0x56);
 
         int machineCycles = cpu.Step();
 
@@ -177,8 +177,8 @@ public sealed class CallReturnInstructionTests
         Assert.Equal(4, machineCycles);
         Assert.Equal(targetAddress, cpu.Registers.PC);
         Assert.Equal(0xC0FE, cpu.Registers.SP);
-        Assert.Equal(0x01, cpu.ReadByte(0xC0FE));
-        Assert.Equal(0x01, cpu.ReadByte(0xC0FF));
+        Assert.Equal(0x01, CpuTestFactory.GetBus(cpu).ReadByte(0xC0FE));
+        Assert.Equal(0x01, CpuTestFactory.GetBus(cpu).ReadByte(0xC0FF));
         Assert.Equal(0xF0, cpu.Registers.F);
     }
 }

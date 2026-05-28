@@ -58,12 +58,12 @@ public sealed class CbSetResetInstructionTests
         });
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = AllFlags;
-        cpu.WriteByte(0xC123, value);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC123, value);
 
         int machineCycles = cpu.Step();
 
         Assert.Equal(4, machineCycles);
-        Assert.Equal(expectedValue, cpu.ReadByte(0xC123));
+        Assert.Equal(expectedValue, CpuTestFactory.GetBus(cpu).ReadByte(0xC123));
         Assert.Equal(AllFlags, cpu.Registers.F);
         Assert.Equal(0x0102, cpu.Registers.PC);
     }
@@ -73,10 +73,11 @@ public sealed class CbSetResetInstructionTests
     {
         for (int prefixedOpcode = 0x80; prefixedOpcode <= 0xFF; prefixedOpcode++)
         {
+            int opcode = prefixedOpcode;
             Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
             {
                 bytes[0x0100] = 0xCB;
-                bytes[0x0101] = (byte)prefixedOpcode;
+                bytes[0x0101] = (byte)opcode;
             });
             cpu.Registers.A = 0xFF;
             cpu.Registers.B = 0xFF;
@@ -86,7 +87,7 @@ public sealed class CbSetResetInstructionTests
             cpu.Registers.H = 0xC1;
             cpu.Registers.L = 0x23;
             cpu.Registers.F = AllFlags;
-            cpu.WriteByte(0xC123, 0xFF);
+            CpuTestFactory.GetBus(cpu).WriteByte(0xC123, 0xFF);
 
             int machineCycles = cpu.Step();
 

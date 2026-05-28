@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Sm83;
+namespace GbcNet.Core.Sm83.Instructions;
 
 /// <summary>
 /// SM83 stack instructions.
@@ -11,8 +11,6 @@ internal static class StackInstructions
     private const byte PushRegisterPairEndOpcode = 0xF5;
 
     private const byte NoOperandByteLength = 1;
-    private const int PopRegisterPairMachineCycles = 3;
-    private const int PushRegisterPairMachineCycles = 4;
     private const int StackRegisterPairOpcodeStep = 0x10;
 
     private const byte StackRegisterPairMask = 0x03;
@@ -32,15 +30,13 @@ internal static class StackInstructions
             builder,
             PopRegisterPairStartOpcode,
             PopRegisterPairEndOpcode,
-            PopRegisterPair,
-            PopRegisterPairMachineCycles
+            PopRegisterPair
         );
         MapStackRegisterPair(
             builder,
             PushRegisterPairStartOpcode,
             PushRegisterPairEndOpcode,
-            PushRegisterPair,
-            PushRegisterPairMachineCycles
+            PushRegisterPair
         );
     }
 
@@ -57,6 +53,7 @@ internal static class StackInstructions
     /// </summary>
     private static void PushRegisterPair(Cpu cpu, StackRegisterPair registerPair)
     {
+        cpu.IdleCycle();
         cpu.PushWord(cpu.Registers.GetStackRegisterPair(registerPair));
     }
 
@@ -67,23 +64,14 @@ internal static class StackInstructions
         OpcodeTableBuilder builder,
         byte startOpcode,
         byte endOpcode,
-        StackRegisterPairExecutor execute,
-        int machineCycles
+        StackRegisterPairExecutor execute
     )
     {
         for (int opcode = startOpcode; opcode <= endOpcode; opcode += StackRegisterPairOpcodeStep)
         {
             byte opcodeByte = (byte)opcode;
             StackRegisterPair registerPair = DecodeStackRegisterPair(opcodeByte);
-            builder.Map(
-                opcodeByte,
-                NoOperandByteLength,
-                (cpu, _, _) =>
-                {
-                    execute(cpu, registerPair);
-                    return machineCycles;
-                }
-            );
+            builder.Map(opcodeByte, NoOperandByteLength, (cpu, _, _) => execute(cpu, registerPair));
         }
     }
 

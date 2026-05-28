@@ -29,8 +29,8 @@ public sealed class StackInstructionTests
 
         Assert.Equal(4, machineCycles);
         Assert.Equal(0xC0FE, cpu.Registers.SP);
-        Assert.Equal((byte)expectedValue, cpu.ReadByte(0xC0FE));
-        Assert.Equal((byte)(expectedValue >> 8), cpu.ReadByte(0xC0FF));
+        Assert.Equal((byte)expectedValue, CpuTestFactory.GetBus(cpu).ReadByte(0xC0FE));
+        Assert.Equal((byte)(expectedValue >> 8), CpuTestFactory.GetBus(cpu).ReadByte(0xC0FF));
         Assert.Equal(
             expectedValue,
             cpu.Registers.GetStackRegisterPair((StackRegisterPair)registerPair)
@@ -52,8 +52,8 @@ public sealed class StackInstructionTests
     {
         Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
         cpu.Registers.SP = 0xC100;
-        cpu.WriteByte(0xC100, (byte)stackValue);
-        cpu.WriteByte(0xC101, (byte)(stackValue >> 8));
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC100, (byte)stackValue);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC101, (byte)(stackValue >> 8));
 
         int machineCycles = cpu.Step();
 

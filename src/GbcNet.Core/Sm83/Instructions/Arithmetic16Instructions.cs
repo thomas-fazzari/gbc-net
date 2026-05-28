@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Sm83;
+namespace GbcNet.Core.Sm83.Instructions;
 
 /// <summary>
 /// SM83 16-bit arithmetic instructions.
@@ -26,10 +26,6 @@ internal static class Arithmetic16Instructions
 
     private const byte NoOperandByteLength = 1;
     private const byte Immediate8ByteLength = 2;
-
-    private const int AddHlRegisterPairMachineCycles = 2;
-    private const int AddStackPointerImmediate8MachineCycles = 4;
-    private const int IncrementDecrementRegisterPairMachineCycles = 2;
 
     /// <summary>
     /// Maps implemented 16-bit arithmetic instructions into the opcode table.
@@ -70,11 +66,7 @@ internal static class Arithmetic16Instructions
         builder.Map(
             opcode,
             NoOperandByteLength,
-            (cpu, _, _) =>
-            {
-                AddHlRegisterPair(cpu, registerPair);
-                return AddHlRegisterPairMachineCycles;
-            }
+            (cpu, _, _) => AddHlRegisterPair(cpu, registerPair)
         );
     }
 
@@ -90,11 +82,7 @@ internal static class Arithmetic16Instructions
         builder.Map(
             opcode,
             NoOperandByteLength,
-            (cpu, _, _) =>
-            {
-                IncrementRegisterPair(cpu, registerPair);
-                return IncrementDecrementRegisterPairMachineCycles;
-            }
+            (cpu, _, _) => IncrementRegisterPair(cpu, registerPair)
         );
     }
 
@@ -110,11 +98,7 @@ internal static class Arithmetic16Instructions
         builder.Map(
             opcode,
             NoOperandByteLength,
-            (cpu, _, _) =>
-            {
-                DecrementRegisterPair(cpu, registerPair);
-                return IncrementDecrementRegisterPairMachineCycles;
-            }
+            (cpu, _, _) => DecrementRegisterPair(cpu, registerPair)
         );
     }
 
@@ -131,6 +115,7 @@ internal static class Arithmetic16Instructions
         cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: false);
         cpu.Registers.SetFlag(CpuFlag.HalfCarry, HasAddHlHalfCarry(left, right));
         cpu.Registers.SetFlag(CpuFlag.Carry, result > ushort.MaxValue);
+        cpu.IdleCycle();
     }
 
     /// <summary>
@@ -140,6 +125,7 @@ internal static class Arithmetic16Instructions
     {
         ushort value = cpu.Registers.GetRegisterPair(registerPair);
         cpu.Registers.SetRegisterPair(registerPair, unchecked((ushort)(value + 1)));
+        cpu.IdleCycle();
     }
 
     /// <summary>
@@ -149,12 +135,13 @@ internal static class Arithmetic16Instructions
     {
         ushort value = cpu.Registers.GetRegisterPair(registerPair);
         cpu.Registers.SetRegisterPair(registerPair, unchecked((ushort)(value - 1)));
+        cpu.IdleCycle();
     }
 
     /// <summary>
     /// Executes ADD SP, imm8 using the SP+signed-imm8 flag rules.
     /// </summary>
-    private static int ExecuteAddStackPointerImmediate8(Cpu cpu, byte offset, byte highByte)
+    private static void ExecuteAddStackPointerImmediate8(Cpu cpu, byte offset, byte highByte)
     {
         (ushort value, byte flags) = InstructionOperands.AddSignedImmediate8WithFlags(
             cpu.Registers.SP,
@@ -162,7 +149,8 @@ internal static class Arithmetic16Instructions
         );
         cpu.Registers.SP = value;
         cpu.Registers.F = flags;
-        return AddStackPointerImmediate8MachineCycles;
+        cpu.IdleCycle();
+        cpu.IdleCycle();
     }
 
     /// <summary>

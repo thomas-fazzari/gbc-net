@@ -1,20 +1,16 @@
 using System.Globalization;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
+using GbcNet.Core.Sm83.Instructions;
 
 namespace GbcNet.Core.Sm83;
 
 /// <summary>
 /// Executes SM83 instructions against the CPU-visible memory bus.
 /// </summary>
-internal sealed class Cpu(MemoryBus bus)
+internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
 {
-    /// <summary>
-    /// Hardware interrupt service sequence duration: two waits, two stack writes, one vector load.
-    /// </summary>
-    private const int InterruptServiceMachineCycles = 5;
-
-    private const int HaltedMachineCycles = 1;
+    private int _currentInstructionMachineCycles;
 
     /// <summary>
     /// Indicates that HALT has stopped opcode fetching until an interrupt becomes pending.
@@ -50,6 +46,8 @@ internal sealed class Cpu(MemoryBus bus)
     /// </returns>
     public int Step()
     {
+        _currentInstructionMachineCycles = 0;
+
         if (TryServiceInterrupt(out int interruptMachineCycles))
         {
             return interruptMachineCycles;
@@ -127,16 +125,30 @@ internal sealed class Cpu(MemoryBus bus)
     }
 
     /// <summary>
-    /// Reads one byte from CPU-visible memory.
+    /// Reads one byte from CPU-visible memory and consumes one machine cycle.
     /// </summary>
-    internal byte ReadByte(ushort address) => bus.ReadByte(address);
+    internal byte ReadBus(ushort address)
+    {
+        byte value = bus.ReadByte(address);
+        TickMachineCycle();
+        return value;
+    }
 
     /// <summary>
-    /// Writes one byte to CPU-visible memory.
+    /// Writes one byte to CPU-visible memory and consumes one machine cycle.
     /// </summary>
-    internal void WriteByte(ushort address, byte value)
+    internal void WriteBus(ushort address, byte value)
     {
         bus.WriteByte(address, value);
+        TickMachineCycle();
+    }
+
+    /// <summary>
+    /// Consumes one machine cycle without accessing the bus.
+    /// </summary>
+    internal void IdleCycle()
+    {
+        TickMachineCycle();
     }
 
     /// <summary>
@@ -145,10 +157,10 @@ internal sealed class Cpu(MemoryBus bus)
     internal void PushWord(ushort value)
     {
         Registers.SP = unchecked((ushort)(Registers.SP - 1));
-        WriteByte(Registers.SP, (byte)(value >> 8));
+        WriteBus(Registers.SP, (byte)(value >> 8));
 
         Registers.SP = unchecked((ushort)(Registers.SP - 1));
-        WriteByte(Registers.SP, (byte)value);
+        WriteBus(Registers.SP, (byte)value);
     }
 
     /// <summary>
@@ -156,10 +168,10 @@ internal sealed class Cpu(MemoryBus bus)
     /// </summary>
     internal ushort PopWord()
     {
-        byte lowByte = ReadByte(Registers.SP);
+        byte lowByte = ReadBus(Registers.SP);
         Registers.SP = unchecked((ushort)(Registers.SP + 1));
 
-        byte highByte = ReadByte(Registers.SP);
+        byte highByte = ReadBus(Registers.SP);
         Registers.SP = unchecked((ushort)(Registers.SP + 1));
 
         return (ushort)((highByte << 8) | lowByte);
@@ -167,7 +179,7 @@ internal sealed class Cpu(MemoryBus bus)
 
     private int ExecuteNextInstruction()
     {
-        byte opcode = FetchByte();
+        byte opcode = FetchProgramByte();
         ApplyHaltBugToFetchedOpcode();
 
         Instruction instruction =
@@ -180,10 +192,11 @@ internal sealed class Cpu(MemoryBus bus)
                 )
             );
 
-        byte firstOperand = instruction.ByteLength > 1 ? FetchByte() : (byte)0;
-        byte secondOperand = instruction.ByteLength > 2 ? FetchByte() : (byte)0;
+        byte firstOperand = instruction.ByteLength > 1 ? FetchProgramByte() : (byte)0;
+        byte secondOperand = instruction.ByteLength > 2 ? FetchProgramByte() : (byte)0;
 
-        return instruction.Execute(this, firstOperand, secondOperand);
+        instruction.Execute(this, firstOperand, secondOperand);
+        return _currentInstructionMachineCycles;
     }
 
     private int StepHalted()
@@ -193,7 +206,8 @@ internal sealed class Cpu(MemoryBus bus)
             Halted = false;
         }
 
-        return HaltedMachineCycles;
+        IdleCycle();
+        return _currentInstructionMachineCycles;
     }
 
     private bool TryServiceInterrupt(out int machineCycles)
@@ -207,14 +221,23 @@ internal sealed class Cpu(MemoryBus bus)
             return false;
         }
 
+        ServiceInterrupt(source, vector);
+        machineCycles = _currentInstructionMachineCycles;
+        return true;
+    }
+
+    private void ServiceInterrupt(InterruptSource source, ushort vector)
+    {
         bus.Interrupts.Clear(source);
         Halted = false;
         Ime = false;
+
+        IdleCycle();
+        IdleCycle();
+
         PushWord(Registers.PC);
         Registers.PC = vector;
-
-        machineCycles = InterruptServiceMachineCycles;
-        return true;
+        IdleCycle();
     }
 
     private void ApplyHaltBugToFetchedOpcode()
@@ -231,10 +254,16 @@ internal sealed class Cpu(MemoryBus bus)
     /// <summary>
     /// Reads the byte at PC and advances PC by one.
     /// </summary>
-    private byte FetchByte()
+    private byte FetchProgramByte()
     {
-        byte value = bus.ReadByte(Registers.PC);
+        byte value = ReadBus(Registers.PC);
         Registers.PC = unchecked((ushort)(Registers.PC + 1));
         return value;
+    }
+
+    private void TickMachineCycle()
+    {
+        tickMachineCycle?.Invoke();
+        _currentInstructionMachineCycles++;
     }
 }

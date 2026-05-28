@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Sm83;
+namespace GbcNet.Core.Sm83.Instructions;
 
 /// <summary>
 /// SM83 CB-prefixed rotate and shift instructions.
@@ -29,8 +29,6 @@ internal static class CbRotateShiftInstructions
     private const byte OperationMask = 0x07;
 
     private const byte PrefixedInstructionByteLength = 2;
-    private const int AddressHlMachineCycles = 4;
-    private const int RegisterMachineCycles = 2;
 
     private static readonly RotateShiftExecutor[] _operations =
     [
@@ -71,7 +69,7 @@ internal static class CbRotateShiftInstructions
     /// <summary>
     /// Executes a CB rotate or shift operation on one r8 operand.
     /// </summary>
-    private static int Execute(Cpu cpu, Register8Operand operand, RotateShiftExecutor execute)
+    private static void Execute(Cpu cpu, Register8Operand operand, RotateShiftExecutor execute)
     {
         byte value = Register8Operands.Read(cpu, operand);
         bool incomingCarry = cpu.Registers.IsFlagSet(CpuFlag.Carry);
@@ -82,10 +80,6 @@ internal static class CbRotateShiftInstructions
         cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: false);
         cpu.Registers.SetFlag(CpuFlag.HalfCarry, isSet: false);
         cpu.Registers.SetFlag(CpuFlag.Carry, carry);
-
-        return Register8Operands.UsesMemory(operand)
-            ? AddressHlMachineCycles
-            : RegisterMachineCycles;
     }
 
     /// <summary>

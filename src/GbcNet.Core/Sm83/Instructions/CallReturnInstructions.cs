@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Sm83;
+namespace GbcNet.Core.Sm83.Instructions;
 
 /// <summary>
 /// SM83 call, return, and restart instructions.
@@ -17,15 +17,6 @@ internal static class CallReturnInstructions
 
     private const byte NoOperandByteLength = 1;
     private const byte Immediate16ByteLength = 3;
-
-    private const int CallImmediate16MachineCycles = 6;
-    private const int CallConditionTakenMachineCycles = 6;
-    private const int CallConditionNotTakenMachineCycles = 3;
-    private const int ReturnMachineCycles = 4;
-    private const int ReturnConditionTakenMachineCycles = 5;
-    private const int ReturnConditionNotTakenMachineCycles = 2;
-    private const int ReturnInterruptMachineCycles = 4;
-    private const int RestartMachineCycles = 4;
 
     private const int ConditionOpcodeStep = 0x08;
     private const int RestartOpcodeStep = 0x08;
@@ -116,16 +107,15 @@ internal static class CallReturnInstructions
     /// <summary>
     /// Executes CALL imm16 by pushing the next PC and jumping to the immediate address.
     /// </summary>
-    private static int CallImmediate16(Cpu cpu, byte lowByte, byte highByte)
+    private static void CallImmediate16(Cpu cpu, byte lowByte, byte highByte)
     {
         Call(cpu, InstructionOperands.ReadImmediate16(lowByte, highByte));
-        return CallImmediate16MachineCycles;
     }
 
     /// <summary>
     /// Executes CALL cond, imm16 after the target address has already been fetched.
     /// </summary>
-    private static int CallImmediate16If(
+    private static void CallImmediate16If(
         Cpu cpu,
         byte lowByte,
         byte highByte,
@@ -134,11 +124,10 @@ internal static class CallReturnInstructions
     {
         if (!cpu.Registers.IsConditionMet(conditionCode))
         {
-            return CallConditionNotTakenMachineCycles;
+            return;
         }
 
         Call(cpu, InstructionOperands.ReadImmediate16(lowByte, highByte));
-        return CallConditionTakenMachineCycles;
     }
 
     /// <summary>
@@ -146,6 +135,7 @@ internal static class CallReturnInstructions
     /// </summary>
     private static void Call(Cpu cpu, ushort targetAddress)
     {
+        cpu.IdleCycle();
         cpu.PushWord(cpu.Registers.PC);
         cpu.Registers.PC = targetAddress;
     }
@@ -153,43 +143,44 @@ internal static class CallReturnInstructions
     /// <summary>
     /// Executes RET by popping PC from the stack.
     /// </summary>
-    private static int Return(Cpu cpu)
+    private static void Return(Cpu cpu)
     {
         cpu.Registers.PC = cpu.PopWord();
-        return ReturnMachineCycles;
+        cpu.IdleCycle();
     }
 
     /// <summary>
     /// Executes RETI by popping PC and immediately re-enabling interrupt servicing.
     /// </summary>
-    private static int ReturnInterrupt(Cpu cpu)
+    private static void ReturnInterrupt(Cpu cpu)
     {
         cpu.Registers.PC = cpu.PopWord();
         cpu.EnableInterruptsImmediately();
-        return ReturnInterruptMachineCycles;
+        cpu.IdleCycle();
     }
 
     /// <summary>
     /// Executes RET cond after the condition has been decoded from the opcode.
     /// </summary>
-    private static int ReturnIf(Cpu cpu, ConditionCode conditionCode)
+    private static void ReturnIf(Cpu cpu, ConditionCode conditionCode)
     {
+        cpu.IdleCycle();
+
         if (!cpu.Registers.IsConditionMet(conditionCode))
         {
-            return ReturnConditionNotTakenMachineCycles;
+            return;
         }
 
         cpu.Registers.PC = cpu.PopWord();
-        return ReturnConditionTakenMachineCycles;
+        cpu.IdleCycle();
     }
 
     /// <summary>
     /// Executes RST tgt3 by pushing the next PC and jumping to the encoded vector.
     /// </summary>
-    private static int Restart(Cpu cpu, ushort targetAddress)
+    private static void Restart(Cpu cpu, ushort targetAddress)
     {
         Call(cpu, targetAddress);
-        return RestartMachineCycles;
     }
 
     /// <summary>

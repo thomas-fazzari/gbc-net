@@ -38,7 +38,7 @@ internal static class Register8Operands
     /// </summary>
     public static byte Read(Cpu cpu, Register8Operand operand) =>
         UsesMemory(operand)
-            ? cpu.ReadByte(cpu.Registers.HL)
+            ? cpu.ReadBus(cpu.Registers.HL)
             : cpu.Registers.GetRegister((Register8)operand);
 
     /// <summary>
@@ -48,7 +48,7 @@ internal static class Register8Operands
     {
         if (UsesMemory(operand))
         {
-            cpu.WriteByte(cpu.Registers.HL, value);
+            cpu.WriteBus(cpu.Registers.HL, value);
             return;
         }
 

@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Sm83;
+namespace GbcNet.Core.Sm83.Instructions;
 
 /// <summary>
 /// SM83 CB-prefixed bit test, reset, and set instructions.
@@ -16,11 +16,6 @@ internal static class BitSetResetInstructions
     private const int BitIndexShift = 3;
 
     private const byte PrefixedInstructionByteLength = 2;
-
-    private const int BitAddressHlMachineCycles = 3;
-    private const int BitRegisterMachineCycles = 2;
-    private const int MutationAddressHlMachineCycles = 4;
-    private const int MutationRegisterMachineCycles = 2;
 
     /// <summary>
     /// Maps all BIT, RES, and SET b3, r8 instructions into the CB-prefixed opcode table.
@@ -78,32 +73,29 @@ internal static class BitSetResetInstructions
     /// <summary>
     /// Executes BIT b3, r8 by testing one bit while preserving C and leaving the operand unchanged.
     /// </summary>
-    private static int ExecuteBitTest(Cpu cpu, byte mask, Register8Operand operand)
+    private static void ExecuteBitTest(Cpu cpu, byte mask, Register8Operand operand)
     {
         byte value = Register8Operands.Read(cpu, operand);
 
         cpu.Registers.SetFlag(CpuFlag.Zero, (value & mask) == 0);
         cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: false);
         cpu.Registers.SetFlag(CpuFlag.HalfCarry, isSet: true);
-
-        return Register8Operands.UsesMemory(operand)
-            ? BitAddressHlMachineCycles
-            : BitRegisterMachineCycles;
     }
 
     /// <summary>
     /// Executes RES or SET b3, r8 by mutating one bit and preserving all flags.
     /// </summary>
-    private static int ExecuteBitMutation(Cpu cpu, byte mask, Register8Operand operand, bool setBit)
+    private static void ExecuteBitMutation(
+        Cpu cpu,
+        byte mask,
+        Register8Operand operand,
+        bool setBit
+    )
     {
         byte value = Register8Operands.Read(cpu, operand);
         byte result = setBit ? (byte)(value | mask) : (byte)(value & ~mask);
 
         Register8Operands.Write(cpu, operand, result);
-
-        return Register8Operands.UsesMemory(operand)
-            ? MutationAddressHlMachineCycles
-            : MutationRegisterMachineCycles;
     }
 
     /// <summary>

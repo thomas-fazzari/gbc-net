@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Sm83;
+namespace GbcNet.Core.Sm83.Instructions;
 
 /// <summary>
 /// SM83 instructions that manipulate CPU flags.
@@ -10,8 +10,6 @@ internal static class FlagInstructions
 
     private const byte NoOperandByteLength = 1;
 
-    private const int CarryFlagMachineCycles = 1;
-
     /// <summary>
     /// Maps implemented flag instructions into the opcode table.
     /// </summary>
@@ -20,20 +18,12 @@ internal static class FlagInstructions
         builder.Map(
             SetCarryFlagOpcode,
             NoOperandByteLength,
-            static (cpu, _, _) =>
-            {
-                SetCarryFlag(cpu);
-                return CarryFlagMachineCycles;
-            }
+            static (cpu, _, _) => SetCarryFlag(cpu)
         );
         builder.Map(
             ComplementCarryFlagOpcode,
             NoOperandByteLength,
-            static (cpu, _, _) =>
-            {
-                ComplementCarryFlag(cpu);
-                return CarryFlagMachineCycles;
-            }
+            static (cpu, _, _) => ComplementCarryFlag(cpu)
         );
     }
 

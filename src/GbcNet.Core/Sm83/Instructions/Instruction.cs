@@ -1,15 +1,8 @@
-namespace GbcNet.Core.Sm83;
+namespace GbcNet.Core.Sm83.Instructions;
 
 /// <summary>
 /// Describes one executable SM83 opcode entry.
 /// </summary>
-/// <param name="byteLength">
-/// Total instruction length in bytes, including the opcode byte.
-/// </param>
-/// <param name="execute">
-/// Instruction body. Operand bytes are passed in program order after the opcode; the return
-/// value is the elapsed machine cycles.
-/// </param>
 internal sealed class Instruction(byte byteLength, InstructionExecutor execute)
 {
     /// <summary>
@@ -24,6 +17,6 @@ internal sealed class Instruction(byte byteLength, InstructionExecutor execute)
 }
 
 /// <summary>
-/// Executes one decoded SM83 instruction and returns elapsed machine cycles.
+/// Executes one decoded SM83 instruction by consuming machine cycles through CPU primitives.
 /// </summary>
-internal delegate int InstructionExecutor(Cpu cpu, byte firstOperand, byte secondOperand);
+internal delegate void InstructionExecutor(Cpu cpu, byte firstOperand, byte secondOperand);

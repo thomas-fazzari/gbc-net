@@ -78,12 +78,12 @@ public sealed class CbRotateShiftInstructionTests
         });
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = initialFlags;
-        cpu.WriteByte(0xC123, value);
+        CpuTestFactory.GetBus(cpu).WriteByte(0xC123, value);
 
         int machineCycles = cpu.Step();
 
         Assert.Equal(4, machineCycles);
-        Assert.Equal(expectedValue, cpu.ReadByte(0xC123));
+        Assert.Equal(expectedValue, CpuTestFactory.GetBus(cpu).ReadByte(0xC123));
         Assert.Equal(expectedFlags, cpu.Registers.F);
         Assert.Equal(0x0102, cpu.Registers.PC);
     }
@@ -93,10 +93,11 @@ public sealed class CbRotateShiftInstructionTests
     {
         for (byte prefixedOpcode = 0x00; prefixedOpcode <= 0x3F; prefixedOpcode++)
         {
+            byte opcode = prefixedOpcode;
             Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
             {
                 bytes[0x0100] = 0xCB;
-                bytes[0x0101] = prefixedOpcode;
+                bytes[0x0101] = opcode;
             });
             cpu.Registers.A = 0x81;
             cpu.Registers.B = 0x81;
@@ -105,7 +106,7 @@ public sealed class CbRotateShiftInstructionTests
             cpu.Registers.E = 0x81;
             cpu.Registers.H = 0xC1;
             cpu.Registers.L = 0x23;
-            cpu.WriteByte(0xC123, 0x81);
+            CpuTestFactory.GetBus(cpu).WriteByte(0xC123, 0x81);
 
             int machineCycles = cpu.Step();
 
