@@ -92,6 +92,27 @@ public sealed class PpuControllerTests
     }
 
     [Fact]
+    public void AccessProperties_ReflectCurrentPpuMode()
+    {
+        var ppu = new PpuController(new InterruptController());
+
+        Assert.True(ppu.CanCpuAccessVideoRam);
+        Assert.True(ppu.CanCpuAccessObjectAttributeMemory);
+
+        ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
+        Assert.True(ppu.CanCpuAccessVideoRam);
+        Assert.False(ppu.CanCpuAccessObjectAttributeMemory);
+
+        ppu.Tick(80);
+        Assert.False(ppu.CanCpuAccessVideoRam);
+        Assert.False(ppu.CanCpuAccessObjectAttributeMemory);
+
+        ppu.Tick(172);
+        Assert.True(ppu.CanCpuAccessVideoRam);
+        Assert.True(ppu.CanCpuAccessObjectAttributeMemory);
+    }
+
+    [Fact]
     public void Tick_RequestsVBlankInterruptWhenEnteringLineOneHundredFortyFour()
     {
         var interrupts = new InterruptController();

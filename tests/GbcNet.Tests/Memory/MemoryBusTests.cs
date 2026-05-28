@@ -7,6 +7,8 @@ namespace GbcNet.Tests.Memory;
 
 public sealed class MemoryBusTests
 {
+    private const byte LcdEnable = 0x80;
+
     [Fact]
     public void ReadByte_RoutesRomWindowToCartridge()
     {
@@ -82,6 +84,41 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
+    public void ReadWriteByte_BlocksVideoRamDuringPpuDrawingMode()
+    {
+        MemoryBus bus = CreateBus();
+        bus.WriteByte(AddressMap.VideoRamStart, 0x12);
+        bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
+        bus.Ppu.Tick(80);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamStart));
+
+        bus.WriteByte(AddressMap.VideoRamStart, 0x34);
+        bus.Ppu.Tick(172);
+
+        Assert.Equal(0x12, bus.ReadByte(AddressMap.VideoRamStart));
+    }
+
+    [Fact]
+    public void ReadWriteByte_BlocksObjectAttributeMemoryDuringPpuOamScanAndDrawingModes()
+    {
+        MemoryBus bus = CreateBus();
+        bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0x12);
+        bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0x34);
+
+        bus.Ppu.Tick(80);
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0x56);
+
+        bus.Ppu.Tick(172);
+
+        Assert.Equal(0x12, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+    }
+
+    [Fact]
     public void ReadWriteByte_IgnoresNotUsableRange()
     {
         MemoryBus bus = CreateBus();
@@ -91,6 +128,17 @@ public sealed class MemoryBusTests
 
         Assert.Equal(0x00, bus.ReadByte(0xFEA0));
         Assert.Equal(0x00, bus.ReadByte(0xFEFF));
+    }
+
+    [Fact]
+    public void ReadWriteByte_KeepsNotUsableRangeBehaviorDuringPpuOamBlock()
+    {
+        MemoryBus bus = CreateBus();
+        bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
+
+        bus.WriteByte(AddressMap.NotUsableStart, 0x42);
+
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.NotUsableStart));
     }
 
     [Fact]
@@ -229,6 +277,24 @@ public sealed class MemoryBusTests
         bus.TickDma(160);
 
         Assert.Equal(0x99, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+    }
+
+    [Fact]
+    public void TickDma_WritesObjectAttributeMemoryWhileCpuAccessIsPpuBlocked()
+    {
+        MemoryBus bus = CreateBus();
+        bus.WriteByte(AddressMap.WorkRamStart, 0x42);
+        bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
+
+        bus.WriteByte(AddressMap.DmaRegister, 0xC0);
+        bus.TickDma(1);
+        bus.TickDma(160);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+
+        bus.Ppu.Tick(252);
+
+        Assert.Equal(0x42, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
     }
 
     [Fact]

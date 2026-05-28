@@ -144,6 +144,22 @@ internal sealed class PpuController(InterruptController interrupts)
         };
 
     /// <summary>
+    /// Indicates whether LCD/PPU timing is running.
+    /// </summary>
+    public bool IsLcdEnabled => (_control & LcdEnableMask) != 0;
+
+    /// <summary>
+    /// Indicates whether the CPU can access VRAM at 8000-9FFF in the current PPU mode.
+    /// </summary>
+    public bool CanCpuAccessVideoRam => !IsLcdEnabled || _statusMode != ModeDrawing;
+
+    /// <summary>
+    /// Indicates whether the CPU can access OAM at FE00-FE9F in the current PPU mode.
+    /// </summary>
+    public bool CanCpuAccessObjectAttributeMemory =>
+        !IsLcdEnabled || _statusMode is ModeHBlank or ModeVBlank;
+
+    /// <summary>
     /// Writes an LCD/PPU register as the CPU sees it.
     /// </summary>
     public void WriteRegister(ushort address, byte value)
@@ -288,8 +304,6 @@ internal sealed class PpuController(InterruptController interrupts)
             RefreshPpuState(requestStatInterrupt: true);
         }
     }
-
-    private bool IsLcdEnabled => (_control & LcdEnableMask) != 0;
 
     private int GetNextTimingBoundary()
     {

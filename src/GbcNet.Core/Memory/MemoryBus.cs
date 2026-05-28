@@ -76,7 +76,7 @@ internal sealed class MemoryBus
         Joypad = new JoypadController(Interrupts);
         Ppu = new PpuController(Interrupts);
         Dma = new DmaController();
-        _readByteForDma = ReadByteBypassingDma;
+        _readByteForDma = ReadMappedByte;
         _writeOamByteForDma = WriteOamByteForDma;
     }
 
@@ -103,13 +103,13 @@ internal sealed class MemoryBus
     }
 
     public byte ReadByte(ushort address) =>
-        IsCpuMemoryBlockedByDma(address) ? (byte)0xFF : ReadByteBypassingDma(address);
+        IsCpuMemoryBlocked(address) ? (byte)0xFF : ReadMappedByte(address);
 
     public void WriteByte(ushort address, byte value)
     {
-        if (!IsCpuMemoryBlockedByDma(address))
+        if (!IsCpuMemoryBlocked(address))
         {
-            WriteByteBypassingDma(address, value);
+            WriteMappedByte(address, value);
         }
     }
 
@@ -121,10 +121,22 @@ internal sealed class MemoryBus
         Dma.Tick(machineCycles, _readByteForDma, _writeOamByteForDma);
     }
 
+    private bool IsCpuMemoryBlocked(ushort address) =>
+        IsCpuMemoryBlockedByDma(address) || IsCpuVideoMemoryBlockedByPpu(address);
+
     private bool IsCpuMemoryBlockedByDma(ushort address) =>
         Dma.IsActive && address <= AddressMap.ObjectAttributeMemoryEnd;
 
-    private byte ReadByteBypassingDma(ushort address)
+    private bool IsCpuVideoMemoryBlockedByPpu(ushort address) =>
+        address switch
+        {
+            >= AddressMap.VideoRamStart and <= AddressMap.VideoRamEnd => !Ppu.CanCpuAccessVideoRam,
+            >= AddressMap.ObjectAttributeMemoryStart and <= AddressMap.ObjectAttributeMemoryEnd =>
+                !Ppu.CanCpuAccessObjectAttributeMemory,
+            _ => false,
+        };
+
+    private byte ReadMappedByte(ushort address)
     {
         return address switch
         {
@@ -141,7 +153,7 @@ internal sealed class MemoryBus
         };
     }
 
-    private void WriteByteBypassingDma(ushort address, byte value)
+    private void WriteMappedByte(ushort address, byte value)
     {
         switch (address)
         {
