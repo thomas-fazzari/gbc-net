@@ -40,6 +40,8 @@ internal sealed class MemoryBus
 
     private readonly WorkRam _workRam = new();
     private readonly Cartridge _cartridge;
+    private readonly Func<ushort, byte> _readByteForDma;
+    private readonly Action<ushort, byte> _writeOamByteForDma;
 
     /// <summary>
     /// Interrupt request and enable registers routed through FF0F and FFFF.
@@ -74,6 +76,8 @@ internal sealed class MemoryBus
         Joypad = new JoypadController(Interrupts);
         Ppu = new PpuController();
         Dma = new DmaController();
+        _readByteForDma = ReadByte;
+        _writeOamByteForDma = WriteOamByteForDma;
     }
 
     /// <summary>
@@ -145,6 +149,14 @@ internal sealed class MemoryBus
                 Interrupts.InterruptEnable = value;
                 return;
         }
+    }
+
+    /// <summary>
+    /// Advances OAM DMA transfers using CPU machine cycles.
+    /// </summary>
+    public void TickDma(int machineCycles)
+    {
+        Dma.Tick(machineCycles, _readByteForDma, _writeOamByteForDma);
     }
 
     private byte ReadIoRegister(ushort address)
@@ -239,5 +251,10 @@ internal sealed class MemoryBus
                 _ioRegisters.Write(address, value);
                 return;
         }
+    }
+
+    private void WriteOamByteForDma(ushort address, byte value)
+    {
+        _objectAttributeMemory.Write(address, value);
     }
 }

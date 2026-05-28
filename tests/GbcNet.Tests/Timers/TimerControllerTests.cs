@@ -43,6 +43,18 @@ public sealed class TimerControllerTests
         Assert.Equal(0x00, timers.TimerCounter);
     }
 
+    [Fact]
+    public void Tick_AdvancesDividerWhenTimerIsDisabled()
+    {
+        var interrupts = new InterruptController();
+        var timers = new TimerController(interrupts);
+        timers.SetTimerControl(0b0000_0001);
+
+        timers.Tick(512);
+
+        Assert.Equal(0x02, timers.ReadDivider());
+    }
+
     [Theory]
     [InlineData(0b0000_0100, 1024)]
     [InlineData(0b0000_0101, 16)]
@@ -60,6 +72,25 @@ public sealed class TimerControllerTests
         timers.Tick(1);
 
         Assert.Equal(0x01, timers.TimerCounter);
+    }
+
+    [Fact]
+    public void SetTimerControl_UsesUpdatedClockSelectForSubsequentTicks()
+    {
+        var interrupts = new InterruptController();
+        var timers = new TimerController(interrupts);
+        timers.SetTimerControl(0b0000_0101);
+        timers.Tick(16);
+        Assert.Equal(0x01, timers.TimerCounter);
+        timers.ResetDivider();
+
+        timers.SetTimerControl(0b0000_0110);
+        timers.Tick(63);
+        Assert.Equal(0x01, timers.TimerCounter);
+
+        timers.Tick(1);
+
+        Assert.Equal(0x02, timers.TimerCounter);
     }
 
     [Fact]

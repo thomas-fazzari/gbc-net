@@ -54,6 +54,7 @@ internal sealed class TimerController(InterruptController interrupts)
 
     private ushort _systemCounter;
     private byte _timerControl;
+    private ushort _timerClockBitMask = ClockSelect00BitMask;
 
     /// <summary>
     /// TIMA register at FF05, incremented by the selected timer clock.
@@ -97,6 +98,13 @@ internal sealed class TimerController(InterruptController interrupts)
     internal void SetTimerControl(byte value)
     {
         _timerControl = (byte)(value & TimerControlWriteMask);
+        _timerClockBitMask = (_timerControl & TimerClockSelectMask) switch
+        {
+            0b00 => ClockSelect00BitMask,
+            0b01 => ClockSelect01BitMask,
+            0b10 => ClockSelect10BitMask,
+            _ => ClockSelect11BitMask,
+        };
     }
 
     /// <summary>
@@ -105,6 +113,12 @@ internal sealed class TimerController(InterruptController interrupts)
     public void Tick(int tCycles)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(tCycles);
+
+        if ((_timerControl & TimerEnableMask) == 0)
+        {
+            _systemCounter = unchecked((ushort)(_systemCounter + tCycles));
+            return;
+        }
 
         for (int cycle = 0; cycle < tCycles; cycle++)
         {
@@ -117,23 +131,13 @@ internal sealed class TimerController(InterruptController interrupts)
         ushort previousCounter = _systemCounter;
         _systemCounter = unchecked((ushort)(_systemCounter + 1));
 
-        if ((_timerControl & TimerEnableMask) != 0 && HasSelectedTimerBitFallen(previousCounter))
+        if (
+            (previousCounter & _timerClockBitMask) != 0
+            && (_systemCounter & _timerClockBitMask) == 0
+        )
         {
             IncrementTimerCounter();
         }
-    }
-
-    private bool HasSelectedTimerBitFallen(ushort previousCounter)
-    {
-        ushort selectedBitMask = (_timerControl & TimerClockSelectMask) switch
-        {
-            0b00 => ClockSelect00BitMask,
-            0b01 => ClockSelect01BitMask,
-            0b10 => ClockSelect10BitMask,
-            _ => ClockSelect11BitMask,
-        };
-
-        return (previousCounter & selectedBitMask) != 0 && (_systemCounter & selectedBitMask) == 0;
     }
 
     private void IncrementTimerCounter()

@@ -38,6 +38,7 @@ public sealed class GameBoy
     {
         int machineCycles = _cpu.Step();
         Bus.Timers.Tick(machineCycles * TCyclesPerMachineCycle);
+        Bus.TickDma(machineCycles);
         return machineCycles;
     }
 
