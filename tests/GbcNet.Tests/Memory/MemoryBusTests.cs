@@ -166,6 +166,24 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
+    public void ReadWriteByte_RoutesSerialRegisters()
+    {
+        MemoryBus bus = CreateBus();
+
+        bus.WriteByte(AddressMap.SerialTransferDataRegister, 0x12);
+        bus.WriteByte(AddressMap.SerialTransferControlRegister, 0x81);
+
+        Assert.Equal(0x12, bus.ReadByte(AddressMap.SerialTransferDataRegister));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.SerialTransferControlRegister));
+
+        bus.Serial.Tick(512 * 8);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.SerialTransferDataRegister));
+        Assert.Equal(0x7F, bus.ReadByte(AddressMap.SerialTransferControlRegister));
+        Assert.Equal(0b0000_1000, bus.Interrupts.InterruptFlag);
+    }
+
+    [Fact]
     public void ReadWriteByte_StoresHighRam()
     {
         MemoryBus bus = CreateBus();
@@ -394,6 +412,20 @@ public sealed class MemoryBusTests
 
         Assert.Equal(0xC0, bus.ReadByte(AddressMap.DmaRegister));
         Assert.Equal(0x00, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+    }
+
+    [Fact]
+    public void SetHardwareRegisterState_SerialControlDoesNotStartTransfer()
+    {
+        MemoryBus bus = CreateBus();
+
+        bus.SetHardwareRegisterState(AddressMap.SerialTransferDataRegister, 0x00);
+        bus.SetHardwareRegisterState(AddressMap.SerialTransferControlRegister, 0x81);
+        bus.Serial.Tick(512 * 8);
+
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.SerialTransferDataRegister));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.SerialTransferControlRegister));
+        Assert.Equal(0x00, bus.Interrupts.InterruptFlag);
     }
 
     [Fact]

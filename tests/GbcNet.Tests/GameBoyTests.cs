@@ -8,6 +8,8 @@ namespace GbcNet.Tests;
 
 public sealed class GameBoyTests
 {
+    private const byte HaltOpcode = 0x76;
+
     [Fact]
     public void Step_ReturnsCpuMachineCyclesAndTicksTimer()
     {
@@ -24,6 +26,25 @@ public sealed class GameBoyTests
 
         Assert.Equal(1, machineCycles);
         Assert.Equal(0x01, gameBoy.Bus.ReadByte(AddressMap.TimerCounterRegister));
+    }
+
+    [Fact]
+    public void Step_TicksSerial()
+    {
+        Cartridge cartridge = ResultAssertions.AssertSuccess(
+            Cartridge.Load(TestRomFactory.Create(bytes => bytes[0x0100] = HaltOpcode))
+        );
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
+        gameBoy.Bus.WriteByte(AddressMap.SerialTransferDataRegister, 0x00);
+        gameBoy.Bus.WriteByte(AddressMap.SerialTransferControlRegister, 0x81);
+
+        for (int step = 0; step < 128; step++)
+        {
+            gameBoy.Step();
+        }
+
+        Assert.Equal(0x01, gameBoy.Bus.ReadByte(AddressMap.SerialTransferDataRegister));
+        Assert.Equal(0xFF, gameBoy.Bus.ReadByte(AddressMap.SerialTransferControlRegister));
     }
 
     [Fact]

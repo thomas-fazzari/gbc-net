@@ -3,6 +3,7 @@ using GbcNet.Core.Dma;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Ppu;
+using GbcNet.Core.Serial;
 using GbcNet.Core.Timers;
 
 namespace GbcNet.Core.Memory;
@@ -59,6 +60,11 @@ internal sealed class MemoryBus
     public JoypadController Joypad { get; }
 
     /// <summary>
+    /// Serial transfer registers routed through FF01-FF02.
+    /// </summary>
+    public SerialController Serial { get; }
+
+    /// <summary>
     /// LCD/PPU registers routed through FF40-FF45 and FF47-FF4B.
     /// </summary>
     public PpuController Ppu { get; }
@@ -74,6 +80,7 @@ internal sealed class MemoryBus
         Interrupts = new InterruptController();
         Timers = new TimerController(Interrupts);
         Joypad = new JoypadController(Interrupts);
+        Serial = new SerialController(Interrupts);
         Ppu = new PpuController(Interrupts);
         Dma = new DmaController();
         _readByteForDma = ReadMappedByte;
@@ -195,6 +202,8 @@ internal sealed class MemoryBus
         return address switch
         {
             AddressMap.JoypadRegister => Joypad.Read(),
+            AddressMap.SerialTransferDataRegister => Serial.TransferData,
+            AddressMap.SerialTransferControlRegister => Serial.ReadControl(),
             AddressMap.DividerRegister => Timers.ReadDivider(),
             AddressMap.TimerCounterRegister => Timers.TimerCounter,
             AddressMap.TimerModuloRegister => Timers.TimerModulo,
@@ -217,6 +226,12 @@ internal sealed class MemoryBus
         {
             case AddressMap.JoypadRegister:
                 Joypad.Write(value, requestInterruptOnTransition: true);
+                return;
+            case AddressMap.SerialTransferDataRegister:
+                Serial.TransferData = value;
+                return;
+            case AddressMap.SerialTransferControlRegister:
+                Serial.WriteControl(value);
                 return;
             case AddressMap.DividerRegister:
                 Timers.ResetDivider();
@@ -254,6 +269,12 @@ internal sealed class MemoryBus
         {
             case AddressMap.JoypadRegister:
                 Joypad.Write(value, requestInterruptOnTransition: false);
+                return;
+            case AddressMap.SerialTransferDataRegister:
+                Serial.TransferData = value;
+                return;
+            case AddressMap.SerialTransferControlRegister:
+                Serial.SetControlState(value);
                 return;
             case AddressMap.DividerRegister:
                 Timers.SetDivider(value);
