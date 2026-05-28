@@ -9,7 +9,7 @@ internal sealed class Mbc1MemoryController(byte[] rom, CartridgeHeader header)
     : ICartridgeMemoryController
 {
     private const int RomBankSize = Cartridge.FixedRomBankSize;
-    private const int RamBankSize = 8 * 1024;
+    private const int RamBankSize = AddressMap.ExternalRamWindowSize;
 
     private const ushort RomBank0End = 0x3FFF;
     private const ushort RomBankNStart = 0x4000;
@@ -53,14 +53,14 @@ internal sealed class Mbc1MemoryController(byte[] rom, CartridgeHeader header)
         }
     }
 
-    public byte ReadRam(ushort address) =>
-        !CanAccessRam() ? (byte)0xFF : _ram[GetRamOffset(address)];
+    public byte ReadRamOffset(ushort offset) =>
+        !CanAccessRam() ? (byte)0xFF : _ram[GetEffectiveRamOffset(offset)];
 
-    public void WriteRam(ushort address, byte value)
+    public void WriteRamOffset(ushort offset, byte value)
     {
         if (CanAccessRam())
         {
-            _ram[GetRamOffset(address)] = value;
+            _ram[GetEffectiveRamOffset(offset)] = value;
         }
     }
 
@@ -81,10 +81,10 @@ internal sealed class Mbc1MemoryController(byte[] rom, CartridgeHeader header)
 
     private bool CanAccessRam() => _ramEnabled && _ram.Length != 0;
 
-    private int GetRamOffset(ushort address)
+    private int GetEffectiveRamOffset(ushort offset)
     {
         int bank = _bankingMode == 0 ? 0 : _bankHigh;
-        int offset = (bank * RamBankSize) + (address - AddressMap.ExternalRamStart);
-        return offset % _ram.Length;
+        int effectiveOffset = (bank * RamBankSize) + offset;
+        return effectiveOffset % _ram.Length;
     }
 }

@@ -130,7 +130,7 @@ public sealed class Cartridge
             );
         }
 
-        return _memoryController.ReadRam(address);
+        return ReadRamOffset(GetExternalRamOffset(address));
     }
 
     /// <summary>
@@ -147,8 +147,28 @@ public sealed class Cartridge
             );
         }
 
-        _memoryController.WriteRam(address, value);
+        _memoryController.WriteRamOffset(GetExternalRamOffset(address), value);
     }
+
+    /// <summary>
+    /// Reads from cartridge external RAM using a cartridge-local 8 KiB bank offset.
+    /// </summary>
+    internal byte ReadRamOffset(ushort offset)
+    {
+        if (offset >= AddressMap.ExternalRamWindowSize)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(offset),
+                offset,
+                "Cartridge RAM offset must be in the 0000-1FFF range."
+            );
+        }
+
+        return _memoryController.ReadRamOffset(offset);
+    }
+
+    private static ushort GetExternalRamOffset(ushort address) =>
+        (ushort)(address - AddressMap.ExternalRamStart);
 
     private static Result<ICartridgeMemoryController> CreateMemoryController(
         byte[] rom,

@@ -261,10 +261,10 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_RoutesDmaRegisterAndDefersOamCopy()
     {
-        MemoryBus bus = CreateBus();
-        bus.WriteByte(0xC000, 0x42);
+        byte[] rom = TestRomFactory.Create(bytes => bytes[0x1200] = 0x42);
+        MemoryBus bus = CreateBus(rom);
 
-        bus.WriteByte(AddressMap.DmaRegister, 0xC0);
+        bus.WriteByte(AddressMap.DmaRegister, 0x12);
         bus.TickDma(1);
         bus.TickDma(160);
 
@@ -285,12 +285,12 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
-    public void TickDma_CopiesFromEchoRam()
+    public void TickDma_CopiesFromVideoRam()
     {
         MemoryBus bus = CreateBus();
-        bus.WriteByte(AddressMap.WorkRamStart, 0x99);
+        bus.WriteByte(AddressMap.VideoRamStart, 0x99);
 
-        bus.WriteByte(AddressMap.DmaRegister, 0xE0);
+        bus.WriteByte(AddressMap.DmaRegister, 0x80);
         bus.TickDma(1);
         bus.TickDma(160);
 
@@ -298,13 +298,54 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
+    public void TickDma_DecodesHighSourcePagesAsExternalRam()
+    {
+        byte[] rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0147] = (byte)CartridgeType.Mbc1Ram;
+            bytes[0x0149] = 0x02;
+        });
+        MemoryBus bus = CreateBus(rom);
+        bus.WriteByte(0x0000, 0x0A);
+        bus.WriteByte(AddressMap.ExternalRamStart, 0x42);
+        bus.WriteByte(AddressMap.WorkRamStart, 0x99);
+
+        bus.WriteByte(AddressMap.DmaRegister, 0xC0);
+        bus.TickDma(1);
+        bus.TickDma(160);
+
+        Assert.Equal(0x42, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+    }
+
+    [Fact]
+    public void TickDma_DoesNotReadIoRegistersAsSource()
+    {
+        byte[] rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0147] = (byte)CartridgeType.Mbc1Ram;
+            bytes[0x0149] = 0x02;
+        });
+        MemoryBus bus = CreateBus(rom);
+        bus.WriteByte(0x0000, 0x0A);
+        bus.WriteByte(0xBF00, 0x42);
+        bus.WriteByte(AddressMap.JoypadRegister, 0x20);
+        bus.Joypad.SetButtonState(JoypadButton.Right, pressed: true);
+
+        bus.WriteByte(AddressMap.DmaRegister, 0xFF);
+        bus.TickDma(1);
+        bus.TickDma(160);
+
+        Assert.Equal(0x42, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+    }
+
+    [Fact]
     public void TickDma_WritesObjectAttributeMemoryWhileCpuAccessIsPpuBlocked()
     {
         MemoryBus bus = CreateBus();
-        bus.WriteByte(AddressMap.WorkRamStart, 0x42);
+        bus.WriteByte(AddressMap.VideoRamStart, 0x42);
         bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
 
-        bus.WriteByte(AddressMap.DmaRegister, 0xC0);
+        bus.WriteByte(AddressMap.DmaRegister, 0x80);
         bus.TickDma(1);
         bus.TickDma(160);
 
@@ -343,7 +384,7 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.WorkRamStart + 2, 0x44);
         bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0x55);
 
-        bus.WriteByte(AddressMap.DmaRegister, 0xC0);
+        bus.WriteByte(AddressMap.DmaRegister, 0x80);
         bus.WriteByte(AddressMap.VideoRamStart, 0xAA);
         bus.WriteByte(AddressMap.WorkRamStart + 1, 0xBB);
         bus.WriteByte(AddressMap.EchoRamStart + 2, 0xCC);
@@ -354,7 +395,7 @@ public sealed class MemoryBusTests
         Assert.Equal(0x22, bus.ReadByte(AddressMap.VideoRamStart));
         Assert.Equal(0x33, bus.ReadByte(AddressMap.WorkRamStart + 1));
         Assert.Equal(0x44, bus.ReadByte(AddressMap.WorkRamStart + 2));
-        Assert.Equal(0x42, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        Assert.Equal(0x22, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
     }
 
     [Fact]
@@ -388,16 +429,16 @@ public sealed class MemoryBusTests
     public void WriteByte_AllowsDmaRestartDuringDma()
     {
         MemoryBus bus = CreateBus();
-        bus.WriteByte(AddressMap.WorkRamStart, 0xC0);
-        bus.WriteByte(0xD000, 0xD0);
+        bus.WriteByte(AddressMap.VideoRamStart, 0xC0);
+        bus.WriteByte(0x9000, 0xD0);
 
-        bus.WriteByte(AddressMap.DmaRegister, 0xC0);
+        bus.WriteByte(AddressMap.DmaRegister, 0x80);
         bus.TickDma(1);
-        bus.WriteByte(AddressMap.DmaRegister, 0xD0);
+        bus.WriteByte(AddressMap.DmaRegister, 0x90);
         bus.TickDma(1);
         bus.TickDma(160);
 
-        Assert.Equal(0xD0, bus.ReadByte(AddressMap.DmaRegister));
+        Assert.Equal(0x90, bus.ReadByte(AddressMap.DmaRegister));
         Assert.Equal(0xD0, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
     }
 
@@ -405,12 +446,12 @@ public sealed class MemoryBusTests
     public void SetHardwareRegisterState_DmaRegisterDoesNotStartTransfer()
     {
         MemoryBus bus = CreateBus();
-        bus.WriteByte(AddressMap.WorkRamStart, 0x42);
+        bus.WriteByte(AddressMap.VideoRamStart, 0x42);
 
-        bus.SetHardwareRegisterState(AddressMap.DmaRegister, 0xC0);
+        bus.SetHardwareRegisterState(AddressMap.DmaRegister, 0x80);
         bus.TickDma(160);
 
-        Assert.Equal(0xC0, bus.ReadByte(AddressMap.DmaRegister));
+        Assert.Equal(0x80, bus.ReadByte(AddressMap.DmaRegister));
         Assert.Equal(0x00, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
     }
 
@@ -455,10 +496,7 @@ public sealed class MemoryBusTests
         Assert.Equal(0x42, bus.ReadByte(AddressMap.ExternalRamStart));
     }
 
-    private static MemoryBus CreateBus()
-    {
-        return CreateBus(TestRomFactory.Create());
-    }
+    private static MemoryBus CreateBus() => CreateBus(TestRomFactory.Create());
 
     private static MemoryBus CreateBus(byte[] rom)
     {

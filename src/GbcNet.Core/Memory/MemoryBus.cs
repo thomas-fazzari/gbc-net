@@ -83,7 +83,7 @@ internal sealed class MemoryBus
         Serial = new SerialController(Interrupts);
         Ppu = new PpuController(Interrupts);
         Dma = new DmaController();
-        _readByteForDma = ReadMappedByte;
+        _readByteForDma = ReadOamDmaSourceByte;
         _writeOamByteForDma = WriteOamByteForDma;
     }
 
@@ -159,6 +159,17 @@ internal sealed class MemoryBus
             AddressMap.InterruptEnableRegister => Interrupts.InterruptEnable,
         };
     }
+
+    private byte ReadOamDmaSourceByte(ushort address) =>
+        address switch
+        {
+            <= AddressMap.RomEnd => _cartridge.ReadRom(address),
+            <= AddressMap.VideoRamEnd => _videoRam.Read(address),
+            _ => _cartridge.ReadRamOffset(GetOamDmaExternalRamOffset(address)),
+        };
+
+    private static ushort GetOamDmaExternalRamOffset(ushort address) =>
+        (ushort)(address & AddressMap.ExternalRamOffsetMask);
 
     private void WriteMappedByte(ushort address, byte value)
     {

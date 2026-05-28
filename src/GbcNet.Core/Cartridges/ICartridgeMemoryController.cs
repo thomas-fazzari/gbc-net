@@ -9,7 +9,7 @@ internal interface ICartridgeMemoryController
 
     void WriteRom(ushort address, byte value);
 
-    byte ReadRam(ushort address);
+    byte ReadRamOffset(ushort offset);
 
-    void WriteRam(ushort address, byte value);
+    void WriteRamOffset(ushort offset, byte value);
 }

@@ -9,7 +9,7 @@ internal sealed class RomOnlyMemoryController(byte[] rom) : ICartridgeMemoryCont
 
     public void WriteRom(ushort address, byte value) { }
 
-    public byte ReadRam(ushort address) => 0xFF;
+    public byte ReadRamOffset(ushort offset) => 0xFF;
 
-    public void WriteRam(ushort address, byte value) { }
+    public void WriteRamOffset(ushort offset, byte value) { }
 }
