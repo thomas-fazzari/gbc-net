@@ -1,5 +1,6 @@
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Interrupts;
+using GbcNet.Core.Joypad;
 using GbcNet.Core.Timers;
 
 namespace GbcNet.Core.Memory;
@@ -48,11 +49,17 @@ internal sealed class MemoryBus
     /// </summary>
     public TimerController Timers { get; }
 
+    /// <summary>
+    /// Joypad matrix register routed through FF00.
+    /// </summary>
+    public JoypadController Joypad { get; }
+
     public MemoryBus(Cartridge cartridge)
     {
         _cartridge = cartridge;
         Interrupts = new InterruptController();
         Timers = new TimerController(Interrupts);
+        Joypad = new JoypadController(Interrupts);
     }
 
     /// <summary>
@@ -62,6 +69,9 @@ internal sealed class MemoryBus
     {
         switch (address)
         {
+            case AddressMap.JoypadRegister:
+                Joypad.Write(value, requestInterruptOnTransition: false);
+                return;
             case AddressMap.DividerRegister:
                 Timers.SetDivider(value);
                 return;
@@ -103,6 +113,7 @@ internal sealed class MemoryBus
             <= AddressMap.EchoRamEnd => _workRam.Read(address),
             <= AddressMap.ObjectAttributeMemoryEnd => _objectAttributeMemory.Read(address),
             <= AddressMap.NotUsableEnd => 0x00,
+            AddressMap.JoypadRegister => Joypad.Read(),
             AddressMap.DividerRegister => Timers.ReadDivider(),
             AddressMap.TimerCounterRegister => Timers.TimerCounter,
             AddressMap.TimerModuloRegister => Timers.TimerModulo,
@@ -133,6 +144,9 @@ internal sealed class MemoryBus
                 _objectAttributeMemory.Write(address, value);
                 return;
             case <= AddressMap.NotUsableEnd:
+                return;
+            case AddressMap.JoypadRegister:
+                Joypad.Write(value, requestInterruptOnTransition: true);
                 return;
             case AddressMap.DividerRegister:
                 Timers.ResetDivider();

@@ -1,4 +1,5 @@
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Sm83;
 
@@ -38,6 +39,14 @@ public sealed class GameBoy
         int machineCycles = _cpu.Step();
         Bus.Timers.Tick(machineCycles * TCyclesPerMachineCycle);
         return machineCycles;
+    }
+
+    /// <summary>
+    /// Updates a joypad button state for the emulated machine.
+    /// </summary>
+    public void SetButtonState(JoypadButton button, bool pressed)
+    {
+        Bus.Joypad.SetButtonState(button, pressed);
     }
 
     /// <summary>

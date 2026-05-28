@@ -1,4 +1,5 @@
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
 using GbcNet.Tests.Cartridges;
 
@@ -97,11 +98,23 @@ public sealed class MemoryBusTests
     {
         MemoryBus bus = CreateBus();
 
-        bus.WriteByte(0xFF00, 0x12);
+        bus.WriteByte(0xFF03, 0x12);
         bus.WriteByte(0xFF7F, 0x34);
 
-        Assert.Equal(0x12, bus.ReadByte(0xFF00));
+        Assert.Equal(0x12, bus.ReadByte(0xFF03));
         Assert.Equal(0x34, bus.ReadByte(0xFF7F));
+    }
+
+    [Fact]
+    public void ReadWriteByte_RoutesJoypadRegister()
+    {
+        MemoryBus bus = CreateBus();
+        bus.WriteByte(AddressMap.JoypadRegister, 0x20);
+
+        bus.Joypad.SetButtonState(JoypadButton.Right, pressed: true);
+
+        Assert.Equal(0xEE, bus.ReadByte(AddressMap.JoypadRegister));
+        Assert.Equal(0b0001_0000, bus.Interrupts.InterruptFlag);
     }
 
     [Fact]

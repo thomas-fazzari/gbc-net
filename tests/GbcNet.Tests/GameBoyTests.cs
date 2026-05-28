@@ -1,5 +1,6 @@
 using GbcNet.Core;
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
 using GbcNet.Tests.Cartridges;
 
@@ -37,5 +38,19 @@ public sealed class GameBoyTests
         Assert.Equal(HardwareModel.Dmg, gameBoy.HardwareModel);
         Assert.Equal(0xAB, gameBoy.Bus.ReadByte(AddressMap.DividerRegister));
         Assert.Equal(0xE1, gameBoy.Bus.ReadByte(AddressMap.InterruptFlagRegister));
+    }
+
+    [Fact]
+    public void SetButtonState_UpdatesJoypadInputState()
+    {
+        Cartridge cartridge = ResultAssertions.AssertSuccess(
+            Cartridge.Load(TestRomFactory.Create())
+        );
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
+        gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x10);
+
+        gameBoy.SetButtonState(JoypadButton.A, pressed: true);
+
+        Assert.Equal(0xDE, gameBoy.Bus.ReadByte(AddressMap.JoypadRegister));
     }
 }
