@@ -1,6 +1,6 @@
 using GbcNet.Tests.RomTesting.Utils;
 
-namespace GbcNet.Tests.RomTesting;
+namespace GbcNet.Tests.RomTesting.Blargg;
 
 [Collection<RomTestingGroup>]
 public sealed class BlarggCpuInstructionRomTests
