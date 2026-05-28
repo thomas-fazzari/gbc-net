@@ -6,13 +6,14 @@ namespace GbcNet.Tests.Dma;
 public sealed class DmaControllerTests
 {
     [Fact]
-    public void StartOamTransfer_StoresSourceHighByte()
+    public void StartOamTransfer_StoresSourceHighByteAndMarksActive()
     {
         var dma = new DmaController();
 
         dma.StartOamTransfer(0xC0);
 
         Assert.Equal(0xC0, dma.ReadRegister());
+        Assert.True(dma.IsActive);
     }
 
     [Fact]
@@ -29,6 +30,7 @@ public sealed class DmaControllerTests
         );
 
         Assert.Equal(0xFF, dma.ReadRegister());
+        Assert.False(dma.IsActive);
         Assert.Empty(writes);
     }
 
@@ -45,6 +47,7 @@ public sealed class DmaControllerTests
             (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
         );
 
+        Assert.True(dma.IsActive);
         Assert.Empty(writes);
     }
 
@@ -55,16 +58,8 @@ public sealed class DmaControllerTests
         var writes = new List<(ushort Address, byte Value)>();
 
         dma.StartOamTransfer(0xC0);
-        dma.Tick(
-            1,
-            ReadLowByte,
-            (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
-        );
-        dma.Tick(
-            1,
-            ReadLowByte,
-            (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
-        );
+        dma.Tick(1, ReadLowByte, (address, value) => writes.Add((address, value)));
+        dma.Tick(1, ReadLowByte, (address, value) => writes.Add((address, value)));
 
         (ushort destinationAddress, byte copiedValue) = Assert.Single(writes);
         Assert.Equal(AddressMap.ObjectAttributeMemoryStart, destinationAddress);
@@ -129,6 +124,7 @@ public sealed class DmaControllerTests
         Assert.Equal(160, writes.Count);
         Assert.Equal((AddressMap.ObjectAttributeMemoryStart, (byte)0x00), writes[0]);
         Assert.Equal((AddressMap.ObjectAttributeMemoryEnd, (byte)0x9F), writes[^1]);
+        Assert.False(dma.IsActive);
     }
 
     [Fact]

@@ -76,7 +76,7 @@ internal sealed class MemoryBus
         Joypad = new JoypadController(Interrupts);
         Ppu = new PpuController();
         Dma = new DmaController();
-        _readByteForDma = ReadByte;
+        _readByteForDma = ReadByteBypassingDma;
         _writeOamByteForDma = WriteOamByteForDma;
     }
 
@@ -102,7 +102,29 @@ internal sealed class MemoryBus
         }
     }
 
-    public byte ReadByte(ushort address)
+    public byte ReadByte(ushort address) =>
+        IsCpuMemoryBlockedByDma(address) ? (byte)0xFF : ReadByteBypassingDma(address);
+
+    public void WriteByte(ushort address, byte value)
+    {
+        if (!IsCpuMemoryBlockedByDma(address))
+        {
+            WriteByteBypassingDma(address, value);
+        }
+    }
+
+    /// <summary>
+    /// Advances OAM DMA transfers using CPU machine cycles.
+    /// </summary>
+    public void TickDma(int machineCycles)
+    {
+        Dma.Tick(machineCycles, _readByteForDma, _writeOamByteForDma);
+    }
+
+    private bool IsCpuMemoryBlockedByDma(ushort address) =>
+        Dma.IsActive && address <= AddressMap.ObjectAttributeMemoryEnd;
+
+    private byte ReadByteBypassingDma(ushort address)
     {
         return address switch
         {
@@ -119,7 +141,7 @@ internal sealed class MemoryBus
         };
     }
 
-    public void WriteByte(ushort address, byte value)
+    private void WriteByteBypassingDma(ushort address, byte value)
     {
         switch (address)
         {
@@ -149,14 +171,6 @@ internal sealed class MemoryBus
                 Interrupts.InterruptEnable = value;
                 return;
         }
-    }
-
-    /// <summary>
-    /// Advances OAM DMA transfers using CPU machine cycles.
-    /// </summary>
-    public void TickDma(int machineCycles)
-    {
-        Dma.Tick(machineCycles, _readByteForDma, _writeOamByteForDma);
     }
 
     private byte ReadIoRegister(ushort address)

@@ -21,6 +21,11 @@ internal sealed class DmaController
     public byte ReadRegister() => _sourceHighByte;
 
     /// <summary>
+    /// Indicates that OAM DMA currently owns the memory bus for CPU-visible memory regions.
+    /// </summary>
+    public bool IsActive => _isTransferActive;
+
+    /// <summary>
     /// Starts an OAM DMA transfer from sourceHighByte * 0x100.
     /// </summary>
     public void StartOamTransfer(byte sourceHighByte)

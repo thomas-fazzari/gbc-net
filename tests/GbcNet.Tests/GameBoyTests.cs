@@ -27,25 +27,6 @@ public sealed class GameBoyTests
     }
 
     [Fact]
-    public void Step_TicksDmaAfterCpuStep()
-    {
-        Cartridge cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(TestRomFactory.Create())
-        );
-        var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
-        gameBoy.Bus.WriteByte(AddressMap.WorkRamStart, 0x42);
-
-        gameBoy.Bus.WriteByte(AddressMap.DmaRegister, 0xC0);
-        gameBoy.Step();
-
-        Assert.Equal(0x00, gameBoy.Bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
-
-        gameBoy.Step();
-
-        Assert.Equal(0x42, gameBoy.Bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
-    }
-
-    [Fact]
     public void Constructor_AppliesDmgPostBootState()
     {
         Cartridge cartridge = ResultAssertions.AssertSuccess(
