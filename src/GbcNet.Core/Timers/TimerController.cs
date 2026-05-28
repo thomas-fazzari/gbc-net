@@ -79,14 +79,22 @@ internal sealed class TimerController(InterruptController interrupts)
     }
 
     /// <summary>
+    /// Sets the internal divider counter when skipping boot ROM execution.
+    /// </summary>
+    internal void SetDivider(byte value)
+    {
+        _systemCounter = (ushort)(value << DividerVisibleShift);
+    }
+
+    /// <summary>
     /// Reads TAC with unused bits set.
     /// </summary>
     public byte ReadTimerControl() => (byte)(_timerControl | TimerControlReadMask);
 
     /// <summary>
-    /// Writes TAC enable and clock select bits.
+    /// Sets TAC enable and clock select bits.
     /// </summary>
-    public void WriteTimerControl(byte value)
+    internal void SetTimerControl(byte value)
     {
         _timerControl = (byte)(value & TimerControlWriteMask);
     }
@@ -117,18 +125,16 @@ internal sealed class TimerController(InterruptController interrupts)
 
     private bool HasSelectedTimerBitFallen(ushort previousCounter)
     {
-        ushort selectedBitMask = GetSelectedTimerBitMask();
-        return (previousCounter & selectedBitMask) != 0 && (_systemCounter & selectedBitMask) == 0;
-    }
-
-    private ushort GetSelectedTimerBitMask() =>
-        (_timerControl & TimerClockSelectMask) switch
+        ushort selectedBitMask = (_timerControl & TimerClockSelectMask) switch
         {
             0b00 => ClockSelect00BitMask,
             0b01 => ClockSelect01BitMask,
             0b10 => ClockSelect10BitMask,
             _ => ClockSelect11BitMask,
         };
+
+        return (previousCounter & selectedBitMask) != 0 && (_systemCounter & selectedBitMask) == 0;
+    }
 
     private void IncrementTimerCounter()
     {

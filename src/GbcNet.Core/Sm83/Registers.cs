@@ -288,27 +288,33 @@ internal sealed class Registers
 /// <summary>
 /// SM83 flags stored in the upper nibble of the F register.
 /// </summary>
+[Flags]
 internal enum CpuFlag : byte
 {
     /// <summary>
+    /// No flags set.
+    /// </summary>
+    None = 0,
+
+    /// <summary>
     /// Carry flag, bit 4.
     /// </summary>
-    Carry = 0x10,
+    Carry = 1 << 4,
 
     /// <summary>
     /// Half-carry flag, bit 5.
     /// </summary>
-    HalfCarry = 0x20,
+    HalfCarry = 1 << 5,
 
     /// <summary>
     /// Subtract flag, bit 6.
     /// </summary>
-    Subtract = 0x40,
+    Subtract = 1 << 6,
 
     /// <summary>
     /// Zero flag, bit 7.
     /// </summary>
-    Zero = 0x80,
+    Zero = 1 << 7,
 }
 
 /// <summary>

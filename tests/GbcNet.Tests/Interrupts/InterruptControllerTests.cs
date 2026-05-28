@@ -5,11 +5,11 @@ namespace GbcNet.Tests.Interrupts;
 public sealed class InterruptControllerTests
 {
     [Fact]
-    public void WriteInterruptFlag_StoresOnlyRequestedInterruptBits()
+    public void SetInterruptFlag_StoresOnlyRequestedInterruptBits()
     {
         var interrupts = new InterruptController();
 
-        interrupts.WriteInterruptFlag(0xFF);
+        interrupts.SetInterruptFlag(0xFF);
 
         Assert.Equal(0x1F, interrupts.InterruptFlag);
         Assert.Equal(0xFF, interrupts.ReadInterruptFlag());
@@ -20,7 +20,7 @@ public sealed class InterruptControllerTests
     {
         var interrupts = new InterruptController();
 
-        interrupts.WriteInterruptFlag(0x04);
+        interrupts.SetInterruptFlag(0x04);
 
         Assert.Equal(0xE4, interrupts.ReadInterruptFlag());
     }
@@ -29,7 +29,7 @@ public sealed class InterruptControllerTests
     public void RequestedAndEnabledMask_ReturnsIntersectionOfIeAndIfBits()
     {
         var interrupts = new InterruptController { InterruptEnable = 0b0001_0101 };
-        interrupts.WriteInterruptFlag(0b0000_0111);
+        interrupts.SetInterruptFlag(0b0000_0111);
 
         Assert.Equal(0b0000_0101, interrupts.RequestedAndEnabledMask);
         Assert.True(interrupts.HasRequestedAndEnabledInterrupt);
@@ -51,7 +51,7 @@ public sealed class InterruptControllerTests
     public void TryGetHighestPriority_ReturnsLowestPendingBitAndVector()
     {
         var interrupts = new InterruptController { InterruptEnable = 0b0001_0101 };
-        interrupts.WriteInterruptFlag(0b0001_0101);
+        interrupts.SetInterruptFlag(0b0001_0101);
 
         bool found = interrupts.TryGetHighestPriority(
             out InterruptSource source,
@@ -67,7 +67,7 @@ public sealed class InterruptControllerTests
     public void TryGetHighestPriority_ReturnsFalseWhenNoInterruptIsRequestedAndEnabled()
     {
         var interrupts = new InterruptController { InterruptEnable = 0b0001_0000 };
-        interrupts.WriteInterruptFlag(0b0000_0100);
+        interrupts.SetInterruptFlag(0b0000_0100);
 
         bool found = interrupts.TryGetHighestPriority(
             out InterruptSource source,

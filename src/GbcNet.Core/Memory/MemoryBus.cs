@@ -55,6 +55,43 @@ internal sealed class MemoryBus
         Timers = new TimerController(Interrupts);
     }
 
+    /// <summary>
+    /// Seeds a CPU-visible hardware register without triggering CPU write side effects.
+    /// </summary>
+    internal void SetHardwareRegisterState(ushort address, byte value)
+    {
+        switch (address)
+        {
+            case AddressMap.DividerRegister:
+                Timers.SetDivider(value);
+                return;
+            case AddressMap.TimerCounterRegister:
+                Timers.TimerCounter = value;
+                return;
+            case AddressMap.TimerModuloRegister:
+                Timers.TimerModulo = value;
+                return;
+            case AddressMap.TimerControlRegister:
+                Timers.SetTimerControl(value);
+                return;
+            case AddressMap.InterruptFlagRegister:
+                Interrupts.SetInterruptFlag(value);
+                return;
+            case AddressMap.InterruptEnableRegister:
+                Interrupts.InterruptEnable = value;
+                return;
+            case >= AddressMap.IoRegistersStart and <= AddressMap.IoRegistersEnd:
+                _ioRegisters.Write(address, value);
+                return;
+            default:
+                throw new ArgumentOutOfRangeException(
+                    nameof(address),
+                    address,
+                    "Address must target a CPU-visible hardware register."
+                );
+        }
+    }
+
     public byte ReadByte(ushort address)
     {
         return address switch
@@ -107,10 +144,10 @@ internal sealed class MemoryBus
                 Timers.TimerModulo = value;
                 return;
             case AddressMap.TimerControlRegister:
-                Timers.WriteTimerControl(value);
+                Timers.SetTimerControl(value);
                 return;
             case AddressMap.InterruptFlagRegister:
-                Interrupts.WriteInterruptFlag(value);
+                Interrupts.SetInterruptFlag(value);
                 return;
             case <= AddressMap.IoRegistersEnd:
                 _ioRegisters.Write(address, value);

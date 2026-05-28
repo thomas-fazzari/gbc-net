@@ -19,10 +19,12 @@ public sealed class GameBoy
     /// <summary>
     /// Creates a Game Boy instance using the supplied cartridge.
     /// </summary>
-    public GameBoy(Cartridge cartridge)
+    public GameBoy(Cartridge cartridge, HardwareModel hardwareModel)
     {
         Bus = new MemoryBus(cartridge);
         _cpu = new Cpu(Bus);
+        HardwareModel = hardwareModel;
+        PostBootState.Apply(hardwareModel, cartridge, _cpu, Bus);
     }
 
     /// <summary>
@@ -37,6 +39,11 @@ public sealed class GameBoy
         Bus.Timers.Tick(machineCycles * TCyclesPerMachineCycle);
         return machineCycles;
     }
+
+    /// <summary>
+    /// Hardware model selected for this emulation instance.
+    /// </summary>
+    public HardwareModel HardwareModel { get; }
 
     internal MemoryBus Bus { get; }
 }

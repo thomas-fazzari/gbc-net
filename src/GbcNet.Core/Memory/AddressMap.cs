@@ -11,6 +11,11 @@ internal static class AddressMap
     public const ushort RomStart = 0x0000;
 
     /// <summary>
+    /// Address where the boot ROM hands execution to the cartridge entry point.
+    /// </summary>
+    public const ushort CartridgeEntryPointStart = 0x0100;
+
+    /// <summary>
     /// Last address of the cartridge ROM window.
     /// </summary>
     public const ushort RomEnd = 0x7FFF;
@@ -81,6 +86,21 @@ internal static class AddressMap
     public const ushort IoRegistersStart = 0xFF00;
 
     /// <summary>
+    /// Address of P1/JOYP, the joypad selection and input register.
+    /// </summary>
+    public const ushort JoypadRegister = 0xFF00;
+
+    /// <summary>
+    /// Address of SB, the serial transfer data register.
+    /// </summary>
+    public const ushort SerialTransferDataRegister = 0xFF01;
+
+    /// <summary>
+    /// Address of SC, the serial transfer control register.
+    /// </summary>
+    public const ushort SerialTransferControlRegister = 0xFF02;
+
+    /// <summary>
     /// Address of DIV, the CPU-visible high byte of the internal divider counter.
     /// </summary>
     public const ushort DividerRegister = 0xFF04;
@@ -109,6 +129,56 @@ internal static class AddressMap
     /// Last address of I/O registers.
     /// </summary>
     public const ushort IoRegistersEnd = 0xFF7F;
+
+    /// <summary>
+    /// Address of LCDC, the LCD control register.
+    /// </summary>
+    public const ushort LcdControlRegister = 0xFF40;
+
+    /// <summary>
+    /// Address of STAT, the LCD status register.
+    /// </summary>
+    public const ushort LcdStatusRegister = 0xFF41;
+
+    /// <summary>
+    /// Address of SCY, the background viewport Y position register.
+    /// </summary>
+    public const ushort ScrollYRegister = 0xFF42;
+
+    /// <summary>
+    /// Address of SCX, the background viewport X position register.
+    /// </summary>
+    public const ushort ScrollXRegister = 0xFF43;
+
+    /// <summary>
+    /// Address of LY, the LCD Y coordinate register.
+    /// </summary>
+    public const ushort LcdYCoordinateRegister = 0xFF44;
+
+    /// <summary>
+    /// Address of LYC, the LY compare register.
+    /// </summary>
+    public const ushort LcdYCompareRegister = 0xFF45;
+
+    /// <summary>
+    /// Address of DMA, the OAM DMA source and start register.
+    /// </summary>
+    public const ushort DmaRegister = 0xFF46;
+
+    /// <summary>
+    /// Address of BGP, the DMG background palette register.
+    /// </summary>
+    public const ushort BackgroundPaletteRegister = 0xFF47;
+
+    /// <summary>
+    /// Address of WY, the window Y position register.
+    /// </summary>
+    public const ushort WindowYRegister = 0xFF4A;
+
+    /// <summary>
+    /// Address of WX, the window X position plus seven register.
+    /// </summary>
+    public const ushort WindowXRegister = 0xFF4B;
 
     /// <summary>
     /// First address of high RAM.

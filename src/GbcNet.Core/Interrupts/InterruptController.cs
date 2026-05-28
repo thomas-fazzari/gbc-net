@@ -37,9 +37,9 @@ internal sealed class InterruptController
     public byte ReadInterruptFlag() => (byte)(InterruptFlag | InterruptFlagReadMask);
 
     /// <summary>
-    /// Writes IF as seen by the CPU, storing only interrupt request bits 0-4.
+    /// Sets IF request bits, storing only interrupt request bits 0-4.
     /// </summary>
-    public void WriteInterruptFlag(byte value)
+    internal void SetInterruptFlag(byte value)
     {
         InterruptFlag = (byte)(value & RequestedInterruptMask);
     }

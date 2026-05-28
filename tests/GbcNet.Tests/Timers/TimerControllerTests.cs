@@ -36,7 +36,7 @@ public sealed class TimerControllerTests
     {
         var interrupts = new InterruptController();
         var timers = new TimerController(interrupts);
-        timers.WriteTimerControl(0b0000_0001);
+        timers.SetTimerControl(0b0000_0001);
 
         timers.Tick(1024);
 
@@ -52,7 +52,7 @@ public sealed class TimerControllerTests
     {
         var interrupts = new InterruptController();
         var timers = new TimerController(interrupts);
-        timers.WriteTimerControl(timerControl);
+        timers.SetTimerControl(timerControl);
 
         timers.Tick(tCycles - 1);
         Assert.Equal(0x00, timers.TimerCounter);
@@ -67,7 +67,7 @@ public sealed class TimerControllerTests
     {
         var interrupts = new InterruptController();
         var timers = new TimerController(interrupts) { TimerCounter = 0xFF, TimerModulo = 0x42 };
-        timers.WriteTimerControl(0b0000_0101);
+        timers.SetTimerControl(0b0000_0101);
 
         timers.Tick(16);
 
@@ -81,7 +81,7 @@ public sealed class TimerControllerTests
         var interrupts = new InterruptController();
         var timers = new TimerController(interrupts);
 
-        timers.WriteTimerControl(0b0000_0101);
+        timers.SetTimerControl(0b0000_0101);
 
         Assert.Equal(0b1111_1101, timers.ReadTimerControl());
     }

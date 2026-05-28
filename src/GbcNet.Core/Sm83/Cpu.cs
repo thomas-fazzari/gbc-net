@@ -9,9 +9,6 @@ namespace GbcNet.Core.Sm83;
 /// </summary>
 internal sealed class Cpu(MemoryBus bus)
 {
-    private const ushort PostBootProgramCounter = 0x0100;
-    private const ushort PostBootStackPointer = 0xFFFE;
-
     /// <summary>
     /// Hardware interrupt service sequence duration: two waits, two stack writes, one vector load.
     /// </summary>
@@ -43,7 +40,7 @@ internal sealed class Cpu(MemoryBus bus)
     /// Mutable SM83 register file.
     /// </summary>
     public Registers Registers { get; } =
-        new() { PC = PostBootProgramCounter, SP = PostBootStackPointer };
+        new() { PC = AddressMap.CartridgeEntryPointStart, SP = AddressMap.HighRamEnd };
 
     /// <summary>
     /// Fetches and executes one instruction.
