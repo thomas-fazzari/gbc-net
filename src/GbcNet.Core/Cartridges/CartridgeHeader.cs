@@ -14,7 +14,7 @@ namespace GbcNet.Core.Cartridges;
 /// Declared CGB compatibility from header byte 0143.
 /// </param>
 /// <param name="CartridgeType">
-/// Mapper and cartridge hardware type from header byte 0147.
+/// Cartridge hardware type from header byte 0147.
 /// </param>
 /// <param name="RomSizeBytes">
 /// Declared ROM size, in bytes.

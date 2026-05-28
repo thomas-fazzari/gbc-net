@@ -23,7 +23,7 @@ public enum CartridgeLoadErrorCode
     InvalidHeaderChecksum = 1,
 
     /// <summary>
-    /// Cartridge mapper or hardware type is not implemented yet.
+    /// Cartridge memory controller or hardware type is not implemented yet.
     /// </summary>
     UnsupportedCartridgeType = 2,
 

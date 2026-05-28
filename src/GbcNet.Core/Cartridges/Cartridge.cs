@@ -1,5 +1,6 @@
 using System.Globalization;
 using FluentResults;
+using GbcNet.Core.Memory;
 
 namespace GbcNet.Core.Cartridges;
 
@@ -11,12 +12,17 @@ public sealed class Cartridge
     public const int FixedRomBankSize = 16 * 1024;
     public const int AddressableRomSize = 2 * FixedRomBankSize;
 
-    private readonly byte[] _rom;
+    private readonly ICartridgeMemoryController _memoryController;
 
-    private Cartridge(byte[] rom, CartridgeHeader header)
+    private Cartridge(
+        byte[] rom,
+        CartridgeHeader header,
+        ICartridgeMemoryController memoryController
+    )
     {
-        _rom = rom;
         Header = header;
+        _memoryController = memoryController;
+        RomLength = rom.Length;
     }
 
     /// <summary>
@@ -27,10 +33,10 @@ public sealed class Cartridge
     /// <summary>
     /// Full ROM payload length, in bytes.
     /// </summary>
-    public int RomLength => _rom.Length;
+    public int RomLength { get; }
 
     /// <summary>
-    /// Parses and loads a ROM-only cartridge image.
+    /// Parses and loads a cartridge image.
     /// </summary>
     /// <returns>
     /// A loaded cartridge, or a typed cartridge load error.
@@ -44,20 +50,6 @@ public sealed class Cartridge
         }
 
         CartridgeHeader header = headerResult.Value;
-        if (header.CartridgeType != CartridgeType.RomOnly)
-        {
-            return Result.Fail<Cartridge>(
-                new CartridgeLoadError(
-                    CartridgeLoadErrorCode.UnsupportedCartridgeType,
-                    string.Format(
-                        CultureInfo.InvariantCulture,
-                        "Cartridge type 0x{0:X2} is not supported yet.",
-                        (int)header.CartridgeType
-                    )
-                )
-            );
-        }
-
         if (rom.Length != header.RomSizeBytes)
         {
             return Result.Fail<Cartridge>(
@@ -73,7 +65,15 @@ public sealed class Cartridge
             );
         }
 
-        return Result.Ok(new Cartridge(rom.ToArray(), header));
+        byte[] romBytes = rom.ToArray();
+        Result<ICartridgeMemoryController> memoryControllerResult = CreateMemoryController(
+            romBytes,
+            header
+        );
+
+        return memoryControllerResult.IsFailed
+            ? Result.Fail<Cartridge>(memoryControllerResult.Errors)
+            : Result.Ok(new Cartridge(romBytes, header, memoryControllerResult.Value));
     }
 
     /// <summary>
@@ -96,6 +96,80 @@ public sealed class Cartridge
             );
         }
 
-        return _rom[address];
+        return _memoryController.ReadRom(address);
     }
+
+    /// <summary>
+    /// Writes to the cartridge ROM window, where MBC registers are mapped.
+    /// </summary>
+    public void WriteRom(ushort address, byte value)
+    {
+        if (address >= AddressableRomSize)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(address),
+                address,
+                "Cartridge ROM address must be in the 0000-7FFF range."
+            );
+        }
+
+        _memoryController.WriteRom(address, value);
+    }
+
+    /// <summary>
+    /// Reads from cartridge external RAM at A000-BFFF.
+    /// </summary>
+    public byte ReadRam(ushort address)
+    {
+        if (address is < AddressMap.ExternalRamStart or > AddressMap.ExternalRamEnd)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(address),
+                address,
+                "Cartridge RAM address must be in the A000-BFFF range."
+            );
+        }
+
+        return _memoryController.ReadRam(address);
+    }
+
+    /// <summary>
+    /// Writes to cartridge external RAM at A000-BFFF.
+    /// </summary>
+    public void WriteRam(ushort address, byte value)
+    {
+        if (address is < AddressMap.ExternalRamStart or > AddressMap.ExternalRamEnd)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(address),
+                address,
+                "Cartridge RAM address must be in the A000-BFFF range."
+            );
+        }
+
+        _memoryController.WriteRam(address, value);
+    }
+
+    private static Result<ICartridgeMemoryController> CreateMemoryController(
+        byte[] rom,
+        CartridgeHeader header
+    ) =>
+        header.CartridgeType switch
+        {
+            CartridgeType.RomOnly => Result.Ok<ICartridgeMemoryController>(
+                new RomOnlyMemoryController(rom)
+            ),
+            CartridgeType.Mbc1 or CartridgeType.Mbc1Ram or CartridgeType.Mbc1RamBattery =>
+                Result.Ok<ICartridgeMemoryController>(new Mbc1MemoryController(rom, header)),
+            _ => Result.Fail<ICartridgeMemoryController>(
+                new CartridgeLoadError(
+                    CartridgeLoadErrorCode.UnsupportedCartridgeType,
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "Cartridge type 0x{0:X2} is not supported yet.",
+                        (int)header.CartridgeType
+                    )
+                )
+            ),
+        };
 }

@@ -61,11 +61,16 @@ internal static class TestRomFactory
 
     public static byte[] Create(Action<byte[]>? configure = null)
     {
-        byte[] rom = new byte[32 * 1024];
+        return Create(romSizeCode: 0x00, configure);
+    }
+
+    public static byte[] Create(byte romSizeCode, Action<byte[]>? configure = null)
+    {
+        byte[] rom = new byte[DecodeRomSizeBytes(romSizeCode)];
         _nintendoLogo.CopyTo(rom, 0x0104);
         "TEST ROM"u8.CopyTo(rom.AsSpan(0x0134));
         rom[0x0147] = (byte)CartridgeType.RomOnly;
-        rom[0x0148] = 0x00;
+        rom[0x0148] = romSizeCode;
         rom[0x0149] = 0x00;
 
         configure?.Invoke(rom);
@@ -73,4 +78,15 @@ internal static class TestRomFactory
         rom[0x014D] = CartridgeHeader.CalculateHeaderChecksum(rom);
         return rom;
     }
+
+    private static int DecodeRomSizeBytes(byte code) =>
+        code switch
+        {
+            <= 0x08 => 32 * 1024 * (1 << code),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(code),
+                code,
+                "Test ROM size code must use the standard 32 KiB shifted range."
+            ),
+        };
 }

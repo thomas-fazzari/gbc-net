@@ -439,6 +439,22 @@ public sealed class MemoryBusTests
         Assert.Equal(0xFF, bus.ReadByte(0xBFFF));
     }
 
+    [Fact]
+    public void ReadWriteByte_RoutesExternalRamToMbcCartridge()
+    {
+        byte[] rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0147] = (byte)CartridgeType.Mbc1Ram;
+            bytes[0x0149] = 0x02;
+        });
+        MemoryBus bus = CreateBus(rom);
+
+        bus.WriteByte(0x0000, 0x0A);
+        bus.WriteByte(AddressMap.ExternalRamStart, 0x42);
+
+        Assert.Equal(0x42, bus.ReadByte(AddressMap.ExternalRamStart));
+    }
+
     private static MemoryBus CreateBus()
     {
         return CreateBus(TestRomFactory.Create());

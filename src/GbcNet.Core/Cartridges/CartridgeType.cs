@@ -11,27 +11,27 @@ public enum CartridgeType
     RomOnly = 0x00,
 
     /// <summary>
-    /// MBC1 mapper without external RAM.
+    /// MBC1 memory bank controller without external RAM.
     /// </summary>
     Mbc1 = 0x01,
 
     /// <summary>
-    /// MBC1 mapper with external RAM.
+    /// MBC1 memory bank controller with external RAM.
     /// </summary>
     Mbc1Ram = 0x02,
 
     /// <summary>
-    /// MBC1 mapper with battery-backed external RAM.
+    /// MBC1 memory bank controller with battery-backed external RAM.
     /// </summary>
     Mbc1RamBattery = 0x03,
 
     /// <summary>
-    /// MBC2 mapper with built-in 512 x 4-bit RAM.
+    /// MBC2 memory bank controller with built-in 512 x 4-bit RAM.
     /// </summary>
     Mbc2 = 0x05,
 
     /// <summary>
-    /// MBC2 mapper with battery-backed built-in RAM.
+    /// MBC2 memory bank controller with battery-backed built-in RAM.
     /// </summary>
     Mbc2Battery = 0x06,
 
@@ -46,32 +46,32 @@ public enum CartridgeType
     RomRamBattery = 0x09,
 
     /// <summary>
-    /// MBC3 mapper without external RAM.
+    /// MBC3 memory bank controller without external RAM.
     /// </summary>
     Mbc3 = 0x11,
 
     /// <summary>
-    /// MBC3 mapper with external RAM.
+    /// MBC3 memory bank controller with external RAM.
     /// </summary>
     Mbc3Ram = 0x12,
 
     /// <summary>
-    /// MBC3 mapper with battery-backed external RAM.
+    /// MBC3 memory bank controller with battery-backed external RAM.
     /// </summary>
     Mbc3RamBattery = 0x13,
 
     /// <summary>
-    /// MBC5 mapper without external RAM.
+    /// MBC5 memory bank controller without external RAM.
     /// </summary>
     Mbc5 = 0x19,
 
     /// <summary>
-    /// MBC5 mapper with external RAM.
+    /// MBC5 memory bank controller with external RAM.
     /// </summary>
     Mbc5Ram = 0x1A,
 
     /// <summary>
-    /// MBC5 mapper with battery-backed external RAM.
+    /// MBC5 memory bank controller with battery-backed external RAM.
     /// </summary>
     Mbc5RamBattery = 0x1B,
 }

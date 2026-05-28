@@ -149,7 +149,7 @@ internal sealed class MemoryBus
         {
             <= AddressMap.RomEnd => _cartridge.ReadRom(address),
             <= AddressMap.VideoRamEnd => _videoRam.Read(address),
-            <= AddressMap.ExternalRamEnd => 0xFF,
+            <= AddressMap.ExternalRamEnd => _cartridge.ReadRam(address),
             <= AddressMap.WorkRamEnd => _workRam.Read(address),
             <= AddressMap.EchoRamEnd => _workRam.Read(address),
             <= AddressMap.ObjectAttributeMemoryEnd => _objectAttributeMemory.Read(address),
@@ -165,11 +165,13 @@ internal sealed class MemoryBus
         switch (address)
         {
             case <= AddressMap.RomEnd:
+                _cartridge.WriteRom(address, value);
                 return;
             case <= AddressMap.VideoRamEnd:
                 _videoRam.Write(address, value);
                 return;
             case <= AddressMap.ExternalRamEnd:
+                _cartridge.WriteRam(address, value);
                 return;
             case <= AddressMap.WorkRamEnd:
             case <= AddressMap.EchoRamEnd:
