@@ -171,6 +171,28 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
+    public void ReadWriteByte_RoutesPpuRegisters()
+    {
+        MemoryBus bus = CreateBus();
+        bus.SetHardwareRegisterState(AddressMap.LcdStatusRegister, 0x85);
+        bus.SetHardwareRegisterState(AddressMap.LcdYCoordinateRegister, 0x42);
+
+        bus.WriteByte(AddressMap.LcdControlRegister, 0x91);
+        bus.WriteByte(AddressMap.LcdStatusRegister, 0x78);
+        bus.WriteByte(AddressMap.LcdYCoordinateRegister, 0x99);
+        bus.WriteByte(AddressMap.BackgroundPaletteRegister, 0xFC);
+        bus.WriteByte(AddressMap.ObjectPalette0Register, 0xA5);
+        bus.WriteByte(AddressMap.ObjectPalette1Register, 0x5A);
+
+        Assert.Equal(0x91, bus.ReadByte(AddressMap.LcdControlRegister));
+        Assert.Equal(0xFD, bus.ReadByte(AddressMap.LcdStatusRegister));
+        Assert.Equal(0x42, bus.ReadByte(AddressMap.LcdYCoordinateRegister));
+        Assert.Equal(0xFC, bus.ReadByte(AddressMap.BackgroundPaletteRegister));
+        Assert.Equal(0xA5, bus.ReadByte(AddressMap.ObjectPalette0Register));
+        Assert.Equal(0x5A, bus.ReadByte(AddressMap.ObjectPalette1Register));
+    }
+
+    [Fact]
     public void ReadWriteByte_ExternalRamIsUnmappedForRomOnlyCartridge()
     {
         MemoryBus bus = CreateBus();

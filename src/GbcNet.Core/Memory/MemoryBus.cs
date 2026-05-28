@@ -1,6 +1,7 @@
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Joypad;
+using GbcNet.Core.Ppu;
 using GbcNet.Core.Timers;
 
 namespace GbcNet.Core.Memory;
@@ -54,12 +55,18 @@ internal sealed class MemoryBus
     /// </summary>
     public JoypadController Joypad { get; }
 
+    /// <summary>
+    /// LCD/PPU registers routed through FF40-FF45 and FF47-FF4B.
+    /// </summary>
+    public PpuController Ppu { get; }
+
     public MemoryBus(Cartridge cartridge)
     {
         _cartridge = cartridge;
         Interrupts = new InterruptController();
         Timers = new TimerController(Interrupts);
         Joypad = new JoypadController(Interrupts);
+        Ppu = new PpuController();
     }
 
     /// <summary>
@@ -69,29 +76,11 @@ internal sealed class MemoryBus
     {
         switch (address)
         {
-            case AddressMap.JoypadRegister:
-                Joypad.Write(value, requestInterruptOnTransition: false);
-                return;
-            case AddressMap.DividerRegister:
-                Timers.SetDivider(value);
-                return;
-            case AddressMap.TimerCounterRegister:
-                Timers.TimerCounter = value;
-                return;
-            case AddressMap.TimerModuloRegister:
-                Timers.TimerModulo = value;
-                return;
-            case AddressMap.TimerControlRegister:
-                Timers.SetTimerControl(value);
-                return;
-            case AddressMap.InterruptFlagRegister:
-                Interrupts.SetInterruptFlag(value);
+            case >= AddressMap.IoRegistersStart and <= AddressMap.IoRegistersEnd:
+                SetIoRegisterState(address, value);
                 return;
             case AddressMap.InterruptEnableRegister:
                 Interrupts.InterruptEnable = value;
-                return;
-            case >= AddressMap.IoRegistersStart and <= AddressMap.IoRegistersEnd:
-                _ioRegisters.Write(address, value);
                 return;
             default:
                 throw new ArgumentOutOfRangeException(
@@ -113,13 +102,7 @@ internal sealed class MemoryBus
             <= AddressMap.EchoRamEnd => _workRam.Read(address),
             <= AddressMap.ObjectAttributeMemoryEnd => _objectAttributeMemory.Read(address),
             <= AddressMap.NotUsableEnd => 0x00,
-            AddressMap.JoypadRegister => Joypad.Read(),
-            AddressMap.DividerRegister => Timers.ReadDivider(),
-            AddressMap.TimerCounterRegister => Timers.TimerCounter,
-            AddressMap.TimerModuloRegister => Timers.TimerModulo,
-            AddressMap.TimerControlRegister => Timers.ReadTimerControl(),
-            AddressMap.InterruptFlagRegister => Interrupts.ReadInterruptFlag(),
-            <= AddressMap.IoRegistersEnd => _ioRegisters.Read(address),
+            <= AddressMap.IoRegistersEnd => ReadIoRegister(address),
             <= AddressMap.HighRamEnd => _highRam.Read(address),
             AddressMap.InterruptEnableRegister => Interrupts.InterruptEnable,
         };
@@ -145,6 +128,47 @@ internal sealed class MemoryBus
                 return;
             case <= AddressMap.NotUsableEnd:
                 return;
+            case <= AddressMap.IoRegistersEnd:
+                WriteIoRegister(address, value);
+                return;
+            case <= AddressMap.HighRamEnd:
+                _highRam.Write(address, value);
+                return;
+            case AddressMap.InterruptEnableRegister:
+                Interrupts.InterruptEnable = value;
+                return;
+        }
+    }
+
+    private byte ReadIoRegister(ushort address)
+    {
+        if (PpuController.ContainsRegister(address))
+        {
+            return Ppu.ReadRegister(address);
+        }
+
+        return address switch
+        {
+            AddressMap.JoypadRegister => Joypad.Read(),
+            AddressMap.DividerRegister => Timers.ReadDivider(),
+            AddressMap.TimerCounterRegister => Timers.TimerCounter,
+            AddressMap.TimerModuloRegister => Timers.TimerModulo,
+            AddressMap.TimerControlRegister => Timers.ReadTimerControl(),
+            AddressMap.InterruptFlagRegister => Interrupts.ReadInterruptFlag(),
+            _ => _ioRegisters.Read(address),
+        };
+    }
+
+    private void WriteIoRegister(ushort address, byte value)
+    {
+        if (PpuController.ContainsRegister(address))
+        {
+            Ppu.WriteRegister(address, value);
+            return;
+        }
+
+        switch (address)
+        {
             case AddressMap.JoypadRegister:
                 Joypad.Write(value, requestInterruptOnTransition: true);
                 return;
@@ -163,14 +187,42 @@ internal sealed class MemoryBus
             case AddressMap.InterruptFlagRegister:
                 Interrupts.SetInterruptFlag(value);
                 return;
-            case <= AddressMap.IoRegistersEnd:
+            default:
                 _ioRegisters.Write(address, value);
                 return;
-            case <= AddressMap.HighRamEnd:
-                _highRam.Write(address, value);
+        }
+    }
+
+    private void SetIoRegisterState(ushort address, byte value)
+    {
+        if (PpuController.ContainsRegister(address))
+        {
+            Ppu.SetRegisterState(address, value);
+            return;
+        }
+
+        switch (address)
+        {
+            case AddressMap.JoypadRegister:
+                Joypad.Write(value, requestInterruptOnTransition: false);
                 return;
-            case AddressMap.InterruptEnableRegister:
-                Interrupts.InterruptEnable = value;
+            case AddressMap.DividerRegister:
+                Timers.SetDivider(value);
+                return;
+            case AddressMap.TimerCounterRegister:
+                Timers.TimerCounter = value;
+                return;
+            case AddressMap.TimerModuloRegister:
+                Timers.TimerModulo = value;
+                return;
+            case AddressMap.TimerControlRegister:
+                Timers.SetTimerControl(value);
+                return;
+            case AddressMap.InterruptFlagRegister:
+                Interrupts.SetInterruptFlag(value);
+                return;
+            default:
+                _ioRegisters.Write(address, value);
                 return;
         }
     }

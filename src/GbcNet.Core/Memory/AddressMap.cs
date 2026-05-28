@@ -171,6 +171,16 @@ internal static class AddressMap
     public const ushort BackgroundPaletteRegister = 0xFF47;
 
     /// <summary>
+    /// Address of OBP0, the DMG object palette 0 register.
+    /// </summary>
+    public const ushort ObjectPalette0Register = 0xFF48;
+
+    /// <summary>
+    /// Address of OBP1, the DMG object palette 1 register.
+    /// </summary>
+    public const ushort ObjectPalette1Register = 0xFF49;
+
+    /// <summary>
     /// Address of WY, the window Y position register.
     /// </summary>
     public const ushort WindowYRegister = 0xFF4A;
