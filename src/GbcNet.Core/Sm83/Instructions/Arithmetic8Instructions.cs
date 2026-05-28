@@ -471,8 +471,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void AddWithCarryAccumulator(Cpu cpu, byte value)
     {
-        int carry = cpu.Registers.IsFlagSet(CpuFlag.Carry) ? 1 : 0;
-        AddAccumulator(cpu, value, carry);
+        AddAccumulator(cpu, value, cpu.Registers.IsFlagSet(CpuFlag.Carry) ? 1 : 0);
     }
 
     /// <summary>
@@ -504,8 +503,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void SubtractWithCarryAccumulator(Cpu cpu, byte value)
     {
-        int borrow = cpu.Registers.IsFlagSet(CpuFlag.Carry) ? 1 : 0;
-        SubtractAccumulator(cpu, value, borrow);
+        SubtractAccumulator(cpu, value, cpu.Registers.IsFlagSet(CpuFlag.Carry) ? 1 : 0);
     }
 
     /// <summary>

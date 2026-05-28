@@ -32,7 +32,6 @@ internal static class InstructionOperands
         byte immediate
     )
     {
-        ushort result = unchecked((ushort)(value + (sbyte)immediate));
         byte flags = 0;
 
         if ((value & LowNibbleMask) + (immediate & LowNibbleMask) > LowNibbleMask)
@@ -45,6 +44,6 @@ internal static class InstructionOperands
             flags |= (byte)CpuFlag.Carry;
         }
 
-        return (result, flags);
+        return (unchecked((ushort)(value + (sbyte)immediate)), flags);
     }
 }

@@ -75,15 +75,13 @@ public sealed record CartridgeHeader(
         if (headerValidation.IsFailed)
             return Result.Fail<CartridgeHeader>(headerValidation.Errors);
 
-        byte romSizeCode = rom[RomSizeAddress];
-        Result<(int SizeBytes, int BankCount)> romSizeResult = DecodeRomSize(romSizeCode);
+        Result<(int SizeBytes, int BankCount)> romSizeResult = DecodeRomSize(rom[RomSizeAddress]);
         if (romSizeResult.IsFailed)
         {
             return Result.Fail<CartridgeHeader>(romSizeResult.Errors);
         }
 
-        byte ramSizeCode = rom[RamSizeAddress];
-        Result<(int SizeBytes, int BankCount)> ramSizeResult = DecodeRamSize(ramSizeCode);
+        Result<(int SizeBytes, int BankCount)> ramSizeResult = DecodeRamSize(rom[RamSizeAddress]);
         if (ramSizeResult.IsFailed)
         {
             return Result.Fail<CartridgeHeader>(ramSizeResult.Errors);

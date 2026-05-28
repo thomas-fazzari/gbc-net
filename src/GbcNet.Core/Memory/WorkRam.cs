@@ -5,9 +5,7 @@ namespace GbcNet.Core.Memory;
 /// </summary>
 internal sealed class WorkRam
 {
-    private const int Size = AddressMap.WorkRamEnd - AddressMap.WorkRamStart + 1;
-
-    private readonly byte[] _bytes = new byte[Size];
+    private readonly byte[] _bytes = new byte[AddressMap.WorkRamEnd - AddressMap.WorkRamStart + 1];
 
     public byte Read(ushort address) => _bytes[GetOffset(address)];
 
@@ -16,10 +14,8 @@ internal sealed class WorkRam
         _bytes[GetOffset(address)] = value;
     }
 
-    private static int GetOffset(ushort address)
-    {
-        return address >= AddressMap.EchoRamStart
+    private static int GetOffset(ushort address) =>
+        address >= AddressMap.EchoRamStart
             ? address - AddressMap.EchoRamStart
             : address - AddressMap.WorkRamStart;
-    }
 }

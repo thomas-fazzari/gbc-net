@@ -5,8 +5,6 @@ namespace GbcNet.Core.Sm83;
 /// </summary>
 internal static class InstructionSet
 {
-    private const int OpcodeCount = 256;
-
     private static readonly Instruction?[] _instructions = CreateInstructions();
 
     /// <summary>
@@ -16,7 +14,7 @@ internal static class InstructionSet
 
     private static Instruction?[] CreateInstructions()
     {
-        var instructions = new Instruction?[OpcodeCount];
+        var instructions = new Instruction?[256];
         var builder = new OpcodeTableBuilder(instructions);
 
         ControlInstructions.Map(builder);
