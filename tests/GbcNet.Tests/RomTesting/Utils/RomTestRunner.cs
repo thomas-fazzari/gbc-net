@@ -15,7 +15,7 @@ internal static class RomTestRunner
         IRomResultObserver[] observers =
         [
             new BlarggSerialResultObserver(gameBoy),
-            new BlarggMemoryResultObserver(),
+            new BlarggMemoryResultObserver(gameBoy),
         ];
         int machineCycles = 0;
 
@@ -23,7 +23,7 @@ internal static class RomTestRunner
         {
             machineCycles += gameBoy.Step();
 
-            RomTestResult? result = CreateTerminalResult(gameBoy, observers, machineCycles);
+            RomTestResult? result = CreateTerminalResult(observers, machineCycles);
             if (result is not null)
             {
                 return result;
@@ -34,14 +34,13 @@ internal static class RomTestRunner
     }
 
     private static RomTestResult? CreateTerminalResult(
-        GameBoy gameBoy,
         IReadOnlyList<IRomResultObserver> observers,
         int machineCycles
     )
     {
         RomTestObservation[] terminalObservations =
         [
-            .. observers.Select(observer => observer.Observe(gameBoy)).OfType<RomTestObservation>(),
+            .. observers.Select(observer => observer.Observe()).OfType<RomTestObservation>(),
         ];
 
         if (terminalObservations.Length == 0)

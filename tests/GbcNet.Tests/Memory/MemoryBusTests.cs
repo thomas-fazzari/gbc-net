@@ -221,7 +221,7 @@ public sealed class MemoryBusTests
     public void ReadWriteByte_RoutesTimerRegisters()
     {
         MemoryBus bus = CreateBus();
-        bus.Timers.Tick(256);
+        TickTimerMachineCycles(bus, 64);
 
         Assert.Equal(0x01, bus.ReadByte(AddressMap.DividerRegister));
 
@@ -502,5 +502,13 @@ public sealed class MemoryBusTests
     {
         Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
         return new MemoryBus(cartridge);
+    }
+
+    private static void TickTimerMachineCycles(MemoryBus bus, int machineCycles)
+    {
+        for (int cycle = 0; cycle < machineCycles; cycle++)
+        {
+            bus.Timers.TickMachineCycle();
+        }
     }
 }

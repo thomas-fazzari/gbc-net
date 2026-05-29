@@ -11,7 +11,7 @@ internal sealed class MachineClock(MemoryBus bus)
 
     public void TickMachineCycle()
     {
-        bus.Timers.Tick(TCyclesPerMachineCycle);
+        bus.Timers.TickMachineCycle();
         bus.Serial.Tick(TCyclesPerMachineCycle);
         bus.Ppu.Tick(TCyclesPerMachineCycle);
         bus.TickDma(1);

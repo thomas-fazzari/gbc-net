@@ -18,7 +18,7 @@ internal sealed class BlarggSerialResultObserver : IRomResultObserver
 
     public RomTestObservation Snapshot => new(Source, Output: _output.ToString());
 
-    public RomTestObservation? Observe(GameBoy gameBoy)
+    public RomTestObservation? Observe()
     {
         string output = _output.ToString();
         if (output.Contains(PassedMarker, StringComparison.Ordinal))

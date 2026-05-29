@@ -4,7 +4,7 @@ using GbcNet.Core.Memory;
 
 namespace GbcNet.Tests.RomTesting.Utils.ResultObservers;
 
-internal sealed class BlarggMemoryResultObserver : IRomResultObserver
+internal sealed class BlarggMemoryResultObserver : IRomResultObserver, ICpuMemoryWriteObserver
 {
     private const string Source = "Blargg memory";
     private const byte RunningStatus = 0x80;
@@ -18,42 +18,55 @@ internal sealed class BlarggMemoryResultObserver : IRomResultObserver
     private const int TextMaxLength =
         AddressMap.ExternalRamWindowSize - (TextAddress - AddressMap.ExternalRamStart);
 
-    private RomTestObservation _snapshot = new(Source);
+    private readonly byte[] _externalRamWrites = new byte[AddressMap.ExternalRamWindowSize];
 
-    public RomTestObservation Snapshot => _snapshot;
-
-    public RomTestObservation? Observe(GameBoy gameBoy)
+    public BlarggMemoryResultObserver(GameBoy gameBoy)
     {
-        if (!HasSignature(gameBoy))
+        gameBoy.Bus.CpuMemoryWriteObserver = this;
+    }
+
+    public RomTestObservation Snapshot { get; private set; } = new(Source);
+
+    public RomTestObservation? Observe()
+    {
+        if (!HasSignature())
         {
-            _snapshot = new RomTestObservation(Source);
+            Snapshot = new RomTestObservation(Source);
             return null;
         }
 
-        byte statusCode = gameBoy.Bus.ReadByte(StatusAddress);
-        string output = ReadOutput(gameBoy);
+        byte statusCode = ReadObservedByte(StatusAddress);
+        string output = ReadOutput();
         RomTestStatus? status = statusCode switch
         {
             RunningStatus => null,
             PassedStatus => RomTestStatus.Passed,
             _ => RomTestStatus.Failed,
         };
-        _snapshot = new RomTestObservation(Source, status, output, statusCode);
+        Snapshot = new RomTestObservation(Source, status, output, statusCode);
 
         return status is null ? null : new RomTestObservation(Source, status, output, statusCode);
     }
 
-    private static bool HasSignature(GameBoy gameBoy) =>
-        gameBoy.Bus.ReadByte(SignatureAddress) is Signature0
-        && gameBoy.Bus.ReadByte(SignatureAddress + 1) is Signature1
-        && gameBoy.Bus.ReadByte(SignatureAddress + 2) is Signature2;
+    void ICpuMemoryWriteObserver.OnCpuMemoryWritten(ushort address, byte value)
+    {
+        if (address is >= AddressMap.ExternalRamStart and <= AddressMap.ExternalRamEnd)
+        {
+            _externalRamWrites[address - AddressMap.ExternalRamStart] = value;
+        }
+    }
 
-    private static string ReadOutput(GameBoy gameBoy)
+    private bool HasSignature() =>
+        ReadObservedByte(SignatureAddress) is Signature0
+        && ReadObservedByte(SignatureAddress + 1) is Signature1
+        && ReadObservedByte(SignatureAddress + 2) is Signature2;
+
+    private string ReadOutput()
     {
         var output = new StringBuilder();
         for (int offset = 0; offset < TextMaxLength; offset++)
         {
-            byte value = gameBoy.Bus.ReadByte((ushort)(TextAddress + offset));
+            byte value = ReadObservedByte(TextAddress + offset);
             if (value == 0)
             {
                 break;
@@ -64,4 +77,7 @@ internal sealed class BlarggMemoryResultObserver : IRomResultObserver
 
         return output.ToString();
     }
+
+    private byte ReadObservedByte(int address) =>
+        _externalRamWrites[address - AddressMap.ExternalRamStart];
 }

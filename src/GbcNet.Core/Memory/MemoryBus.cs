@@ -74,6 +74,11 @@ internal sealed class MemoryBus
     /// </summary>
     public DmaController Dma { get; }
 
+    /// <summary>
+    /// Optional instrumentation sink for debugger/watchpoint tooling.
+    /// </summary>
+    internal ICpuMemoryWriteObserver? CpuMemoryWriteObserver { private get; set; }
+
     public MemoryBus(Cartridge cartridge)
     {
         _cartridge = cartridge;
@@ -117,6 +122,7 @@ internal sealed class MemoryBus
         if (!IsCpuMemoryBlocked(address))
         {
             WriteMappedByte(address, value);
+            CpuMemoryWriteObserver?.OnCpuMemoryWritten(address, value);
         }
     }
 
@@ -250,13 +256,13 @@ internal sealed class MemoryBus
                 Timers.ResetDivider();
                 return;
             case AddressMap.TimerCounterRegister:
-                Timers.TimerCounter = value;
+                Timers.WriteTimerCounter(value);
                 return;
             case AddressMap.TimerModuloRegister:
-                Timers.TimerModulo = value;
+                Timers.WriteTimerModulo(value);
                 return;
             case AddressMap.TimerControlRegister:
-                Timers.SetTimerControl(value);
+                Timers.WriteTimerControl(value);
                 return;
             case AddressMap.InterruptFlagRegister:
                 Interrupts.SetInterruptFlag(value);
@@ -299,7 +305,7 @@ internal sealed class MemoryBus
                 Timers.TimerModulo = value;
                 return;
             case AddressMap.TimerControlRegister:
-                Timers.SetTimerControl(value);
+                Timers.SetTimerControlState(value);
                 return;
             case AddressMap.InterruptFlagRegister:
                 Interrupts.SetInterruptFlag(value);
