@@ -39,6 +39,11 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
         new() { PC = AddressMap.CartridgeEntryPointStart, SP = AddressMap.HighRamEnd };
 
     /// <summary>
+    /// Optional instrumentation sink for debugger breakpoint tooling.
+    /// </summary>
+    internal ICpuInstructionObserver? InstructionObserver { private get; set; }
+
+    /// <summary>
     /// Fetches and executes one instruction.
     /// </summary>
     /// <returns>
@@ -196,6 +201,7 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
         byte secondOperand = instruction.ByteLength > 2 ? FetchProgramByte() : (byte)0;
 
         instruction.Execute(this, firstOperand, secondOperand);
+        InstructionObserver?.OnInstructionExecuted(opcode, Registers);
         return _currentInstructionMachineCycles;
     }
 

@@ -11,8 +11,6 @@ namespace GbcNet.Core;
 /// </summary>
 public sealed class GameBoy
 {
-    private readonly Cpu _cpu;
-
     /// <summary>
     /// Creates a Game Boy instance using the supplied cartridge.
     /// </summary>
@@ -21,9 +19,9 @@ public sealed class GameBoy
         Bus = new MemoryBus(cartridge);
         Bus.Serial.ByteTransferred += OnSerialByteTransferred;
         var clock = new MachineClock(Bus);
-        _cpu = new Cpu(Bus, clock.TickMachineCycle);
+        Cpu = new Cpu(Bus, clock.TickMachineCycle);
         HardwareModel = hardwareModel;
-        PostBootState.Apply(hardwareModel, cartridge, _cpu, Bus);
+        PostBootState.Apply(hardwareModel, cartridge, Cpu, Bus);
     }
 
     /// <summary>
@@ -37,7 +35,7 @@ public sealed class GameBoy
     /// <returns>
     /// Elapsed machine cycles.
     /// </returns>
-    public int Step() => _cpu.Step();
+    public int Step() => Cpu.Step();
 
     /// <summary>
     /// Updates a joypad button state for the emulated machine.
@@ -53,6 +51,8 @@ public sealed class GameBoy
     public HardwareModel HardwareModel { get; }
 
     internal MemoryBus Bus { get; }
+
+    internal Cpu Cpu { get; }
 
     private void OnSerialByteTransferred(object? sender, SerialByteTransferredEventArgs e)
     {

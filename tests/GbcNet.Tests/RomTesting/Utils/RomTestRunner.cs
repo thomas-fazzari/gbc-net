@@ -6,17 +6,30 @@ namespace GbcNet.Tests.RomTesting.Utils;
 
 internal static class RomTestRunner
 {
-    public static RomTestResult Run(byte[] rom, int maxMachineCycles)
+    public static RomTestResult Run(
+        byte[] rom,
+        int maxMachineCycles,
+        RomTestProtocol protocol = RomTestProtocol.Blargg
+    )
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxMachineCycles);
 
         Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
-        IRomResultObserver[] observers =
-        [
-            new BlarggSerialResultObserver(gameBoy),
-            new BlarggMemoryResultObserver(gameBoy),
-        ];
+        IRomResultObserver[] observers = protocol switch
+        {
+            RomTestProtocol.Blargg =>
+            [
+                new BlarggSerialResultObserver(gameBoy),
+                new BlarggMemoryResultObserver(gameBoy),
+            ],
+            RomTestProtocol.Mooneye =>
+            [
+                new MooneyeBreakpointResultObserver(gameBoy),
+                new MooneyeSerialResultObserver(gameBoy),
+            ],
+            _ => throw new ArgumentOutOfRangeException(nameof(protocol), protocol, message: null),
+        };
         int machineCycles = 0;
 
         while (machineCycles < maxMachineCycles)
