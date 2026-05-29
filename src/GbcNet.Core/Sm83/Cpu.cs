@@ -218,31 +218,61 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
 
     private bool TryServiceInterrupt(out int machineCycles)
     {
-        if (
-            !Ime
-            || !bus.Interrupts.TryGetHighestPriority(out InterruptSource source, out ushort vector)
-        )
+        if (!Ime || !bus.Interrupts.HasRequestedAndEnabledInterrupt)
         {
             machineCycles = 0;
             return false;
         }
 
-        ServiceInterrupt(source, vector);
+        ServiceInterrupt();
         machineCycles = _currentInstructionMachineCycles;
         return true;
     }
 
-    private void ServiceInterrupt(InterruptSource source, ushort vector)
+    private void ServiceInterrupt()
     {
-        bus.Interrupts.Clear(source);
         Halted = false;
         Ime = false;
 
         IdleCycle();
         IdleCycle();
 
-        PushWord(Registers.PC);
-        Registers.PC = vector;
+        ushort returnAddress = Registers.PC;
+
+        Registers.SP = unchecked((ushort)(Registers.SP - 1));
+        WriteBus(Registers.SP, (byte)(returnAddress >> 8));
+
+        byte interruptEnableAfterHighPush = bus.Interrupts.InterruptEnable;
+
+        Registers.SP = unchecked((ushort)(Registers.SP - 1));
+        bool lowByteWritesInterruptFlag = Registers.SP == AddressMap.InterruptFlagRegister;
+        byte interruptFlagBeforeLowPush = bus.Interrupts.InterruptFlag;
+        WriteBus(Registers.SP, (byte)returnAddress);
+
+        byte interruptFlagForDispatch = lowByteWritesInterruptFlag
+            ? interruptFlagBeforeLowPush
+            : bus.Interrupts.InterruptFlag;
+
+        byte requestedAndEnabledAfterPushes = (byte)(
+            interruptEnableAfterHighPush & interruptFlagForDispatch
+        );
+
+        if (
+            InterruptController.TryGetHighestPriority(
+                requestedAndEnabledAfterPushes,
+                out InterruptSource source,
+                out ushort vector
+            )
+        )
+        {
+            bus.Interrupts.Clear(source);
+            Registers.PC = vector;
+        }
+        else
+        {
+            Registers.PC = 0;
+        }
+
         IdleCycle();
     }
 

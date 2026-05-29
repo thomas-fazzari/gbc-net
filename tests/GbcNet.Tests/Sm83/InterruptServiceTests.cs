@@ -6,10 +6,14 @@ namespace GbcNet.Tests.Sm83;
 public sealed class InterruptServiceTests
 {
     private const byte VBlankInterrupt = 0b0000_0001;
+    private const byte LcdInterrupt = 0b0000_0010;
     private const byte TimerInterrupt = 0b0000_0100;
+    private const byte SerialInterrupt = 0b0000_1000;
     private const byte JoypadInterrupt = 0b0001_0000;
 
     private const ushort VBlankVector = 0x0040;
+    private const ushort LcdVector = 0x0048;
+    private const ushort SerialVector = 0x0058;
     private const ushort OldProgramCounterStackLowByteAddress = 0xFFFC;
     private const ushort OldProgramCounterStackHighByteAddress = 0xFFFD;
 
@@ -122,5 +126,90 @@ public sealed class InterruptServiceTests
         Assert.False(cpu.Ime);
         Assert.Equal(VBlankVector, cpu.Registers.PC);
         Assert.Equal(0xE0, CpuTestFactory.GetBus(cpu).ReadByte(AddressMap.InterruptFlagRegister));
+    }
+
+    [Fact]
+    public void Step_CancelsInterruptDispatchWhenHighBytePushDisablesAllPendingInterrupts()
+    {
+        Cpu cpu = CpuTestFactory.CreateCpu();
+        MemoryBus bus = CpuTestFactory.GetBus(cpu);
+        cpu.Ime = true;
+        cpu.Registers.PC = 0x0200;
+        cpu.Registers.SP = 0x0000;
+        bus.WriteByte(AddressMap.InterruptEnableRegister, TimerInterrupt);
+        bus.WriteByte(AddressMap.InterruptFlagRegister, TimerInterrupt);
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(5, machineCycles);
+        Assert.False(cpu.Ime);
+        Assert.Equal(0x0000, cpu.Registers.PC);
+        Assert.Equal(0xFFFE, cpu.Registers.SP);
+        Assert.Equal(0x02, bus.ReadByte(AddressMap.InterruptEnableRegister));
+        Assert.Equal(0xE4, bus.ReadByte(AddressMap.InterruptFlagRegister));
+        Assert.Equal(0x00, bus.ReadByte(0xFFFE));
+    }
+
+    [Fact]
+    public void Step_DispatchesRemainingInterruptWhenHighBytePushChangesEnabledMask()
+    {
+        Cpu cpu = CpuTestFactory.CreateCpu();
+        MemoryBus bus = CpuTestFactory.GetBus(cpu);
+        cpu.Ime = true;
+        cpu.Registers.PC = 0x0200;
+        cpu.Registers.SP = 0x0000;
+        bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt | LcdInterrupt);
+        bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt | LcdInterrupt);
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(5, machineCycles);
+        Assert.False(cpu.Ime);
+        Assert.Equal(LcdVector, cpu.Registers.PC);
+        Assert.Equal(0xFFFE, cpu.Registers.SP);
+        Assert.Equal(0x02, bus.ReadByte(AddressMap.InterruptEnableRegister));
+        Assert.Equal(0xE1, bus.ReadByte(AddressMap.InterruptFlagRegister));
+        Assert.Equal(0x00, bus.ReadByte(0xFFFE));
+    }
+
+    [Fact]
+    public void Step_DoesNotCancelInterruptDispatchWhenLowBytePushDisablesSelectedInterrupt()
+    {
+        Cpu cpu = CpuTestFactory.CreateCpu();
+        MemoryBus bus = CpuTestFactory.GetBus(cpu);
+        cpu.Ime = true;
+        cpu.Registers.PC = 0x1235;
+        cpu.Registers.SP = 0x0001;
+        bus.WriteByte(AddressMap.InterruptEnableRegister, SerialInterrupt);
+        bus.WriteByte(AddressMap.InterruptFlagRegister, SerialInterrupt);
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(5, machineCycles);
+        Assert.False(cpu.Ime);
+        Assert.Equal(SerialVector, cpu.Registers.PC);
+        Assert.Equal(0xFFFF, cpu.Registers.SP);
+        Assert.Equal(0x35, bus.ReadByte(AddressMap.InterruptEnableRegister));
+        Assert.Equal(0xE0, bus.ReadByte(AddressMap.InterruptFlagRegister));
+    }
+
+    [Fact]
+    public void Step_SelectsInterruptUsingOldInterruptFlagWhenLowBytePushWritesInterruptFlag()
+    {
+        Cpu cpu = CpuTestFactory.CreateCpu();
+        MemoryBus bus = CpuTestFactory.GetBus(cpu);
+        cpu.Ime = true;
+        cpu.Registers.PC = 0x1200;
+        cpu.Registers.SP = 0xFF11;
+        bus.WriteByte(AddressMap.InterruptEnableRegister, SerialInterrupt);
+        bus.WriteByte(AddressMap.InterruptFlagRegister, SerialInterrupt);
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(5, machineCycles);
+        Assert.False(cpu.Ime);
+        Assert.Equal(SerialVector, cpu.Registers.PC);
+        Assert.Equal(AddressMap.InterruptFlagRegister, cpu.Registers.SP);
+        Assert.Equal(0xE0, bus.ReadByte(AddressMap.InterruptFlagRegister));
     }
 }

@@ -61,16 +61,20 @@ internal sealed class InterruptController
     }
 
     /// <summary>
-    /// Finds the highest-priority requested and enabled interrupt.
+    /// Finds the highest-priority source from a combined IE and IF mask.
     /// </summary>
-    public bool TryGetHighestPriority(out InterruptSource source, out ushort vector)
+    internal static bool TryGetHighestPriority(
+        byte requestedAndEnabledMask,
+        out InterruptSource source,
+        out ushort vector
+    )
     {
-        byte requestedAndEnabled = RequestedAndEnabledMask;
+        requestedAndEnabledMask = (byte)(requestedAndEnabledMask & RequestedInterruptMask);
 
         for (int bit = 0; bit <= (int)InterruptSource.Joypad; bit++)
         {
             byte mask = (byte)(1 << bit);
-            if ((requestedAndEnabled & mask) == 0)
+            if ((requestedAndEnabledMask & mask) == 0)
             {
                 continue;
             }

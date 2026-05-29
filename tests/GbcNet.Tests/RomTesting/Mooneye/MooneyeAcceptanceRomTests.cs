@@ -11,6 +11,7 @@ public sealed class MooneyeAcceptanceRomTests
     [Theory]
     [InlineData("bits/reg_f.gb")]
     [InlineData("ei_sequence.gb")]
+    [InlineData("interrupts/ie_push.gb")]
     [InlineData("instr/daa.gb")]
     [InlineData("rapid_di_ei.gb")]
     public void AcceptanceRomPasses(string relativePath)
