@@ -1,0 +1,17 @@
+Mooneye Test Suite
+==================
+
+Source repository:
+https://github.com/Gekkio/mooneye-test-suite
+
+Imported archive:
+https://gekkio.fi/files/mooneye-test-suite/mts-20240926-1737-443f6e1/mts-20240926-1737-443f6e1.zip
+
+Imported version:
+mts-20240926-1737-443f6e1
+
+Archive SHA-256:
+5cf50314cd3d42ec8f423b0a71b9ab6dbfad2386d8d88f03687af1b5b5baba71
+
+License:
+MIT, see LICENSE.
