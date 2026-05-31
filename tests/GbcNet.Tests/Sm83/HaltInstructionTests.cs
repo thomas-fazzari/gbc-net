@@ -123,7 +123,7 @@ public sealed class HaltInstructionTests
         CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
         CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
 
-        Assert.Equal(5, cpu.Step());
+        Assert.Equal(6, cpu.Step());
         Assert.False(cpu.Ime);
         Assert.False(cpu.Halted);
         Assert.Equal(VBlankVector, cpu.Registers.PC);

@@ -53,14 +53,14 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     {
         _currentInstructionMachineCycles = 0;
 
-        if (TryServiceInterrupt(out int interruptMachineCycles))
-        {
-            return interruptMachineCycles;
-        }
-
         if (Halted)
         {
             return StepHalted();
+        }
+
+        if (TryServiceInterrupt(out int interruptMachineCycles))
+        {
+            return interruptMachineCycles;
         }
 
         bool enableImeAfterThisInstruction = ImeEnablePending;
@@ -207,12 +207,20 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
 
     private int StepHalted()
     {
-        if (bus.Interrupts.HasRequestedAndEnabledInterrupt)
+        IdleCycle();
+
+        if (!bus.Interrupts.HasRequestedAndEnabledInterrupt)
         {
-            Halted = false;
+            return _currentInstructionMachineCycles;
         }
 
-        IdleCycle();
+        Halted = false;
+
+        if (Ime)
+        {
+            ServiceInterrupt();
+        }
+
         return _currentInstructionMachineCycles;
     }
 

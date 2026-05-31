@@ -18,6 +18,8 @@ public sealed class MooneyeAcceptanceRomTests
     [InlineData("ei_sequence.gb")]
     [InlineData("ei_timing.gb")]
     [InlineData("halt_ime0_ei.gb")]
+    [InlineData("halt_ime0_nointr_timing.gb")]
+    [InlineData("halt_ime1_timing.gb")]
     [InlineData("if_ie_registers.gb")]
     [InlineData("interrupts/ie_push.gb")]
     [InlineData("instr/daa.gb")]
