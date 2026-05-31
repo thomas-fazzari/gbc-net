@@ -11,14 +11,35 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
     private const int ScanlineDots = 456;
 
     /// <summary>
+    /// The first scanline after enabling DMG LCD is four dots shorter.
+    /// </summary>
+    private const int FirstScanlineAfterLcdEnableDots = 452;
+
+    /// <summary>
     /// Mode 2 lasts 80 dots on visible scanlines.
     /// </summary>
     private const int OamScanDots = 80;
 
     /// <summary>
-    /// Fixed minimal Mode 3 length used until pixel fetch penalties are modeled.
+    /// First DMG scanline after LCD enable enters HBlank after the minimum Mode 3 duration.
     /// </summary>
-    private const int DrawingEndDots = OamScanDots + 172;
+    private const int FirstScanlineAfterLcdEnableDrawingEndDots = OamScanDots + 172;
+
+    /// <summary>
+    /// STAT mode changes lag the start of normal visible scanlines by four dots on DMG.
+    /// </summary>
+    private const int NormalScanlineStatusModeDelayDots = 4;
+
+    /// <summary>
+    /// Normal visible scanlines enter Mode 3 after OAM scan plus the STAT mode delay.
+    /// </summary>
+    private const int NormalScanlineDrawingStartDots =
+        OamScanDots + NormalScanlineStatusModeDelayDots;
+
+    /// <summary>
+    /// Minimal DMG Mode 3 end point for normal visible scanlines.
+    /// </summary>
+    private const int NormalScanlineDrawingEndDots = OamScanDots + 176;
 
     /// <summary>
     /// First LY value in VBlank.
@@ -42,9 +63,43 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
 
     private PpuMode _statInterruptMode;
 
-    public bool CanCpuAccessVideoRam => StatusMode != PpuMode.Drawing;
+    public bool IsCpuVideoRamReadBlocked =>
+        LcdYCoordinate < VBlankStartLine
+        && _lineDots >= OamScanDots
+        && _lineDots < GetCurrentDrawingEndDots();
 
-    public bool CanCpuAccessObjectAttributeMemory => StatusMode is PpuMode.HBlank or PpuMode.VBlank;
+    public bool IsCpuVideoRamWriteBlocked =>
+        LcdYCoordinate < VBlankStartLine
+        && _lineDots >= GetCurrentDrawingStartDots()
+        && _lineDots < GetCurrentDrawingEndDots();
+
+    public bool IsCpuObjectAttributeMemoryReadBlocked =>
+        LcdYCoordinate < VBlankStartLine
+        && (
+            _firstScanlineAfterLcdEnable
+                ? IsCpuVideoRamReadBlocked
+                : _lineDots < GetCurrentDrawingEndDots()
+        );
+
+    public bool IsCpuObjectAttributeMemoryWriteBlocked
+    {
+        get
+        {
+            if (LcdYCoordinate >= VBlankStartLine)
+            {
+                return false;
+            }
+
+            if (_firstScanlineAfterLcdEnable)
+            {
+                return IsCpuVideoRamWriteBlocked;
+            }
+
+            return _lineDots
+                is (>= NormalScanlineStatusModeDelayDots and < OamScanDots)
+                    or (>= NormalScanlineDrawingStartDots and < NormalScanlineDrawingEndDots);
+        }
+    }
 
     public PpuInterruptRequest Tick(int tCycles, byte lcdYCompare, byte statusInterruptSelect)
     {
@@ -64,12 +119,19 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
         int remainingCycles = tCycles;
         while (remainingCycles > 0)
         {
-            int nextBoundary = GetNextTimingBoundary();
+            int scanlineDots = GetCurrentScanlineDots();
+            int drawingStartDots = GetCurrentDrawingStartDots();
+            int drawingEndDots = GetCurrentDrawingEndDots();
+            int nextBoundary = GetNextTimingBoundary(
+                scanlineDots,
+                drawingStartDots,
+                drawingEndDots
+            );
             int elapsedCycles = Math.Min(remainingCycles, nextBoundary - _lineDots);
             _lineDots += elapsedCycles;
             remainingCycles -= elapsedCycles;
 
-            if (_lineDots == ScanlineDots)
+            if (_lineDots == scanlineDots)
             {
                 requests |= AdvanceScanline(lcdYCompare, statusInterruptSelect);
                 continue;
@@ -168,19 +230,47 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
         RefreshStatInterruptLine(statusInterruptSelect, lcdEnabled, requestInterrupt: false);
     }
 
-    private int GetNextTimingBoundary()
+    private int GetCurrentScanlineDots() =>
+        _firstScanlineAfterLcdEnable ? FirstScanlineAfterLcdEnableDots : ScanlineDots;
+
+    private int GetCurrentDrawingEndDots() =>
+        _firstScanlineAfterLcdEnable
+            ? FirstScanlineAfterLcdEnableDrawingEndDots
+            : NormalScanlineDrawingEndDots;
+
+    private int GetNextTimingBoundary(int scanlineDots, int drawingStartDots, int drawingEndDots)
     {
         if (LcdYCoordinate >= VBlankStartLine)
         {
-            return ScanlineDots;
+            return scanlineDots;
         }
 
-        return _lineDots switch
+        if (_firstScanlineAfterLcdEnable)
         {
-            < OamScanDots => OamScanDots,
-            < DrawingEndDots => DrawingEndDots,
-            _ => ScanlineDots,
-        };
+            if (_lineDots < OamScanDots)
+            {
+                return OamScanDots;
+            }
+
+            return _lineDots < drawingEndDots ? drawingEndDots : scanlineDots;
+        }
+
+        if (_lineDots < NormalScanlineStatusModeDelayDots)
+        {
+            return NormalScanlineStatusModeDelayDots;
+        }
+
+        if (_lineDots < OamScanDots)
+        {
+            return OamScanDots;
+        }
+
+        if (_lineDots < drawingStartDots)
+        {
+            return drawingStartDots;
+        }
+
+        return _lineDots < drawingEndDots ? drawingEndDots : scanlineDots;
     }
 
     private PpuInterruptRequest AdvanceScanline(byte lcdYCompare, byte statusInterruptSelect)
@@ -231,18 +321,35 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
             return PpuMode.HBlank;
         }
 
+        if (_firstScanlineAfterLcdEnable)
+        {
+            return _lineDots < FirstScanlineAfterLcdEnableDrawingEndDots
+                ? PpuMode.Drawing
+                : PpuMode.HBlank;
+        }
+
         return _lineDots switch
         {
-            < OamScanDots => PpuMode.OamScan,
-            < DrawingEndDots => PpuMode.Drawing,
+            < NormalScanlineStatusModeDelayDots => PpuMode.HBlank,
+            < NormalScanlineDrawingStartDots => PpuMode.OamScan,
+            _ when _lineDots < GetCurrentDrawingEndDots() => PpuMode.Drawing,
             _ => PpuMode.HBlank,
         };
     }
 
+    private int GetCurrentDrawingStartDots() =>
+        _firstScanlineAfterLcdEnable ? OamScanDots : NormalScanlineDrawingStartDots;
+
     private void RefreshLycEqualsLy(byte lcdYCompare)
     {
-        LycEqualsLy = LcdYCoordinate == lcdYCompare;
+        LycEqualsLy = IsLycCompareActiveOnCurrentDot() && LcdYCoordinate == lcdYCompare;
     }
+
+    private bool IsLycCompareActiveOnCurrentDot() =>
+        StatusMode is PpuMode.VBlank
+        || LcdYCoordinate >= VBlankStartLine
+        || _firstScanlineAfterLcdEnable
+        || _lineDots >= NormalScanlineStatusModeDelayDots;
 
     private PpuInterruptRequest RefreshStatInterruptLine(
         byte statusInterruptSelect,

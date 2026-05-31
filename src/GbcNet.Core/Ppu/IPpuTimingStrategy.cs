@@ -11,9 +11,13 @@ internal interface IPpuTimingStrategy
 
     PpuMode StatusMode { get; }
 
-    bool CanCpuAccessVideoRam { get; }
+    bool IsCpuVideoRamReadBlocked { get; }
 
-    bool CanCpuAccessObjectAttributeMemory { get; }
+    bool IsCpuVideoRamWriteBlocked { get; }
+
+    bool IsCpuObjectAttributeMemoryReadBlocked { get; }
+
+    bool IsCpuObjectAttributeMemoryWriteBlocked { get; }
 
     PpuInterruptRequest Tick(int tCycles, byte lcdYCompare, byte statusInterruptSelect);
 

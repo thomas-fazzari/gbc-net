@@ -97,24 +97,24 @@ public sealed class PpuControllerTests
     {
         PpuController ppu = CreatePpu();
 
-        Assert.True(ppu.CanCpuAccessVideoRam);
-        Assert.True(ppu.CanCpuAccessObjectAttributeMemory);
+        AssertVideoRamBlocked(ppu, expected: false);
+        AssertObjectAttributeMemoryBlocked(ppu, expected: false);
 
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
-        Assert.True(ppu.CanCpuAccessVideoRam);
-        Assert.True(ppu.CanCpuAccessObjectAttributeMemory);
+        AssertVideoRamBlocked(ppu, expected: false);
+        AssertObjectAttributeMemoryBlocked(ppu, expected: false);
 
         ppu.Tick(80);
-        Assert.False(ppu.CanCpuAccessVideoRam);
-        Assert.False(ppu.CanCpuAccessObjectAttributeMemory);
+        AssertVideoRamBlocked(ppu, expected: true);
+        AssertObjectAttributeMemoryBlocked(ppu, expected: true);
 
         ppu.Tick(172);
-        Assert.True(ppu.CanCpuAccessVideoRam);
-        Assert.True(ppu.CanCpuAccessObjectAttributeMemory);
+        AssertVideoRamBlocked(ppu, expected: false);
+        AssertObjectAttributeMemoryBlocked(ppu, expected: false);
 
         ppu.Tick(204);
-        Assert.True(ppu.CanCpuAccessVideoRam);
-        Assert.False(ppu.CanCpuAccessObjectAttributeMemory);
+        AssertVideoRamBlocked(ppu, expected: false);
+        AssertObjectAttributeMemoryBlocked(ppu, expected: true);
     }
 
     [Fact]
@@ -261,4 +261,16 @@ public sealed class PpuControllerTests
 
     private static PpuController CreatePpu(InterruptController? interrupts = null) =>
         new(interrupts ?? new InterruptController(), new DmgPpuTimingStrategy());
+
+    private static void AssertVideoRamBlocked(PpuController ppu, bool expected)
+    {
+        Assert.Equal(expected, ppu.IsCpuVideoRamReadBlocked);
+        Assert.Equal(expected, ppu.IsCpuVideoRamWriteBlocked);
+    }
+
+    private static void AssertObjectAttributeMemoryBlocked(PpuController ppu, bool expected)
+    {
+        Assert.Equal(expected, ppu.IsCpuObjectAttributeMemoryReadBlocked);
+        Assert.Equal(expected, ppu.IsCpuObjectAttributeMemoryWriteBlocked);
+    }
 }

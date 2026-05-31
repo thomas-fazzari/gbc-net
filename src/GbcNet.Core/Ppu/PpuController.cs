@@ -4,7 +4,7 @@ using GbcNet.Core.Memory;
 namespace GbcNet.Core.Ppu;
 
 /// <summary>
-/// Stores CPU-visible LCD/PPU registers and delegates model-specific timing.
+/// Stores CPU-visible Liquid Crystal Display/Pixel Processing Unit registers and delegates model-specific timing.
 /// </summary>
 internal sealed class PpuController(
     InterruptController interrupts,
@@ -62,15 +62,27 @@ internal sealed class PpuController(
     public bool IsLcdEnabled => (_control & LcdEnableMask) != 0;
 
     /// <summary>
-    /// Indicates whether the CPU can access VRAM at 8000-9FFF in the current PPU mode.
+    /// Indicates whether the PPU blocks CPU reads from VRAM at 8000-9FFF.
     /// </summary>
-    public bool CanCpuAccessVideoRam => !IsLcdEnabled || timingStrategy.CanCpuAccessVideoRam;
+    public bool IsCpuVideoRamReadBlocked => IsLcdEnabled && timingStrategy.IsCpuVideoRamReadBlocked;
 
     /// <summary>
-    /// Indicates whether the CPU can access OAM at FE00-FE9F in the current PPU mode.
+    /// Indicates whether the PPU blocks CPU writes to VRAM at 8000-9FFF.
     /// </summary>
-    public bool CanCpuAccessObjectAttributeMemory =>
-        !IsLcdEnabled || timingStrategy.CanCpuAccessObjectAttributeMemory;
+    public bool IsCpuVideoRamWriteBlocked =>
+        IsLcdEnabled && timingStrategy.IsCpuVideoRamWriteBlocked;
+
+    /// <summary>
+    /// Indicates whether the PPU blocks CPU reads from OAM at FE00-FE9F.
+    /// </summary>
+    public bool IsCpuObjectAttributeMemoryReadBlocked =>
+        IsLcdEnabled && timingStrategy.IsCpuObjectAttributeMemoryReadBlocked;
+
+    /// <summary>
+    /// Indicates whether the PPU blocks CPU writes to OAM at FE00-FE9F.
+    /// </summary>
+    public bool IsCpuObjectAttributeMemoryWriteBlocked =>
+        IsLcdEnabled && timingStrategy.IsCpuObjectAttributeMemoryWriteBlocked;
 
     /// <summary>
     /// Writes an LCD/PPU register as the CPU sees it.

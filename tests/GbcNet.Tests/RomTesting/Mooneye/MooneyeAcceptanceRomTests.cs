@@ -26,6 +26,8 @@ public sealed class MooneyeAcceptanceRomTests
     [InlineData("jp_cc_timing.gb")]
     [InlineData("jp_timing.gb")]
     [InlineData("ld_hl_sp_e_timing.gb")]
+    [InlineData("ppu/lcdon_timing-GS.gb")]
+    [InlineData("ppu/lcdon_write_timing-GS.gb")]
     [InlineData("oam_dma/basic.gb")]
     [InlineData("oam_dma/reg_read.gb")]
     [InlineData("oam_dma_restart.gb")]

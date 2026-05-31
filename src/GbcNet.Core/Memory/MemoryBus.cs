@@ -124,7 +124,7 @@ internal sealed class MemoryBus
             return value;
         }
 
-        return IsCpuVideoMemoryBlockedByPpu(address) ? (byte)0xFF : ReadMappedByte(address);
+        return IsCpuVideoMemoryReadBlockedByPpu(address) ? (byte)0xFF : ReadMappedByte(address);
     }
 
     public void WriteByte(ushort address, byte value)
@@ -147,7 +147,7 @@ internal sealed class MemoryBus
     }
 
     private bool IsCpuWriteBlocked(ushort address) =>
-        IsCpuWriteBlockedByDma(address) || IsCpuVideoMemoryBlockedByPpu(address);
+        IsCpuWriteBlockedByDma(address) || IsCpuVideoMemoryWriteBlockedByPpu(address);
 
     private bool IsCpuWriteBlockedByDma(ushort address) =>
         (IsObjectAttributeMemory(address) && Dma.IsCpuOamBlocked)
@@ -185,12 +185,23 @@ internal sealed class MemoryBus
             is >= AddressMap.ObjectAttributeMemoryStart
                 and <= AddressMap.ObjectAttributeMemoryEnd;
 
-    private bool IsCpuVideoMemoryBlockedByPpu(ushort address) =>
+    private bool IsCpuVideoMemoryReadBlockedByPpu(ushort address) =>
         address switch
         {
-            >= AddressMap.VideoRamStart and <= AddressMap.VideoRamEnd => !Ppu.CanCpuAccessVideoRam,
+            >= AddressMap.VideoRamStart and <= AddressMap.VideoRamEnd =>
+                Ppu.IsCpuVideoRamReadBlocked,
             >= AddressMap.ObjectAttributeMemoryStart and <= AddressMap.ObjectAttributeMemoryEnd =>
-                !Ppu.CanCpuAccessObjectAttributeMemory,
+                Ppu.IsCpuObjectAttributeMemoryReadBlocked,
+            _ => false,
+        };
+
+    private bool IsCpuVideoMemoryWriteBlockedByPpu(ushort address) =>
+        address switch
+        {
+            >= AddressMap.VideoRamStart and <= AddressMap.VideoRamEnd =>
+                Ppu.IsCpuVideoRamWriteBlocked,
+            >= AddressMap.ObjectAttributeMemoryStart and <= AddressMap.ObjectAttributeMemoryEnd =>
+                Ppu.IsCpuObjectAttributeMemoryWriteBlocked,
             _ => false,
         };
 
