@@ -78,7 +78,7 @@ public sealed class PpuControllerTests
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
         ppu.Tick(79);
-        Assert.Equal(0x02, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
+        Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
 
         ppu.Tick(1);
         Assert.Equal(0x03, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
@@ -101,7 +101,7 @@ public sealed class PpuControllerTests
 
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
         Assert.True(ppu.CanCpuAccessVideoRam);
-        Assert.False(ppu.CanCpuAccessObjectAttributeMemory);
+        Assert.True(ppu.CanCpuAccessObjectAttributeMemory);
 
         ppu.Tick(80);
         Assert.False(ppu.CanCpuAccessVideoRam);
@@ -110,6 +110,10 @@ public sealed class PpuControllerTests
         ppu.Tick(172);
         Assert.True(ppu.CanCpuAccessVideoRam);
         Assert.True(ppu.CanCpuAccessObjectAttributeMemory);
+
+        ppu.Tick(204);
+        Assert.True(ppu.CanCpuAccessVideoRam);
+        Assert.False(ppu.CanCpuAccessObjectAttributeMemory);
     }
 
     [Fact]
@@ -169,7 +173,7 @@ public sealed class PpuControllerTests
         var ppu = new PpuController(interrupts);
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
-        ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x20);
+        ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x08);
 
         Assert.Equal(LcdInterruptMask, interrupts.InterruptFlag);
     }
@@ -206,6 +210,51 @@ public sealed class PpuControllerTests
             LcdYCompareStatusMask,
             ppu.ReadRegister(AddressMap.LcdStatusRegister) & LcdYCompareStatusMask
         );
+        Assert.Equal(LcdInterruptMask, interrupts.InterruptFlag);
+    }
+
+    [Fact]
+    public void WriteRegister_RetainsLycCompareWhileLcdIsDisabled()
+    {
+        var ppu = new PpuController(new InterruptController());
+        ppu.SetRegisterState(AddressMap.LcdStatusRegister, 0x84);
+        ppu.SetRegisterState(AddressMap.LcdYCoordinateRegister, 0x90);
+        ppu.SetRegisterState(AddressMap.LcdYCompareRegister, 0x90);
+        ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
+
+        ppu.WriteRegister(AddressMap.LcdControlRegister, 0x00);
+        ppu.WriteRegister(AddressMap.LcdYCompareRegister, 0x01);
+
+        Assert.Equal(0x84, ppu.ReadRegister(AddressMap.LcdStatusRegister));
+    }
+
+    [Fact]
+    public void WriteRegister_EnablingLcdUpdatesLycCompareAndRequestsRisingInterrupt()
+    {
+        var interrupts = new InterruptController();
+        var ppu = new PpuController(interrupts);
+        ppu.SetRegisterState(AddressMap.LcdStatusRegister, 0x80);
+        ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x40);
+
+        ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
+
+        Assert.Equal(
+            LcdYCompareStatusMask,
+            ppu.ReadRegister(AddressMap.LcdStatusRegister) & LcdYCompareStatusMask
+        );
+        Assert.Equal(LcdInterruptMask, interrupts.InterruptFlag);
+    }
+
+    [Fact]
+    public void WriteRegister_EnablingLcdRequestsModeInterruptWhenLycCompareStaysSet()
+    {
+        var interrupts = new InterruptController();
+        var ppu = new PpuController(interrupts);
+        ppu.SetRegisterState(AddressMap.LcdStatusRegister, 0x84);
+        ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x48);
+
+        ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
+
         Assert.Equal(LcdInterruptMask, interrupts.InterruptFlag);
     }
 }

@@ -43,11 +43,6 @@ public sealed record CartridgeHeader(
 )
 {
     /// <summary>
-    /// First byte of the cartridge header.
-    /// </summary>
-    public const int HeaderStartAddress = 0x0100;
-
-    /// <summary>
     /// Last byte of the cartridge header.
     /// </summary>
     public const int HeaderEndAddress = 0x014F;

@@ -106,7 +106,7 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0x12);
         bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        Assert.Equal(0x12, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
         bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0x34);
 
         bus.Ppu.Tick(80);
@@ -115,7 +115,16 @@ public sealed class MemoryBusTests
 
         bus.Ppu.Tick(172);
 
-        Assert.Equal(0x12, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        Assert.Equal(0x34, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+
+        bus.Ppu.Tick(204);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0x78);
+
+        bus.Ppu.Tick(252);
+
+        Assert.Equal(0x34, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
     }
 
     [Fact]
@@ -251,7 +260,7 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.ObjectPalette1Register, 0x5A);
 
         Assert.Equal(0x91, bus.ReadByte(AddressMap.LcdControlRegister));
-        Assert.Equal(0xFA, bus.ReadByte(AddressMap.LcdStatusRegister));
+        Assert.Equal(0xF8, bus.ReadByte(AddressMap.LcdStatusRegister));
         Assert.Equal(0x42, bus.ReadByte(AddressMap.LcdYCoordinateRegister));
         Assert.Equal(0xFC, bus.ReadByte(AddressMap.BackgroundPaletteRegister));
         Assert.Equal(0xA5, bus.ReadByte(AddressMap.ObjectPalette0Register));
@@ -344,6 +353,7 @@ public sealed class MemoryBusTests
         MemoryBus bus = CreateBus();
         bus.WriteByte(AddressMap.VideoRamStart, 0x42);
         bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
+        bus.Ppu.Tick(80);
 
         bus.WriteByte(AddressMap.DmaRegister, 0x80);
         bus.TickDma(2);
@@ -351,7 +361,7 @@ public sealed class MemoryBusTests
 
         Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
 
-        bus.Ppu.Tick(252);
+        bus.Ppu.Tick(172);
 
         Assert.Equal(0x42, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
     }

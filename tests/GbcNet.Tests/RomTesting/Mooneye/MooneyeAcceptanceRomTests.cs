@@ -32,6 +32,7 @@ public sealed class MooneyeAcceptanceRomTests
     [InlineData("oam_dma_start.gb")]
     [InlineData("oam_dma_timing.gb")]
     [InlineData("pop_timing.gb")]
+    [InlineData("ppu/stat_lyc_onoff.gb")]
     [InlineData("push_timing.gb")]
     [InlineData("rapid_di_ei.gb")]
     [InlineData("ret_cc_timing.gb")]

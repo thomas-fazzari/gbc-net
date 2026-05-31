@@ -113,6 +113,7 @@ internal sealed class PpuController(InterruptController interrupts)
     private int _lineDots;
     private bool _lycEqualsLy = true;
     private bool _statInterruptLine;
+    private bool _firstScanlineAfterLcdEnable;
 
     /// <summary>
     /// Returns whether an address is owned by the LCD/PPU register block.
@@ -177,6 +178,10 @@ internal sealed class PpuController(InterruptController interrupts)
                 return;
             case AddressMap.LcdYCompareRegister:
                 _lcdYCompare = value;
+                if (!IsLcdEnabled)
+                {
+                    return;
+                }
                 RefreshLycEqualsLy();
                 RefreshStatInterruptLine(requestInterrupt: true);
                 return;
@@ -300,8 +305,7 @@ internal sealed class PpuController(InterruptController interrupts)
 
         if (!wasEnabled && IsLcdEnabled)
         {
-            _lineDots = 0;
-            RefreshPpuState(requestStatInterrupt: true);
+            StartLcdTiming();
         }
     }
 
@@ -323,6 +327,7 @@ internal sealed class PpuController(InterruptController interrupts)
     private void AdvanceScanline()
     {
         _lineDots = 0;
+        _firstScanlineAfterLcdEnable = false;
 
         if (_lcdYCoordinate == LastScanline)
         {
@@ -345,8 +350,32 @@ internal sealed class PpuController(InterruptController interrupts)
         _lineDots = 0;
         _lcdYCoordinate = 0;
         _statusMode = ModeHBlank;
-        RefreshLycEqualsLy();
+        _firstScanlineAfterLcdEnable = false;
         RefreshStatInterruptLine(requestInterrupt: false);
+    }
+
+    private void StartLcdTiming()
+    {
+        _lineDots = 0;
+        _firstScanlineAfterLcdEnable = true;
+        _statusMode = ModeHBlank;
+
+        bool oldLycEqualsLy = _lycEqualsLy;
+        RefreshLycEqualsLy();
+
+        bool shouldSuppressStableLycInterrupt =
+            oldLycEqualsLy
+            && _lycEqualsLy
+            && (_statusInterruptSelect & StatusLycEqualsLyInterruptSelectMask) != 0
+            && (_statusInterruptSelect & StatusMode0InterruptSelectMask) == 0;
+
+        if (shouldSuppressStableLycInterrupt)
+        {
+            _statInterruptLine = IsStatInterruptLineAsserted();
+            return;
+        }
+
+        RefreshStatInterruptLine(requestInterrupt: true);
     }
 
     private void RefreshPpuState(bool requestStatInterrupt)
@@ -366,6 +395,11 @@ internal sealed class PpuController(InterruptController interrupts)
         if (_lcdYCoordinate >= VBlankStartLine)
         {
             return ModeVBlank;
+        }
+
+        if (_firstScanlineAfterLcdEnable && _lcdYCoordinate == 0 && _lineDots < OamScanDots)
+        {
+            return ModeHBlank;
         }
 
         return _lineDots switch
