@@ -16,6 +16,17 @@ internal sealed class PpuController(
     /// </summary>
     private const byte LcdEnableMask = 0x80;
 
+    /// <summary>
+    /// DMG VRAM bank 0 at 8000-9FFF.
+    /// </summary>
+    internal MappedMemory VideoRam { get; } = new(AddressMap.VideoRamStart, AddressMap.VideoRamEnd);
+
+    /// <summary>
+    /// Sprite attribute table at FE00-FE9F.
+    /// </summary>
+    internal MappedMemory ObjectAttributeMemory { get; } =
+        new(AddressMap.ObjectAttributeMemoryStart, AddressMap.ObjectAttributeMemoryEnd);
+
     private byte _control;
     private byte _statusInterruptSelect;
     private byte _scrollY;

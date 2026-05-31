@@ -14,6 +14,7 @@
 - Ask one focused question when requirements or architecture direction are ambiguous.
 - Touch only files needed for the task; do not silently fix unrelated issues.
 - Remove code made obsolete by the change.
+- Do not add pass-through wrappers for methods, properties, or delegates when callers can use the underlying object directly. Keep a wrapper only when it enforces an invariant, protects an API boundary, names a real domain concept, or removes meaningful duplication.
 
 ## Commands
 

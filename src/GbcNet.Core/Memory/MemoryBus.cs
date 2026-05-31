@@ -27,19 +27,6 @@ internal sealed class MemoryBus
         AddressMap.IoRegistersEnd
     );
 
-    /// <summary>
-    /// Plain backing store for OAM at FE00-FE9F.
-    /// </summary>
-    private readonly MappedMemory _objectAttributeMemory = new(
-        AddressMap.ObjectAttributeMemoryStart,
-        AddressMap.ObjectAttributeMemoryEnd
-    );
-
-    /// <summary>
-    /// Plain backing store for DMG VRAM bank 0 at 8000-9FFF.
-    /// </summary>
-    private readonly MappedMemory _videoRam = new(AddressMap.VideoRamStart, AddressMap.VideoRamEnd);
-
     private readonly WorkRam _workRam = new();
     private readonly Cartridge _cartridge;
     private readonly IDmaBusConflictPolicy _dmaBusConflictPolicy;
@@ -92,7 +79,7 @@ internal sealed class MemoryBus
         Ppu = new PpuController(Interrupts, hardwareStrategy.CreatePpuTimingStrategy());
         Dma = new DmaController();
         _readByteForDma = ReadOamDmaSourceByte;
-        _writeOamByteForDma = _objectAttributeMemory.Write;
+        _writeOamByteForDma = Ppu.ObjectAttributeMemory.Write;
     }
 
     /// <summary>
@@ -210,11 +197,11 @@ internal sealed class MemoryBus
         return address switch
         {
             <= AddressMap.RomEnd => _cartridge.ReadRom(address),
-            <= AddressMap.VideoRamEnd => _videoRam.Read(address),
+            <= AddressMap.VideoRamEnd => Ppu.VideoRam.Read(address),
             <= AddressMap.ExternalRamEnd => _cartridge.ReadRam(address),
             <= AddressMap.WorkRamEnd => _workRam.Read(address),
             <= AddressMap.EchoRamEnd => _workRam.Read(address),
-            <= AddressMap.ObjectAttributeMemoryEnd => _objectAttributeMemory.Read(address),
+            <= AddressMap.ObjectAttributeMemoryEnd => Ppu.ObjectAttributeMemory.Read(address),
             <= AddressMap.NotUsableEnd => 0x00,
             <= AddressMap.IoRegistersEnd => ReadIoRegister(address),
             <= AddressMap.HighRamEnd => _highRam.Read(address),
@@ -226,7 +213,7 @@ internal sealed class MemoryBus
         address switch
         {
             <= AddressMap.RomEnd => _cartridge.ReadRom(address),
-            <= AddressMap.VideoRamEnd => _videoRam.Read(address),
+            <= AddressMap.VideoRamEnd => Ppu.VideoRam.Read(address),
             _ => _cartridge.ReadRamOffset(GetOamDmaExternalRamOffset(address)),
         };
 
@@ -241,7 +228,7 @@ internal sealed class MemoryBus
                 _cartridge.WriteRom(address, value);
                 return;
             case <= AddressMap.VideoRamEnd:
-                _videoRam.Write(address, value);
+                Ppu.VideoRam.Write(address, value);
                 return;
             case <= AddressMap.ExternalRamEnd:
                 _cartridge.WriteRam(address, value);
@@ -251,7 +238,7 @@ internal sealed class MemoryBus
                 _workRam.Write(address, value);
                 return;
             case <= AddressMap.ObjectAttributeMemoryEnd:
-                _objectAttributeMemory.Write(address, value);
+                Ppu.ObjectAttributeMemory.Write(address, value);
                 return;
             case <= AddressMap.NotUsableEnd:
                 return;
