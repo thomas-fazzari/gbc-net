@@ -1,3 +1,4 @@
+using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Dma;
 using GbcNet.Core.Hardware;
@@ -18,14 +19,6 @@ internal sealed class MemoryBus
     /// Plain backing store for HRAM at FF80-FFFE.
     /// </summary>
     private readonly MappedMemory _highRam = new(AddressMap.HighRamStart, AddressMap.HighRamEnd);
-
-    /// <summary>
-    /// Temporary backing store for I/O registers until each register gets its hardware behavior.
-    /// </summary>
-    private readonly MappedMemory _ioRegisters = new(
-        AddressMap.IoRegistersStart,
-        AddressMap.IoRegistersEnd
-    );
 
     private readonly WorkRam _workRam = new();
     private readonly Cartridge _cartridge;
@@ -54,6 +47,11 @@ internal sealed class MemoryBus
     public SerialController Serial { get; }
 
     /// <summary>
+    /// Audio registers routed through FF10-FF26.
+    /// </summary>
+    public ApuController Apu { get; }
+
+    /// <summary>
     /// LCD/PPU registers routed through FF40-FF45 and FF47-FF4B.
     /// </summary>
     public PpuController Ppu { get; }
@@ -76,6 +74,7 @@ internal sealed class MemoryBus
         Timers = new TimerController(Interrupts);
         Joypad = new JoypadController(Interrupts);
         Serial = new SerialController(Interrupts);
+        Apu = new ApuController();
         Ppu = new PpuController(Interrupts, hardwareStrategy.CreatePpuTimingStrategy());
         Dma = new DmaController();
         _readByteForDma = ReadOamDmaSourceByte;
@@ -267,6 +266,11 @@ internal sealed class MemoryBus
             return Ppu.ReadRegister(address);
         }
 
+        if (ApuController.ContainsRegister(address))
+        {
+            return Apu.ReadRegister(address);
+        }
+
         return address switch
         {
             AddressMap.JoypadRegister => Joypad.Read(),
@@ -278,7 +282,7 @@ internal sealed class MemoryBus
             AddressMap.TimerControlRegister => Timers.ReadTimerControl(),
             AddressMap.InterruptFlagRegister => Interrupts.ReadInterruptFlag(),
             AddressMap.DmaRegister => Dma.ReadRegister(),
-            _ => _ioRegisters.Read(address),
+            _ => 0xFF,
         };
     }
 
@@ -287,6 +291,12 @@ internal sealed class MemoryBus
         if (PpuController.ContainsRegister(address))
         {
             Ppu.WriteRegister(address, value);
+            return;
+        }
+
+        if (ApuController.ContainsRegister(address))
+        {
+            Apu.WriteRegister(address, value);
             return;
         }
 
@@ -320,7 +330,6 @@ internal sealed class MemoryBus
                 Dma.StartOamTransfer(value);
                 return;
             default:
-                _ioRegisters.Write(address, value);
                 return;
         }
     }
@@ -330,6 +339,12 @@ internal sealed class MemoryBus
         if (PpuController.ContainsRegister(address))
         {
             Ppu.SetRegisterState(address, value);
+            return;
+        }
+
+        if (ApuController.ContainsRegister(address))
+        {
+            Apu.WriteRegister(address, value);
             return;
         }
 
@@ -363,7 +378,6 @@ internal sealed class MemoryBus
                 Dma.SetRegisterState(value);
                 return;
             default:
-                _ioRegisters.Write(address, value);
                 return;
         }
     }

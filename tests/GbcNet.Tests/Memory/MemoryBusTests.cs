@@ -152,15 +152,15 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
-    public void ReadWriteByte_StoresIoRegisters()
+    public void ReadWriteByte_ReadsUnmappedIoRegistersHigh()
     {
         MemoryBus bus = CreateBus();
 
         bus.WriteByte(0xFF03, 0x12);
         bus.WriteByte(0xFF7F, 0x34);
 
-        Assert.Equal(0x12, bus.ReadByte(0xFF03));
-        Assert.Equal(0x34, bus.ReadByte(0xFF7F));
+        Assert.Equal(0xFF, bus.ReadByte(0xFF03));
+        Assert.Equal(0xFF, bus.ReadByte(0xFF7F));
     }
 
     [Fact]
@@ -457,7 +457,7 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.InterruptEnableRegister, 0x56);
 
         Assert.Equal(0xC0, bus.ReadByte(AddressMap.DmaRegister));
-        Assert.Equal(0x12, bus.ReadByte(0xFF03));
+        Assert.Equal(0xFF, bus.ReadByte(0xFF03));
         Assert.Equal(0x34, bus.ReadByte(AddressMap.HighRamStart));
         Assert.Equal(0x56, bus.ReadByte(AddressMap.InterruptEnableRegister));
     }

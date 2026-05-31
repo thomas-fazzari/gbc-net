@@ -12,6 +12,7 @@ public sealed class MooneyeAcceptanceRomTests
     [InlineData("add_sp_e_timing.gb")]
     [InlineData("bits/mem_oam.gb")]
     [InlineData("bits/reg_f.gb")]
+    [InlineData("bits/unused_hwio-GS.gb")]
     [InlineData("call_cc_timing.gb")]
     [InlineData("call_cc_timing2.gb")]
     [InlineData("call_timing.gb")]
