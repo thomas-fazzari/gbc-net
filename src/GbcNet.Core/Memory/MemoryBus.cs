@@ -1,5 +1,6 @@
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Dma;
+using GbcNet.Core.Hardware;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Ppu;
@@ -9,26 +10,10 @@ using GbcNet.Core.Timers;
 namespace GbcNet.Core.Memory;
 
 /// <summary>
-/// Routes CPU-visible 16-bit addresses to the currently modeled DMG memory regions.
+/// Routes CPU-visible 16-bit addresses to memory regions and hardware registers.
 /// </summary>
 internal sealed class MemoryBus
 {
-    /// <summary>
-    /// DMG bus groups used to decide whether CPU memory access conflicts with the current OAM DMA source.
-    /// </summary>
-    private enum DmgDmaBus
-    {
-        /// <summary>
-        /// Non-VRAM DMA bus used by cartridge, external RAM, WRAM, and echo RAM ranges.
-        /// </summary>
-        Main = 0,
-
-        /// <summary>
-        /// VRAM DMA bus used by the 8000-9FFF range.
-        /// </summary>
-        Video = 1,
-    }
-
     /// <summary>
     /// Plain backing store for HRAM at FF80-FFFE.
     /// </summary>
@@ -57,6 +42,7 @@ internal sealed class MemoryBus
 
     private readonly WorkRam _workRam = new();
     private readonly Cartridge _cartridge;
+    private readonly IDmaBusConflictPolicy _dmaBusConflictPolicy;
     private readonly Func<ushort, byte> _readByteForDma;
     private readonly Action<ushort, byte> _writeOamByteForDma;
 
@@ -95,14 +81,15 @@ internal sealed class MemoryBus
     /// </summary>
     internal ICpuMemoryWriteObserver? CpuMemoryWriteObserver { private get; set; }
 
-    public MemoryBus(Cartridge cartridge)
+    public MemoryBus(Cartridge cartridge, IHardwareStrategy hardwareStrategy)
     {
         _cartridge = cartridge;
+        _dmaBusConflictPolicy = hardwareStrategy.CreateDmaBusConflictPolicy();
         Interrupts = new InterruptController();
         Timers = new TimerController(Interrupts);
         Joypad = new JoypadController(Interrupts);
         Serial = new SerialController(Interrupts);
-        Ppu = new PpuController(Interrupts);
+        Ppu = new PpuController(Interrupts, hardwareStrategy.CreatePpuTimingStrategy());
         Dma = new DmaController();
         _readByteForDma = ReadOamDmaSourceByte;
         _writeOamByteForDma = _objectAttributeMemory.Write;
@@ -166,7 +153,7 @@ internal sealed class MemoryBus
         (IsObjectAttributeMemory(address) && Dma.IsCpuOamBlocked)
         || (
             Dma.TryGetCpuConflictSourceAddress(out ushort sourceAddress)
-            && IsCpuAddressBlockedByDma(address, sourceAddress)
+            && _dmaBusConflictPolicy.IsCpuAddressBlocked(address, sourceAddress)
         );
 
     private bool TryReadDmaConflictedByte(ushort address, out byte value)
@@ -183,7 +170,7 @@ internal sealed class MemoryBus
             return false;
         }
 
-        if (IsCpuAddressBlockedByDma(address, sourceAddress))
+        if (_dmaBusConflictPolicy.IsCpuAddressBlocked(address, sourceAddress))
         {
             value = ReadOamDmaSourceByte(sourceAddress);
             return true;
@@ -192,21 +179,6 @@ internal sealed class MemoryBus
         value = 0;
         return false;
     }
-
-    private static bool IsCpuAddressBlockedByDma(ushort address, ushort sourceAddress)
-    {
-        if (address >= AddressMap.ObjectAttributeMemoryStart)
-        {
-            return address <= AddressMap.ObjectAttributeMemoryEnd;
-        }
-
-        return GetDmgDmaBus(address) == GetDmgDmaBus(sourceAddress);
-    }
-
-    private static DmgDmaBus GetDmgDmaBus(ushort address) =>
-        address is >= AddressMap.VideoRamStart and <= AddressMap.VideoRamEnd
-            ? DmgDmaBus.Video
-            : DmgDmaBus.Main;
 
     private static bool IsObjectAttributeMemory(ushort address) =>
         address

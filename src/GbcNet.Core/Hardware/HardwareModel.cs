@@ -1,4 +1,4 @@
-namespace GbcNet.Core;
+namespace GbcNet.Core.Hardware;
 
 /// <summary>
 /// Game Boy hardware model to emulate.

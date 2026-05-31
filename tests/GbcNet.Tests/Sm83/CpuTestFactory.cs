@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Hardware.Strategies;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Sm83;
 using GbcNet.Tests.Cartridges;
@@ -15,7 +16,7 @@ internal static class CpuTestFactory
         Cartridge cartridge = ResultAssertions.AssertSuccess(
             Cartridge.Load(TestRomFactory.Create(configure))
         );
-        var bus = new MemoryBus(cartridge);
+        var bus = new MemoryBus(cartridge, new DmgHardwareStrategy());
         var cpu = new Cpu(bus);
         Buses.Add(cpu, bus);
         return cpu;

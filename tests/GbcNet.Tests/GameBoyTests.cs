@@ -1,5 +1,6 @@
 using GbcNet.Core;
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Hardware;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
 using GbcNet.Tests.Cartridges;

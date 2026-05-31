@@ -1,6 +1,5 @@
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
-using GbcNet.Core.Ppu.Strategies;
 
 namespace GbcNet.Core.Ppu;
 
@@ -9,7 +8,7 @@ namespace GbcNet.Core.Ppu;
 /// </summary>
 internal sealed class PpuController(
     InterruptController interrupts,
-    IPpuTimingStrategy? timingStrategy = null
+    IPpuTimingStrategy timingStrategy
 )
 {
     /// <summary>
@@ -17,7 +16,6 @@ internal sealed class PpuController(
     /// </summary>
     private const byte LcdEnableMask = 0x80;
 
-    private readonly IPpuTimingStrategy _timing = timingStrategy ?? new DmgPpuTimingStrategy();
     private byte _control;
     private byte _statusInterruptSelect;
     private byte _scrollY;
@@ -48,7 +46,7 @@ internal sealed class PpuController(
             AddressMap.LcdStatusRegister => ReadStatus(),
             AddressMap.ScrollYRegister => _scrollY,
             AddressMap.ScrollXRegister => _scrollX,
-            AddressMap.LcdYCoordinateRegister => _timing.LcdYCoordinate,
+            AddressMap.LcdYCoordinateRegister => timingStrategy.LcdYCoordinate,
             AddressMap.LcdYCompareRegister => _lcdYCompare,
             AddressMap.BackgroundPaletteRegister => _backgroundPalette,
             AddressMap.ObjectPalette0Register => _objectPalette0,
@@ -66,13 +64,13 @@ internal sealed class PpuController(
     /// <summary>
     /// Indicates whether the CPU can access VRAM at 8000-9FFF in the current PPU mode.
     /// </summary>
-    public bool CanCpuAccessVideoRam => !IsLcdEnabled || _timing.CanCpuAccessVideoRam;
+    public bool CanCpuAccessVideoRam => !IsLcdEnabled || timingStrategy.CanCpuAccessVideoRam;
 
     /// <summary>
     /// Indicates whether the CPU can access OAM at FE00-FE9F in the current PPU mode.
     /// </summary>
     public bool CanCpuAccessObjectAttributeMemory =>
-        !IsLcdEnabled || _timing.CanCpuAccessObjectAttributeMemory;
+        !IsLcdEnabled || timingStrategy.CanCpuAccessObjectAttributeMemory;
 
     /// <summary>
     /// Writes an LCD/PPU register as the CPU sees it.
@@ -87,7 +85,7 @@ internal sealed class PpuController(
             case AddressMap.LcdStatusRegister:
                 _statusInterruptSelect = (byte)(value & PpuStatusRegister.InterruptSelectMask);
                 RequestInterrupts(
-                    _timing.WriteStatusInterruptSelect(_statusInterruptSelect, IsLcdEnabled)
+                    timingStrategy.WriteStatusInterruptSelect(_statusInterruptSelect, IsLcdEnabled)
                 );
                 return;
             case AddressMap.LcdYCoordinateRegister:
@@ -95,7 +93,11 @@ internal sealed class PpuController(
             case AddressMap.LcdYCompareRegister:
                 _lcdYCompare = value;
                 RequestInterrupts(
-                    _timing.WriteLycCompare(_lcdYCompare, _statusInterruptSelect, IsLcdEnabled)
+                    timingStrategy.WriteLycCompare(
+                        _lcdYCompare,
+                        _statusInterruptSelect,
+                        IsLcdEnabled
+                    )
                 );
                 return;
             default:
@@ -116,7 +118,7 @@ internal sealed class PpuController(
             return;
         }
 
-        RequestInterrupts(_timing.Tick(tCycles, _lcdYCompare, _statusInterruptSelect));
+        RequestInterrupts(timingStrategy.Tick(tCycles, _lcdYCompare, _statusInterruptSelect));
     }
 
     /// <summary>
@@ -131,10 +133,10 @@ internal sealed class PpuController(
                 return;
             case AddressMap.LcdStatusRegister:
                 _statusInterruptSelect = (byte)(value & PpuStatusRegister.InterruptSelectMask);
-                _timing.SetStatusState(value, _statusInterruptSelect, IsLcdEnabled);
+                timingStrategy.SetStatusState(value, _statusInterruptSelect, IsLcdEnabled);
                 return;
             case AddressMap.LcdYCoordinateRegister:
-                _timing.SetLcdYCoordinateState(
+                timingStrategy.SetLcdYCoordinateState(
                     value,
                     _lcdYCompare,
                     _statusInterruptSelect,
@@ -143,7 +145,11 @@ internal sealed class PpuController(
                 return;
             case AddressMap.LcdYCompareRegister:
                 _lcdYCompare = value;
-                _timing.SetLycCompareState(_lcdYCompare, _statusInterruptSelect, IsLcdEnabled);
+                timingStrategy.SetLycCompareState(
+                    _lcdYCompare,
+                    _statusInterruptSelect,
+                    IsLcdEnabled
+                );
                 return;
             default:
                 SetReadWriteRegister(address, value);
@@ -153,8 +159,8 @@ internal sealed class PpuController(
 
     private byte ReadStatus()
     {
-        byte lycEqualsLy = _timing.LycEqualsLy ? PpuStatusRegister.LycEqualsLyMask : (byte)0;
-        byte mode = IsLcdEnabled ? (byte)_timing.StatusMode : (byte)PpuMode.HBlank;
+        byte lycEqualsLy = timingStrategy.LycEqualsLy ? PpuStatusRegister.LycEqualsLyMask : (byte)0;
+        byte mode = IsLcdEnabled ? (byte)timingStrategy.StatusMode : (byte)PpuMode.HBlank;
 
         return (byte)(PpuStatusRegister.ReadMask | _statusInterruptSelect | lycEqualsLy | mode);
     }
@@ -196,19 +202,19 @@ internal sealed class PpuController(
 
         if (wasEnabled && !IsLcdEnabled)
         {
-            _timing.DisableLcd();
+            timingStrategy.DisableLcd();
             return;
         }
 
         if (!wasEnabled && IsLcdEnabled)
         {
-            RequestInterrupts(_timing.EnableLcd(_lcdYCompare, _statusInterruptSelect));
+            RequestInterrupts(timingStrategy.EnableLcd(_lcdYCompare, _statusInterruptSelect));
         }
     }
 
     private void RequestInterrupts(PpuInterruptRequest requests)
     {
-        if ((requests & PpuInterruptRequest.VBlank) != PpuInterruptRequest.None)
+        if ((requests & PpuInterruptRequest.VBlank) is not PpuInterruptRequest.None)
         {
             interrupts.Request(InterruptSource.VBlank);
         }

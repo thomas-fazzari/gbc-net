@@ -1,4 +1,5 @@
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Hardware;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Sm83;
 

@@ -1,4 +1,6 @@
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Hardware;
+using GbcNet.Core.Hardware.Strategies;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Serial;
@@ -16,7 +18,17 @@ public sealed class GameBoy
     /// </summary>
     public GameBoy(Cartridge cartridge, HardwareModel hardwareModel)
     {
-        Bus = new MemoryBus(cartridge);
+        IHardwareStrategy hardwareStrategy = hardwareModel switch
+        {
+            HardwareModel.Dmg => new DmgHardwareStrategy(),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(hardwareModel),
+                hardwareModel,
+                "Unsupported hardware model."
+            ),
+        };
+
+        Bus = new MemoryBus(cartridge, hardwareStrategy);
         Bus.Serial.ByteTransferred += OnSerialByteTransferred;
         var clock = new MachineClock(Bus);
         Cpu = new Cpu(Bus, clock.TickMachineCycle);

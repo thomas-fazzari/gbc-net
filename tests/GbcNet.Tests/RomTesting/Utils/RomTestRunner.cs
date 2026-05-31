@@ -1,5 +1,6 @@
 using GbcNet.Core;
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Hardware;
 using GbcNet.Tests.RomTesting.Utils.ResultObservers;
 
 namespace GbcNet.Tests.RomTesting.Utils;

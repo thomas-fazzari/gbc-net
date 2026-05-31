@@ -1,6 +1,7 @@
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu;
+using GbcNet.Core.Ppu.Strategies;
 
 namespace GbcNet.Tests.Ppu;
 
@@ -30,7 +31,7 @@ public sealed class PpuControllerTests
     [MemberData(nameof(ReadWriteRegisters))]
     public void WriteRegister_StoresReadWriteRegisters(ushort address, byte value)
     {
-        var ppu = new PpuController(new InterruptController());
+        PpuController ppu = CreatePpu();
 
         ppu.WriteRegister(address, value);
 
@@ -40,7 +41,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void ReadRegister_ReturnsStatusReadMaskAndPpuState()
     {
-        var ppu = new PpuController(new InterruptController());
+        PpuController ppu = CreatePpu();
         ppu.SetRegisterState(AddressMap.LcdControlRegister, LcdEnable);
 
         ppu.SetRegisterState(AddressMap.LcdStatusRegister, 0x85);
@@ -51,7 +52,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void WriteRegister_UpdatesOnlyStatusInterruptSelectBits()
     {
-        var ppu = new PpuController(new InterruptController());
+        PpuController ppu = CreatePpu();
         ppu.SetRegisterState(AddressMap.LcdControlRegister, LcdEnable);
         ppu.SetRegisterState(AddressMap.LcdStatusRegister, 0x85);
 
@@ -63,7 +64,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void WriteRegister_IgnoresLcdYCoordinateWrites()
     {
-        var ppu = new PpuController(new InterruptController());
+        PpuController ppu = CreatePpu();
         ppu.SetRegisterState(AddressMap.LcdYCoordinateRegister, 0x42);
 
         ppu.WriteRegister(AddressMap.LcdYCoordinateRegister, 0x99);
@@ -74,7 +75,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void Tick_AdvancesVisibleScanlineModes()
     {
-        var ppu = new PpuController(new InterruptController());
+        PpuController ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
         ppu.Tick(79);
@@ -94,7 +95,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void AccessProperties_ReflectCurrentPpuMode()
     {
-        var ppu = new PpuController(new InterruptController());
+        PpuController ppu = CreatePpu();
 
         Assert.True(ppu.CanCpuAccessVideoRam);
         Assert.True(ppu.CanCpuAccessObjectAttributeMemory);
@@ -120,7 +121,7 @@ public sealed class PpuControllerTests
     public void Tick_RequestsVBlankInterruptWhenEnteringLineOneHundredFortyFour()
     {
         var interrupts = new InterruptController();
-        var ppu = new PpuController(interrupts);
+        PpuController ppu = CreatePpu(interrupts);
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
         ppu.Tick(456 * 144);
@@ -133,7 +134,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void Tick_WrapsLyAfterLineOneHundredFiftyThree()
     {
-        var ppu = new PpuController(new InterruptController());
+        PpuController ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
         ppu.Tick(456 * 154);
@@ -145,7 +146,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void Tick_DoesNotAdvanceWhenLcdIsDisabled()
     {
-        var ppu = new PpuController(new InterruptController());
+        PpuController ppu = CreatePpu();
 
         ppu.Tick(456 * 154);
 
@@ -156,7 +157,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void WriteRegister_DisablingLcdResetsTiming()
     {
-        var ppu = new PpuController(new InterruptController());
+        PpuController ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
         ppu.Tick(456 * 3);
 
@@ -170,7 +171,7 @@ public sealed class PpuControllerTests
     public void WriteRegister_StatusEnableRequestsLcdInterruptOnRisingStatLine()
     {
         var interrupts = new InterruptController();
-        var ppu = new PpuController(interrupts);
+        PpuController ppu = CreatePpu(interrupts);
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
         ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x08);
@@ -182,7 +183,7 @@ public sealed class PpuControllerTests
     public void Tick_RequestsLcdInterruptOnlyOnStatLineRisingEdge()
     {
         var interrupts = new InterruptController();
-        var ppu = new PpuController(interrupts);
+        PpuController ppu = CreatePpu(interrupts);
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
         ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x08);
 
@@ -199,7 +200,7 @@ public sealed class PpuControllerTests
     public void WriteRegister_LycCompareUpdatesStatusAndRequestsLcdInterruptOnRisingStatLine()
     {
         var interrupts = new InterruptController();
-        var ppu = new PpuController(interrupts);
+        PpuController ppu = CreatePpu(interrupts);
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
         ppu.WriteRegister(AddressMap.LcdYCompareRegister, 0x01);
         ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x40);
@@ -216,7 +217,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void WriteRegister_RetainsLycCompareWhileLcdIsDisabled()
     {
-        var ppu = new PpuController(new InterruptController());
+        PpuController ppu = CreatePpu();
         ppu.SetRegisterState(AddressMap.LcdStatusRegister, 0x84);
         ppu.SetRegisterState(AddressMap.LcdYCoordinateRegister, 0x90);
         ppu.SetRegisterState(AddressMap.LcdYCompareRegister, 0x90);
@@ -232,7 +233,7 @@ public sealed class PpuControllerTests
     public void WriteRegister_EnablingLcdUpdatesLycCompareAndRequestsRisingInterrupt()
     {
         var interrupts = new InterruptController();
-        var ppu = new PpuController(interrupts);
+        PpuController ppu = CreatePpu(interrupts);
         ppu.SetRegisterState(AddressMap.LcdStatusRegister, 0x80);
         ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x40);
 
@@ -249,7 +250,7 @@ public sealed class PpuControllerTests
     public void WriteRegister_EnablingLcdRequestsModeInterruptWhenLycCompareStaysSet()
     {
         var interrupts = new InterruptController();
-        var ppu = new PpuController(interrupts);
+        PpuController ppu = CreatePpu(interrupts);
         ppu.SetRegisterState(AddressMap.LcdStatusRegister, 0x84);
         ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x48);
 
@@ -257,4 +258,7 @@ public sealed class PpuControllerTests
 
         Assert.Equal(LcdInterruptMask, interrupts.InterruptFlag);
     }
+
+    private static PpuController CreatePpu(InterruptController? interrupts = null) =>
+        new(interrupts ?? new InterruptController(), new DmgPpuTimingStrategy());
 }
