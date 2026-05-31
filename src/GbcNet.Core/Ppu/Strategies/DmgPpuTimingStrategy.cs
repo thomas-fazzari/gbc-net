@@ -51,7 +51,13 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
     /// </summary>
     private const byte LastScanline = 153;
 
+    /// <summary>
+    /// SCX low bits are latched at visible scanline start for the initial pixel shift.
+    /// </summary>
+    private const byte ScrollXLowBitsMask = 0x07;
+
     private int _lineDots;
+    private byte _latchedScrollXLowBits;
     private bool _statInterruptLine;
     private bool _firstScanlineAfterLcdEnable;
 
@@ -86,12 +92,14 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
         && (
             _firstScanlineAfterLcdEnable
                 ? IsCpuVideoRamWriteBlocked
-                : _lineDots
-                    is (>= NormalScanlineStatusModeDelayDots and < OamScanDots)
-                        or (>= NormalScanlineDrawingStartDots and < NormalScanlineDrawingEndDots)
+                : (_lineDots >= NormalScanlineStatusModeDelayDots && _lineDots < OamScanDots)
+                    || (
+                        _lineDots >= NormalScanlineDrawingStartDots
+                        && _lineDots < GetCurrentDrawingEndDots()
+                    )
         );
 
-    public PpuInterruptRequest Tick(int tCycles, byte lcdYCompare, byte statusInterruptSelect)
+    public PpuInterruptRequest Tick(int tCycles, PpuTimingInputs inputs)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(tCycles);
 
@@ -100,11 +108,7 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
             return PpuInterruptRequest.None;
         }
 
-        PpuInterruptRequest requests = RefreshPpuState(
-            lcdYCompare,
-            statusInterruptSelect,
-            requestInterrupt: true
-        );
+        PpuInterruptRequest requests = RefreshPpuState(inputs, requestInterrupt: true);
 
         int remainingCycles = tCycles;
         while (remainingCycles > 0)
@@ -123,30 +127,31 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
 
             if (_lineDots == scanlineDots)
             {
-                requests |= AdvanceScanline(lcdYCompare, statusInterruptSelect);
+                requests |= AdvanceScanline(inputs);
                 continue;
             }
 
-            requests |= RefreshPpuState(lcdYCompare, statusInterruptSelect, requestInterrupt: true);
+            requests |= RefreshPpuState(inputs, requestInterrupt: true);
         }
 
         return requests;
     }
 
-    public PpuInterruptRequest EnableLcd(byte lcdYCompare, byte statusInterruptSelect)
+    public PpuInterruptRequest EnableLcd(PpuTimingInputs inputs)
     {
         _lineDots = 0;
+        _latchedScrollXLowBits = (byte)(inputs.ScrollX & ScrollXLowBitsMask);
         _firstScanlineAfterLcdEnable = true;
         StatusMode = PpuMode.HBlank;
         _statInterruptMode = PpuMode.HBlank;
 
         bool oldLycEqualsLy = LycEqualsLy;
-        RefreshLycEqualsLy(lcdYCompare);
+        RefreshLycEqualsLy(inputs.LcdYCompare);
 
-        if (ShouldSuppressStableLycInterrupt(oldLycEqualsLy, statusInterruptSelect))
+        if (ShouldSuppressStableLycInterrupt(oldLycEqualsLy, inputs.StatusInterruptSelect))
         {
             RefreshStatInterruptLine(
-                statusInterruptSelect,
+                inputs.StatusInterruptSelect,
                 lcdEnabled: true,
                 requestInterrupt: false
             );
@@ -154,7 +159,7 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
         }
 
         return RefreshStatInterruptLine(
-            statusInterruptSelect,
+            inputs.StatusInterruptSelect,
             lcdEnabled: true,
             requestInterrupt: true
         );
@@ -163,6 +168,7 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
     public void DisableLcd()
     {
         _lineDots = 0;
+        _latchedScrollXLowBits = 0;
         LcdYCoordinate = 0;
         StatusMode = PpuMode.HBlank;
         _statInterruptMode = PpuMode.HBlank;
@@ -171,53 +177,49 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
     }
 
     public PpuInterruptRequest WriteStatusInterruptSelect(
-        byte statusInterruptSelect,
+        PpuTimingInputs inputs,
         bool lcdEnabled
-    ) => RefreshStatInterruptLine(statusInterruptSelect, lcdEnabled, requestInterrupt: true);
+    ) => RefreshStatInterruptLine(inputs.StatusInterruptSelect, lcdEnabled, requestInterrupt: true);
 
-    public PpuInterruptRequest WriteLycCompare(
-        byte lcdYCompare,
-        byte statusInterruptSelect,
-        bool lcdEnabled
-    )
+    public PpuInterruptRequest WriteLycCompare(PpuTimingInputs inputs, bool lcdEnabled)
     {
         if (!lcdEnabled)
         {
             return PpuInterruptRequest.None;
         }
 
-        RefreshLycEqualsLy(lcdYCompare);
+        RefreshLycEqualsLy(inputs.LcdYCompare);
         return RefreshStatInterruptLine(
-            statusInterruptSelect,
+            inputs.StatusInterruptSelect,
             lcdEnabled: true,
             requestInterrupt: true
         );
     }
 
-    public void SetStatusState(byte value, byte statusInterruptSelect, bool lcdEnabled)
+    public void SetStatusState(byte value, PpuTimingInputs inputs, bool lcdEnabled)
     {
         LycEqualsLy = (value & PpuStatusRegister.LycEqualsLyMask) != 0;
         StatusMode = (PpuMode)(value & PpuStatusRegister.ModeMask);
         _statInterruptMode = StatusMode;
-        RefreshStatInterruptLine(statusInterruptSelect, lcdEnabled, requestInterrupt: false);
+        RefreshStatInterruptLine(inputs.StatusInterruptSelect, lcdEnabled, requestInterrupt: false);
     }
 
-    public void SetLcdYCoordinateState(
-        byte value,
-        byte lcdYCompare,
-        byte statusInterruptSelect,
-        bool lcdEnabled
-    )
+    public void SetLcdYCoordinateState(byte value, PpuTimingInputs inputs, bool lcdEnabled)
     {
         LcdYCoordinate = value;
-        RefreshLycEqualsLy(lcdYCompare);
-        RefreshStatInterruptLine(statusInterruptSelect, lcdEnabled, requestInterrupt: false);
+        if (LcdYCoordinate < VBlankStartLine)
+        {
+            _latchedScrollXLowBits = (byte)(inputs.ScrollX & ScrollXLowBitsMask);
+        }
+
+        RefreshLycEqualsLy(inputs.LcdYCompare);
+        RefreshStatInterruptLine(inputs.StatusInterruptSelect, lcdEnabled, requestInterrupt: false);
     }
 
-    public void SetLycCompareState(byte lcdYCompare, byte statusInterruptSelect, bool lcdEnabled)
+    public void SetLycCompareState(PpuTimingInputs inputs, bool lcdEnabled)
     {
-        RefreshLycEqualsLy(lcdYCompare);
-        RefreshStatInterruptLine(statusInterruptSelect, lcdEnabled, requestInterrupt: false);
+        RefreshLycEqualsLy(inputs.LcdYCompare);
+        RefreshStatInterruptLine(inputs.StatusInterruptSelect, lcdEnabled, requestInterrupt: false);
     }
 
     private int GetCurrentScanlineDots() =>
@@ -225,8 +227,8 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
 
     private int GetCurrentDrawingEndDots() =>
         _firstScanlineAfterLcdEnable
-            ? FirstScanlineAfterLcdEnableDrawingEndDots
-            : NormalScanlineDrawingEndDots;
+            ? FirstScanlineAfterLcdEnableDrawingEndDots + _latchedScrollXLowBits
+            : NormalScanlineDrawingEndDots + _latchedScrollXLowBits;
 
     private int GetNextTimingBoundary(int scanlineDots, int drawingStartDots, int drawingEndDots)
     {
@@ -263,7 +265,7 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
         return _lineDots < drawingEndDots ? drawingEndDots : scanlineDots;
     }
 
-    private PpuInterruptRequest AdvanceScanline(byte lcdYCompare, byte statusInterruptSelect)
+    private PpuInterruptRequest AdvanceScanline(PpuTimingInputs inputs)
     {
         _lineDots = 0;
         _firstScanlineAfterLcdEnable = false;
@@ -271,13 +273,17 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
 
         bool shouldRequestMode2Interrupt =
             !_statInterruptLine
-            && (statusInterruptSelect & PpuStatusRegister.Mode2InterruptSelectMask) != 0;
+            && (inputs.StatusInterruptSelect & PpuStatusRegister.Mode2InterruptSelectMask) != 0;
 
         LcdYCoordinate = LcdYCoordinate == LastScanline ? (byte)0 : (byte)(LcdYCoordinate + 1);
-
-        if (LcdYCoordinate == VBlankStartLine)
+        switch (LcdYCoordinate)
         {
-            requests |= PpuInterruptRequest.VBlank;
+            case < VBlankStartLine:
+                _latchedScrollXLowBits = (byte)(inputs.ScrollX & ScrollXLowBitsMask);
+                break;
+            case VBlankStartLine:
+                requests |= PpuInterruptRequest.VBlank;
+                break;
         }
 
         if (
@@ -288,21 +294,21 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
             requests |= PpuInterruptRequest.Lcd;
         }
 
-        requests |= RefreshPpuState(lcdYCompare, statusInterruptSelect, requestInterrupt: true);
+        requests |= RefreshPpuState(inputs, requestInterrupt: true);
 
         return requests;
     }
 
-    private PpuInterruptRequest RefreshPpuState(
-        byte lcdYCompare,
-        byte statusInterruptSelect,
-        bool requestInterrupt
-    )
+    private PpuInterruptRequest RefreshPpuState(PpuTimingInputs inputs, bool requestInterrupt)
     {
         StatusMode = CalculateMode();
         _statInterruptMode = StatusMode;
-        RefreshLycEqualsLy(lcdYCompare);
-        return RefreshStatInterruptLine(statusInterruptSelect, lcdEnabled: true, requestInterrupt);
+        RefreshLycEqualsLy(inputs.LcdYCompare);
+        return RefreshStatInterruptLine(
+            inputs.StatusInterruptSelect,
+            lcdEnabled: true,
+            requestInterrupt
+        );
     }
 
     private PpuMode CalculateMode()
@@ -319,9 +325,7 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
 
         if (_firstScanlineAfterLcdEnable)
         {
-            return _lineDots < FirstScanlineAfterLcdEnableDrawingEndDots
-                ? PpuMode.Drawing
-                : PpuMode.HBlank;
+            return _lineDots < GetCurrentDrawingEndDots() ? PpuMode.Drawing : PpuMode.HBlank;
         }
 
         return _lineDots switch

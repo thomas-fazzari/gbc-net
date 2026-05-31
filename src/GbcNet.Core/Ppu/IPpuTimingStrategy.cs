@@ -19,28 +19,19 @@ internal interface IPpuTimingStrategy
 
     bool IsCpuObjectAttributeMemoryWriteBlocked { get; }
 
-    PpuInterruptRequest Tick(int tCycles, byte lcdYCompare, byte statusInterruptSelect);
+    PpuInterruptRequest Tick(int tCycles, PpuTimingInputs inputs);
 
-    PpuInterruptRequest EnableLcd(byte lcdYCompare, byte statusInterruptSelect);
+    PpuInterruptRequest EnableLcd(PpuTimingInputs inputs);
 
     void DisableLcd();
 
-    PpuInterruptRequest WriteStatusInterruptSelect(byte statusInterruptSelect, bool lcdEnabled);
+    PpuInterruptRequest WriteStatusInterruptSelect(PpuTimingInputs inputs, bool lcdEnabled);
 
-    PpuInterruptRequest WriteLycCompare(
-        byte lcdYCompare,
-        byte statusInterruptSelect,
-        bool lcdEnabled
-    );
+    PpuInterruptRequest WriteLycCompare(PpuTimingInputs inputs, bool lcdEnabled);
 
-    void SetStatusState(byte value, byte statusInterruptSelect, bool lcdEnabled);
+    void SetStatusState(byte value, PpuTimingInputs inputs, bool lcdEnabled);
 
-    void SetLcdYCoordinateState(
-        byte value,
-        byte lcdYCompare,
-        byte statusInterruptSelect,
-        bool lcdEnabled
-    );
+    void SetLcdYCoordinateState(byte value, PpuTimingInputs inputs, bool lcdEnabled);
 
-    void SetLycCompareState(byte lcdYCompare, byte statusInterruptSelect, bool lcdEnabled);
+    void SetLycCompareState(PpuTimingInputs inputs, bool lcdEnabled);
 }

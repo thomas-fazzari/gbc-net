@@ -20,6 +20,7 @@ public sealed class MooneyeAcceptanceRomTests
     [InlineData("halt_ime0_ei.gb")]
     [InlineData("halt_ime0_nointr_timing.gb")]
     [InlineData("halt_ime1_timing.gb")]
+    [InlineData("ppu/hblank_ly_scx_timing-GS.gb")]
     [InlineData("if_ie_registers.gb")]
     [InlineData("interrupts/ie_push.gb")]
     [InlineData("instr/daa.gb")]
