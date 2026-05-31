@@ -181,6 +181,8 @@ public sealed class Cartridge
             ),
             CartridgeType.Mbc1 or CartridgeType.Mbc1Ram or CartridgeType.Mbc1RamBattery =>
                 Result.Ok<ICartridgeMemoryController>(new Mbc1MemoryController(rom, header)),
+            CartridgeType.Mbc5 or CartridgeType.Mbc5Ram or CartridgeType.Mbc5RamBattery =>
+                Result.Ok<ICartridgeMemoryController>(new Mbc5MemoryController(rom, header)),
             _ => Result.Fail<ICartridgeMemoryController>(
                 new CartridgeLoadError(
                     CartridgeLoadErrorCode.UnsupportedCartridgeType,

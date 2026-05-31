@@ -29,7 +29,7 @@ internal sealed class MemoryBus
 
     private readonly WorkRam _workRam = new();
     private readonly Cartridge _cartridge;
-    private readonly IDmaBusConflictPolicy _dmaBusConflictPolicy;
+    private readonly IDmaTransferStrategy _dmaTransferStrategy;
     private readonly Func<ushort, byte> _readByteForDma;
     private readonly Action<ushort, byte> _writeOamByteForDma;
 
@@ -71,7 +71,7 @@ internal sealed class MemoryBus
     public MemoryBus(Cartridge cartridge, IHardwareStrategy hardwareStrategy)
     {
         _cartridge = cartridge;
-        _dmaBusConflictPolicy = hardwareStrategy.CreateDmaBusConflictPolicy();
+        _dmaTransferStrategy = hardwareStrategy.CreateDmaTransferStrategy();
         Interrupts = new InterruptController();
         Timers = new TimerController(Interrupts);
         Joypad = new JoypadController(Interrupts);
@@ -140,7 +140,7 @@ internal sealed class MemoryBus
         (IsObjectAttributeMemory(address) && Dma.IsCpuOamBlocked)
         || (
             Dma.TryGetCpuConflictSourceAddress(out ushort sourceAddress)
-            && _dmaBusConflictPolicy.IsCpuAddressBlocked(address, sourceAddress)
+            && _dmaTransferStrategy.IsCpuAddressBlocked(address, sourceAddress)
         );
 
     private bool TryReadDmaConflictedByte(ushort address, out byte value)
@@ -157,7 +157,7 @@ internal sealed class MemoryBus
             return false;
         }
 
-        if (_dmaBusConflictPolicy.IsCpuAddressBlocked(address, sourceAddress))
+        if (_dmaTransferStrategy.IsCpuAddressBlocked(address, sourceAddress))
         {
             value = ReadOamDmaSourceByte(sourceAddress);
             return true;
@@ -209,16 +209,22 @@ internal sealed class MemoryBus
         };
     }
 
-    private byte ReadOamDmaSourceByte(ushort address) =>
-        address switch
+    private byte ReadOamDmaSourceByte(ushort address)
+    {
+        if (!_dmaTransferStrategy.TryMapSourceAddress(address, out ushort mappedAddress))
         {
-            <= AddressMap.RomEnd => _cartridge.ReadRom(address),
-            <= AddressMap.VideoRamEnd => Ppu.VideoRam.Read(address),
-            _ => _cartridge.ReadRamOffset(GetOamDmaExternalRamOffset(address)),
-        };
+            return 0xFF;
+        }
 
-    private static ushort GetOamDmaExternalRamOffset(ushort address) =>
-        (ushort)(address & AddressMap.ExternalRamOffsetMask);
+        return mappedAddress switch
+        {
+            <= AddressMap.RomEnd => _cartridge.ReadRom(mappedAddress),
+            <= AddressMap.VideoRamEnd => Ppu.VideoRam.Read(mappedAddress),
+            <= AddressMap.ExternalRamEnd => _cartridge.ReadRam(mappedAddress),
+            <= AddressMap.WorkRamEnd => _workRam.Read(mappedAddress),
+            _ => 0xFF,
+        };
+    }
 
     private void WriteMappedByte(ushort address, byte value)
     {

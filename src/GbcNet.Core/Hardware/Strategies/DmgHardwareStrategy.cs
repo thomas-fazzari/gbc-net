@@ -1,4 +1,5 @@
 using GbcNet.Core.Dma;
+using GbcNet.Core.Dma.Strategies;
 using GbcNet.Core.Ppu;
 using GbcNet.Core.Ppu.Strategies;
 
@@ -11,5 +12,5 @@ internal sealed class DmgHardwareStrategy : IHardwareStrategy
 {
     public IPpuTimingStrategy CreatePpuTimingStrategy() => new DmgPpuTimingStrategy();
 
-    public IDmaBusConflictPolicy CreateDmaBusConflictPolicy() => new DmgDmaBusConflictPolicy();
+    public IDmaTransferStrategy CreateDmaTransferStrategy() => new DmgDmaTransferStrategy();
 }

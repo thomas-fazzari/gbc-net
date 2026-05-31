@@ -1,5 +1,4 @@
 using GbcNet.Core.Cartridges;
-using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Strategies;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
@@ -309,7 +308,7 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
-    public void TickDma_DecodesHighSourcePagesAsExternalRam()
+    public void TickDma_CopiesFromExternalRam()
     {
         byte[] rom = TestRomFactory.Create(bytes =>
         {
@@ -319,7 +318,19 @@ public sealed class MemoryBusTests
         MemoryBus bus = CreateBus(rom);
         bus.WriteByte(0x0000, 0x0A);
         bus.WriteByte(AddressMap.ExternalRamStart, 0x42);
-        bus.WriteByte(AddressMap.WorkRamStart, 0x99);
+
+        bus.WriteByte(AddressMap.DmaRegister, 0xA0);
+        bus.TickDma(2);
+        bus.TickDma(160);
+
+        Assert.Equal(0x42, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+    }
+
+    [Fact]
+    public void TickDma_CopiesFromWorkRam()
+    {
+        MemoryBus bus = CreateBus();
+        bus.WriteByte(AddressMap.WorkRamStart, 0x42);
 
         bus.WriteByte(AddressMap.DmaRegister, 0xC0);
         bus.TickDma(2);
@@ -329,16 +340,10 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
-    public void TickDma_DoesNotReadIoRegistersAsSource()
+    public void TickDma_MirrorsHighSourcePagesToWorkRam()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
-        {
-            bytes[0x0147] = (byte)CartridgeType.Mbc1Ram;
-            bytes[0x0149] = 0x02;
-        });
-        MemoryBus bus = CreateBus(rom);
-        bus.WriteByte(0x0000, 0x0A);
-        bus.WriteByte(0xBF00, 0x42);
+        MemoryBus bus = CreateBus();
+        bus.WriteByte(0xDF00, 0x42);
         bus.WriteByte(AddressMap.JoypadRegister, 0x20);
         bus.Joypad.SetButtonState(JoypadButton.Right, pressed: true);
 
@@ -427,7 +432,7 @@ public sealed class MemoryBusTests
         Assert.Equal(0xAA, bus.ReadByte(AddressMap.VideoRamStart));
         Assert.Equal(0x33, bus.ReadByte(AddressMap.WorkRamStart + 1));
         Assert.Equal(0x44, bus.ReadByte(AddressMap.WorkRamStart + 2));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        Assert.Equal(0x42, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
     }
 
     [Fact]

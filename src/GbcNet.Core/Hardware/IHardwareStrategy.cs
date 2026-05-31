@@ -14,7 +14,7 @@ internal interface IHardwareStrategy
     IPpuTimingStrategy CreatePpuTimingStrategy();
 
     /// <summary>
-    /// Creates the OAM DMA CPU bus conflict strategy for this hardware model.
+    /// Creates the OAM DMA transfer strategy for this hardware model.
     /// </summary>
-    IDmaBusConflictPolicy CreateDmaBusConflictPolicy();
+    IDmaTransferStrategy CreateDmaTransferStrategy();
 }

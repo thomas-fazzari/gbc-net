@@ -46,11 +46,6 @@ internal static class AddressMap
     public const int ExternalRamWindowSize = 8 * 1024;
 
     /// <summary>
-    /// Mask that maps mirrored cartridge external RAM bus addresses into the RAM window.
-    /// </summary>
-    public const ushort ExternalRamOffsetMask = ExternalRamWindowSize - 1;
-
-    /// <summary>
     /// First address of work RAM.
     /// </summary>
     public const ushort WorkRamStart = 0xC000;

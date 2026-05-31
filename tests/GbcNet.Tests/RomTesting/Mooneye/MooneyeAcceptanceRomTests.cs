@@ -10,6 +10,7 @@ public sealed class MooneyeAcceptanceRomTests
 
     [Theory]
     [InlineData("add_sp_e_timing.gb")]
+    [InlineData("bits/mem_oam.gb")]
     [InlineData("bits/reg_f.gb")]
     [InlineData("call_cc_timing.gb")]
     [InlineData("call_cc_timing2.gb")]
@@ -35,6 +36,7 @@ public sealed class MooneyeAcceptanceRomTests
     [InlineData("ppu/lcdon_write_timing-GS.gb")]
     [InlineData("oam_dma/basic.gb")]
     [InlineData("oam_dma/reg_read.gb")]
+    [InlineData("oam_dma/sources-GS.gb")]
     [InlineData("oam_dma_restart.gb")]
     [InlineData("oam_dma_start.gb")]
     [InlineData("oam_dma_timing.gb")]
