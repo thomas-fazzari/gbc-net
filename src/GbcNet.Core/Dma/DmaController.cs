@@ -11,14 +11,20 @@ internal sealed class DmaController
     private const int TransferLength = 0xA0;
     private const int StartupDelayMachineCycles = 2;
 
-    private byte _sourceHighByte;
+    private byte _registerSourceHighByte;
+    private byte _activeSourceHighByte;
+    private byte _pendingRestartSourceHighByte;
+
     private int _nextOffset;
     private int _startupDelayMachineCycles;
+    private int _restartDelayMachineCycles;
+
+    private bool _restartPending;
 
     /// <summary>
     /// Reads FF46 as the last OAM DMA source high byte written by CPU or boot state.
     /// </summary>
-    public byte ReadRegister() => _sourceHighByte;
+    public byte ReadRegister() => _registerSourceHighByte;
 
     /// <summary>
     /// Indicates that OAM DMA has been requested and has not completed yet.
@@ -26,17 +32,22 @@ internal sealed class DmaController
     public bool IsActive { get; private set; }
 
     /// <summary>
+    /// Indicates that CPU OAM reads return FF and CPU OAM writes are ignored during OAM DMA.
+    /// </summary>
+    public bool IsCpuOamBlocked => IsActive && _startupDelayMachineCycles == 0;
+
+    /// <summary>
     /// Gets the most recently copied source address when OAM DMA can conflict with CPU bus access.
     /// </summary>
     public bool TryGetCpuConflictSourceAddress(out ushort sourceAddress)
     {
-        if (!IsActive || _startupDelayMachineCycles != 0 || _nextOffset == 0)
+        if (!IsCpuOamBlocked || _nextOffset == 0)
         {
             sourceAddress = 0;
             return false;
         }
 
-        sourceAddress = (ushort)((_sourceHighByte << SourceAddressShift) + _nextOffset - 1);
+        sourceAddress = (ushort)((_activeSourceHighByte << SourceAddressShift) + _nextOffset - 1);
         return true;
     }
 
@@ -45,10 +56,17 @@ internal sealed class DmaController
     /// </summary>
     public void StartOamTransfer(byte sourceHighByte)
     {
-        _sourceHighByte = sourceHighByte;
-        _nextOffset = 0;
-        IsActive = true;
-        _startupDelayMachineCycles = StartupDelayMachineCycles;
+        _registerSourceHighByte = sourceHighByte;
+
+        if (IsActive)
+        {
+            _pendingRestartSourceHighByte = sourceHighByte;
+            _restartDelayMachineCycles = StartupDelayMachineCycles;
+            _restartPending = true;
+            return;
+        }
+
+        StartTransfer(sourceHighByte, StartupDelayMachineCycles);
     }
 
     /// <summary>
@@ -69,8 +87,11 @@ internal sealed class DmaController
             return;
         }
 
-        int copyCycles = ConsumeStartupDelay(machineCycles);
-        CopyBytes(copyCycles, readSourceByte, writeOamByte);
+        for (int cycle = 0; cycle < machineCycles; cycle++)
+        {
+            TickActiveTransfer(readSourceByte, writeOamByte);
+            TickPendingRestart();
+        }
     }
 
     /// <summary>
@@ -78,41 +99,76 @@ internal sealed class DmaController
     /// </summary>
     internal void SetRegisterState(byte value)
     {
-        _sourceHighByte = value;
+        _registerSourceHighByte = value;
+        _activeSourceHighByte = 0;
+        _pendingRestartSourceHighByte = 0;
         _nextOffset = 0;
         IsActive = false;
         _startupDelayMachineCycles = 0;
+        _restartDelayMachineCycles = 0;
+        _restartPending = false;
     }
 
-    private int ConsumeStartupDelay(int machineCycles)
+    private void StartTransfer(byte sourceHighByte, int startupDelayMachineCycles)
     {
-        int elapsedDelayCycles = Math.Min(_startupDelayMachineCycles, machineCycles);
-
-        _startupDelayMachineCycles -= elapsedDelayCycles;
-
-        return machineCycles - elapsedDelayCycles;
+        _activeSourceHighByte = sourceHighByte;
+        _nextOffset = 0;
+        _startupDelayMachineCycles = startupDelayMachineCycles;
+        IsActive = true;
     }
 
-    private void CopyBytes(
-        int machineCycles,
+    private void TickActiveTransfer(
         Func<ushort, byte> readSourceByte,
         Action<ushort, byte> writeOamByte
     )
     {
-        for (int cycle = 0; cycle < machineCycles && _nextOffset < TransferLength; cycle++)
+        if (!IsActive)
         {
-            ushort sourceAddress = (ushort)((_sourceHighByte << SourceAddressShift) + _nextOffset);
-            ushort destinationAddress = (ushort)(
-                AddressMap.ObjectAttributeMemoryStart + _nextOffset
-            );
-
-            writeOamByte(destinationAddress, readSourceByte(sourceAddress));
-            _nextOffset++;
+            return;
         }
 
-        if (_nextOffset == TransferLength)
+        if (_startupDelayMachineCycles != 0)
         {
-            IsActive = false;
+            _startupDelayMachineCycles--;
+            return;
         }
+
+        CopyByte(readSourceByte, writeOamByte);
+    }
+
+    private void CopyByte(Func<ushort, byte> readSourceByte, Action<ushort, byte> writeOamByte)
+    {
+        ushort sourceAddress = (ushort)(
+            (_activeSourceHighByte << SourceAddressShift) + _nextOffset
+        );
+        ushort destinationAddress = (ushort)(AddressMap.ObjectAttributeMemoryStart + _nextOffset);
+
+        writeOamByte(destinationAddress, readSourceByte(sourceAddress));
+        _nextOffset++;
+
+        if (_nextOffset != TransferLength)
+        {
+            return;
+        }
+
+        IsActive = false;
+    }
+
+    private void TickPendingRestart()
+    {
+        if (!_restartPending)
+        {
+            return;
+        }
+
+        _restartDelayMachineCycles--;
+
+        if (_restartDelayMachineCycles != 0)
+        {
+            return;
+        }
+
+        _restartPending = false;
+        StartTransfer(_pendingRestartSourceHighByte, startupDelayMachineCycles: 0);
     }
 }

@@ -163,25 +163,24 @@ internal sealed class MemoryBus
         IsCpuWriteBlockedByDma(address) || IsCpuVideoMemoryBlockedByPpu(address);
 
     private bool IsCpuWriteBlockedByDma(ushort address) =>
-        Dma.TryGetCpuConflictSourceAddress(out ushort sourceAddress)
-        && IsCpuAddressBlockedByDma(address, sourceAddress);
+        (IsObjectAttributeMemory(address) && Dma.IsCpuOamBlocked)
+        || (
+            Dma.TryGetCpuConflictSourceAddress(out ushort sourceAddress)
+            && IsCpuAddressBlockedByDma(address, sourceAddress)
+        );
 
     private bool TryReadDmaConflictedByte(ushort address, out byte value)
     {
+        if (IsObjectAttributeMemory(address) && Dma.IsCpuOamBlocked)
+        {
+            value = 0xFF;
+            return true;
+        }
+
         if (!Dma.TryGetCpuConflictSourceAddress(out ushort sourceAddress))
         {
             value = 0;
             return false;
-        }
-
-        if (
-            address
-            is >= AddressMap.ObjectAttributeMemoryStart
-                and <= AddressMap.ObjectAttributeMemoryEnd
-        )
-        {
-            value = 0xFF;
-            return true;
         }
 
         if (IsCpuAddressBlockedByDma(address, sourceAddress))
@@ -208,6 +207,11 @@ internal sealed class MemoryBus
         address is >= AddressMap.VideoRamStart and <= AddressMap.VideoRamEnd
             ? DmgDmaBus.Video
             : DmgDmaBus.Main;
+
+    private static bool IsObjectAttributeMemory(ushort address) =>
+        address
+            is >= AddressMap.ObjectAttributeMemoryStart
+                and <= AddressMap.ObjectAttributeMemoryEnd;
 
     private bool IsCpuVideoMemoryBlockedByPpu(ushort address) =>
         address switch

@@ -357,6 +357,23 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
+    public void ReadByte_AllowsObjectAttributeMemoryDuringDmaStartupDelay()
+    {
+        MemoryBus bus = CreateBus();
+        bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0x44);
+
+        bus.WriteByte(AddressMap.DmaRegister, 0x80);
+
+        Assert.Equal(0x44, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+
+        bus.TickDma(1);
+        Assert.Equal(0x44, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+
+        bus.TickDma(1);
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+    }
+
+    [Fact]
     public void ReadByte_AppliesDmgDmaBusConflicts()
     {
         byte[] rom = TestRomFactory.Create(bytes => bytes[0x0000] = 0x11);

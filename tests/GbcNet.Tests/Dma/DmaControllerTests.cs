@@ -14,6 +14,7 @@ public sealed class DmaControllerTests
 
         Assert.Equal(0xC0, dma.ReadRegister());
         Assert.True(dma.IsActive);
+        Assert.False(dma.IsCpuOamBlocked);
     }
 
     [Fact]
@@ -53,6 +54,7 @@ public sealed class DmaControllerTests
         );
 
         Assert.True(dma.IsActive);
+        Assert.True(dma.IsCpuOamBlocked);
         Assert.Empty(writes);
     }
 
@@ -134,7 +136,7 @@ public sealed class DmaControllerTests
     }
 
     [Fact]
-    public void StartOamTransfer_RestartsTransferFromOffsetZero()
+    public void StartOamTransfer_DelaysRestartWhilePreviousTransferKeepsRunning()
     {
         var dma = new DmaController();
         var writes = new List<(ushort Address, byte Value)>();
@@ -153,7 +155,12 @@ public sealed class DmaControllerTests
 
         dma.StartOamTransfer(0xD0);
         dma.Tick(
-            2,
+            1,
+            ReadSourceHighByte,
+            (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
+        );
+        dma.Tick(
+            1,
             ReadSourceHighByte,
             (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
         );
@@ -166,6 +173,8 @@ public sealed class DmaControllerTests
         (ushort Address, byte Value)[] expectedWrites =
         [
             (AddressMap.ObjectAttributeMemoryStart, 0xC0),
+            (AddressMap.ObjectAttributeMemoryStart + 1, 0xC0),
+            (AddressMap.ObjectAttributeMemoryStart + 2, 0xC0),
             (AddressMap.ObjectAttributeMemoryStart, 0xD0),
         ];
         Assert.Equal(expectedWrites, writes);
