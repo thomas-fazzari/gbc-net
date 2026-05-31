@@ -132,6 +132,36 @@ public sealed class PpuControllerTests
     }
 
     [Fact]
+    public void Tick_RequestsModeTwoLcdInterruptWhenEnteringVBlank()
+    {
+        var interrupts = new InterruptController();
+        PpuController ppu = CreatePpu(interrupts);
+        ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
+        ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x20);
+
+        ppu.Tick(456 * 144);
+
+        Assert.Equal(
+            VBlankInterruptMask | LcdInterruptMask,
+            interrupts.InterruptFlag & (VBlankInterruptMask | LcdInterruptMask)
+        );
+    }
+
+    [Fact]
+    public void Tick_RequestsModeTwoLcdInterruptWhenLeavingVBlank()
+    {
+        var interrupts = new InterruptController();
+        PpuController ppu = CreatePpu(interrupts);
+        ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
+        ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x20);
+
+        ppu.Tick(456 * 154);
+
+        Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
+        Assert.Equal(LcdInterruptMask, interrupts.InterruptFlag & LcdInterruptMask);
+    }
+
+    [Fact]
     public void Tick_WrapsLyAfterLineOneHundredFiftyThree()
     {
         PpuController ppu = CreatePpu();

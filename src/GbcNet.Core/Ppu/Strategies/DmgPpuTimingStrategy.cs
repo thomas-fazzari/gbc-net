@@ -81,25 +81,15 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
                 : _lineDots < GetCurrentDrawingEndDots()
         );
 
-    public bool IsCpuObjectAttributeMemoryWriteBlocked
-    {
-        get
-        {
-            if (LcdYCoordinate >= VBlankStartLine)
-            {
-                return false;
-            }
-
-            if (_firstScanlineAfterLcdEnable)
-            {
-                return IsCpuVideoRamWriteBlocked;
-            }
-
-            return _lineDots
-                is (>= NormalScanlineStatusModeDelayDots and < OamScanDots)
-                    or (>= NormalScanlineDrawingStartDots and < NormalScanlineDrawingEndDots);
-        }
-    }
+    public bool IsCpuObjectAttributeMemoryWriteBlocked =>
+        LcdYCoordinate < VBlankStartLine
+        && (
+            _firstScanlineAfterLcdEnable
+                ? IsCpuVideoRamWriteBlocked
+                : _lineDots
+                    is (>= NormalScanlineStatusModeDelayDots and < OamScanDots)
+                        or (>= NormalScanlineDrawingStartDots and < NormalScanlineDrawingEndDots)
+        );
 
     public PpuInterruptRequest Tick(int tCycles, byte lcdYCompare, byte statusInterruptSelect)
     {
@@ -279,17 +269,23 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
         _firstScanlineAfterLcdEnable = false;
         PpuInterruptRequest requests = PpuInterruptRequest.None;
 
-        if (LcdYCoordinate == LastScanline)
+        bool shouldRequestMode2Interrupt =
+            !_statInterruptLine
+            && (statusInterruptSelect & PpuStatusRegister.Mode2InterruptSelectMask) != 0;
+
+        LcdYCoordinate = LcdYCoordinate == LastScanline ? (byte)0 : (byte)(LcdYCoordinate + 1);
+
+        if (LcdYCoordinate == VBlankStartLine)
         {
-            LcdYCoordinate = 0;
+            requests |= PpuInterruptRequest.VBlank;
         }
-        else
+
+        if (
+            shouldRequestMode2Interrupt
+            && (LcdYCoordinate == 0 || LcdYCoordinate == VBlankStartLine)
+        )
         {
-            LcdYCoordinate++;
-            if (LcdYCoordinate == VBlankStartLine)
-            {
-                requests |= PpuInterruptRequest.VBlank;
-            }
+            requests |= PpuInterruptRequest.Lcd;
         }
 
         requests |= RefreshPpuState(lcdYCompare, statusInterruptSelect, requestInterrupt: true);
