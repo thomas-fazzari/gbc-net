@@ -92,7 +92,7 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
         && (
             _firstScanlineAfterLcdEnable
                 ? IsCpuVideoRamWriteBlocked
-                : (_lineDots >= NormalScanlineStatusModeDelayDots && _lineDots < OamScanDots)
+                : _lineDots is >= NormalScanlineStatusModeDelayDots and < OamScanDots
                     || (
                         _lineDots >= NormalScanlineDrawingStartDots
                         && _lineDots < GetCurrentDrawingEndDots()
