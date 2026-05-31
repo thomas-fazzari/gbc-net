@@ -28,8 +28,6 @@ internal static class CbRotateShiftInstructions
     /// </summary>
     private const byte OperationMask = 0x07;
 
-    private const byte PrefixedInstructionByteLength = 2;
-
     private static readonly RotateShiftExecutor[] _operations =
     [
         RotateLeftCircular,
@@ -58,11 +56,7 @@ internal static class CbRotateShiftInstructions
             Register8Operand operand = Register8Operands.DecodeSource(opcodeByte);
             RotateShiftExecutor execute = DecodeOperation(opcodeByte);
 
-            builder.Map(
-                opcodeByte,
-                PrefixedInstructionByteLength,
-                (cpu, _, _) => Execute(cpu, operand, execute)
-            );
+            builder.MapPrefixed(opcodeByte, (cpu, _, _) => Execute(cpu, operand, execute));
         }
     }
 

@@ -20,33 +20,15 @@ internal static class RotateInstructions
     /// </summary>
     private const byte Bit0Mask = 0x01;
 
-    private const byte NoOperandByteLength = 1;
-
     /// <summary>
     /// Maps implemented rotate instructions into the opcode table.
     /// </summary>
     public static void Map(OpcodeTableBuilder builder)
     {
-        builder.Map(
-            RotateLeftCircularAccumulatorOpcode,
-            NoOperandByteLength,
-            static (cpu, _, _) => RotateLeftCircularAccumulator(cpu)
-        );
-        builder.Map(
-            RotateRightCircularAccumulatorOpcode,
-            NoOperandByteLength,
-            static (cpu, _, _) => RotateRightCircularAccumulator(cpu)
-        );
-        builder.Map(
-            RotateLeftAccumulatorOpcode,
-            NoOperandByteLength,
-            static (cpu, _, _) => RotateLeftAccumulator(cpu)
-        );
-        builder.Map(
-            RotateRightAccumulatorOpcode,
-            NoOperandByteLength,
-            static (cpu, _, _) => RotateRightAccumulator(cpu)
-        );
+        builder.MapNoOperand(RotateLeftCircularAccumulatorOpcode, RotateLeftCircularAccumulator);
+        builder.MapNoOperand(RotateRightCircularAccumulatorOpcode, RotateRightCircularAccumulator);
+        builder.MapNoOperand(RotateLeftAccumulatorOpcode, RotateLeftAccumulator);
+        builder.MapNoOperand(RotateRightAccumulatorOpcode, RotateRightAccumulator);
     }
 
     /// <summary>

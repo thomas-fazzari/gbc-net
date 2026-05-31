@@ -21,10 +21,6 @@ internal static class LoadRegisterPairInstructions
     private const byte LoadHlFromStackPointerPlusImmediate8Opcode = 0xF8;
     private const byte LoadStackPointerFromHlOpcode = 0xF9;
 
-    private const byte NoOperandByteLength = 1;
-    private const byte Immediate8ByteLength = 2;
-    private const byte Immediate16ByteLength = 3;
-
     /// <summary>
     /// Maps implemented r16 and r16mem load instructions into the opcode table.
     /// </summary>
@@ -36,9 +32,8 @@ internal static class LoadRegisterPairInstructions
             LoadAddressBcFromAOpcode,
             RegisterPair.BC
         );
-        builder.Map(
+        builder.MapImmediate16(
             LoadAddressImmediate16FromStackPointerOpcode,
-            Immediate16ByteLength,
             ExecuteLoadAddressImmediate16FromStackPointer
         );
         MapReadAccumulatorFromRegisterPairAddress(
@@ -60,38 +55,17 @@ internal static class LoadRegisterPairInstructions
         );
 
         MapLoadRegisterPairImmediate16(builder, LoadHlImmediate16Opcode, RegisterPair.HL);
-        builder.Map(
-            LoadAddressHlIncrementFromAOpcode,
-            NoOperandByteLength,
-            ExecuteLoadAddressHlIncrementFromA
-        );
-        builder.Map(
-            LoadAFromAddressHlIncrementOpcode,
-            NoOperandByteLength,
-            ExecuteLoadAFromAddressHlIncrement
-        );
+        builder.MapNoOperand(LoadAddressHlIncrementFromAOpcode, ExecuteLoadAddressHlIncrementFromA);
+        builder.MapNoOperand(LoadAFromAddressHlIncrementOpcode, ExecuteLoadAFromAddressHlIncrement);
 
         MapLoadRegisterPairImmediate16(builder, LoadSpImmediate16Opcode, RegisterPair.SP);
-        builder.Map(
-            LoadAddressHlDecrementFromAOpcode,
-            NoOperandByteLength,
-            ExecuteLoadAddressHlDecrementFromA
-        );
-        builder.Map(
-            LoadAFromAddressHlDecrementOpcode,
-            NoOperandByteLength,
-            ExecuteLoadAFromAddressHlDecrement
-        );
-        builder.Map(
+        builder.MapNoOperand(LoadAddressHlDecrementFromAOpcode, ExecuteLoadAddressHlDecrementFromA);
+        builder.MapNoOperand(LoadAFromAddressHlDecrementOpcode, ExecuteLoadAFromAddressHlDecrement);
+        builder.MapImmediate8(
             LoadHlFromStackPointerPlusImmediate8Opcode,
-            Immediate8ByteLength,
             ExecuteLoadHlFromStackPointerPlusImmediate8
         );
-        builder.Map(
-            LoadStackPointerFromHlOpcode,
-            NoOperandByteLength,
-            ExecuteLoadStackPointerFromHl
-        );
+        builder.MapNoOperand(LoadStackPointerFromHlOpcode, ExecuteLoadStackPointerFromHl);
     }
 
     /// <summary>
@@ -103,9 +77,8 @@ internal static class LoadRegisterPairInstructions
         RegisterPair registerPair
     )
     {
-        builder.Map(
+        builder.MapImmediate16(
             opcode,
-            Immediate16ByteLength,
             (cpu, lowByte, highByte) =>
                 LoadRegisterPairImmediate16(cpu, registerPair, lowByte, highByte)
         );
@@ -120,10 +93,9 @@ internal static class LoadRegisterPairInstructions
         RegisterPair registerPair
     )
     {
-        builder.Map(
+        builder.MapNoOperand(
             opcode,
-            NoOperandByteLength,
-            (cpu, _, _) => WriteAccumulatorToRegisterPairAddress(cpu, registerPair)
+            cpu => WriteAccumulatorToRegisterPairAddress(cpu, registerPair)
         );
     }
 
@@ -136,10 +108,9 @@ internal static class LoadRegisterPairInstructions
         RegisterPair registerPair
     )
     {
-        builder.Map(
+        builder.MapNoOperand(
             opcode,
-            NoOperandByteLength,
-            (cpu, _, _) => ReadAccumulatorFromRegisterPairAddress(cpu, registerPair)
+            cpu => ReadAccumulatorFromRegisterPairAddress(cpu, registerPair)
         );
     }
 
@@ -162,7 +133,7 @@ internal static class LoadRegisterPairInstructions
     /// <summary>
     /// Executes LD [HL+], A by writing A, then incrementing HL.
     /// </summary>
-    private static void ExecuteLoadAddressHlIncrementFromA(Cpu cpu, byte lowByte, byte highByte)
+    private static void ExecuteLoadAddressHlIncrementFromA(Cpu cpu)
     {
         ushort address = cpu.Registers.HL;
         cpu.WriteBus(address, cpu.Registers.A);
@@ -172,7 +143,7 @@ internal static class LoadRegisterPairInstructions
     /// <summary>
     /// Executes LD A, [HL+] by reading A, then incrementing HL.
     /// </summary>
-    private static void ExecuteLoadAFromAddressHlIncrement(Cpu cpu, byte lowByte, byte highByte)
+    private static void ExecuteLoadAFromAddressHlIncrement(Cpu cpu)
     {
         ushort address = cpu.Registers.HL;
         cpu.Registers.A = cpu.ReadBus(address);
@@ -182,7 +153,7 @@ internal static class LoadRegisterPairInstructions
     /// <summary>
     /// Executes LD [HL-], A by writing A, then decrementing HL.
     /// </summary>
-    private static void ExecuteLoadAddressHlDecrementFromA(Cpu cpu, byte lowByte, byte highByte)
+    private static void ExecuteLoadAddressHlDecrementFromA(Cpu cpu)
     {
         ushort address = cpu.Registers.HL;
         cpu.WriteBus(address, cpu.Registers.A);
@@ -192,7 +163,7 @@ internal static class LoadRegisterPairInstructions
     /// <summary>
     /// Executes LD A, [HL-] by reading A, then decrementing HL.
     /// </summary>
-    private static void ExecuteLoadAFromAddressHlDecrement(Cpu cpu, byte lowByte, byte highByte)
+    private static void ExecuteLoadAFromAddressHlDecrement(Cpu cpu)
     {
         ushort address = cpu.Registers.HL;
         cpu.Registers.A = cpu.ReadBus(address);
@@ -202,11 +173,7 @@ internal static class LoadRegisterPairInstructions
     /// <summary>
     /// Executes LD HL, SP+imm8 using the SP+signed-imm8 flag rules.
     /// </summary>
-    private static void ExecuteLoadHlFromStackPointerPlusImmediate8(
-        Cpu cpu,
-        byte offset,
-        byte highByte
-    )
+    private static void ExecuteLoadHlFromStackPointerPlusImmediate8(Cpu cpu, byte offset)
     {
         (ushort value, byte flags) = InstructionOperands.AddSignedImmediate8WithFlags(
             cpu.Registers.SP,
@@ -220,7 +187,7 @@ internal static class LoadRegisterPairInstructions
     /// <summary>
     /// Executes LD SP, HL by copying HL into the stack pointer without changing flags.
     /// </summary>
-    private static void ExecuteLoadStackPointerFromHl(Cpu cpu, byte lowByte, byte highByte)
+    private static void ExecuteLoadStackPointerFromHl(Cpu cpu)
     {
         cpu.Registers.SP = cpu.Registers.HL;
         cpu.IdleCycle();

@@ -23,10 +23,6 @@ internal static class Load8Instructions
     private const byte LoadAccumulatorFromHighAddressCOpcode = 0xF2;
     private const byte LoadAccumulatorFromAddressImmediate16Opcode = 0xFA;
 
-    private const byte NoOperandByteLength = 1;
-    private const byte Immediate8ByteLength = 2;
-    private const byte Immediate16ByteLength = 3;
-
     /// <summary>
     /// Base address for SM83 high-memory load encodings, addressed as FF00+imm8 or FF00+C.
     /// </summary>
@@ -43,41 +39,34 @@ internal static class Load8Instructions
         MapLoadRegisterImmediate8(builder, LoadEImmediate8Opcode, Register8.E);
         MapLoadRegisterImmediate8(builder, LoadHImmediate8Opcode, Register8.H);
         MapLoadRegisterImmediate8(builder, LoadLImmediate8Opcode, Register8.L);
-        builder.Map(
+        builder.MapImmediate8(
             LoadAddressHlImmediate8Opcode,
-            Immediate8ByteLength,
-            static (cpu, value, _) => cpu.WriteBus(cpu.Registers.HL, value)
+            static (cpu, value) => cpu.WriteBus(cpu.Registers.HL, value)
         );
         MapLoadRegisterImmediate8(builder, LoadAImmediate8Opcode, Register8.A);
         MapLoadRegisterOperand(builder);
-        builder.Map(
+        builder.MapImmediate8(
             LoadHighAddressImmediate8FromAccumulatorOpcode,
-            Immediate8ByteLength,
             ExecuteLoadHighAddressImmediate8FromAccumulator
         );
-        builder.Map(
+        builder.MapNoOperand(
             LoadHighAddressCFromAccumulatorOpcode,
-            NoOperandByteLength,
             ExecuteLoadHighAddressCFromAccumulator
         );
-        builder.Map(
+        builder.MapImmediate16(
             LoadAddressImmediate16FromAccumulatorOpcode,
-            Immediate16ByteLength,
             ExecuteLoadAddressImmediate16FromAccumulator
         );
-        builder.Map(
+        builder.MapImmediate8(
             LoadAccumulatorFromHighAddressImmediate8Opcode,
-            Immediate8ByteLength,
             ExecuteLoadAccumulatorFromHighAddressImmediate8
         );
-        builder.Map(
+        builder.MapNoOperand(
             LoadAccumulatorFromHighAddressCOpcode,
-            NoOperandByteLength,
             ExecuteLoadAccumulatorFromHighAddressC
         );
-        builder.Map(
+        builder.MapImmediate16(
             LoadAccumulatorFromAddressImmediate16Opcode,
-            Immediate16ByteLength,
             ExecuteLoadAccumulatorFromAddressImmediate16
         );
     }
@@ -91,11 +80,7 @@ internal static class Load8Instructions
         Register8 register
     )
     {
-        builder.Map(
-            opcode,
-            Immediate8ByteLength,
-            (cpu, value, _) => cpu.Registers.SetRegister(register, value)
-        );
+        builder.MapImmediate8(opcode, (cpu, value) => cpu.Registers.SetRegister(register, value));
     }
 
     /// <summary>
@@ -117,11 +102,7 @@ internal static class Load8Instructions
             byte opcodeByte = (byte)opcode;
             Register8Operand destination = Register8Operands.DecodeDestination(opcodeByte);
             Register8Operand source = Register8Operands.DecodeSource(opcodeByte);
-            builder.Map(
-                opcodeByte,
-                NoOperandByteLength,
-                (cpu, _, _) => LoadRegisterOperand(cpu, destination, source)
-            );
+            builder.MapNoOperand(opcodeByte, cpu => LoadRegisterOperand(cpu, destination, source));
         }
     }
 
@@ -141,11 +122,7 @@ internal static class Load8Instructions
     /// <summary>
     /// Executes LDH [imm8], A by writing A to FF00+imm8.
     /// </summary>
-    private static void ExecuteLoadHighAddressImmediate8FromAccumulator(
-        Cpu cpu,
-        byte offset,
-        byte highByte
-    )
+    private static void ExecuteLoadHighAddressImmediate8FromAccumulator(Cpu cpu, byte offset)
     {
         cpu.WriteBus(GetHighMemoryAddress(offset), cpu.Registers.A);
     }
@@ -153,7 +130,7 @@ internal static class Load8Instructions
     /// <summary>
     /// Executes LDH [C], A by writing A to FF00+C.
     /// </summary>
-    private static void ExecuteLoadHighAddressCFromAccumulator(Cpu cpu, byte lowByte, byte highByte)
+    private static void ExecuteLoadHighAddressCFromAccumulator(Cpu cpu)
     {
         cpu.WriteBus(GetHighMemoryAddress(cpu.Registers.C), cpu.Registers.A);
     }
@@ -173,11 +150,7 @@ internal static class Load8Instructions
     /// <summary>
     /// Executes LDH A, [imm8] by reading A from FF00+imm8.
     /// </summary>
-    private static void ExecuteLoadAccumulatorFromHighAddressImmediate8(
-        Cpu cpu,
-        byte offset,
-        byte highByte
-    )
+    private static void ExecuteLoadAccumulatorFromHighAddressImmediate8(Cpu cpu, byte offset)
     {
         cpu.Registers.A = cpu.ReadBus(GetHighMemoryAddress(offset));
     }
@@ -185,7 +158,7 @@ internal static class Load8Instructions
     /// <summary>
     /// Executes LDH A, [C] by reading A from FF00+C.
     /// </summary>
-    private static void ExecuteLoadAccumulatorFromHighAddressC(Cpu cpu, byte lowByte, byte highByte)
+    private static void ExecuteLoadAccumulatorFromHighAddressC(Cpu cpu)
     {
         cpu.Registers.A = cpu.ReadBus(GetHighMemoryAddress(cpu.Registers.C));
     }

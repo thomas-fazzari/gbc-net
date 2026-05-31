@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.InteropServices;
 using GbcNet.Core;
 
 namespace GbcNet.Tests.RomTesting.Utils.ResultObservers;
@@ -30,31 +31,8 @@ internal sealed class MooneyeSerialResultObserver : IRomResultObserver
             : null;
     }
 
-    private bool ContainsReport(ReadOnlySpan<byte> report)
-    {
-        for (int offset = 0; offset <= _output.Count - report.Length; offset++)
-        {
-            if (MatchesReportAt(offset, report))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private bool MatchesReportAt(int offset, ReadOnlySpan<byte> report)
-    {
-        for (int index = 0; index < report.Length; index++)
-        {
-            if (_output[offset + index] != report[index])
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
+    private bool ContainsReport(ReadOnlySpan<byte> report) =>
+        CollectionsMarshal.AsSpan(_output).IndexOf(report) >= 0;
 
     private string FormatOutput() =>
         string.Join(

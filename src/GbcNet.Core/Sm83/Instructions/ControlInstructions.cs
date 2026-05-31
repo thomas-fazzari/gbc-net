@@ -13,26 +13,18 @@ internal static class ControlInstructions
     private const byte DisableInterruptsOpcode = 0xF3;
     private const byte EnableInterruptsOpcode = 0xFB;
 
-    private const byte NoOperandByteLength = 1;
-    private const byte PrefixedInstructionByteLength = 2;
-
     /// <summary>
     /// Maps implemented control instructions into the opcode table.
     /// </summary>
     public static void Map(OpcodeTableBuilder builder)
     {
-        builder.Map(NopOpcode, NoOperandByteLength, static (_, _, _) => { });
-        builder.Map(CbPrefixOpcode, PrefixedInstructionByteLength, ExecuteCbPrefix);
-        builder.Map(HaltOpcode, NoOperandByteLength, static (cpu, _, _) => cpu.Halt());
-        builder.Map(
-            DisableInterruptsOpcode,
-            NoOperandByteLength,
-            static (cpu, _, _) => cpu.DisableInterrupts()
-        );
-        builder.Map(
+        builder.MapNoOperand(NopOpcode, static _ => { });
+        builder.MapPrefixed(CbPrefixOpcode, ExecuteCbPrefix);
+        builder.MapNoOperand(HaltOpcode, static cpu => cpu.Halt());
+        builder.MapNoOperand(DisableInterruptsOpcode, static cpu => cpu.DisableInterrupts());
+        builder.MapNoOperand(
             EnableInterruptsOpcode,
-            NoOperandByteLength,
-            static (cpu, _, _) => cpu.EnableInterruptsAfterNextInstruction()
+            static cpu => cpu.EnableInterruptsAfterNextInstruction()
         );
     }
 

@@ -15,8 +15,6 @@ internal static class BitSetResetInstructions
     private const byte BitIndexMask = 0x07;
     private const int BitIndexShift = 3;
 
-    private const byte PrefixedInstructionByteLength = 2;
-
     /// <summary>
     /// Maps all BIT, RES, and SET b3, r8 instructions into the CB-prefixed opcode table.
     /// </summary>
@@ -38,11 +36,7 @@ internal static class BitSetResetInstructions
             byte mask = DecodeBitMask(opcodeByte);
             Register8Operand operand = Register8Operands.DecodeSource(opcodeByte);
 
-            builder.Map(
-                opcodeByte,
-                PrefixedInstructionByteLength,
-                (cpu, _, _) => ExecuteBitTest(cpu, mask, operand)
-            );
+            builder.MapPrefixed(opcodeByte, (cpu, _, _) => ExecuteBitTest(cpu, mask, operand));
         }
     }
 
@@ -62,9 +56,8 @@ internal static class BitSetResetInstructions
             byte mask = DecodeBitMask(opcodeByte);
             Register8Operand operand = Register8Operands.DecodeSource(opcodeByte);
 
-            builder.Map(
+            builder.MapPrefixed(
                 opcodeByte,
-                PrefixedInstructionByteLength,
                 (cpu, _, _) => ExecuteBitMutation(cpu, mask, operand, setBit)
             );
         }

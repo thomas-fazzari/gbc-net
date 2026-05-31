@@ -10,7 +10,6 @@ internal static class StackInstructions
     private const byte PushRegisterPairStartOpcode = 0xC5;
     private const byte PushRegisterPairEndOpcode = 0xF5;
 
-    private const byte NoOperandByteLength = 1;
     private const int StackRegisterPairOpcodeStep = 0x10;
 
     private const byte StackRegisterPairMask = 0x03;
@@ -71,7 +70,7 @@ internal static class StackInstructions
         {
             byte opcodeByte = (byte)opcode;
             StackRegisterPair registerPair = DecodeStackRegisterPair(opcodeByte);
-            builder.Map(opcodeByte, NoOperandByteLength, (cpu, _, _) => execute(cpu, registerPair));
+            builder.MapNoOperand(opcodeByte, cpu => execute(cpu, registerPair));
         }
     }
 

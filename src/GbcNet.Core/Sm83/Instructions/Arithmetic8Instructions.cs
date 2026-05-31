@@ -83,9 +83,6 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private const byte DecimalHighCarryThreshold = 0x9F;
 
-    private const byte NoOperandByteLength = 1;
-    private const byte Immediate8ByteLength = 2;
-
     /// <summary>
     /// Maps implemented 8-bit arithmetic instructions into the opcode table.
     /// </summary>
@@ -101,16 +98,8 @@ internal static class Arithmetic8Instructions
         MapDecrementRegister(builder, DecrementEOpcode, Register8.E);
         MapIncrementRegister(builder, IncrementHOpcode, Register8.H);
         MapDecrementRegister(builder, DecrementHOpcode, Register8.H);
-        builder.Map(
-            DecimalAdjustAccumulatorOpcode,
-            NoOperandByteLength,
-            static (cpu, _, _) => DecimalAdjustAccumulator(cpu)
-        );
-        builder.Map(
-            ComplementAccumulatorOpcode,
-            NoOperandByteLength,
-            static (cpu, _, _) => ComplementAccumulator(cpu)
-        );
+        builder.MapNoOperand(DecimalAdjustAccumulatorOpcode, DecimalAdjustAccumulator);
+        builder.MapNoOperand(ComplementAccumulatorOpcode, ComplementAccumulator);
         MapIncrementRegister(builder, IncrementLOpcode, Register8.L);
         MapDecrementRegister(builder, DecrementLOpcode, Register8.L);
         MapIncrementAddressHl(builder, IncrementAddressHlOpcode);
@@ -204,7 +193,7 @@ internal static class Arithmetic8Instructions
         Register8 register
     )
     {
-        builder.Map(opcode, NoOperandByteLength, (cpu, _, _) => IncrementRegister(cpu, register));
+        builder.MapNoOperand(opcode, cpu => IncrementRegister(cpu, register));
     }
 
     /// <summary>
@@ -216,7 +205,7 @@ internal static class Arithmetic8Instructions
         Register8 register
     )
     {
-        builder.Map(opcode, NoOperandByteLength, (cpu, _, _) => DecrementRegister(cpu, register));
+        builder.MapNoOperand(opcode, cpu => DecrementRegister(cpu, register));
     }
 
     /// <summary>
@@ -224,7 +213,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void MapIncrementAddressHl(OpcodeTableBuilder builder, byte opcode)
     {
-        builder.Map(opcode, NoOperandByteLength, static (cpu, _, _) => IncrementAddressHl(cpu));
+        builder.MapNoOperand(opcode, IncrementAddressHl);
     }
 
     /// <summary>
@@ -232,14 +221,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void MapDecrementAddressHl(OpcodeTableBuilder builder, byte opcode)
     {
-        builder.Map(
-            opcode,
-            NoOperandByteLength,
-            static (cpu, _, _) =>
-            {
-                DecrementAddressHl(cpu);
-            }
-        );
+        builder.MapNoOperand(opcode, DecrementAddressHl);
     }
 
     /// <summary>
@@ -515,7 +497,7 @@ internal static class Arithmetic8Instructions
         {
             byte opcodeByte = (byte)opcode;
             Register8Operand source = Register8Operands.DecodeSource(opcodeByte);
-            builder.Map(opcodeByte, NoOperandByteLength, (cpu, _, _) => execute(cpu, source));
+            builder.MapNoOperand(opcodeByte, cpu => execute(cpu, source));
         }
     }
 
@@ -528,7 +510,7 @@ internal static class Arithmetic8Instructions
         AccumulatorImmediateOperandExecutor execute
     )
     {
-        builder.Map(opcode, Immediate8ByteLength, (cpu, value, _) => execute(cpu, value));
+        builder.MapImmediate8(opcode, (cpu, value) => execute(cpu, value));
     }
 
     /// <summary>

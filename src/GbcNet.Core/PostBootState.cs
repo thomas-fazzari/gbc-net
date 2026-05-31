@@ -13,12 +13,9 @@ internal static class PostBootState
     private const byte DmgAccumulator = 0x01;
     private const byte DmgFlagsBase = (byte)CpuFlag.Zero;
     private const byte DmgFlagsChecksumNonZero = (byte)(CpuFlag.HalfCarry | CpuFlag.Carry);
-    private const byte DmgRegisterB = 0x00;
-    private const byte DmgRegisterC = 0x13;
-    private const byte DmgRegisterD = 0x00;
-    private const byte DmgRegisterE = 0xD8;
-    private const byte DmgRegisterH = 0x01;
-    private const byte DmgRegisterL = 0x4D;
+    private const ushort DmgRegisterBc = 0x0013;
+    private const ushort DmgRegisterDe = 0x00D8;
+    private const ushort DmgRegisterHl = 0x014D;
     private const byte DmgJoypad = 0xCF;
     private const byte DmgSerialTransferData = 0x00;
     private const byte DmgSerialTransferControl = 0x7E;
@@ -56,12 +53,9 @@ internal static class PostBootState
         registers.F = cartridge.Header.HeaderChecksum is 0x00
             ? DmgFlagsBase
             : (byte)(DmgFlagsBase | DmgFlagsChecksumNonZero);
-        registers.B = DmgRegisterB;
-        registers.C = DmgRegisterC;
-        registers.D = DmgRegisterD;
-        registers.E = DmgRegisterE;
-        registers.H = DmgRegisterH;
-        registers.L = DmgRegisterL;
+        registers.BC = DmgRegisterBc;
+        registers.DE = DmgRegisterDe;
+        registers.HL = DmgRegisterHl;
         registers.PC = AddressMap.CartridgeEntryPointStart;
         registers.SP = AddressMap.HighRamEnd;
     }

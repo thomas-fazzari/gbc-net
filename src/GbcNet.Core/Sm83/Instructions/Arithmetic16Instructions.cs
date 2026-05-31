@@ -24,9 +24,6 @@ internal static class Arithmetic16Instructions
     /// </summary>
     private const ushort AddHlHalfCarryMask = 0x0FFF;
 
-    private const byte NoOperandByteLength = 1;
-    private const byte Immediate8ByteLength = 2;
-
     /// <summary>
     /// Maps implemented 16-bit arithmetic instructions into the opcode table.
     /// </summary>
@@ -47,11 +44,7 @@ internal static class Arithmetic16Instructions
         MapIncrementRegisterPair(builder, IncrementSpOpcode, RegisterPair.SP);
         MapAddHlRegisterPair(builder, AddHlSpOpcode, RegisterPair.SP);
         MapDecrementRegisterPair(builder, DecrementSpOpcode, RegisterPair.SP);
-        builder.Map(
-            AddStackPointerImmediate8Opcode,
-            Immediate8ByteLength,
-            ExecuteAddStackPointerImmediate8
-        );
+        builder.MapImmediate8(AddStackPointerImmediate8Opcode, ExecuteAddStackPointerImmediate8);
     }
 
     /// <summary>
@@ -63,11 +56,7 @@ internal static class Arithmetic16Instructions
         RegisterPair registerPair
     )
     {
-        builder.Map(
-            opcode,
-            NoOperandByteLength,
-            (cpu, _, _) => AddHlRegisterPair(cpu, registerPair)
-        );
+        builder.MapNoOperand(opcode, cpu => AddHlRegisterPair(cpu, registerPair));
     }
 
     /// <summary>
@@ -79,11 +68,7 @@ internal static class Arithmetic16Instructions
         RegisterPair registerPair
     )
     {
-        builder.Map(
-            opcode,
-            NoOperandByteLength,
-            (cpu, _, _) => IncrementRegisterPair(cpu, registerPair)
-        );
+        builder.MapNoOperand(opcode, cpu => IncrementRegisterPair(cpu, registerPair));
     }
 
     /// <summary>
@@ -95,11 +80,7 @@ internal static class Arithmetic16Instructions
         RegisterPair registerPair
     )
     {
-        builder.Map(
-            opcode,
-            NoOperandByteLength,
-            (cpu, _, _) => DecrementRegisterPair(cpu, registerPair)
-        );
+        builder.MapNoOperand(opcode, cpu => DecrementRegisterPair(cpu, registerPair));
     }
 
     /// <summary>
@@ -141,7 +122,7 @@ internal static class Arithmetic16Instructions
     /// <summary>
     /// Executes ADD SP, imm8 using the SP+signed-imm8 flag rules.
     /// </summary>
-    private static void ExecuteAddStackPointerImmediate8(Cpu cpu, byte offset, byte highByte)
+    private static void ExecuteAddStackPointerImmediate8(Cpu cpu, byte offset)
     {
         (ushort value, byte flags) = InstructionOperands.AddSignedImmediate8WithFlags(
             cpu.Registers.SP,

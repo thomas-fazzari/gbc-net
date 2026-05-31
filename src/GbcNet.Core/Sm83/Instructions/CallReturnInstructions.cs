@@ -15,9 +15,6 @@ internal static class CallReturnInstructions
     private const byte RestartStartOpcode = 0xC7;
     private const byte RestartEndOpcode = 0xFF;
 
-    private const byte NoOperandByteLength = 1;
-    private const byte Immediate16ByteLength = 3;
-
     private const int ConditionOpcodeStep = 0x08;
     private const int RestartOpcodeStep = 0x08;
     private const byte RestartTargetMask = 0x38;
@@ -28,15 +25,11 @@ internal static class CallReturnInstructions
     public static void Map(OpcodeTableBuilder builder)
     {
         MapReturnCondition(builder);
-        builder.Map(ReturnOpcode, NoOperandByteLength, static (cpu, _, _) => Return(cpu));
-        builder.Map(
-            ReturnInterruptOpcode,
-            NoOperandByteLength,
-            static (cpu, _, _) => ReturnInterrupt(cpu)
-        );
+        builder.MapNoOperand(ReturnOpcode, Return);
+        builder.MapNoOperand(ReturnInterruptOpcode, ReturnInterrupt);
 
         MapCallCondition(builder);
-        builder.Map(CallImmediate16Opcode, Immediate16ByteLength, CallImmediate16);
+        builder.MapImmediate16(CallImmediate16Opcode, CallImmediate16);
 
         MapRestart(builder);
     }
@@ -54,11 +47,7 @@ internal static class CallReturnInstructions
         {
             byte opcodeByte = (byte)opcode;
             ConditionCode conditionCode = InstructionOperands.DecodeConditionCode(opcodeByte);
-            builder.Map(
-                opcodeByte,
-                NoOperandByteLength,
-                (cpu, _, _) => ReturnIf(cpu, conditionCode)
-            );
+            builder.MapNoOperand(opcodeByte, cpu => ReturnIf(cpu, conditionCode));
         }
     }
 
@@ -75,9 +64,8 @@ internal static class CallReturnInstructions
         {
             byte opcodeByte = (byte)opcode;
             ConditionCode conditionCode = InstructionOperands.DecodeConditionCode(opcodeByte);
-            builder.Map(
+            builder.MapImmediate16(
                 opcodeByte,
-                Immediate16ByteLength,
                 (cpu, lowByte, highByte) => CallImmediate16If(cpu, lowByte, highByte, conditionCode)
             );
         }
@@ -96,11 +84,7 @@ internal static class CallReturnInstructions
         {
             byte opcodeByte = (byte)opcode;
             ushort targetAddress = DecodeRestartTarget(opcodeByte);
-            builder.Map(
-                opcodeByte,
-                NoOperandByteLength,
-                (cpu, _, _) => Restart(cpu, targetAddress)
-            );
+            builder.MapNoOperand(opcodeByte, cpu => Restart(cpu, targetAddress));
         }
     }
 

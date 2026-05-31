@@ -15,10 +15,6 @@ internal static class JumpInstructions
     private const byte JumpImmediate16Opcode = 0xC3;
     private const byte JumpHlOpcode = 0xE9;
 
-    private const byte NoOperandByteLength = 1;
-    private const byte Immediate8ByteLength = 2;
-    private const byte Immediate16ByteLength = 3;
-
     private const int ConditionOpcodeStep = 0x08;
 
     /// <summary>
@@ -26,33 +22,28 @@ internal static class JumpInstructions
     /// </summary>
     public static void Map(OpcodeTableBuilder builder)
     {
-        builder.Map(JumpImmediate16Opcode, Immediate16ByteLength, JumpImmediate16);
-        builder.Map(
+        builder.MapImmediate16(JumpImmediate16Opcode, JumpImmediate16);
+        builder.MapImmediate8(
             JumpRelativeImmediate8Opcode,
-            Immediate8ByteLength,
-            static (cpu, offset, _) => JumpRelativeImmediate8(cpu, offset)
+            static (cpu, offset) => JumpRelativeImmediate8(cpu, offset)
         );
-        builder.Map(
+        builder.MapImmediate8(
             JumpRelativeNotZeroImmediate8Opcode,
-            Immediate8ByteLength,
-            static (cpu, offset, _) => JumpRelativeImmediate8If(cpu, offset, ConditionCode.NotZero)
+            static (cpu, offset) => JumpRelativeImmediate8If(cpu, offset, ConditionCode.NotZero)
         );
-        builder.Map(
+        builder.MapImmediate8(
             JumpRelativeZeroImmediate8Opcode,
-            Immediate8ByteLength,
-            static (cpu, offset, _) => JumpRelativeImmediate8If(cpu, offset, ConditionCode.Zero)
+            static (cpu, offset) => JumpRelativeImmediate8If(cpu, offset, ConditionCode.Zero)
         );
-        builder.Map(
+        builder.MapImmediate8(
             JumpRelativeNotCarryImmediate8Opcode,
-            Immediate8ByteLength,
-            static (cpu, offset, _) => JumpRelativeImmediate8If(cpu, offset, ConditionCode.NotCarry)
+            static (cpu, offset) => JumpRelativeImmediate8If(cpu, offset, ConditionCode.NotCarry)
         );
-        builder.Map(
+        builder.MapImmediate8(
             JumpRelativeCarryImmediate8Opcode,
-            Immediate8ByteLength,
-            static (cpu, offset, _) => JumpRelativeImmediate8If(cpu, offset, ConditionCode.Carry)
+            static (cpu, offset) => JumpRelativeImmediate8If(cpu, offset, ConditionCode.Carry)
         );
-        builder.Map(JumpHlOpcode, NoOperandByteLength, static (cpu, _, _) => JumpHl(cpu));
+        builder.MapNoOperand(JumpHlOpcode, JumpHl);
         MapJumpCondition(builder);
     }
 
@@ -69,9 +60,8 @@ internal static class JumpInstructions
         {
             byte opcodeByte = (byte)opcode;
             ConditionCode conditionCode = InstructionOperands.DecodeConditionCode(opcodeByte);
-            builder.Map(
+            builder.MapImmediate16(
                 opcodeByte,
-                Immediate16ByteLength,
                 (cpu, lowByte, highByte) => JumpImmediate16If(cpu, lowByte, highByte, conditionCode)
             );
         }

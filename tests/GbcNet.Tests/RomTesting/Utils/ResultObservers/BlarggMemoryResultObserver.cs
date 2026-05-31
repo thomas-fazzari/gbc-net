@@ -45,7 +45,7 @@ internal sealed class BlarggMemoryResultObserver : IRomResultObserver, ICpuMemor
         };
         Snapshot = new RomTestObservation(Source, status, output, statusCode);
 
-        return status is null ? null : new RomTestObservation(Source, status, output, statusCode);
+        return status is null ? null : Snapshot;
     }
 
     void ICpuMemoryWriteObserver.OnCpuMemoryWritten(ushort address, byte value)

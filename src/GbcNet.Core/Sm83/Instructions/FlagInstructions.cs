@@ -8,23 +8,13 @@ internal static class FlagInstructions
     private const byte SetCarryFlagOpcode = 0x37;
     private const byte ComplementCarryFlagOpcode = 0x3F;
 
-    private const byte NoOperandByteLength = 1;
-
     /// <summary>
     /// Maps implemented flag instructions into the opcode table.
     /// </summary>
     public static void Map(OpcodeTableBuilder builder)
     {
-        builder.Map(
-            SetCarryFlagOpcode,
-            NoOperandByteLength,
-            static (cpu, _, _) => SetCarryFlag(cpu)
-        );
-        builder.Map(
-            ComplementCarryFlagOpcode,
-            NoOperandByteLength,
-            static (cpu, _, _) => ComplementCarryFlag(cpu)
-        );
+        builder.MapNoOperand(SetCarryFlagOpcode, SetCarryFlag);
+        builder.MapNoOperand(ComplementCarryFlagOpcode, ComplementCarryFlag);
     }
 
     /// <summary>
