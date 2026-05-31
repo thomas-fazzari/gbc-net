@@ -34,6 +34,19 @@ public sealed class MooneyeAcceptanceRomTests
     [InlineData("reti_intr_timing.gb")]
     [InlineData("reti_timing.gb")]
     [InlineData("rst_timing.gb")]
+    [InlineData("timer/div_write.gb")]
+    [InlineData("timer/rapid_toggle.gb")]
+    [InlineData("timer/tim00.gb")]
+    [InlineData("timer/tim00_div_trigger.gb")]
+    [InlineData("timer/tim01.gb")]
+    [InlineData("timer/tim01_div_trigger.gb")]
+    [InlineData("timer/tim10.gb")]
+    [InlineData("timer/tim10_div_trigger.gb")]
+    [InlineData("timer/tim11.gb")]
+    [InlineData("timer/tim11_div_trigger.gb")]
+    [InlineData("timer/tima_reload.gb")]
+    [InlineData("timer/tima_write_reloading.gb")]
+    [InlineData("timer/tma_write_reloading.gb")]
     public void AcceptanceRomPasses(string relativePath)
     {
         byte[] rom = File.ReadAllBytes(Path.Combine(RomDirectory, relativePath));
