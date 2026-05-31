@@ -35,12 +35,17 @@ public sealed class DmaControllerTests
     }
 
     [Fact]
-    public void Tick_SkipsCurrentTickAfterTransferStart()
+    public void Tick_WaitsStartupDelayAfterTransferStart()
     {
         var dma = new DmaController();
         var writes = new List<(ushort Address, byte Value)>();
 
         dma.StartOamTransfer(0xC0);
+        dma.Tick(
+            1,
+            ReadLowByte,
+            (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
+        );
         dma.Tick(
             1,
             ReadLowByte,
@@ -52,12 +57,13 @@ public sealed class DmaControllerTests
     }
 
     [Fact]
-    public void Tick_CopiesOneBytePerMachineCycleAfterSkippedTick()
+    public void Tick_CopiesOneBytePerMachineCycleAfterStartupDelay()
     {
         var dma = new DmaController();
         var writes = new List<(ushort Address, byte Value)>();
 
         dma.StartOamTransfer(0xC0);
+        dma.Tick(1, ReadLowByte, (address, value) => writes.Add((address, value)));
         dma.Tick(1, ReadLowByte, (address, value) => writes.Add((address, value)));
         dma.Tick(1, ReadLowByte, (address, value) => writes.Add((address, value)));
 
@@ -74,7 +80,7 @@ public sealed class DmaControllerTests
 
         dma.StartOamTransfer(0xC0);
         dma.Tick(
-            1,
+            2,
             ReadLowByte,
             (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
         );
@@ -101,7 +107,7 @@ public sealed class DmaControllerTests
 
         dma.StartOamTransfer(0xC0);
         dma.Tick(
-            1,
+            2,
             ReadLowByte,
             (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
         );
@@ -135,7 +141,7 @@ public sealed class DmaControllerTests
 
         dma.StartOamTransfer(0xC0);
         dma.Tick(
-            1,
+            2,
             ReadSourceHighByte,
             (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
         );
@@ -147,7 +153,7 @@ public sealed class DmaControllerTests
 
         dma.StartOamTransfer(0xD0);
         dma.Tick(
-            1,
+            2,
             ReadSourceHighByte,
             (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
         );

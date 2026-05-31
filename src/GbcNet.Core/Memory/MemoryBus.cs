@@ -14,6 +14,22 @@ namespace GbcNet.Core.Memory;
 internal sealed class MemoryBus
 {
     /// <summary>
+    /// DMG bus groups used to decide whether CPU memory access conflicts with the current OAM DMA source.
+    /// </summary>
+    private enum DmgDmaBus
+    {
+        /// <summary>
+        /// Non-VRAM DMA bus used by cartridge, external RAM, WRAM, and echo RAM ranges.
+        /// </summary>
+        Main = 0,
+
+        /// <summary>
+        /// VRAM DMA bus used by the 8000-9FFF range.
+        /// </summary>
+        Video = 1,
+    }
+
+    /// <summary>
     /// Plain backing store for HRAM at FF80-FFFE.
     /// </summary>
     private readonly MappedMemory _highRam = new(AddressMap.HighRamStart, AddressMap.HighRamEnd);
@@ -89,7 +105,7 @@ internal sealed class MemoryBus
         Ppu = new PpuController(Interrupts);
         Dma = new DmaController();
         _readByteForDma = ReadOamDmaSourceByte;
-        _writeOamByteForDma = WriteOamByteForDma;
+        _writeOamByteForDma = _objectAttributeMemory.Write;
     }
 
     /// <summary>
@@ -114,16 +130,25 @@ internal sealed class MemoryBus
         }
     }
 
-    public byte ReadByte(ushort address) =>
-        IsCpuMemoryBlocked(address) ? (byte)0xFF : ReadMappedByte(address);
+    public byte ReadByte(ushort address)
+    {
+        if (TryReadDmaConflictedByte(address, out byte value))
+        {
+            return value;
+        }
+
+        return IsCpuVideoMemoryBlockedByPpu(address) ? (byte)0xFF : ReadMappedByte(address);
+    }
 
     public void WriteByte(ushort address, byte value)
     {
-        if (!IsCpuMemoryBlocked(address))
+        if (IsCpuWriteBlocked(address))
         {
-            WriteMappedByte(address, value);
-            CpuMemoryWriteObserver?.OnCpuMemoryWritten(address, value);
+            return;
         }
+
+        WriteMappedByte(address, value);
+        CpuMemoryWriteObserver?.OnCpuMemoryWritten(address, value);
     }
 
     /// <summary>
@@ -134,11 +159,55 @@ internal sealed class MemoryBus
         Dma.Tick(machineCycles, _readByteForDma, _writeOamByteForDma);
     }
 
-    private bool IsCpuMemoryBlocked(ushort address) =>
-        IsCpuMemoryBlockedByDma(address) || IsCpuVideoMemoryBlockedByPpu(address);
+    private bool IsCpuWriteBlocked(ushort address) =>
+        IsCpuWriteBlockedByDma(address) || IsCpuVideoMemoryBlockedByPpu(address);
 
-    private bool IsCpuMemoryBlockedByDma(ushort address) =>
-        Dma.IsActive && address <= AddressMap.ObjectAttributeMemoryEnd;
+    private bool IsCpuWriteBlockedByDma(ushort address) =>
+        Dma.TryGetCpuConflictSourceAddress(out ushort sourceAddress)
+        && IsCpuAddressBlockedByDma(address, sourceAddress);
+
+    private bool TryReadDmaConflictedByte(ushort address, out byte value)
+    {
+        if (!Dma.TryGetCpuConflictSourceAddress(out ushort sourceAddress))
+        {
+            value = 0;
+            return false;
+        }
+
+        if (
+            address
+            is >= AddressMap.ObjectAttributeMemoryStart
+                and <= AddressMap.ObjectAttributeMemoryEnd
+        )
+        {
+            value = 0xFF;
+            return true;
+        }
+
+        if (IsCpuAddressBlockedByDma(address, sourceAddress))
+        {
+            value = ReadOamDmaSourceByte(sourceAddress);
+            return true;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    private static bool IsCpuAddressBlockedByDma(ushort address, ushort sourceAddress)
+    {
+        if (address >= AddressMap.ObjectAttributeMemoryStart)
+        {
+            return address <= AddressMap.ObjectAttributeMemoryEnd;
+        }
+
+        return GetDmgDmaBus(address) == GetDmgDmaBus(sourceAddress);
+    }
+
+    private static DmgDmaBus GetDmgDmaBus(ushort address) =>
+        address is >= AddressMap.VideoRamStart and <= AddressMap.VideoRamEnd
+            ? DmgDmaBus.Video
+            : DmgDmaBus.Main;
 
     private bool IsCpuVideoMemoryBlockedByPpu(ushort address) =>
         address switch
@@ -317,10 +386,5 @@ internal sealed class MemoryBus
                 _ioRegisters.Write(address, value);
                 return;
         }
-    }
-
-    private void WriteOamByteForDma(ushort address, byte value)
-    {
-        _objectAttributeMemory.Write(address, value);
     }
 }
