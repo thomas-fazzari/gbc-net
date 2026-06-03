@@ -92,7 +92,16 @@ internal sealed class PpuController(InterruptController interrupts, IPpuEngine e
         IsLcdEnabled && engine.IsCpuObjectAttributeMemoryWriteBlocked;
 
     private PpuEngineInputs EngineInputs =>
-        new(_control, _lcdYCompare, _statusInterruptSelect, _scrollX, ObjectAttributeMemory);
+        new(
+            _control,
+            _lcdYCompare,
+            _statusInterruptSelect,
+            _scrollY,
+            _scrollX,
+            _backgroundPalette,
+            VideoRam,
+            ObjectAttributeMemory
+        );
 
     /// <summary>
     /// Writes an LCD/PPU register as the CPU sees it.

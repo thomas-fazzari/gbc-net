@@ -12,9 +12,9 @@ public sealed class PpuControllerTests
     private const byte LcdInterruptMask = 0b0000_0010;
     private const byte VBlankInterruptMask = 0b0000_0001;
     private const byte LcdYCompareStatusMask = 0x04;
-    private const int FrameWidth = 160;
-    private const int FrameHeight = 144;
-
+    private const byte BackgroundEnable = 0x01;
+    private const byte UnsignedBackgroundTileData = 0x10;
+    private const byte IdentityPalette = 0xE4;
     public static TheoryData<ushort, byte> ReadWriteRegisters =>
         new()
         {
@@ -132,10 +132,10 @@ public sealed class PpuControllerTests
         Assert.Equal(0x01, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
         Assert.Equal(VBlankInterruptMask, interrupts.InterruptFlag);
         Assert.NotNull(frame);
-        Assert.Equal(FrameWidth, frame.Width);
-        Assert.Equal(FrameHeight, frame.Height);
+        Assert.Equal(PpuGeometry.FrameWidth, frame.Width);
+        Assert.Equal(PpuGeometry.FrameHeight, frame.Height);
         Assert.Equal(LcdPixelFormat.DmgShadeIndex8, frame.PixelFormat);
-        Assert.Equal(FrameWidth * FrameHeight, frame.Pixels.Length);
+        Assert.Equal(PpuGeometry.FrameWidth * PpuGeometry.FrameHeight, frame.Pixels.Length);
     }
 
     [Fact]
@@ -308,8 +308,120 @@ public sealed class PpuControllerTests
         Assert.Equal(0x01, frame.Pixels.Span[0]);
     }
 
+    [Fact]
+    public void Renderer_UsesUnsignedBackgroundTileData()
+    {
+        PpuController ppu = CreatePpu();
+        ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
+        ppu.VideoRam.Write(0x9800, 0x01);
+        WriteTileRow(ppu, 0x8010, row: 0, lowByte: 0x80, highByte: 0x00);
+
+        LcdFrame frame = RenderSecondFrame(
+            ppu,
+            LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
+        );
+
+        Assert.Equal(0x01, frame.Pixels.Span[0]);
+    }
+
+    [Fact]
+    public void Renderer_UsesSignedBackgroundTileData()
+    {
+        PpuController ppu = CreatePpu();
+        ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
+        ppu.VideoRam.Write(0x9800, 0x80);
+        WriteTileRow(ppu, 0x8800, row: 0, lowByte: 0x00, highByte: 0x80);
+
+        LcdFrame frame = RenderSecondFrame(ppu, LcdEnable | BackgroundEnable);
+
+        Assert.Equal(0x02, frame.Pixels.Span[0]);
+    }
+
+    [Fact]
+    public void Renderer_AppliesBackgroundPalette()
+    {
+        PpuController ppu = CreatePpu();
+        ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, 0x10);
+        WriteTileRow(ppu, 0x8000, row: 0, lowByte: 0x00, highByte: 0x80);
+
+        LcdFrame frame = RenderSecondFrame(
+            ppu,
+            LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
+        );
+
+        Assert.Equal(0x01, frame.Pixels.Span[0]);
+    }
+
+    [Fact]
+    public void Renderer_AppliesScrollX()
+    {
+        PpuController ppu = CreatePpu();
+        ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
+        ppu.WriteRegister(AddressMap.ScrollXRegister, 0x08);
+        ppu.VideoRam.Write(0x9801, 0x01);
+        WriteTileRow(ppu, 0x8010, row: 0, lowByte: 0x80, highByte: 0x80);
+
+        LcdFrame frame = RenderSecondFrame(
+            ppu,
+            LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
+        );
+
+        Assert.Equal(0x03, frame.Pixels.Span[0]);
+    }
+
+    [Fact]
+    public void Renderer_AppliesScrollY()
+    {
+        PpuController ppu = CreatePpu();
+        ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
+        ppu.WriteRegister(AddressMap.ScrollYRegister, 0x01);
+        WriteTileRow(ppu, 0x8000, row: 1, lowByte: 0x00, highByte: 0x80);
+
+        LcdFrame frame = RenderSecondFrame(
+            ppu,
+            LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
+        );
+
+        Assert.Equal(0x02, frame.Pixels.Span[0]);
+    }
+
+    [Fact]
+    public void Renderer_FillsVisibleLine()
+    {
+        PpuController ppu = CreatePpu();
+        ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
+        WriteTileRow(ppu, 0x8000, row: 0, lowByte: 0xFF, highByte: 0x00);
+
+        LcdFrame frame = RenderSecondFrame(
+            ppu,
+            LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
+        );
+
+        Assert.Equal(0x01, frame.Pixels.Span[PpuGeometry.FrameWidth - 1]);
+    }
+
     private static PpuController CreatePpu(InterruptController? interrupts = null) =>
         new(interrupts ?? new InterruptController(), new DmgPpuEngine());
+
+    private static LcdFrame RenderSecondFrame(PpuController ppu, byte lcdControl)
+    {
+        ppu.WriteRegister(AddressMap.LcdControlRegister, lcdControl);
+        ppu.Tick(456 * 154);
+        return Assert.IsType<LcdFrame>(ppu.Tick(456 * 144));
+    }
+
+    private static void WriteTileRow(
+        PpuController ppu,
+        ushort tileAddress,
+        int row,
+        byte lowByte,
+        byte highByte
+    )
+    {
+        ushort rowAddress = (ushort)(tileAddress + (row * 2));
+        ppu.VideoRam.Write(rowAddress, lowByte);
+        ppu.VideoRam.Write((ushort)(rowAddress + 1), highByte);
+    }
 
     private static void AssertVideoRamBlocked(PpuController ppu, bool expected)
     {
