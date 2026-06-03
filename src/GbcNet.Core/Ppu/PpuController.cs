@@ -4,12 +4,9 @@ using GbcNet.Core.Memory;
 namespace GbcNet.Core.Ppu;
 
 /// <summary>
-/// Stores CPU-visible Liquid Crystal Display/Pixel Processing Unit registers and delegates model-specific timing.
+/// Stores CPU-visible Liquid Crystal Display/Pixel Processing Unit registers and delegates model-specific behavior.
 /// </summary>
-internal sealed class PpuController(
-    InterruptController interrupts,
-    IPpuTimingStrategy timingStrategy
-)
+internal sealed class PpuController(InterruptController interrupts, IPpuEngine engine)
 {
     /// <summary>
     /// LCDC bit 7 enables LCD/PPU timing.
@@ -57,7 +54,7 @@ internal sealed class PpuController(
             AddressMap.LcdStatusRegister => ReadStatus(),
             AddressMap.ScrollYRegister => _scrollY,
             AddressMap.ScrollXRegister => _scrollX,
-            AddressMap.LcdYCoordinateRegister => timingStrategy.LcdYCoordinate,
+            AddressMap.LcdYCoordinateRegister => engine.LcdYCoordinate,
             AddressMap.LcdYCompareRegister => _lcdYCompare,
             AddressMap.BackgroundPaletteRegister => _backgroundPalette,
             AddressMap.ObjectPalette0Register => _objectPalette0,
@@ -75,27 +72,26 @@ internal sealed class PpuController(
     /// <summary>
     /// Indicates whether the PPU blocks CPU reads from VRAM at 8000-9FFF.
     /// </summary>
-    public bool IsCpuVideoRamReadBlocked => IsLcdEnabled && timingStrategy.IsCpuVideoRamReadBlocked;
+    public bool IsCpuVideoRamReadBlocked => IsLcdEnabled && engine.IsCpuVideoRamReadBlocked;
 
     /// <summary>
     /// Indicates whether the PPU blocks CPU writes to VRAM at 8000-9FFF.
     /// </summary>
-    public bool IsCpuVideoRamWriteBlocked =>
-        IsLcdEnabled && timingStrategy.IsCpuVideoRamWriteBlocked;
+    public bool IsCpuVideoRamWriteBlocked => IsLcdEnabled && engine.IsCpuVideoRamWriteBlocked;
 
     /// <summary>
     /// Indicates whether the PPU blocks CPU reads from OAM at FE00-FE9F.
     /// </summary>
     public bool IsCpuObjectAttributeMemoryReadBlocked =>
-        IsLcdEnabled && timingStrategy.IsCpuObjectAttributeMemoryReadBlocked;
+        IsLcdEnabled && engine.IsCpuObjectAttributeMemoryReadBlocked;
 
     /// <summary>
     /// Indicates whether the PPU blocks CPU writes to OAM at FE00-FE9F.
     /// </summary>
     public bool IsCpuObjectAttributeMemoryWriteBlocked =>
-        IsLcdEnabled && timingStrategy.IsCpuObjectAttributeMemoryWriteBlocked;
+        IsLcdEnabled && engine.IsCpuObjectAttributeMemoryWriteBlocked;
 
-    private PpuTimingInputs TimingInputs =>
+    private PpuEngineInputs EngineInputs =>
         new(_control, _lcdYCompare, _statusInterruptSelect, _scrollX, ObjectAttributeMemory);
 
     /// <summary>
@@ -110,15 +106,13 @@ internal sealed class PpuController(
                 return;
             case AddressMap.LcdStatusRegister:
                 _statusInterruptSelect = (byte)(value & PpuStatusRegister.InterruptSelectMask);
-                RequestInterrupts(
-                    timingStrategy.WriteStatusInterruptSelect(TimingInputs, IsLcdEnabled)
-                );
+                RequestInterrupts(engine.WriteStatusInterruptSelect(EngineInputs, IsLcdEnabled));
                 return;
             case AddressMap.LcdYCoordinateRegister:
                 return;
             case AddressMap.LcdYCompareRegister:
                 _lcdYCompare = value;
-                RequestInterrupts(timingStrategy.WriteLycCompare(TimingInputs, IsLcdEnabled));
+                RequestInterrupts(engine.WriteLycCompare(EngineInputs, IsLcdEnabled));
                 return;
             default:
                 SetReadWriteRegister(address, value);
@@ -127,18 +121,20 @@ internal sealed class PpuController(
     }
 
     /// <summary>
-    /// Advances LCD/PPU timing by elapsed dots.
+    /// Advances the LCD/PPU engine by elapsed dots.
     /// </summary>
-    public void Tick(int tCycles)
+    public LcdFrame? Tick(int tCycles)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(tCycles);
 
         if (!IsLcdEnabled || tCycles == 0)
         {
-            return;
+            return null;
         }
 
-        RequestInterrupts(timingStrategy.Tick(tCycles, TimingInputs));
+        PpuEngineTickResult result = engine.Tick(tCycles, EngineInputs);
+        RequestInterrupts(result.Interrupts);
+        return result.CompletedFrame;
     }
 
     /// <summary>
@@ -153,14 +149,14 @@ internal sealed class PpuController(
                 return;
             case AddressMap.LcdStatusRegister:
                 _statusInterruptSelect = (byte)(value & PpuStatusRegister.InterruptSelectMask);
-                timingStrategy.SetStatusState(value, TimingInputs, IsLcdEnabled);
+                engine.SetStatusState(value, EngineInputs, IsLcdEnabled);
                 return;
             case AddressMap.LcdYCoordinateRegister:
-                timingStrategy.SetLcdYCoordinateState(value, TimingInputs, IsLcdEnabled);
+                engine.SetLcdYCoordinateState(value, EngineInputs, IsLcdEnabled);
                 return;
             case AddressMap.LcdYCompareRegister:
                 _lcdYCompare = value;
-                timingStrategy.SetLycCompareState(TimingInputs, IsLcdEnabled);
+                engine.SetLycCompareState(EngineInputs, IsLcdEnabled);
                 return;
             default:
                 SetReadWriteRegister(address, value);
@@ -170,8 +166,8 @@ internal sealed class PpuController(
 
     private byte ReadStatus()
     {
-        byte lycEqualsLy = timingStrategy.LycEqualsLy ? PpuStatusRegister.LycEqualsLyMask : (byte)0;
-        byte mode = IsLcdEnabled ? (byte)timingStrategy.StatusMode : (byte)PpuMode.HBlank;
+        byte lycEqualsLy = engine.LycEqualsLy ? PpuStatusRegister.LycEqualsLyMask : (byte)0;
+        byte mode = IsLcdEnabled ? (byte)engine.StatusMode : (byte)PpuMode.HBlank;
 
         return (byte)(PpuStatusRegister.ReadMask | _statusInterruptSelect | lycEqualsLy | mode);
     }
@@ -213,13 +209,13 @@ internal sealed class PpuController(
 
         if (wasEnabled && !IsLcdEnabled)
         {
-            timingStrategy.DisableLcd();
+            engine.DisableLcd();
             return;
         }
 
         if (!wasEnabled && IsLcdEnabled)
         {
-            RequestInterrupts(timingStrategy.EnableLcd(TimingInputs));
+            RequestInterrupts(engine.EnableLcd(EngineInputs));
         }
     }
 

@@ -37,7 +37,7 @@ internal sealed class MemoryBus
     public TimerController Timers { get; }
 
     /// <summary>
-    /// Shared divider counter used by timer, serial, and future DIV-APU clocks.
+    /// Shared divider counter used by timer and serial clocks.
     /// </summary>
     public SystemCounter SystemCounter { get; }
 
@@ -81,7 +81,7 @@ internal sealed class MemoryBus
         Joypad = new JoypadController(Interrupts);
         Serial = new SerialController(Interrupts);
         Apu = new ApuController();
-        Ppu = new PpuController(Interrupts, hardwareStrategy.CreatePpuTimingStrategy());
+        Ppu = new PpuController(Interrupts, hardwareStrategy.CreatePpuEngine());
         Dma = new DmaController();
         _readByteForDma = ReadOamDmaSourceByte;
         _writeOamByteForDma = Ppu.ObjectAttributeMemory.Write;

@@ -1,7 +1,7 @@
 using GbcNet.Core.Dma;
 using GbcNet.Core.Dma.Strategies;
 using GbcNet.Core.Ppu;
-using GbcNet.Core.Ppu.Strategies;
+using GbcNet.Core.Ppu.Engines;
 
 namespace GbcNet.Core.Hardware.Strategies;
 
@@ -10,7 +10,7 @@ namespace GbcNet.Core.Hardware.Strategies;
 /// </summary>
 internal sealed class DmgHardwareStrategy : IHardwareStrategy
 {
-    public IPpuTimingStrategy CreatePpuTimingStrategy() => new DmgPpuTimingStrategy();
+    public IPpuEngine CreatePpuEngine() => new DmgPpuEngine();
 
     public IDmaTransferStrategy CreateDmaTransferStrategy() => new DmgDmaTransferStrategy();
 }

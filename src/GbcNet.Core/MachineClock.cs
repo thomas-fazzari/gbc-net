@@ -1,4 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
 using GbcNet.Core.Memory;
+using GbcNet.Core.Ppu;
 
 namespace GbcNet.Core;
 
@@ -12,15 +14,25 @@ internal static class HardwareTiming
 /// </summary>
 internal sealed class MachineClock(MemoryBus bus)
 {
+    private readonly Queue<LcdFrame> _completedFrames = new();
+
     public void TickMachineCycle()
     {
         bus.Timers.AdvanceReloadPipeline();
         ushort fallingEdges = bus.SystemCounter.AdvanceMachineCycle();
         bus.Timers.TickSystemCounter(fallingEdges);
         bus.Serial.TickSystemCounter(fallingEdges);
-        bus.Ppu.Tick(HardwareTiming.MachineCycleTCycles);
+
+        if (bus.Ppu.Tick(HardwareTiming.MachineCycleTCycles) is { } completedFrame)
+        {
+            _completedFrames.Enqueue(completedFrame);
+        }
+
         bus.TickDma(1);
     }
+
+    public bool TryDequeueCompletedFrame([NotNullWhen(true)] out LcdFrame? frame) =>
+        _completedFrames.TryDequeue(out frame);
 }
 
 /// <summary>

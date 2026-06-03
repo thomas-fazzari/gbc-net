@@ -1,13 +1,23 @@
 using System.Runtime.InteropServices;
 using GbcNet.Core.Memory;
 
-namespace GbcNet.Core.Ppu.Strategies;
+namespace GbcNet.Core.Ppu.Engines;
 
 /// <summary>
-/// DMG LCD timing model for LY, STAT mode, STAT interrupt line, and CPU video-memory access.
+/// DMG LCD engine for LY, STAT mode, STAT interrupt line, CPU video-memory access, and frames.
 /// </summary>
-internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
+internal sealed class DmgPpuEngine : IPpuEngine
 {
+    /// <summary>
+    /// Visible DMG LCD width.
+    /// </summary>
+    private const int FrameWidth = 160;
+
+    /// <summary>
+    /// Visible DMG LCD height.
+    /// </summary>
+    private const int FrameHeight = 144;
+
     /// <summary>
     /// One PPU scanline is 456 dots.
     /// </summary>
@@ -145,6 +155,7 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
     private const int VisibleTileCount = 32;
 
     private int _lineDots;
+    private readonly byte[] _frameBuffer = new byte[FrameWidth * FrameHeight];
     private byte _latchedScrollXLowBits;
     private int _latchedObjectPenaltyDots;
     private bool _statInterruptLine;
@@ -188,16 +199,17 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
                     )
         );
 
-    public PpuInterruptRequest Tick(int tCycles, PpuTimingInputs inputs)
+    public PpuEngineTickResult Tick(int tCycles, PpuEngineInputs inputs)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(tCycles);
 
         if (tCycles == 0)
         {
-            return PpuInterruptRequest.None;
+            return new(PpuInterruptRequest.None, CompletedFrame: null);
         }
 
         PpuInterruptRequest requests = RefreshPpuState(inputs, requestInterrupt: true);
+        LcdFrame? completedFrame = null;
 
         int remainingCycles = tCycles;
         while (remainingCycles > 0)
@@ -216,17 +228,19 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
 
             if (_lineDots == scanlineDots)
             {
-                requests |= AdvanceScanline(inputs);
+                PpuEngineTickResult result = AdvanceScanline(inputs);
+                requests |= result.Interrupts;
+                completedFrame ??= result.CompletedFrame;
                 continue;
             }
 
             requests |= RefreshPpuState(inputs, requestInterrupt: true);
         }
 
-        return requests;
+        return new(requests, completedFrame);
     }
 
-    public PpuInterruptRequest EnableLcd(PpuTimingInputs inputs)
+    public PpuInterruptRequest EnableLcd(PpuEngineInputs inputs)
     {
         _lineDots = 0;
         _latchedScrollXLowBits = (byte)(inputs.ScrollX & ScrollXLowBitsMask);
@@ -268,11 +282,11 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
     }
 
     public PpuInterruptRequest WriteStatusInterruptSelect(
-        PpuTimingInputs inputs,
+        PpuEngineInputs inputs,
         bool lcdEnabled
     ) => RefreshStatInterruptLine(inputs.StatusInterruptSelect, lcdEnabled, requestInterrupt: true);
 
-    public PpuInterruptRequest WriteLycCompare(PpuTimingInputs inputs, bool lcdEnabled)
+    public PpuInterruptRequest WriteLycCompare(PpuEngineInputs inputs, bool lcdEnabled)
     {
         if (!lcdEnabled)
         {
@@ -287,7 +301,7 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
         );
     }
 
-    public void SetStatusState(byte value, PpuTimingInputs inputs, bool lcdEnabled)
+    public void SetStatusState(byte value, PpuEngineInputs inputs, bool lcdEnabled)
     {
         LycEqualsLy = (value & PpuStatusRegister.LycEqualsLyMask) != 0;
         StatusMode = (PpuMode)(value & PpuStatusRegister.ModeMask);
@@ -295,7 +309,7 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
         RefreshStatInterruptLine(inputs.StatusInterruptSelect, lcdEnabled, requestInterrupt: false);
     }
 
-    public void SetLcdYCoordinateState(byte value, PpuTimingInputs inputs, bool lcdEnabled)
+    public void SetLcdYCoordinateState(byte value, PpuEngineInputs inputs, bool lcdEnabled)
     {
         LcdYCoordinate = value;
         if (LcdYCoordinate < VBlankStartLine)
@@ -312,7 +326,7 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
         RefreshStatInterruptLine(inputs.StatusInterruptSelect, lcdEnabled, requestInterrupt: false);
     }
 
-    public void SetLycCompareState(PpuTimingInputs inputs, bool lcdEnabled)
+    public void SetLycCompareState(PpuEngineInputs inputs, bool lcdEnabled)
     {
         RefreshLycEqualsLy(inputs.LcdYCompare);
         RefreshStatInterruptLine(inputs.StatusInterruptSelect, lcdEnabled, requestInterrupt: false);
@@ -367,11 +381,12 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
         return scanlineDots;
     }
 
-    private PpuInterruptRequest AdvanceScanline(PpuTimingInputs inputs)
+    private PpuEngineTickResult AdvanceScanline(PpuEngineInputs inputs)
     {
         _lineDots = 0;
         _firstScanlineAfterLcdEnable = false;
         PpuInterruptRequest requests = PpuInterruptRequest.None;
+        LcdFrame? completedFrame = null;
 
         bool shouldRequestMode2Interrupt =
             !_statInterruptLine
@@ -387,6 +402,12 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
             case VBlankStartLine:
                 _latchedObjectPenaltyDots = 0;
                 requests |= PpuInterruptRequest.VBlank;
+                completedFrame = new LcdFrame(
+                    FrameWidth,
+                    FrameHeight,
+                    LcdPixelFormat.DmgShadeIndex8,
+                    _frameBuffer
+                );
                 break;
         }
 
@@ -397,10 +418,10 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
 
         requests |= RefreshPpuState(inputs, requestInterrupt: true);
 
-        return requests;
+        return new(requests, completedFrame);
     }
 
-    private PpuInterruptRequest RefreshPpuState(PpuTimingInputs inputs, bool requestInterrupt)
+    private PpuInterruptRequest RefreshPpuState(PpuEngineInputs inputs, bool requestInterrupt)
     {
         StatusMode = CalculateMode();
         _statInterruptMode = StatusMode;
@@ -441,7 +462,7 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
     private int GetCurrentDrawingStartDots() =>
         _firstScanlineAfterLcdEnable ? OamScanDots : NormalScanlineDrawingStartDots;
 
-    private int CalculateObjectPenaltyDots(PpuTimingInputs inputs)
+    private int CalculateObjectPenaltyDots(PpuEngineInputs inputs)
     {
         if (LcdYCoordinate >= VBlankStartLine || (inputs.LcdControl & ObjectEnableMask) == 0)
         {
@@ -501,7 +522,7 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
         return penaltyDots;
     }
 
-    private int SelectScanlineObjects(PpuTimingInputs inputs, Span<ScanlineObject> objects)
+    private int SelectScanlineObjects(PpuEngineInputs inputs, Span<ScanlineObject> objects)
     {
         int objectHeight = (inputs.LcdControl & ObjectSizeMask) == 0 ? ObjectSize8 : ObjectSize16;
         int selectedCount = 0;

@@ -4,10 +4,10 @@ using GbcNet.Core.Memory;
 namespace GbcNet.Core.Ppu;
 
 /// <summary>
-/// CPU-visible PPU register snapshot used by model-specific timing logic.
+/// CPU-visible PPU state consumed by the model-specific engine.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
-internal readonly record struct PpuTimingInputs(
+internal readonly record struct PpuEngineInputs(
     byte LcdControl,
     byte LcdYCompare,
     byte StatusInterruptSelect,

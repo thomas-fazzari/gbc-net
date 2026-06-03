@@ -3,6 +3,7 @@ using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
+using GbcNet.Core.Ppu;
 using GbcNet.Tests.Cartridges;
 
 namespace GbcNet.Tests;
@@ -10,6 +11,7 @@ namespace GbcNet.Tests;
 public sealed class GameBoyTests
 {
     private const byte HaltOpcode = 0x76;
+    private const byte JumpImmediate16Opcode = 0xC3;
 
     [Fact]
     public void Step_ReturnsCpuMachineCyclesAndTicksTimer()
@@ -77,5 +79,33 @@ public sealed class GameBoyTests
         gameBoy.SetButtonState(JoypadButton.A, pressed: true);
 
         Assert.Equal(0xDE, gameBoy.Bus.ReadByte(AddressMap.JoypadRegister));
+    }
+
+    [Fact]
+    public void Step_RaisesFrameCompletedAfterCpuInstruction()
+    {
+        Cartridge cartridge = ResultAssertions.AssertSuccess(
+            Cartridge.Load(
+                TestRomFactory.Create(bytes =>
+                {
+                    bytes[0x0100] = JumpImmediate16Opcode;
+                    bytes[0x0101] = 0x00;
+                    bytes[0x0102] = 0x01;
+                })
+            )
+        );
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
+        var completedFrames = new List<LcdFrame>();
+        gameBoy.FrameCompleted += (_, e) => completedFrames.Add(e.Frame);
+
+        for (int step = 0; completedFrames.Count == 0 && step < 20_000; step++)
+        {
+            gameBoy.Step();
+        }
+
+        LcdFrame completedFrame = Assert.Single(completedFrames);
+        Assert.Equal(160, completedFrame.Width);
+        Assert.Equal(144, completedFrame.Height);
+        Assert.Equal(LcdPixelFormat.DmgShadeIndex8, completedFrame.PixelFormat);
     }
 }

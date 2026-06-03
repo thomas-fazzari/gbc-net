@@ -3,6 +3,7 @@ using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Strategies;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
+using GbcNet.Core.Ppu;
 using GbcNet.Core.Serial;
 using GbcNet.Core.Sm83;
 
@@ -13,6 +14,8 @@ namespace GbcNet.Core;
 /// </summary>
 public sealed class GameBoy
 {
+    private readonly MachineClock _clock;
+
     /// <summary>
     /// Creates a Game Boy instance using the supplied cartridge.
     /// </summary>
@@ -30,8 +33,8 @@ public sealed class GameBoy
 
         Bus = new MemoryBus(cartridge, hardwareStrategy);
         Bus.Serial.ByteTransferred += OnSerialByteTransferred;
-        var clock = new MachineClock(Bus);
-        Cpu = new Cpu(Bus, clock.TickMachineCycle);
+        _clock = new MachineClock(Bus);
+        Cpu = new Cpu(Bus, _clock.TickMachineCycle);
         HardwareModel = hardwareModel;
         PostBootState.Apply(hardwareModel, cartridge, Cpu, Bus);
     }
@@ -42,12 +45,27 @@ public sealed class GameBoy
     public event EventHandler<SerialByteTransferredEventArgs>? SerialByteTransferred;
 
     /// <summary>
+    /// Raised after a complete visible LCD frame is available at VBlank entry.
+    /// </summary>
+    public event EventHandler<FrameCompletedEventArgs>? FrameCompleted;
+
+    /// <summary>
     /// Executes one CPU step and advances hardware that runs from CPU cycles.
     /// </summary>
     /// <returns>
     /// Elapsed machine cycles.
     /// </returns>
-    public int Step() => Cpu.Step();
+    public int Step()
+    {
+        int machineCycles = Cpu.Step();
+
+        while (_clock.TryDequeueCompletedFrame(out LcdFrame? frame))
+        {
+            FrameCompleted?.Invoke(this, new FrameCompletedEventArgs(frame));
+        }
+
+        return machineCycles;
+    }
 
     /// <summary>
     /// Updates a joypad button state for the emulated machine.

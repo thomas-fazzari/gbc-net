@@ -9,9 +9,9 @@ namespace GbcNet.Core.Hardware;
 internal interface IHardwareStrategy
 {
     /// <summary>
-    /// Creates the LCD timing strategy for this hardware model.
+    /// Creates the LCD/PPU engine for this hardware model.
     /// </summary>
-    IPpuTimingStrategy CreatePpuTimingStrategy();
+    IPpuEngine CreatePpuEngine();
 
     /// <summary>
     /// Creates the OAM DMA transfer strategy for this hardware model.

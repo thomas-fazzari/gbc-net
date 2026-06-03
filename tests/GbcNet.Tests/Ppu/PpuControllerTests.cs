@@ -1,7 +1,7 @@
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu;
-using GbcNet.Core.Ppu.Strategies;
+using GbcNet.Core.Ppu.Engines;
 
 namespace GbcNet.Tests.Ppu;
 
@@ -12,6 +12,8 @@ public sealed class PpuControllerTests
     private const byte LcdInterruptMask = 0b0000_0010;
     private const byte VBlankInterruptMask = 0b0000_0001;
     private const byte LcdYCompareStatusMask = 0x04;
+    private const int FrameWidth = 160;
+    private const int FrameHeight = 144;
 
     public static TheoryData<ushort, byte> ReadWriteRegisters =>
         new()
@@ -124,11 +126,16 @@ public sealed class PpuControllerTests
         PpuController ppu = CreatePpu(interrupts);
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
-        ppu.Tick(456 * 144);
+        LcdFrame? frame = ppu.Tick(456 * 144);
 
         Assert.Equal(144, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
         Assert.Equal(0x01, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
         Assert.Equal(VBlankInterruptMask, interrupts.InterruptFlag);
+        Assert.NotNull(frame);
+        Assert.Equal(FrameWidth, frame.Width);
+        Assert.Equal(FrameHeight, frame.Height);
+        Assert.Equal(LcdPixelFormat.DmgShadeIndex8, frame.PixelFormat);
+        Assert.Equal(FrameWidth * FrameHeight, frame.Pixels.Length);
     }
 
     [Fact]
@@ -178,10 +185,11 @@ public sealed class PpuControllerTests
     {
         PpuController ppu = CreatePpu();
 
-        ppu.Tick(456 * 154);
+        LcdFrame? frame = ppu.Tick(456 * 154);
 
         Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
         Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
+        Assert.Null(frame);
     }
 
     [Fact]
@@ -289,8 +297,19 @@ public sealed class PpuControllerTests
         Assert.Equal(LcdInterruptMask, interrupts.InterruptFlag);
     }
 
+    [Fact]
+    public void LcdFrame_CopiesPixelData()
+    {
+        byte[] pixels = [0x01, 0x02];
+
+        var frame = new LcdFrame(2, 1, LcdPixelFormat.DmgShadeIndex8, pixels);
+        pixels[0] = 0x03;
+
+        Assert.Equal(0x01, frame.Pixels.Span[0]);
+    }
+
     private static PpuController CreatePpu(InterruptController? interrupts = null) =>
-        new(interrupts ?? new InterruptController(), new DmgPpuTimingStrategy());
+        new(interrupts ?? new InterruptController(), new DmgPpuEngine());
 
     private static void AssertVideoRamBlocked(PpuController ppu, bool expected)
     {
