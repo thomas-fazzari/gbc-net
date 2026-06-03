@@ -1,3 +1,6 @@
+using System.Runtime.InteropServices;
+using GbcNet.Core.Memory;
+
 namespace GbcNet.Core.Ppu.Strategies;
 
 /// <summary>
@@ -56,8 +59,94 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
     /// </summary>
     private const byte ScrollXLowBitsMask = 0x07;
 
+    /// <summary>
+    /// LCDC bit that enables OBJ display.
+    /// </summary>
+    private const byte ObjectEnableMask = 0x02;
+
+    /// <summary>
+    /// LCDC bit that selects 8x16 OBJ mode instead of 8x8.
+    /// </summary>
+    private const byte ObjectSizeMask = 0x04;
+
+    /// <summary>
+    /// DMG OAM contains 40 OBJ entries.
+    /// </summary>
+    private const int ObjectCount = 40;
+
+    /// <summary>
+    /// OAM scan can select at most 10 OBJ entries for a scanline.
+    /// </summary>
+    private const int MaxObjectsPerScanline = 10;
+
+    /// <summary>
+    /// Each OBJ entry contains Y, X, tile, and flags.
+    /// </summary>
+    private const int ObjectAttributeSize = 4;
+
+    /// <summary>
+    /// Y coordinate byte offset inside one OBJ entry.
+    /// </summary>
+    private const int ObjectYCoordinateOffset = 0;
+
+    /// <summary>
+    /// X coordinate byte offset inside one OBJ entry.
+    /// </summary>
+    private const int ObjectXCoordinateOffset = 1;
+
+    /// <summary>
+    /// OAM stores OBJ Y as screen Y plus 16.
+    /// </summary>
+    private const int ObjectYScreenOffset = 16;
+
+    /// <summary>
+    /// DMG OBJ size when LCDC bit 2 is clear.
+    /// </summary>
+    private const int ObjectSize8 = 8;
+
+    /// <summary>
+    /// DMG OBJ size when LCDC bit 2 is set.
+    /// </summary>
+    private const int ObjectSize16 = 16;
+
+    /// <summary>
+    /// OBJ fetch adds a six-dot minimum Mode 3 penalty.
+    /// </summary>
+    private const int ObjectBasePenaltyDots = 6;
+
+    /// <summary>
+    /// OBJ with X>=168 is fully hidden on the right side.
+    /// </summary>
+    private const byte FirstFullyHiddenRightObjectX = 168;
+
+    /// <summary>
+    /// OBJ X is stored as screen X plus eight.
+    /// </summary>
+    private const int ObjectXScreenOffset = 8;
+
+    /// <summary>
+    /// Startup penalty for an object fetch session beginning at X mod 8 equal to 0 or 1.
+    /// </summary>
+    private const int SlowObjectSessionStartupDots = 8;
+
+    /// <summary>
+    /// Startup penalty for an object fetch session beginning at X mod 8 equal to 2 or 3.
+    /// </summary>
+    private const int NormalObjectSessionStartupDots = 6;
+
+    /// <summary>
+    /// Startup penalty for an object fetch session beginning at X mod 8 equal to 4, 5, 6, or 7.
+    /// </summary>
+    private const int FastObjectSessionStartupDots = 4;
+
+    /// <summary>
+    /// Visible scanlines span 32 BG tiles horizontally.
+    /// </summary>
+    private const int VisibleTileCount = 32;
+
     private int _lineDots;
     private byte _latchedScrollXLowBits;
+    private int _latchedObjectPenaltyDots;
     private bool _statInterruptLine;
     private bool _firstScanlineAfterLcdEnable;
 
@@ -141,6 +230,7 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
     {
         _lineDots = 0;
         _latchedScrollXLowBits = (byte)(inputs.ScrollX & ScrollXLowBitsMask);
+        _latchedObjectPenaltyDots = CalculateObjectPenaltyDots(inputs);
         _firstScanlineAfterLcdEnable = true;
         StatusMode = PpuMode.HBlank;
         _statInterruptMode = PpuMode.HBlank;
@@ -148,27 +238,28 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
         bool oldLycEqualsLy = LycEqualsLy;
         RefreshLycEqualsLy(inputs.LcdYCompare);
 
-        if (ShouldSuppressStableLycInterrupt(oldLycEqualsLy, inputs.StatusInterruptSelect))
+        if (!ShouldSuppressStableLycInterrupt(oldLycEqualsLy, inputs.StatusInterruptSelect))
         {
-            RefreshStatInterruptLine(
+            return RefreshStatInterruptLine(
                 inputs.StatusInterruptSelect,
                 lcdEnabled: true,
-                requestInterrupt: false
+                requestInterrupt: true
             );
-            return PpuInterruptRequest.None;
         }
 
-        return RefreshStatInterruptLine(
+        RefreshStatInterruptLine(
             inputs.StatusInterruptSelect,
             lcdEnabled: true,
-            requestInterrupt: true
+            requestInterrupt: false
         );
+        return PpuInterruptRequest.None;
     }
 
     public void DisableLcd()
     {
         _lineDots = 0;
         _latchedScrollXLowBits = 0;
+        _latchedObjectPenaltyDots = 0;
         LcdYCoordinate = 0;
         StatusMode = PpuMode.HBlank;
         _statInterruptMode = PpuMode.HBlank;
@@ -210,6 +301,11 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
         if (LcdYCoordinate < VBlankStartLine)
         {
             _latchedScrollXLowBits = (byte)(inputs.ScrollX & ScrollXLowBitsMask);
+            _latchedObjectPenaltyDots = CalculateObjectPenaltyDots(inputs);
+        }
+        else
+        {
+            _latchedObjectPenaltyDots = 0;
         }
 
         RefreshLycEqualsLy(inputs.LcdYCompare);
@@ -225,10 +321,14 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
     private int GetCurrentScanlineDots() =>
         _firstScanlineAfterLcdEnable ? FirstScanlineAfterLcdEnableDots : ScanlineDots;
 
-    private int GetCurrentDrawingEndDots() =>
-        _firstScanlineAfterLcdEnable
-            ? FirstScanlineAfterLcdEnableDrawingEndDots + _latchedScrollXLowBits
-            : NormalScanlineDrawingEndDots + _latchedScrollXLowBits;
+    private int GetCurrentDrawingEndDots()
+    {
+        int drawingEndDots = _firstScanlineAfterLcdEnable
+            ? FirstScanlineAfterLcdEnableDrawingEndDots
+            : NormalScanlineDrawingEndDots;
+
+        return drawingEndDots + _latchedScrollXLowBits + _latchedObjectPenaltyDots;
+    }
 
     private int GetNextTimingBoundary(int scanlineDots, int drawingStartDots, int drawingEndDots)
     {
@@ -247,22 +347,24 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
             return _lineDots < drawingEndDots ? drawingEndDots : scanlineDots;
         }
 
-        if (_lineDots < NormalScanlineStatusModeDelayDots)
+        ReadOnlySpan<int> thresholds =
+        [
+            NormalScanlineStatusModeDelayDots,
+            OamScanDots,
+            drawingStartDots,
+            drawingEndDots,
+            scanlineDots,
+        ];
+
+        foreach (int threshold in thresholds)
         {
-            return NormalScanlineStatusModeDelayDots;
+            if (_lineDots < threshold)
+            {
+                return threshold;
+            }
         }
 
-        if (_lineDots < OamScanDots)
-        {
-            return OamScanDots;
-        }
-
-        if (_lineDots < drawingStartDots)
-        {
-            return drawingStartDots;
-        }
-
-        return _lineDots < drawingEndDots ? drawingEndDots : scanlineDots;
+        return scanlineDots;
     }
 
     private PpuInterruptRequest AdvanceScanline(PpuTimingInputs inputs)
@@ -280,16 +382,15 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
         {
             case < VBlankStartLine:
                 _latchedScrollXLowBits = (byte)(inputs.ScrollX & ScrollXLowBitsMask);
+                _latchedObjectPenaltyDots = CalculateObjectPenaltyDots(inputs);
                 break;
             case VBlankStartLine:
+                _latchedObjectPenaltyDots = 0;
                 requests |= PpuInterruptRequest.VBlank;
                 break;
         }
 
-        if (
-            shouldRequestMode2Interrupt
-            && (LcdYCoordinate == 0 || LcdYCoordinate == VBlankStartLine)
-        )
+        if (shouldRequestMode2Interrupt && LcdYCoordinate is 0 or VBlankStartLine)
         {
             requests |= PpuInterruptRequest.Lcd;
         }
@@ -318,27 +419,142 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
             return PpuMode.VBlank;
         }
 
-        if (_firstScanlineAfterLcdEnable && LcdYCoordinate == 0 && _lineDots < OamScanDots)
+        if (!_firstScanlineAfterLcdEnable)
+        {
+            return _lineDots switch
+            {
+                < NormalScanlineStatusModeDelayDots => PpuMode.HBlank,
+                < NormalScanlineDrawingStartDots => PpuMode.OamScan,
+                _ when _lineDots < GetCurrentDrawingEndDots() => PpuMode.Drawing,
+                _ => PpuMode.HBlank,
+            };
+        }
+
+        if (LcdYCoordinate == 0 && _lineDots < OamScanDots)
         {
             return PpuMode.HBlank;
         }
 
-        if (_firstScanlineAfterLcdEnable)
-        {
-            return _lineDots < GetCurrentDrawingEndDots() ? PpuMode.Drawing : PpuMode.HBlank;
-        }
-
-        return _lineDots switch
-        {
-            < NormalScanlineStatusModeDelayDots => PpuMode.HBlank,
-            < NormalScanlineDrawingStartDots => PpuMode.OamScan,
-            _ when _lineDots < GetCurrentDrawingEndDots() => PpuMode.Drawing,
-            _ => PpuMode.HBlank,
-        };
+        return _lineDots < GetCurrentDrawingEndDots() ? PpuMode.Drawing : PpuMode.HBlank;
     }
 
     private int GetCurrentDrawingStartDots() =>
         _firstScanlineAfterLcdEnable ? OamScanDots : NormalScanlineDrawingStartDots;
+
+    private int CalculateObjectPenaltyDots(PpuTimingInputs inputs)
+    {
+        if (LcdYCoordinate >= VBlankStartLine || (inputs.LcdControl & ObjectEnableMask) == 0)
+        {
+            return 0;
+        }
+
+        Span<ScanlineObject> objects = stackalloc ScanlineObject[MaxObjectsPerScanline];
+        int objectCount = SelectScanlineObjects(inputs, objects);
+        objects = objects[..objectCount];
+        objects.Sort(
+            static (left, right) =>
+            {
+                int xComparison = left.X.CompareTo(right.X);
+                return xComparison != 0 ? xComparison : left.Index.CompareTo(right.Index);
+            }
+        );
+
+        int penaltyDots = 0;
+        int index = 0;
+        while (index < objects.Length)
+        {
+            ScanlineObject firstObject = objects[index];
+            if (firstObject.X >= FirstFullyHiddenRightObjectX)
+            {
+                index++;
+                continue;
+            }
+
+            int tileIndex = GetObjectTileIndex(firstObject.X, _latchedScrollXLowBits);
+            int sessionEnd = index + 1;
+            while (
+                sessionEnd < objects.Length
+                && objects[sessionEnd].X < FirstFullyHiddenRightObjectX
+                && GetObjectTileIndex(objects[sessionEnd].X, _latchedScrollXLowBits) == tileIndex
+            )
+            {
+                sessionEnd++;
+            }
+
+            penaltyDots += GetObjectSessionStartupDots(firstObject.X);
+            penaltyDots += (sessionEnd - index - 1) * ObjectBasePenaltyDots;
+
+            for (int laterIndex = sessionEnd; laterIndex < objects.Length; laterIndex++)
+            {
+                if (objects[laterIndex].X >= FirstFullyHiddenRightObjectX)
+                {
+                    continue;
+                }
+
+                penaltyDots += GetObjectSessionShutdownDots(objects[sessionEnd - 1].X);
+                break;
+            }
+
+            index = sessionEnd;
+        }
+
+        return penaltyDots;
+    }
+
+    private int SelectScanlineObjects(PpuTimingInputs inputs, Span<ScanlineObject> objects)
+    {
+        int objectHeight = (inputs.LcdControl & ObjectSizeMask) == 0 ? ObjectSize8 : ObjectSize16;
+        int selectedCount = 0;
+
+        for (int objectIndex = 0; objectIndex < ObjectCount; objectIndex++)
+        {
+            ushort objectAddress = (ushort)(
+                AddressMap.ObjectAttributeMemoryStart + (objectIndex * ObjectAttributeSize)
+            );
+            byte objectY = inputs.ObjectAttributeMemory.Read(
+                (ushort)(objectAddress + ObjectYCoordinateOffset)
+            );
+            int objectTop = objectY - ObjectYScreenOffset;
+            if (objectTop > LcdYCoordinate || objectTop + objectHeight <= LcdYCoordinate)
+            {
+                continue;
+            }
+
+            objects[selectedCount] = new(
+                objectIndex,
+                inputs.ObjectAttributeMemory.Read((ushort)(objectAddress + ObjectXCoordinateOffset))
+            );
+            selectedCount++;
+
+            if (selectedCount == MaxObjectsPerScanline)
+            {
+                return selectedCount;
+            }
+        }
+
+        return selectedCount;
+    }
+
+    private static int GetObjectTileIndex(byte objectX, byte scrollXLowBits)
+    {
+        int pixel = objectX - ObjectXScreenOffset + scrollXLowBits;
+        return (pixel >> 3) & (VisibleTileCount - 1);
+    }
+
+    private static int GetObjectSessionStartupDots(byte objectX) =>
+        (objectX & ScrollXLowBitsMask) switch
+        {
+            <= 1 => SlowObjectSessionStartupDots,
+            <= 3 => NormalObjectSessionStartupDots,
+            _ => FastObjectSessionStartupDots,
+        };
+
+    private static int GetObjectSessionShutdownDots(byte objectX) =>
+        (objectX & ScrollXLowBitsMask) switch
+        {
+            0 or 2 or 4 => 3,
+            _ => 2,
+        };
 
     private void RefreshLycEqualsLy(byte lcdYCompare)
     {
@@ -389,4 +605,7 @@ internal sealed class DmgPpuTimingStrategy : IPpuTimingStrategy
         && LycEqualsLy
         && (statusInterruptSelect & PpuStatusRegister.LycEqualsLyInterruptSelectMask) != 0
         && (statusInterruptSelect & PpuStatusRegister.Mode0InterruptSelectMask) == 0;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private readonly record struct ScanlineObject(int Index, byte X);
 }

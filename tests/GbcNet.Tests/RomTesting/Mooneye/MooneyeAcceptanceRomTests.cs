@@ -48,6 +48,7 @@ public sealed class MooneyeAcceptanceRomTests
     [InlineData("ppu/intr_1_2_timing-GS.gb")]
     [InlineData("ppu/intr_2_0_timing.gb")]
     [InlineData("ppu/intr_2_mode0_timing.gb")]
+    [InlineData("ppu/intr_2_mode0_timing_sprites.gb")]
     [InlineData("ppu/intr_2_mode3_timing.gb")]
     [InlineData("ppu/intr_2_oam_ok_timing.gb")]
     [InlineData("ppu/stat_irq_blocking.gb")]

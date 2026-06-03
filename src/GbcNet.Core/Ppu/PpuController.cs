@@ -95,7 +95,8 @@ internal sealed class PpuController(
     public bool IsCpuObjectAttributeMemoryWriteBlocked =>
         IsLcdEnabled && timingStrategy.IsCpuObjectAttributeMemoryWriteBlocked;
 
-    private PpuTimingInputs TimingInputs => new(_lcdYCompare, _statusInterruptSelect, _scrollX);
+    private PpuTimingInputs TimingInputs =>
+        new(_control, _lcdYCompare, _statusInterruptSelect, _scrollX, ObjectAttributeMemory);
 
     /// <summary>
     /// Writes an LCD/PPU register as the CPU sees it.
