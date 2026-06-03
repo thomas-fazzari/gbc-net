@@ -8,9 +8,9 @@ namespace GbcNet.Core.Serial;
 internal sealed class SerialController(InterruptController interrupts)
 {
     /// <summary>
-    /// DMG internal serial clock period for one transferred bit.
+    /// DMG serial master clock toggles on falling edges of divider bit 7.
     /// </summary>
-    private const int InternalClockBitPeriodTCycles = 512;
+    private const ushort MasterClockFallingEdgeMask = 1 << 7;
 
     /// <summary>
     /// Serial transfers complete after shifting eight bits.
@@ -44,8 +44,8 @@ internal sealed class SerialController(InterruptController interrupts)
 
     private byte _control;
     private byte _outgoingTransferData;
-    private int _elapsedTransferCycles;
     private int _transferredBitCount;
+    private bool _masterClockHigh;
     private bool _transferActive;
 
     /// <summary>
@@ -68,9 +68,14 @@ internal sealed class SerialController(InterruptController interrupts)
     /// </summary>
     public void WriteControl(byte value)
     {
-        _control = (byte)(value & ControlWriteMask);
-        _elapsedTransferCycles = 0;
         _transferredBitCount = 0;
+
+        if (_masterClockHigh)
+        {
+            TickSerialMasterClock();
+        }
+
+        _control = (byte)(value & ControlWriteMask);
         _transferActive = (_control & TransferStartMask) != 0;
         _outgoingTransferData = _transferActive ? TransferData : (byte)0;
     }
@@ -81,37 +86,43 @@ internal sealed class SerialController(InterruptController interrupts)
     internal void SetControlState(byte value)
     {
         _control = (byte)(value & ControlWriteMask);
-        _elapsedTransferCycles = 0;
         _transferredBitCount = 0;
         _transferActive = false;
         _outgoingTransferData = 0;
     }
 
     /// <summary>
-    /// Advances an internal-clock serial transfer by elapsed T-cycles.
+    /// Seeds the serial master clock phase from the shared divider counter.
     /// </summary>
-    public void Tick(int tCycles)
+    internal void SetMasterClockStateFromCounter(ushort counter)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(tCycles);
+        _masterClockHigh = ((counter >> 8) & 1) != 0;
+    }
 
-        if (!IsInternalClockTransferActive())
+    /// <summary>
+    /// Applies falling edges produced by the shared divider counter.
+    /// </summary>
+    public void TickSystemCounter(ushort fallingEdges)
+    {
+        if ((fallingEdges & MasterClockFallingEdgeMask) == 0)
         {
             return;
         }
 
-        _elapsedTransferCycles += tCycles;
-        while (
-            IsInternalClockTransferActive()
-            && _elapsedTransferCycles >= InternalClockBitPeriodTCycles
-        )
-        {
-            _elapsedTransferCycles -= InternalClockBitPeriodTCycles;
-            ShiftDisconnectedInputBit();
-        }
+        TickSerialMasterClock();
     }
 
-    private bool IsInternalClockTransferActive() =>
-        _transferActive && (_control & InternalClockMask) != 0;
+    private void TickSerialMasterClock()
+    {
+        _masterClockHigh = !_masterClockHigh;
+
+        if (_masterClockHigh || !_transferActive || (_control & InternalClockMask) == 0)
+        {
+            return;
+        }
+
+        ShiftDisconnectedInputBit();
+    }
 
     private void ShiftDisconnectedInputBit()
     {
@@ -127,7 +138,6 @@ internal sealed class SerialController(InterruptController interrupts)
     private void CompleteTransfer()
     {
         _control = (byte)(_control & ~TransferStartMask);
-        _elapsedTransferCycles = 0;
         _transferredBitCount = 0;
         _transferActive = false;
         interrupts.Request(InterruptSource.Serial);

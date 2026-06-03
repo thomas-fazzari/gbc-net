@@ -60,6 +60,7 @@ public sealed class MooneyeAcceptanceRomTests
     [InlineData("reti_intr_timing.gb")]
     [InlineData("reti_timing.gb")]
     [InlineData("rst_timing.gb")]
+    [InlineData("serial/boot_sclk_align-dmgABCmgb.gb")]
     [InlineData("timer/div_write.gb")]
     [InlineData("timer/rapid_toggle.gb")]
     [InlineData("timer/tim00.gb")]

@@ -186,7 +186,7 @@ public sealed class MemoryBusTests
         Assert.Equal(0x12, bus.ReadByte(AddressMap.SerialTransferDataRegister));
         Assert.Equal(0xFF, bus.ReadByte(AddressMap.SerialTransferControlRegister));
 
-        bus.Serial.Tick(512 * 8);
+        TickMachineCycles(bus, 128 * 8);
 
         Assert.Equal(0xFF, bus.ReadByte(AddressMap.SerialTransferDataRegister));
         Assert.Equal(0x7F, bus.ReadByte(AddressMap.SerialTransferControlRegister));
@@ -231,7 +231,7 @@ public sealed class MemoryBusTests
     public void ReadWriteByte_RoutesTimerRegisters()
     {
         MemoryBus bus = CreateBus();
-        TickTimerMachineCycles(bus, 64);
+        TickMachineCycles(bus, 64);
 
         Assert.Equal(0x01, bus.ReadByte(AddressMap.DividerRegister));
 
@@ -500,7 +500,7 @@ public sealed class MemoryBusTests
 
         bus.SetHardwareRegisterState(AddressMap.SerialTransferDataRegister, 0x00);
         bus.SetHardwareRegisterState(AddressMap.SerialTransferControlRegister, 0x81);
-        bus.Serial.Tick(512 * 8);
+        TickMachineCycles(bus, 128 * 8);
 
         Assert.Equal(0x00, bus.ReadByte(AddressMap.SerialTransferDataRegister));
         Assert.Equal(0xFF, bus.ReadByte(AddressMap.SerialTransferControlRegister));
@@ -542,11 +542,14 @@ public sealed class MemoryBusTests
         return new MemoryBus(cartridge, new DmgHardwareStrategy());
     }
 
-    private static void TickTimerMachineCycles(MemoryBus bus, int machineCycles)
+    private static void TickMachineCycles(MemoryBus bus, int machineCycles)
     {
         for (int cycle = 0; cycle < machineCycles; cycle++)
         {
-            bus.Timers.TickMachineCycle();
+            bus.Timers.AdvanceReloadPipeline();
+            ushort fallingEdges = bus.SystemCounter.AdvanceMachineCycle();
+            bus.Timers.TickSystemCounter(fallingEdges);
+            bus.Serial.TickSystemCounter(fallingEdges);
         }
     }
 }

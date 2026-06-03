@@ -1,3 +1,4 @@
+using GbcNet.Core;
 using GbcNet.Core.Interrupts;
 
 namespace GbcNet.Core.Timers;
@@ -5,15 +6,8 @@ namespace GbcNet.Core.Timers;
 /// <summary>
 /// Emulates the DMG divider and programmable timer registers.
 /// </summary>
-internal sealed class TimerController(InterruptController interrupts)
+internal sealed class TimerController(InterruptController interrupts, SystemCounter systemCounter)
 {
-    private const ushort TCyclesPerMachineCycle = 4;
-
-    /// <summary>
-    /// DIV exposes bits 15-8 of the internal 16-bit system counter.
-    /// </summary>
-    private const int DividerVisibleShift = 8;
-
     /// <summary>
     /// Unused TAC bits read back as set on DMG hardware.
     /// </summary>
@@ -54,7 +48,6 @@ internal sealed class TimerController(InterruptController interrupts)
     /// </summary>
     private const ushort ClockSelect11BitMask = 1 << 7;
 
-    private ushort _systemCounter;
     private byte _timerCounter;
     private byte _timerControl;
     private TimerReloadState _reloadState;
@@ -76,35 +69,6 @@ internal sealed class TimerController(InterruptController interrupts)
     /// TMA register at FF06, reloaded into TIMA when TIMA overflows.
     /// </summary>
     public byte TimerModulo { get; internal set; }
-
-    /// <summary>
-    /// Reads DIV as the high byte of the internal system counter.
-    /// </summary>
-    public byte ReadDivider() => (byte)(_systemCounter >> DividerVisibleShift);
-
-    /// <summary>
-    /// Resets the internal system counter, making DIV read as zero and applying the DMG falling-edge tick.
-    /// </summary>
-    public void ResetDivider()
-    {
-        SetSystemCounter(0);
-    }
-
-    /// <summary>
-    /// Sets the internal divider counter when skipping boot ROM execution.
-    /// </summary>
-    internal void SetDivider(byte value)
-    {
-        _systemCounter = (ushort)(value << DividerVisibleShift);
-    }
-
-    /// <summary>
-    /// Seeds the full internal divider counter when skipping boot ROM execution.
-    /// </summary>
-    internal void SetDividerCounter(ushort value)
-    {
-        _systemCounter = value;
-    }
 
     /// <summary>
     /// Reads TAC with unused bits set.
@@ -144,8 +108,8 @@ internal sealed class TimerController(InterruptController interrupts)
     internal void WriteTimerControl(byte value)
     {
         byte newTimerControl = (byte)(value & TimerControlWriteMask);
-        bool wasTimerInputHigh = IsTimerInputHigh(_timerControl, _systemCounter);
-        bool isTimerInputHigh = IsTimerInputHigh(newTimerControl, _systemCounter);
+        bool wasTimerInputHigh = IsTimerInputHigh(_timerControl, systemCounter.Value);
+        bool isTimerInputHigh = IsTimerInputHigh(newTimerControl, systemCounter.Value);
         _timerControl = newTimerControl;
 
         if (wasTimerInputHigh && !isTimerInputHigh)
@@ -163,20 +127,31 @@ internal sealed class TimerController(InterruptController interrupts)
     }
 
     /// <summary>
-    /// Advances the divider and timer by one CPU machine cycle.
+    /// Advances the delayed TIMA overflow reload pipeline by one CPU machine cycle.
     /// </summary>
-    public void TickMachineCycle()
+    public void AdvanceReloadPipeline()
     {
-        AdvanceReloadState();
-        SetSystemCounter(unchecked((ushort)(_systemCounter + TCyclesPerMachineCycle)));
+        switch (_reloadState)
+        {
+            case TimerReloadState.Reloading:
+                interrupts.Request(InterruptSource.Timer);
+                _reloadState = TimerReloadState.Reloaded;
+                return;
+            case TimerReloadState.Reloaded:
+                _reloadState = TimerReloadState.Running;
+                return;
+        }
     }
 
-    private void SetSystemCounter(ushort value)
+    /// <summary>
+    /// Applies falling edges produced by the shared divider counter.
+    /// </summary>
+    public void TickSystemCounter(ushort fallingEdges)
     {
-        bool wasTimerInputHigh = IsTimerInputHigh(_timerControl, _systemCounter);
-        _systemCounter = value;
-
-        if (wasTimerInputHigh && !IsTimerInputHigh(_timerControl, _systemCounter))
+        if (
+            (_timerControl & TimerEnableMask) != 0
+            && (fallingEdges & GetClockBitMask(_timerControl)) != 0
+        )
         {
             IncrementTimerCounter();
         }
@@ -194,20 +169,6 @@ internal sealed class TimerController(InterruptController interrupts)
             0b10 => ClockSelect10BitMask,
             _ => ClockSelect11BitMask,
         };
-
-    private void AdvanceReloadState()
-    {
-        switch (_reloadState)
-        {
-            case TimerReloadState.Reloading:
-                interrupts.Request(InterruptSource.Timer);
-                _reloadState = TimerReloadState.Reloaded;
-                return;
-            case TimerReloadState.Reloaded:
-                _reloadState = TimerReloadState.Running;
-                return;
-        }
-    }
 
     private void IncrementTimerCounter()
     {

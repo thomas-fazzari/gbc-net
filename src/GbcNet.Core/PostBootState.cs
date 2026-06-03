@@ -100,7 +100,8 @@ internal static class PostBootState
             AddressMap.SerialTransferControlRegister,
             DmgSerialTransferControl
         );
-        bus.Timers.SetDividerCounter(DmgDividerCounter);
+        bus.SystemCounter.SetCounter(DmgDividerCounter);
+        bus.Serial.SetMasterClockStateFromCounter(DmgDividerCounter);
         bus.SetHardwareRegisterState(AddressMap.TimerCounterRegister, 0x00);
         bus.SetHardwareRegisterState(AddressMap.TimerModuloRegister, 0x00);
         bus.SetHardwareRegisterState(AddressMap.TimerControlRegister, 0x00);

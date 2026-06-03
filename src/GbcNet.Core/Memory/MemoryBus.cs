@@ -37,6 +37,11 @@ internal sealed class MemoryBus
     public TimerController Timers { get; }
 
     /// <summary>
+    /// Shared divider counter used by timer, serial, and future DIV-APU clocks.
+    /// </summary>
+    public SystemCounter SystemCounter { get; }
+
+    /// <summary>
     /// Joypad matrix register routed through FF00.
     /// </summary>
     public JoypadController Joypad { get; }
@@ -71,7 +76,8 @@ internal sealed class MemoryBus
         _cartridge = cartridge;
         _dmaTransferStrategy = hardwareStrategy.CreateDmaTransferStrategy();
         Interrupts = new InterruptController();
-        Timers = new TimerController(Interrupts);
+        SystemCounter = new SystemCounter();
+        Timers = new TimerController(Interrupts, SystemCounter);
         Joypad = new JoypadController(Interrupts);
         Serial = new SerialController(Interrupts);
         Apu = new ApuController();
@@ -276,7 +282,7 @@ internal sealed class MemoryBus
             AddressMap.JoypadRegister => Joypad.Read(),
             AddressMap.SerialTransferDataRegister => Serial.TransferData,
             AddressMap.SerialTransferControlRegister => Serial.ReadControl(),
-            AddressMap.DividerRegister => Timers.ReadDivider(),
+            AddressMap.DividerRegister => SystemCounter.ReadDivider(),
             AddressMap.TimerCounterRegister => Timers.TimerCounter,
             AddressMap.TimerModuloRegister => Timers.TimerModulo,
             AddressMap.TimerControlRegister => Timers.ReadTimerControl(),
@@ -312,7 +318,9 @@ internal sealed class MemoryBus
                 Serial.WriteControl(value);
                 return;
             case AddressMap.DividerRegister:
-                Timers.ResetDivider();
+                ushort fallingEdges = SystemCounter.Reset();
+                Timers.TickSystemCounter(fallingEdges);
+                Serial.TickSystemCounter(fallingEdges);
                 return;
             case AddressMap.TimerCounterRegister:
                 Timers.WriteTimerCounter(value);
@@ -360,7 +368,8 @@ internal sealed class MemoryBus
                 Serial.SetControlState(value);
                 return;
             case AddressMap.DividerRegister:
-                Timers.SetDivider(value);
+                SystemCounter.SetDivider(value);
+                Serial.SetMasterClockStateFromCounter(SystemCounter.Value);
                 return;
             case AddressMap.TimerCounterRegister:
                 Timers.TimerCounter = value;
