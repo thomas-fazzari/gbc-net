@@ -12,7 +12,10 @@ internal sealed class ApuController
     private const ushort UnmappedAudioAddressFf15 = 0xFF15;
     private const ushort UnmappedAudioAddressFf1F = 0xFF1F;
 
-    private const byte AudioMasterEnableMask = 0x80;
+    private const ushort AudioMasterControlRegister = 0xFF26;
+    private const byte AudioMasterWritableMask = 0x80;
+    private const byte AudioMasterReadableMask = 0x8F;
+    private const byte AudioChannelStatusMask = 0x0F;
     private const byte AudioMasterReadMask = 0x70;
 
     private readonly byte[] _registers = new byte[RegisterEnd - RegisterStart + 1];
@@ -42,7 +45,9 @@ internal sealed class ApuController
             0xFF16 => (byte)(value | 0x3F),
             0xFF1A => (byte)(value | 0x7F),
             0xFF1C => (byte)(value | 0x9F),
-            0xFF26 => (byte)((value & AudioMasterEnableMask) | AudioMasterReadMask),
+            AudioMasterControlRegister => (byte)(
+                (value & AudioMasterReadableMask) | AudioMasterReadMask
+            ),
             _ => value,
         };
     }
@@ -52,7 +57,23 @@ internal sealed class ApuController
     /// </summary>
     public void WriteRegister(ushort address, byte value)
     {
-        _registers[address - RegisterStart] =
-            address == 0xFF26 ? (byte)(value & AudioMasterEnableMask) : value;
+        int registerIndex = address - RegisterStart;
+        _registers[registerIndex] =
+            address == AudioMasterControlRegister
+                ? GetWrittenAudioMasterControl(value, _registers[registerIndex])
+                : value;
     }
+
+    /// <summary>
+    /// Seeds an APU register without applying CPU write-only restrictions.
+    /// </summary>
+    internal void SetRegisterState(ushort address, byte value)
+    {
+        _registers[address - RegisterStart] = value;
+    }
+
+    private static byte GetWrittenAudioMasterControl(byte value, byte currentValue) =>
+        (value & AudioMasterWritableMask) == 0
+            ? (byte)0
+            : (byte)((currentValue & AudioChannelStatusMask) | AudioMasterWritableMask);
 }

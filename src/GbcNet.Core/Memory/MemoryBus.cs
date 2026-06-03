@@ -344,7 +344,7 @@ internal sealed class MemoryBus
 
         if (ApuController.ContainsRegister(address))
         {
-            Apu.WriteRegister(address, value);
+            Apu.SetRegisterState(address, value);
             return;
         }
 

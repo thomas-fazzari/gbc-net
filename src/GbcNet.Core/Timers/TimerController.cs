@@ -99,6 +99,14 @@ internal sealed class TimerController(InterruptController interrupts)
     }
 
     /// <summary>
+    /// Seeds the full internal divider counter when skipping boot ROM execution.
+    /// </summary>
+    internal void SetDividerCounter(ushort value)
+    {
+        _systemCounter = value;
+    }
+
+    /// <summary>
     /// Reads TAC with unused bits set.
     /// </summary>
     public byte ReadTimerControl() => (byte)(_timerControl | TimerControlReadMask);
@@ -205,11 +213,13 @@ internal sealed class TimerController(InterruptController interrupts)
     {
         _timerCounter++;
 
-        if (_timerCounter is 0)
+        if (_timerCounter is not 0)
         {
-            _timerCounter = TimerModulo;
-            _reloadState = TimerReloadState.Reloading;
+            return;
         }
+
+        _timerCounter = TimerModulo;
+        _reloadState = TimerReloadState.Reloading;
     }
 
     private enum TimerReloadState

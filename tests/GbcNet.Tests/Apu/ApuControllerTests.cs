@@ -31,6 +31,26 @@ public sealed class ApuControllerTests
         Assert.Equal(expected, (byte)(apu.ReadRegister(address) & mask));
     }
 
+    [Fact]
+    public void SetRegisterState_CanSeedAudioMasterStatusBits()
+    {
+        var apu = new ApuController();
+
+        apu.SetRegisterState(0xFF26, 0x81);
+
+        Assert.Equal(0xF1, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void WriteRegister_CannotSetAudioMasterStatusBits()
+    {
+        var apu = new ApuController();
+
+        apu.WriteRegister(0xFF26, 0x81);
+
+        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+    }
+
     [Theory]
     [InlineData(0xFF10)]
     [InlineData(0xFF14)]

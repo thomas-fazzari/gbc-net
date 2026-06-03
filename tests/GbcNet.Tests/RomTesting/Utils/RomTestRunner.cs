@@ -67,7 +67,7 @@ internal static class RomTestRunner
             return RomTestResult.FromObservations(
                 RomTestStatus.Failed,
                 machineCycles,
-                terminalObservations,
+                GetSnapshots(observers),
                 "ROM result observers disagree."
             );
         }
@@ -75,7 +75,7 @@ internal static class RomTestRunner
         return RomTestResult.FromObservations(
             terminalObservations[0].Status.GetValueOrDefault(),
             machineCycles,
-            terminalObservations
+            GetSnapshots(observers)
         );
     }
 

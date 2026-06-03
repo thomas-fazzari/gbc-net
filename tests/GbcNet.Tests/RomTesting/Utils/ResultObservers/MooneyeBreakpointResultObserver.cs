@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using GbcNet.Core;
+using GbcNet.Core.Memory;
 using GbcNet.Core.Sm83;
 
 namespace GbcNet.Tests.RomTesting.Utils.ResultObservers;
@@ -10,11 +11,15 @@ internal sealed class MooneyeBreakpointResultObserver : IRomResultObserver, ICpu
     private const string Source = "Mooneye breakpoint";
     private const byte LoadBFromBOpcode = 0x40;
     private const byte FailureByte = 0x42;
+    private const ushort DiagnosticHramStart = AddressMap.HighRamStart;
+    private const int DiagnosticHramLength = 0x11;
 
-    private static readonly byte[] PassReport = [0x03, 0x05, 0x08, 0x0D, 0x15, 0x22];
+    private static readonly byte[] _passReport = [0x03, 0x05, 0x08, 0x0D, 0x15, 0x22];
+    private readonly GameBoy _gameBoy;
 
     public MooneyeBreakpointResultObserver(GameBoy gameBoy)
     {
+        _gameBoy = gameBoy;
         gameBoy.Cpu.InstructionObserver = this;
     }
 
@@ -39,15 +44,19 @@ internal sealed class MooneyeBreakpointResultObserver : IRomResultObserver, ICpu
             registers.L,
         ];
         RomTestStatus? status = GetStatus(report);
-        if (status is not null)
+        if (status is { } resultStatus)
         {
-            Snapshot = new RomTestObservation(Source, status, FormatReport(report));
+            Snapshot = new RomTestObservation(
+                Source,
+                resultStatus,
+                FormatReport(report, resultStatus)
+            );
         }
     }
 
     private static RomTestStatus? GetStatus(ReadOnlySpan<byte> report)
     {
-        if (report.SequenceEqual(PassReport))
+        if (report.SequenceEqual(_passReport))
         {
             return RomTestStatus.Passed;
         }
@@ -63,17 +72,43 @@ internal sealed class MooneyeBreakpointResultObserver : IRomResultObserver, ICpu
         return RomTestStatus.Failed;
     }
 
-    private static string FormatReport(ReadOnlySpan<byte> report)
+    private string FormatReport(ReadOnlySpan<byte> report, RomTestStatus status)
+    {
+        string output = FormatBytes(report);
+        if (status is not RomTestStatus.Failed)
+        {
+            return output;
+        }
+
+        return new StringBuilder(output)
+            .AppendLine()
+            .Append("HRAM FF80-FF90: ")
+            .Append(FormatDiagnosticHram())
+            .ToString();
+    }
+
+    private string FormatDiagnosticHram()
+    {
+        Span<byte> bytes = stackalloc byte[DiagnosticHramLength];
+        for (int index = 0; index < bytes.Length; index++)
+        {
+            bytes[index] = _gameBoy.Bus.ReadByte((ushort)(DiagnosticHramStart + index));
+        }
+
+        return FormatBytes(bytes);
+    }
+
+    private static string FormatBytes(ReadOnlySpan<byte> bytes)
     {
         var output = new StringBuilder();
-        for (int index = 0; index < report.Length; index++)
+        for (int index = 0; index < bytes.Length; index++)
         {
             if (index > 0)
             {
                 output.Append(' ');
             }
 
-            output.Append(report[index].ToString("X2", CultureInfo.InvariantCulture));
+            output.Append(bytes[index].ToString("X2", CultureInfo.InvariantCulture));
         }
 
         return output.ToString();

@@ -10,7 +10,7 @@ namespace GbcNet.Core;
 /// </summary>
 internal static class PostBootState
 {
-    private const byte DmgDivider = 0xAB;
+    private const ushort DmgDividerCounter = 0xABCC;
     private const byte DmgAccumulator = 0x01;
     private const byte DmgFlagsBase = (byte)CpuFlag.Zero;
     private const byte DmgFlagsChecksumNonZero = (byte)(CpuFlag.HalfCarry | CpuFlag.Carry);
@@ -25,6 +25,37 @@ internal static class PostBootState
     private const byte DmgLcdStatus = 0x85;
     private const byte DmgBackgroundPalette = 0xFC;
     private const byte DmgDma = 0xFF;
+    private const ushort AudioRegistersStart = 0xFF10;
+
+    /// <summary>
+    /// DMG post-boot APU register values indexed from FF10 through FF26.
+    /// </summary>
+    private static ReadOnlySpan<byte> DmgAudioRegisterStates =>
+        [
+            0x80,
+            0xBF,
+            0xF3,
+            0xFF,
+            0xBF,
+            0xFF,
+            0x3F,
+            0x00,
+            0xFF,
+            0xBF,
+            0x7F,
+            0xFF,
+            0x9F,
+            0xFF,
+            0xBF,
+            0xFF,
+            0xFF,
+            0x00,
+            0x00,
+            0xBF,
+            0x77,
+            0xF3,
+            0xF1,
+        ];
 
     public static void Apply(
         HardwareModel hardwareModel,
@@ -69,11 +100,12 @@ internal static class PostBootState
             AddressMap.SerialTransferControlRegister,
             DmgSerialTransferControl
         );
-        bus.SetHardwareRegisterState(AddressMap.DividerRegister, DmgDivider);
+        bus.Timers.SetDividerCounter(DmgDividerCounter);
         bus.SetHardwareRegisterState(AddressMap.TimerCounterRegister, 0x00);
         bus.SetHardwareRegisterState(AddressMap.TimerModuloRegister, 0x00);
         bus.SetHardwareRegisterState(AddressMap.TimerControlRegister, 0x00);
         bus.SetHardwareRegisterState(AddressMap.InterruptFlagRegister, DmgInterruptFlag);
+        ApplyDmgAudioRegisters(bus);
         bus.SetHardwareRegisterState(AddressMap.LcdControlRegister, DmgLcdControl);
         bus.SetHardwareRegisterState(AddressMap.LcdStatusRegister, DmgLcdStatus);
         bus.SetHardwareRegisterState(AddressMap.ScrollYRegister, 0x00);
@@ -85,5 +117,14 @@ internal static class PostBootState
         bus.SetHardwareRegisterState(AddressMap.WindowYRegister, 0x00);
         bus.SetHardwareRegisterState(AddressMap.WindowXRegister, 0x00);
         bus.SetHardwareRegisterState(AddressMap.InterruptEnableRegister, 0x00);
+    }
+
+    private static void ApplyDmgAudioRegisters(MemoryBus bus)
+    {
+        ReadOnlySpan<byte> values = DmgAudioRegisterStates;
+        for (int offset = 0; offset < values.Length; offset++)
+        {
+            bus.SetHardwareRegisterState((ushort)(AudioRegistersStart + offset), values[offset]);
+        }
     }
 }
