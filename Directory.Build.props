@@ -12,6 +12,11 @@
     <MeziantouAnalysisMode>Default</MeziantouAnalysisMode>
   </PropertyGroup>
 
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
+    <IsPublishable>false</IsPublishable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference
       Include="SonarAnalyzer.CSharp"
