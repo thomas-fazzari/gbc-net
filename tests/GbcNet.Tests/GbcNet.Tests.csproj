@@ -18,6 +18,10 @@
 
   <ItemGroup>
     <Content Include="RomTesting\Resources\**\*.gb" CopyToOutputDirectory="PreserveNewest" />
+    <Content
+      Include="RomTesting\Resources\**\*.dmgshade.bin"
+      CopyToOutputDirectory="PreserveNewest"
+    />
   </ItemGroup>
 
   <ItemGroup>

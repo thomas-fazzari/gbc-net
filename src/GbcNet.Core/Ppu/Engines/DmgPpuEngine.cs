@@ -107,6 +107,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
     private bool _statInterruptLine;
     private bool _firstScanlineAfterLcdEnable;
     private bool _renderingScanline;
+    private bool _scanlineObjectsSelected;
     private bool _windowYCondition;
     private bool _windowActiveThisLine;
     private BackgroundFetcherStep _fetcherStep;
@@ -201,8 +202,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
         _lineDots = 0;
         LatchScroll(inputs);
         RefreshWindowYCondition(inputs);
-        SelectScanlineObjects(inputs);
-        _latchedObjectPenaltyDots = CalculateObjectPenaltyDots();
+        ClearScanlineObjects();
         ResetRenderer();
         _firstScanlineAfterLcdEnable = true;
         StatusMode = PpuMode.HBlank;
@@ -236,9 +236,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
         _windowLine = 0;
         _activeWindowLine = 0;
         _windowYCondition = false;
-        _scanlineObjectCount = 0;
-        _scanlineObjectHeight = PpuObjectAttributes.Size8;
-        _latchedObjectPenaltyDots = 0;
+        ClearScanlineObjects();
         ResetRenderer();
         LcdYCoordinate = 0;
         StatusMode = PpuMode.HBlank;
@@ -282,14 +280,11 @@ internal sealed class DmgPpuEngine : IPpuEngine
         {
             LatchScroll(inputs);
             RefreshWindowYCondition(inputs);
-            SelectScanlineObjects(inputs);
-            _latchedObjectPenaltyDots = CalculateObjectPenaltyDots();
+            ClearScanlineObjects();
         }
         else
         {
-            _scanlineObjectCount = 0;
-            _scanlineObjectHeight = PpuObjectAttributes.Size8;
-            _latchedObjectPenaltyDots = 0;
+            ClearScanlineObjects();
             _windowPenaltyDots = 0;
         }
 
@@ -373,14 +368,11 @@ internal sealed class DmgPpuEngine : IPpuEngine
             case < PpuGeometry.VBlankStartLine:
                 LatchScroll(inputs);
                 RefreshWindowYCondition(inputs);
-                SelectScanlineObjects(inputs);
-                _latchedObjectPenaltyDots = CalculateObjectPenaltyDots();
+                ClearScanlineObjects();
                 ResetRenderer();
                 break;
             case PpuGeometry.VBlankStartLine:
-                _scanlineObjectCount = 0;
-                _scanlineObjectHeight = PpuObjectAttributes.Size8;
-                _latchedObjectPenaltyDots = 0;
+                ClearScanlineObjects();
                 _windowYCondition = false;
                 _windowLine = 0;
                 ResetRenderer();
@@ -406,6 +398,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
 
     private PpuInterruptRequest RefreshPpuState(PpuEngineInputs inputs, bool requestInterrupt)
     {
+        EnsureScanlineObjectsSelected(inputs);
         StatusMode = CalculateMode();
         _statInterruptMode = StatusMode;
         RefreshLycEqualsLy(inputs.LcdYCompare);
@@ -461,6 +454,8 @@ internal sealed class DmgPpuEngine : IPpuEngine
 
     private void TickRenderer(int dots, PpuEngineInputs inputs)
     {
+        EnsureScanlineObjectsSelected(inputs);
+
         if (!_renderingScanline)
         {
             BeginRenderingScanline();
@@ -884,6 +879,30 @@ internal sealed class DmgPpuEngine : IPpuEngine
         }
 
         return penaltyDots;
+    }
+
+    private void EnsureScanlineObjectsSelected(PpuEngineInputs inputs)
+    {
+        if (
+            _scanlineObjectsSelected
+            || LcdYCoordinate >= PpuGeometry.VBlankStartLine
+            || _lineDots < OamScanDots
+        )
+        {
+            return;
+        }
+
+        SelectScanlineObjects(inputs);
+        _latchedObjectPenaltyDots = CalculateObjectPenaltyDots();
+        _scanlineObjectsSelected = true;
+    }
+
+    private void ClearScanlineObjects()
+    {
+        _scanlineObjectCount = 0;
+        _scanlineObjectHeight = PpuObjectAttributes.Size8;
+        _latchedObjectPenaltyDots = 0;
+        _scanlineObjectsSelected = false;
     }
 
     private void SelectScanlineObjects(PpuEngineInputs inputs)
