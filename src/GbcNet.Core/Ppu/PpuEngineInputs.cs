@@ -13,6 +13,8 @@ internal readonly record struct PpuEngineInputs(
     byte StatusInterruptSelect,
     byte ScrollY,
     byte ScrollX,
+    byte WindowY,
+    byte WindowX,
     byte BackgroundPalette,
     MappedMemory VideoRam,
     MappedMemory ObjectAttributeMemory

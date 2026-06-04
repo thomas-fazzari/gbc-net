@@ -14,6 +14,8 @@ public sealed class PpuControllerTests
     private const byte LcdYCompareStatusMask = 0x04;
     private const byte BackgroundEnable = 0x01;
     private const byte UnsignedBackgroundTileData = 0x10;
+    private const byte WindowEnable = 0x20;
+    private const byte WindowTileMap1 = 0x40;
     private const byte IdentityPalette = 0xE4;
     public static TheoryData<ushort, byte> ReadWriteRegisters =>
         new()
@@ -398,6 +400,88 @@ public sealed class PpuControllerTests
         );
 
         Assert.Equal(0x01, frame.Pixels.Span[PpuGeometry.FrameWidth - 1]);
+    }
+
+    [Fact]
+    public void Renderer_StartsWindowAtWindowXMinusSeven()
+    {
+        PpuController ppu = CreatePpu();
+        ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
+        ppu.WriteRegister(AddressMap.WindowXRegister, 0x0F);
+        ppu.VideoRam.Write(0x9800, 0x01);
+        ppu.VideoRam.Write(0x9C00, 0x02);
+        WriteTileRow(ppu, 0x8010, row: 0, lowByte: 0xFF, highByte: 0x00);
+        WriteTileRow(ppu, 0x8020, row: 0, lowByte: 0x00, highByte: 0xFF);
+
+        LcdFrame frame = RenderSecondFrame(
+            ppu,
+            LcdEnable
+                | BackgroundEnable
+                | UnsignedBackgroundTileData
+                | WindowEnable
+                | WindowTileMap1
+        );
+
+        Assert.Equal(0x01, frame.Pixels.Span[0]);
+        Assert.Equal(0x02, frame.Pixels.Span[8]);
+    }
+
+    [Fact]
+    public void Renderer_IncrementsWindowLineOnlyWhenWindowStarts()
+    {
+        PpuController ppu = CreatePpu();
+        ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
+        ppu.WriteRegister(AddressMap.WindowYRegister, 0x01);
+        ppu.WriteRegister(AddressMap.WindowXRegister, 0x07);
+        ppu.VideoRam.Write(0x9C00, 0x01);
+        WriteTileRow(ppu, 0x8010, row: 0, lowByte: 0xFF, highByte: 0x00);
+        WriteTileRow(ppu, 0x8010, row: 1, lowByte: 0x00, highByte: 0xFF);
+
+        LcdFrame frame = RenderSecondFrame(
+            ppu,
+            LcdEnable
+                | BackgroundEnable
+                | UnsignedBackgroundTileData
+                | WindowEnable
+                | WindowTileMap1
+        );
+
+        Assert.Equal(0x00, frame.Pixels.Span[0]);
+        Assert.Equal(0x01, frame.Pixels.Span[PpuGeometry.FrameWidth]);
+        Assert.Equal(0x02, frame.Pixels.Span[PpuGeometry.FrameWidth * 2]);
+    }
+
+    [Fact]
+    public void Renderer_DisablesWindowWhenBackgroundAndWindowDisplayIsDisabled()
+    {
+        PpuController ppu = CreatePpu();
+        ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
+        ppu.WriteRegister(AddressMap.WindowXRegister, 0x07);
+        ppu.VideoRam.Write(0x9C00, 0x02);
+        WriteTileRow(ppu, 0x8020, row: 0, lowByte: 0x00, highByte: 0xFF);
+
+        LcdFrame frame = RenderSecondFrame(
+            ppu,
+            LcdEnable | UnsignedBackgroundTileData | WindowEnable | WindowTileMap1
+        );
+
+        Assert.Equal(0x00, frame.Pixels.Span[0]);
+    }
+
+    [Fact]
+    public void Tick_WindowStartupExtendsDrawingMode()
+    {
+        PpuController ppu = CreatePpu();
+        ppu.WriteRegister(AddressMap.WindowXRegister, 0x07);
+        ppu.WriteRegister(
+            AddressMap.LcdControlRegister,
+            LcdEnable | BackgroundEnable | WindowEnable
+        );
+        ppu.Tick(456 * 154);
+
+        ppu.Tick(256);
+
+        Assert.Equal(0x03, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
     }
 
     private static PpuController CreatePpu(InterruptController? interrupts = null) =>

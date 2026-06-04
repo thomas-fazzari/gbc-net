@@ -98,6 +98,8 @@ internal sealed class PpuController(InterruptController interrupts, IPpuEngine e
             _statusInterruptSelect,
             _scrollY,
             _scrollX,
+            _windowY,
+            _windowX,
             _backgroundPalette,
             VideoRam,
             ObjectAttributeMemory
