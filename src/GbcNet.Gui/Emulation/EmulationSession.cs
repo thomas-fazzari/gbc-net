@@ -1,5 +1,7 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using GbcNet.Core;
+using GbcNet.Core.Joypad;
 using GbcNet.Core.Ppu;
 
 namespace GbcNet.Gui.Emulation;
@@ -16,7 +18,10 @@ internal sealed class EmulationSession : IDisposable
     private readonly Action<FrameCompletedEventArgs> _handleFrame;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly GameBoy _gameBoy;
+    private readonly ConcurrentQueue<(JoypadButton Button, bool Pressed)> _pendingButtonStates =
+        new();
     private readonly Task _runTask;
+    private bool _isDisposed;
 
     public EmulationSession(
         GameBoy gameBoy,
@@ -33,6 +38,7 @@ internal sealed class EmulationSession : IDisposable
 
     public void Dispose()
     {
+        _isDisposed = true;
         _gameBoy.FrameCompleted -= OnFrameCompleted;
         _cancellationTokenSource.Cancel();
         _cancellationTokenSource.Dispose();
@@ -40,6 +46,14 @@ internal sealed class EmulationSession : IDisposable
         if (_runTask.IsCompleted)
         {
             _runTask.Dispose();
+        }
+    }
+
+    public void SetButtonState(JoypadButton button, bool pressed)
+    {
+        if (!_isDisposed)
+        {
+            _pendingButtonStates.Enqueue((button, pressed));
         }
     }
 
@@ -53,6 +67,7 @@ internal sealed class EmulationSession : IDisposable
         {
             while (!cancellationToken.IsCancellationRequested)
             {
+                ApplyPendingButtonStates();
                 elapsedMachineCycles += _gameBoy.Step();
 
                 if (elapsedMachineCycles < nextThrottleMachineCycles)
@@ -69,6 +84,14 @@ internal sealed class EmulationSession : IDisposable
             when (exception is NotSupportedException or InvalidOperationException)
         {
             _handleFault(exception);
+        }
+    }
+
+    private void ApplyPendingButtonStates()
+    {
+        while (_pendingButtonStates.TryDequeue(out (JoypadButton Button, bool Pressed) buttonState))
+        {
+            _gameBoy.SetButtonState(buttonState.Button, buttonState.Pressed);
         }
     }
 

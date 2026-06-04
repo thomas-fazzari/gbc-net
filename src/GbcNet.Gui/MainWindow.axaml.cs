@@ -1,12 +1,16 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using FluentResults;
 using GbcNet.Core;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Ppu;
 using GbcNet.Gui.Emulation;
+using GbcNet.Gui.Input;
+using GbcNet.Gui.Input.Options;
 using GbcNet.Gui.Rendering;
 
 namespace GbcNet.Gui;
@@ -21,11 +25,21 @@ internal sealed partial class MainWindow : Window, IDisposable
     };
 
     private EmulationSession? _emulationSession;
+    private readonly KeyboardInputMapper _keyboardInputMapper;
+    private readonly InputRouter _inputRouter;
     private WriteableBitmap? _screenBitmap;
 
     public MainWindow()
     {
         InitializeComponent();
+        Result<InputConfiguration> inputConfiguration = InputConfiguration.FromOptions(
+            InputOptions.CreateDefault()
+        );
+        _keyboardInputMapper = new KeyboardInputMapper(inputConfiguration.Value.Bindings);
+        _inputRouter = new InputRouter(
+            inputConfiguration.Value.Bindings,
+            (button, pressed) => _emulationSession?.SetButtonState(button, pressed)
+        );
     }
 
     protected override void OnClosed(EventArgs e)
@@ -38,6 +52,18 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         StopEmulationSession();
         _screenBitmap?.Dispose();
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        ApplyKeyboardInput(e, pressed: true);
+    }
+
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        base.OnKeyUp(e);
+        ApplyKeyboardInput(e, pressed: false);
     }
 
     private void OpenRomMenu_OnClick(object? sender, EventArgs e)
@@ -82,7 +108,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
 
         byte[] rom = await ReadFileAsync(files[0]).ConfigureAwait(true);
-        var cartridge = Cartridge.Load(rom);
+        Result<Cartridge> cartridge = Cartridge.Load(rom);
 
         if (cartridge.IsFailed)
         {
@@ -115,6 +141,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     private void StartEmulation(Cartridge cartridge, string romName)
     {
         StopEmulationSession();
+        _inputRouter.Clear();
         _emulationSession = new EmulationSession(
             new GameBoy(cartridge, HardwareModel.Dmg),
             OnFrameCompleted,
@@ -132,6 +159,20 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         _emulationSession.Dispose();
         _emulationSession = null;
+        _inputRouter.Clear();
+    }
+
+    private void ApplyKeyboardInput(KeyEventArgs e, bool pressed)
+    {
+        if (_emulationSession is null)
+        {
+            return;
+        }
+
+        if (_keyboardInputMapper.TryMap(e.Key, out PhysicalInput input))
+        {
+            e.Handled = _inputRouter.Apply(input, pressed);
+        }
     }
 
     private void OnFrameCompleted(FrameCompletedEventArgs e)
