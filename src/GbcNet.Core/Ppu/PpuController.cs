@@ -9,11 +9,6 @@ namespace GbcNet.Core.Ppu;
 internal sealed class PpuController(InterruptController interrupts, IPpuEngine engine)
 {
     /// <summary>
-    /// LCDC bit 7 enables LCD/PPU timing.
-    /// </summary>
-    private const byte LcdEnableMask = 0x80;
-
-    /// <summary>
     /// DMG VRAM bank 0 at 8000-9FFF.
     /// </summary>
     internal MappedMemory VideoRam { get; } = new(AddressMap.VideoRamStart, AddressMap.VideoRamEnd);
@@ -67,7 +62,7 @@ internal sealed class PpuController(InterruptController interrupts, IPpuEngine e
     /// <summary>
     /// Indicates whether LCD/PPU timing is running.
     /// </summary>
-    public bool IsLcdEnabled => (_control & LcdEnableMask) != 0;
+    public bool IsLcdEnabled => (_control & PpuLcdControlRegister.LcdEnableMask) != 0;
 
     /// <summary>
     /// Indicates whether the PPU blocks CPU reads from VRAM at 8000-9FFF.
@@ -101,6 +96,8 @@ internal sealed class PpuController(InterruptController interrupts, IPpuEngine e
             _windowY,
             _windowX,
             _backgroundPalette,
+            _objectPalette0,
+            _objectPalette1,
             VideoRam,
             ObjectAttributeMemory
         );

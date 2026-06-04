@@ -64,4 +64,24 @@ internal static class PpuObjectAttributes
     /// OBJ with X>=168 is fully hidden on the right side.
     /// </summary>
     public const byte FirstFullyHiddenRightX = 168;
+
+    /// <summary>
+    /// OBJ flag bit 4 selects OBP1 instead of OBP0 on DMG.
+    /// </summary>
+    public const byte DmgPalette1Mask = 0x10;
+
+    /// <summary>
+    /// OBJ flag bit 5 mirrors tile pixels horizontally.
+    /// </summary>
+    public const byte XFlipMask = 0x20;
+
+    /// <summary>
+    /// OBJ flag bit 6 mirrors tile pixels vertically.
+    /// </summary>
+    public const byte YFlipMask = 0x40;
+
+    /// <summary>
+    /// OBJ flag bit 7 lets non-zero BG/window pixels cover this OBJ.
+    /// </summary>
+    public const byte BackgroundPriorityMask = 0x80;
 }
