@@ -8,24 +8,6 @@
         MinHeight="576"
         WindowStartupLocation="CenterScreen"
         Background="#101010">
-    <NativeMenu.Menu>
-        <NativeMenu>
-            <NativeMenuItem Header="File">
-                <NativeMenu>
-                    <NativeMenuItem Header="Open ROM..." Gesture="Meta+O" Click="OpenRomMenu_OnClick" />
-                    <NativeMenuItemSeparator />
-                    <NativeMenuItem Header="Close" Gesture="Meta+W" Click="CloseMenu_OnClick" />
-                </NativeMenu>
-            </NativeMenuItem>
-            <NativeMenuItem Header="Emulation">
-                <NativeMenu>
-                    <NativeMenuItem Header="Pause" Gesture="Space" IsEnabled="False" />
-                    <NativeMenuItem Header="Reset" Gesture="Meta+R" IsEnabled="False" />
-                </NativeMenu>
-            </NativeMenuItem>
-        </NativeMenu>
-    </NativeMenu.Menu>
-
     <Grid>
         <Border Background="#050505"
                 Padding="24">

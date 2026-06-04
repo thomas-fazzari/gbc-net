@@ -24,14 +24,27 @@ internal sealed partial class MainWindow : Window, IDisposable
         MimeTypes = ["application/octet-stream"],
     };
 
+    private readonly NativeMenuItem _pauseMenuItem = new("Pause")
+    {
+        Gesture = KeyGesture.Parse("Space"),
+        IsEnabled = false,
+    };
+    private readonly NativeMenuItem _resetMenuItem = new("Reset")
+    {
+        Gesture = KeyGesture.Parse("Meta+R"),
+        IsEnabled = false,
+    };
     private EmulationSession? _emulationSession;
     private readonly KeyboardInputMapper _keyboardInputMapper;
     private readonly InputRouter _inputRouter;
+    private byte[]? _loadedRom;
+    private string _loadedRomName = string.Empty;
     private WriteableBitmap? _screenBitmap;
 
     public MainWindow()
     {
         InitializeComponent();
+        ConfigureNativeMenu();
         Result<InputConfiguration> inputConfiguration = InputConfiguration.FromOptions(
             InputOptions.CreateDefault()
         );
@@ -40,6 +53,32 @@ internal sealed partial class MainWindow : Window, IDisposable
             inputConfiguration.Value.Bindings,
             (button, pressed) => _emulationSession?.SetButtonState(button, pressed)
         );
+    }
+
+    private void ConfigureNativeMenu()
+    {
+        var openMenuItem = new NativeMenuItem("Open ROM...")
+        {
+            Gesture = KeyGesture.Parse("Meta+O"),
+        };
+        openMenuItem.Click += OpenRomMenu_OnClick;
+
+        var closeMenuItem = new NativeMenuItem("Close") { Gesture = KeyGesture.Parse("Meta+W") };
+        closeMenuItem.Click += CloseMenu_OnClick;
+
+        _pauseMenuItem.Click += PauseMenu_OnClick;
+        _resetMenuItem.Click += ResetMenu_OnClick;
+
+        var fileMenuItem = new NativeMenuItem("File")
+        {
+            Menu = [openMenuItem, new NativeMenuItemSeparator(), closeMenuItem],
+        };
+        var emulationMenuItem = new NativeMenuItem("Emulation")
+        {
+            Menu = [_pauseMenuItem, _resetMenuItem],
+        };
+
+        NativeMenu.SetMenu(this, new NativeMenu { fileMenuItem, emulationMenuItem });
     }
 
     protected override void OnClosed(EventArgs e)
@@ -89,6 +128,38 @@ internal sealed partial class MainWindow : Window, IDisposable
         Close();
     }
 
+    private void PauseMenu_OnClick(object? sender, EventArgs e)
+    {
+        if (_emulationSession is null)
+        {
+            return;
+        }
+
+        _emulationSession.IsPaused = !_emulationSession.IsPaused;
+        _pauseMenuItem.Header = _emulationSession.IsPaused ? "Resume" : "Pause";
+    }
+
+    private void ResetMenu_OnClick(object? sender, EventArgs e)
+    {
+        if (_loadedRom is null)
+        {
+            return;
+        }
+
+        Result<Cartridge> cartridge = Cartridge.Load(_loadedRom);
+
+        if (cartridge.IsFailed)
+        {
+            Title = string.Join(
+                Environment.NewLine,
+                cartridge.Errors.Select(error => error.Message)
+            );
+            return;
+        }
+
+        StartEmulation(cartridge.Value, _loadedRomName);
+    }
+
     private async Task OpenRomAsync()
     {
         IReadOnlyList<IStorageFile> files = await StorageProvider
@@ -119,6 +190,8 @@ internal sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
+        _loadedRom = rom;
+        _loadedRomName = files[0].Name;
         StartEmulation(cartridge.Value, files[0].Name);
     }
 
@@ -148,6 +221,9 @@ internal sealed partial class MainWindow : Window, IDisposable
             OnEmulationFaulted
         );
         Title = romName;
+        _pauseMenuItem.Header = "Pause";
+        _pauseMenuItem.IsEnabled = true;
+        _resetMenuItem.IsEnabled = true;
     }
 
     private void StopEmulationSession()
@@ -160,6 +236,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         _emulationSession.Dispose();
         _emulationSession = null;
         _inputRouter.Clear();
+        _pauseMenuItem.Header = "Pause";
     }
 
     private void ApplyKeyboardInput(KeyEventArgs e, bool pressed)

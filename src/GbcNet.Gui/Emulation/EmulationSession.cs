@@ -20,8 +20,14 @@ internal sealed class EmulationSession : IDisposable
     private readonly GameBoy _gameBoy;
     private readonly ConcurrentQueue<(JoypadButton Button, bool Pressed)> _pendingButtonStates =
         new();
-    private readonly Task _runTask;
-    private bool _isDisposed;
+    private int _isPaused;
+    private int _isDisposed;
+
+    public bool IsPaused
+    {
+        get => Volatile.Read(ref _isPaused) != 0;
+        set => Volatile.Write(ref _isPaused, value ? 1 : 0);
+    }
 
     public EmulationSession(
         GameBoy gameBoy,
@@ -33,26 +39,22 @@ internal sealed class EmulationSession : IDisposable
         _handleFrame = handleFrame;
         _handleFault = handleFault;
         _gameBoy.FrameCompleted += OnFrameCompleted;
-        _runTask = RunAsync(_cancellationTokenSource.Token);
+        _ = RunAsync(_cancellationTokenSource.Token);
     }
 
     public void Dispose()
     {
-        _isDisposed = true;
+        Volatile.Write(ref _isDisposed, 1);
         _gameBoy.FrameCompleted -= OnFrameCompleted;
         _cancellationTokenSource.Cancel();
         _cancellationTokenSource.Dispose();
-
-        if (_runTask.IsCompleted)
-        {
-            _runTask.Dispose();
-        }
     }
 
     public void SetButtonState(JoypadButton button, bool pressed)
     {
-        if (!_isDisposed)
+        if (Volatile.Read(ref _isDisposed) == 0)
         {
+            // Avalonia raises input on the UI thread while emulation runs on the session thread.
             _pendingButtonStates.Enqueue((button, pressed));
         }
     }
@@ -60,13 +62,19 @@ internal sealed class EmulationSession : IDisposable
     private async Task RunAsync(CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
-        int elapsedMachineCycles = 0;
-        int nextThrottleMachineCycles = MachineCyclesPerThrottle;
+        long elapsedMachineCycles = 0;
+        long nextThrottleMachineCycles = MachineCyclesPerThrottle;
 
         try
         {
             while (!cancellationToken.IsCancellationRequested)
             {
+                if (IsPaused)
+                {
+                    await Task.Delay(16, CancellationToken.None).ConfigureAwait(false);
+                    continue;
+                }
+
                 ApplyPendingButtonStates();
                 elapsedMachineCycles += _gameBoy.Step();
 
@@ -75,8 +83,7 @@ internal sealed class EmulationSession : IDisposable
                     continue;
                 }
 
-                await ThrottleAsync(stopwatch, elapsedMachineCycles, cancellationToken)
-                    .ConfigureAwait(false);
+                await ThrottleAsync(stopwatch, elapsedMachineCycles).ConfigureAwait(false);
                 nextThrottleMachineCycles += MachineCyclesPerThrottle;
             }
         }
@@ -95,12 +102,9 @@ internal sealed class EmulationSession : IDisposable
         }
     }
 
-    private static async Task ThrottleAsync(
-        Stopwatch stopwatch,
-        int elapsedMachineCycles,
-        CancellationToken cancellationToken
-    )
+    private static async Task ThrottleAsync(Stopwatch stopwatch, long elapsedMachineCycles)
     {
+        // Throttle against total emulated time instead of per-chunk delay to avoid drift.
         var expectedElapsed = TimeSpan.FromSeconds(
             elapsedMachineCycles / (double)MachineCyclesPerSecond
         );
@@ -109,7 +113,7 @@ internal sealed class EmulationSession : IDisposable
 
         if (delay > TimeSpan.Zero)
         {
-            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(delay, CancellationToken.None).ConfigureAwait(false);
         }
     }
 
