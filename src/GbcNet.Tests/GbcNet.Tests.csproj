@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GbcNet.Core\GbcNet.Core.csproj" />
+    <ProjectReference Include="..\GbcNet.Gui\GbcNet.Gui.csproj" />
   </ItemGroup>
 
   <ItemGroup>

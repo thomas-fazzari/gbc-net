@@ -1,4 +1,4 @@
-namespace GbcNet.Gui.Input.Options;
+namespace GbcNet.Gui.Input.Configuration;
 
 /// <summary>
 /// Keyboard mapping from a Game Boy button name to an Avalonia key name.

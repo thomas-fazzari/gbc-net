@@ -1,0 +1,14 @@
+input version=1 {
+  profile "default" {
+    keyboard {
+      bind "up" key="Up"
+      bind "down" key="Down"
+      bind "left" key="Left"
+      bind "right" key="Right"
+      bind "a" key="Z"
+      bind "b" key="X"
+      bind "start" key="Enter"
+      bind "select" key="Back"
+    }
+  }
+}

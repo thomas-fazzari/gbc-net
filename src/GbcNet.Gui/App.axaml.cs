@@ -1,11 +1,14 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GbcNet.Gui;
 
-internal sealed partial class App : Application
+internal sealed class App : Application
 {
+    private ServiceProvider? _serviceProvider;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -13,8 +16,12 @@ internal sealed partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        (ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow =
-            new MainWindow();
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            _serviceProvider = DependencyInjection.BuildServiceProvider();
+            desktop.MainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+            desktop.Exit += (_, _) => _serviceProvider.Dispose();
+        }
 
         base.OnFrameworkInitializationCompleted();
     }

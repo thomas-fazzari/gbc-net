@@ -19,11 +19,14 @@
     <PackageVersion Include="FluentResults" Version="4.0.0" />
   </ItemGroup>
 
-  <ItemGroup Label="Avalonia">
+  <ItemGroup Label="App">
     <PackageVersion Include="Avalonia" Version="12.0.3" />
     <PackageVersion Include="Avalonia.Desktop" Version="12.0.3" />
     <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.0.3" />
     <PackageVersion Include="Avalonia.Fonts.Inter" Version="12.0.3" />
     <PackageVersion Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.1" />
+    <PackageVersion Include="KdlSharp" Version="1.1.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.8" />
   </ItemGroup>
 </Project>

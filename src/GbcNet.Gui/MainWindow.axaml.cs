@@ -8,9 +8,9 @@ using GbcNet.Core;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Ppu;
+using GbcNet.Gui.Configuration;
 using GbcNet.Gui.Emulation;
 using GbcNet.Gui.Input;
-using GbcNet.Gui.Input.Options;
 using GbcNet.Gui.Rendering;
 
 namespace GbcNet.Gui;
@@ -41,16 +41,22 @@ internal sealed partial class MainWindow : Window, IDisposable
     private string _loadedRomName = string.Empty;
     private WriteableBitmap? _screenBitmap;
 
-    public MainWindow()
+    public MainWindow(
+        InputConfiguration inputConfiguration,
+        StartupConfiguration startupConfiguration
+    )
     {
         InitializeComponent();
         ConfigureNativeMenu();
-        Result<InputConfiguration> inputConfiguration = InputConfiguration.FromOptions(
-            InputOptions.CreateDefault()
-        );
-        _keyboardInputMapper = new KeyboardInputMapper(inputConfiguration.Value.Bindings);
+
+        if (startupConfiguration.StartupMessage is not null)
+        {
+            Title = startupConfiguration.StartupMessage;
+        }
+
+        _keyboardInputMapper = new KeyboardInputMapper(inputConfiguration.Bindings);
         _inputRouter = new InputRouter(
-            inputConfiguration.Value.Bindings,
+            inputConfiguration.Bindings,
             (button, pressed) => _emulationSession?.SetButtonState(button, pressed)
         );
     }
@@ -78,7 +84,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             Menu = [_pauseMenuItem, _resetMenuItem],
         };
 
-        NativeMenu.SetMenu(this, new NativeMenu { fileMenuItem, emulationMenuItem });
+        NativeMenu.SetMenu(this, [fileMenuItem, emulationMenuItem]);
     }
 
     protected override void OnClosed(EventArgs e)
