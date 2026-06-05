@@ -1,3 +1,4 @@
+using FluentResults;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Memory;
 
@@ -130,5 +131,44 @@ public sealed class Mbc5CartridgeTests
         cartridge.WriteRom(0x4000, 0x01);
 
         Assert.Equal(0x22, cartridge.ReadRam(AddressMap.ExternalRamStart));
+    }
+
+    [Fact]
+    public void BatteryRam_ExportsAndImportsMbc5RamBanks()
+    {
+        byte[] rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0147] = (byte)CartridgeType.Mbc5RamBattery;
+            bytes[0x0149] = 0x03;
+        });
+        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+
+        cartridge.WriteRom(0x0000, 0x0A);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x11);
+        cartridge.WriteRom(0x4000, 0x01);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x22);
+
+        byte[] save = cartridge.ExportBatteryRam();
+
+        Assert.True(cartridge.HasBatteryBackedRam);
+        Assert.Equal(32 * 1024, cartridge.BatteryRamSize);
+        Assert.True(cartridge.IsBatteryRamDirty);
+        Assert.Equal(0x11, save[0]);
+        Assert.Equal(0x22, save[AddressMap.ExternalRamWindowSize]);
+
+        Cartridge reloaded = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        Result import = reloaded.ImportBatteryRam(save);
+
+        Assert.True(
+            import.IsSuccess,
+            string.Join(Environment.NewLine, import.Errors.Select(error => error.Message))
+        );
+        Assert.False(reloaded.IsBatteryRamDirty);
+
+        reloaded.WriteRom(0x0000, 0x0A);
+        Assert.Equal(0x11, reloaded.ReadRam(AddressMap.ExternalRamStart));
+
+        reloaded.WriteRom(0x4000, 0x01);
+        Assert.Equal(0x22, reloaded.ReadRam(AddressMap.ExternalRamStart));
     }
 }

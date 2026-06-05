@@ -1,6 +1,7 @@
 using GbcNet.Gui.Configuration;
 using GbcNet.Gui.Input;
 using GbcNet.Gui.Input.Configuration;
+using GbcNet.Gui.Saves;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -38,6 +39,9 @@ internal static class DependencyInjection
                 provider.GetRequiredService<IOptions<InputOptions>>().Value
             )
         );
+        services.AddSingleton(_ => new CartridgeSaveFileService(
+            CartridgeSaveFileService.UserSaveDirectoryPath
+        ));
         services.AddTransient<MainWindow>();
 
         return services.BuildServiceProvider();

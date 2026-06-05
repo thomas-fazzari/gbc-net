@@ -5,8 +5,11 @@ namespace GbcNet.Core.Cartridges;
 /// <summary>
 /// MBC5 cartridge controller for 9-bit ROM banking and optional external RAM banking.
 /// </summary>
-internal sealed class Mbc5MemoryController(byte[] rom, CartridgeHeader header)
-    : ICartridgeMemoryController
+internal sealed class Mbc5MemoryController(
+    byte[] rom,
+    CartridgeHeader header,
+    bool hasBatteryBackedRam
+) : ICartridgeMemoryController
 {
     private const int RomBankSize = Cartridge.FixedRomBankSize;
     private const int RamBankSize = AddressMap.ExternalRamWindowSize;
@@ -19,12 +22,12 @@ internal sealed class Mbc5MemoryController(byte[] rom, CartridgeHeader header)
     private const byte RomBankHighMask = 0x01;
     private const byte RamBankMask = 0x0F;
 
-    private readonly byte[] _ram = new byte[header.RamSizeBytes];
-
     private byte _romBankLow = 1;
     private byte _romBankHigh;
     private byte _ramBank;
     private bool _ramEnabled;
+
+    public CartridgeRam ExternalRam { get; } = new(header.RamSizeBytes, hasBatteryBackedRam);
 
     public byte ReadRom(ushort address)
     {
@@ -57,21 +60,21 @@ internal sealed class Mbc5MemoryController(byte[] rom, CartridgeHeader header)
     }
 
     public byte ReadRamOffset(ushort offset) =>
-        !CanAccessRam() ? (byte)0xFF : _ram[GetEffectiveRamOffset(offset)];
+        !CanAccessRam() ? (byte)0xFF : ExternalRam.Read(GetEffectiveRamOffset(offset));
 
     public void WriteRamOffset(ushort offset, byte value)
     {
         if (CanAccessRam())
         {
-            _ram[GetEffectiveRamOffset(offset)] = value;
+            ExternalRam.Write(GetEffectiveRamOffset(offset), value);
         }
     }
 
-    private bool CanAccessRam() => _ramEnabled && _ram.Length != 0;
+    private bool CanAccessRam() => _ramEnabled && ExternalRam.Size != 0;
 
     private int GetEffectiveRamOffset(ushort offset)
     {
         int effectiveOffset = (_ramBank * RamBankSize) + offset;
-        return effectiveOffset % _ram.Length;
+        return effectiveOffset % ExternalRam.Size;
     }
 }

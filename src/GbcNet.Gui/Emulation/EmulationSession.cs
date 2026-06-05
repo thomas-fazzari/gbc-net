@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using FluentResults;
 using GbcNet.Core;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Ppu;
@@ -13,13 +14,16 @@ internal sealed class EmulationSession : IDisposable
 {
     private const int MachineCyclesPerSecond = 1_048_576;
     private const int MachineCyclesPerThrottle = 4096;
+    private const int MachineCyclesPerSaveFlush = 5 * MachineCyclesPerSecond;
 
+    private readonly Func<Result> _flushBatterySave;
     private readonly Action<Exception> _handleFault;
     private readonly Action<FrameCompletedEventArgs> _handleFrame;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly GameBoy _gameBoy;
     private readonly ConcurrentQueue<(JoypadButton Button, bool Pressed)> _pendingButtonStates =
         new();
+    private readonly Task _runTask;
     private int _isPaused;
     private int _isDisposed;
 
@@ -32,21 +36,30 @@ internal sealed class EmulationSession : IDisposable
     public EmulationSession(
         GameBoy gameBoy,
         Action<FrameCompletedEventArgs> handleFrame,
-        Action<Exception> handleFault
+        Action<Exception> handleFault,
+        Func<Result> flushBatterySave
     )
     {
         _gameBoy = gameBoy;
         _handleFrame = handleFrame;
         _handleFault = handleFault;
+        _flushBatterySave = flushBatterySave;
         _gameBoy.FrameCompleted += OnFrameCompleted;
-        _ = RunAsync(_cancellationTokenSource.Token);
+        _runTask = RunAsync(_cancellationTokenSource.Token);
     }
 
     public void Dispose()
     {
-        Volatile.Write(ref _isDisposed, 1);
+        if (Interlocked.Exchange(ref _isDisposed, 1) != 0)
+        {
+            return;
+        }
+
         _gameBoy.FrameCompleted -= OnFrameCompleted;
         _cancellationTokenSource.Cancel();
+
+        // Wait for the emulation loop to run its final save before the next session loads SRAM.
+        _runTask.GetAwaiter().GetResult();
         _cancellationTokenSource.Dispose();
     }
 
@@ -64,6 +77,7 @@ internal sealed class EmulationSession : IDisposable
         var stopwatch = Stopwatch.StartNew();
         long elapsedMachineCycles = 0;
         long nextThrottleMachineCycles = MachineCyclesPerThrottle;
+        long nextSaveMachineCycles = MachineCyclesPerSaveFlush;
 
         try
         {
@@ -78,6 +92,12 @@ internal sealed class EmulationSession : IDisposable
                 ApplyPendingButtonStates();
                 elapsedMachineCycles += _gameBoy.Step();
 
+                if (elapsedMachineCycles >= nextSaveMachineCycles)
+                {
+                    FlushBatterySave();
+                    nextSaveMachineCycles += MachineCyclesPerSaveFlush;
+                }
+
                 if (elapsedMachineCycles < nextThrottleMachineCycles)
                 {
                     continue;
@@ -91,6 +111,10 @@ internal sealed class EmulationSession : IDisposable
             when (exception is NotSupportedException or InvalidOperationException)
         {
             _handleFault(exception);
+        }
+        finally
+        {
+            FlushBatterySave();
         }
     }
 
@@ -114,6 +138,20 @@ internal sealed class EmulationSession : IDisposable
         if (delay > TimeSpan.Zero)
         {
             await Task.Delay(delay, CancellationToken.None).ConfigureAwait(false);
+        }
+    }
+
+    private void FlushBatterySave()
+    {
+        Result result = _flushBatterySave();
+
+        if (result.IsFailed)
+        {
+            _handleFault(
+                new InvalidOperationException(
+                    string.Join(Environment.NewLine, result.Errors.Select(error => error.Message))
+                )
+            );
         }
     }
 

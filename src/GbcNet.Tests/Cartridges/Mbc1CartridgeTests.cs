@@ -1,3 +1,4 @@
+using FluentResults;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Memory;
 
@@ -173,5 +174,99 @@ public sealed class Mbc1CartridgeTests
         cartridge.WriteRom(0x4000, 0x01);
 
         Assert.Equal(0x22, cartridge.ReadRam(AddressMap.ExternalRamStart));
+    }
+
+    [Fact]
+    public void BatteryRam_IsUnavailableForMbc1RamWithoutBattery()
+    {
+        byte[] rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0147] = (byte)CartridgeType.Mbc1Ram;
+            bytes[0x0149] = 0x02;
+        });
+        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+
+        cartridge.WriteRom(0x0000, 0x0A);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
+
+        Assert.False(cartridge.HasBatteryBackedRam);
+        Assert.Equal(0, cartridge.BatteryRamSize);
+        Assert.False(cartridge.IsBatteryRamDirty);
+        Assert.Empty(cartridge.ExportBatteryRam());
+    }
+
+    [Fact]
+    public void BatteryRam_ExportsMbc1RamBanksAndTracksDirty()
+    {
+        byte[] rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0147] = (byte)CartridgeType.Mbc1RamBattery;
+            bytes[0x0149] = 0x03;
+        });
+        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+
+        cartridge.WriteRom(0x0000, 0x0A);
+        cartridge.WriteRom(0x6000, 0x01);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x11);
+        cartridge.WriteRom(0x4000, 0x01);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x22);
+
+        byte[] save = cartridge.ExportBatteryRam();
+
+        Assert.True(cartridge.HasBatteryBackedRam);
+        Assert.Equal(32 * 1024, cartridge.BatteryRamSize);
+        Assert.True(cartridge.IsBatteryRamDirty);
+        Assert.Equal(0x11, save[0]);
+        Assert.Equal(0x22, save[AddressMap.ExternalRamWindowSize]);
+
+        save[0] = 0x99;
+        Assert.Equal(0x11, cartridge.ExportBatteryRam()[0]);
+
+        cartridge.ClearBatteryRamDirty();
+        Assert.False(cartridge.IsBatteryRamDirty);
+    }
+
+    [Fact]
+    public void BatteryRam_ImportsMbc1RamBanks()
+    {
+        byte[] rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0147] = (byte)CartridgeType.Mbc1RamBattery;
+            bytes[0x0149] = 0x03;
+        });
+        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        byte[] save = new byte[32 * 1024];
+        save[0] = 0x33;
+        save[AddressMap.ExternalRamWindowSize] = 0x44;
+
+        Result result = cartridge.ImportBatteryRam(save);
+
+        Assert.True(
+            result.IsSuccess,
+            string.Join(Environment.NewLine, result.Errors.Select(error => error.Message))
+        );
+        Assert.False(cartridge.IsBatteryRamDirty);
+
+        cartridge.WriteRom(0x0000, 0x0A);
+        cartridge.WriteRom(0x6000, 0x01);
+        Assert.Equal(0x33, cartridge.ReadRam(AddressMap.ExternalRamStart));
+
+        cartridge.WriteRom(0x4000, 0x01);
+        Assert.Equal(0x44, cartridge.ReadRam(AddressMap.ExternalRamStart));
+    }
+
+    [Fact]
+    public void BatteryRam_RejectsInvalidMbc1SaveSize()
+    {
+        byte[] rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0147] = (byte)CartridgeType.Mbc1RamBattery;
+            bytes[0x0149] = 0x02;
+        });
+        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+
+        Result result = cartridge.ImportBatteryRam(new byte[1]);
+
+        Assert.True(result.IsFailed);
     }
 }

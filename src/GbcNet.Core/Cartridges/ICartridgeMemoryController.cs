@@ -12,4 +12,6 @@ internal interface ICartridgeMemoryController
     byte ReadRamOffset(ushort offset);
 
     void WriteRamOffset(ushort offset, byte value);
+
+    CartridgeRam ExternalRam { get; }
 }

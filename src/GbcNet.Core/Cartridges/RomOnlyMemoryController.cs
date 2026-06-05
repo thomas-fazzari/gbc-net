@@ -12,4 +12,6 @@ internal sealed class RomOnlyMemoryController(byte[] rom) : ICartridgeMemoryCont
     public byte ReadRamOffset(ushort offset) => 0xFF;
 
     public void WriteRamOffset(ushort offset, byte value) { }
+
+    public CartridgeRam ExternalRam { get; } = new(sizeBytes: 0, hasBattery: false);
 }

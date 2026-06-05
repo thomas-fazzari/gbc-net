@@ -36,6 +36,21 @@ public sealed class Cartridge
     public int RomLength { get; }
 
     /// <summary>
+    /// Indicates whether the cartridge has battery-backed external RAM.
+    /// </summary>
+    public bool HasBatteryBackedRam => _memoryController.ExternalRam.HasBatteryBackedRam;
+
+    /// <summary>
+    /// Battery-backed external RAM size, in bytes.
+    /// </summary>
+    public int BatteryRamSize => _memoryController.ExternalRam.BatteryRamSize;
+
+    /// <summary>
+    /// Indicates whether battery-backed RAM changed since load or the last clear.
+    /// </summary>
+    public bool IsBatteryRamDirty => _memoryController.ExternalRam.IsBatteryRamDirty;
+
+    /// <summary>
     /// Parses and loads a cartridge image.
     /// </summary>
     /// <returns>
@@ -167,6 +182,25 @@ public sealed class Cartridge
         return _memoryController.ReadRamOffset(offset);
     }
 
+    /// <summary>
+    /// Copies battery-backed external RAM for persistence.
+    /// </summary>
+    public byte[] ExportBatteryRam() => _memoryController.ExternalRam.ExportBatteryRam();
+
+    /// <summary>
+    /// Loads persisted battery-backed external RAM into the cartridge.
+    /// </summary>
+    public Result ImportBatteryRam(ReadOnlySpan<byte> data) =>
+        _memoryController.ExternalRam.ImportBatteryRam(data);
+
+    /// <summary>
+    /// Marks battery-backed external RAM as persisted.
+    /// </summary>
+    public void ClearBatteryRamDirty()
+    {
+        _memoryController.ExternalRam.ClearBatteryRamDirty();
+    }
+
     private static ushort GetExternalRamOffset(ushort address) =>
         (ushort)(address - AddressMap.ExternalRamStart);
 
@@ -180,9 +214,21 @@ public sealed class Cartridge
                 new RomOnlyMemoryController(rom)
             ),
             CartridgeType.Mbc1 or CartridgeType.Mbc1Ram or CartridgeType.Mbc1RamBattery =>
-                Result.Ok<ICartridgeMemoryController>(new Mbc1MemoryController(rom, header)),
+                Result.Ok<ICartridgeMemoryController>(
+                    new Mbc1MemoryController(
+                        rom,
+                        header,
+                        header.CartridgeType is CartridgeType.Mbc1RamBattery
+                    )
+                ),
             CartridgeType.Mbc5 or CartridgeType.Mbc5Ram or CartridgeType.Mbc5RamBattery =>
-                Result.Ok<ICartridgeMemoryController>(new Mbc5MemoryController(rom, header)),
+                Result.Ok<ICartridgeMemoryController>(
+                    new Mbc5MemoryController(
+                        rom,
+                        header,
+                        header.CartridgeType is CartridgeType.Mbc5RamBattery
+                    )
+                ),
             _ => Result.Fail<ICartridgeMemoryController>(
                 new CartridgeLoadError(
                     CartridgeLoadErrorCode.UnsupportedCartridgeType,

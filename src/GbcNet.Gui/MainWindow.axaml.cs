@@ -12,6 +12,7 @@ using GbcNet.Gui.Configuration;
 using GbcNet.Gui.Emulation;
 using GbcNet.Gui.Input;
 using GbcNet.Gui.Rendering;
+using GbcNet.Gui.Saves;
 
 namespace GbcNet.Gui;
 
@@ -36,6 +37,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     };
     private EmulationSession? _emulationSession;
     private readonly KeyboardInputMapper _keyboardInputMapper;
+    private readonly CartridgeSaveFileService _cartridgeSaveFileService;
     private readonly InputRouter _inputRouter;
     private byte[]? _loadedRom;
     private string _loadedRomName = string.Empty;
@@ -43,7 +45,8 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     public MainWindow(
         InputConfiguration inputConfiguration,
-        StartupConfiguration startupConfiguration
+        StartupConfiguration startupConfiguration,
+        CartridgeSaveFileService cartridgeSaveFileService
     )
     {
         InitializeComponent();
@@ -54,6 +57,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             Title = startupConfiguration.StartupMessage;
         }
 
+        _cartridgeSaveFileService = cartridgeSaveFileService;
         _keyboardInputMapper = new KeyboardInputMapper(inputConfiguration.Bindings);
         _inputRouter = new InputRouter(
             inputConfiguration.Bindings,
@@ -152,7 +156,8 @@ internal sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
-        Result<Cartridge> cartridge = Cartridge.Load(_loadedRom);
+        StopEmulationSession();
+        Result<Cartridge> cartridge = LoadCartridge(_loadedRom);
 
         if (cartridge.IsFailed)
         {
@@ -163,7 +168,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
-        StartEmulation(cartridge.Value, _loadedRomName);
+        StartEmulation(cartridge.Value, _loadedRom, _loadedRomName);
     }
 
     private async Task OpenRomAsync()
@@ -185,7 +190,8 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
 
         byte[] rom = await ReadFileAsync(files[0]).ConfigureAwait(true);
-        Result<Cartridge> cartridge = Cartridge.Load(rom);
+        StopEmulationSession();
+        Result<Cartridge> cartridge = LoadCartridge(rom);
 
         if (cartridge.IsFailed)
         {
@@ -198,7 +204,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         _loadedRom = rom;
         _loadedRomName = files[0].Name;
-        StartEmulation(cartridge.Value, files[0].Name);
+        StartEmulation(cartridge.Value, rom, files[0].Name);
     }
 
     private static async Task<byte[]> ReadFileAsync(IStorageFile file)
@@ -217,14 +223,26 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
     }
 
-    private void StartEmulation(Cartridge cartridge, string romName)
+    private Result<Cartridge> LoadCartridge(byte[] rom)
     {
-        StopEmulationSession();
+        Result<Cartridge> cartridge = Cartridge.Load(rom);
+        if (cartridge.IsFailed)
+        {
+            return cartridge;
+        }
+
+        Result save = _cartridgeSaveFileService.Load(cartridge.Value, rom);
+        return save.IsFailed ? Result.Fail<Cartridge>(save.Errors) : cartridge;
+    }
+
+    private void StartEmulation(Cartridge cartridge, byte[] rom, string romName)
+    {
         _inputRouter.Clear();
         _emulationSession = new EmulationSession(
             new GameBoy(cartridge, HardwareModel.Dmg),
             OnFrameCompleted,
-            OnEmulationFaulted
+            OnEmulationFaulted,
+            () => _cartridgeSaveFileService.Save(cartridge, rom)
         );
         Title = romName;
         _pauseMenuItem.Header = "Pause";
@@ -243,6 +261,8 @@ internal sealed partial class MainWindow : Window, IDisposable
         _emulationSession = null;
         _inputRouter.Clear();
         _pauseMenuItem.Header = "Pause";
+        _pauseMenuItem.IsEnabled = false;
+        _resetMenuItem.IsEnabled = false;
     }
 
     private void ApplyKeyboardInput(KeyEventArgs e, bool pressed)
