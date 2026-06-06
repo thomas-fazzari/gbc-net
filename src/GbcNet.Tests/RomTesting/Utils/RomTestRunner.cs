@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using GbcNet.Core;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware;
@@ -45,6 +46,37 @@ internal static class RomTestRunner
         }
 
         return RomTestResult.TimedOut(machineCycles, GetSnapshots(observers));
+    }
+
+    public static IReadOnlyDictionary<string, RomTestResult> RunAll(
+        IReadOnlyList<string> relativePaths,
+        Func<string, RomTestResult> run
+    )
+    {
+        ArgumentNullException.ThrowIfNull(relativePaths);
+        ArgumentNullException.ThrowIfNull(run);
+
+        var results = new ConcurrentDictionary<string, RomTestResult>(StringComparer.Ordinal);
+        Parallel.ForEach(
+            relativePaths,
+            new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
+            relativePath => results[relativePath] = run(relativePath)
+        );
+
+        return results;
+    }
+
+    public static TheoryData<string> CreateTheoryData(IReadOnlyList<string> relativePaths)
+    {
+        ArgumentNullException.ThrowIfNull(relativePaths);
+
+        var rows = new TheoryData<string>();
+        foreach (string relativePath in relativePaths)
+        {
+            rows.Add(relativePath);
+        }
+
+        return rows;
     }
 
     private static RomTestResult? CreateTerminalResult(

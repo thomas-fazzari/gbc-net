@@ -7,8 +7,10 @@ namespace GbcNet.Tests.RomTesting.Utils.ResultObservers;
 internal sealed class MooneyeSerialResultObserver : IRomResultObserver
 {
     private const string Source = "Mooneye serial";
-    private static readonly byte[] PassReport = [0x03, 0x05, 0x08, 0x0D, 0x15, 0x22];
-    private static readonly byte[] FailReport = [0x42, 0x42, 0x42, 0x42, 0x42, 0x42];
+    private const byte FailureByte = 0x42;
+
+    private static readonly byte[] _passReport = [0x03, 0x05, 0x08, 0x0D, 0x15, 0x22];
+    private static readonly byte[] _failReport = [.. Enumerable.Repeat(FailureByte, 6)];
 
     private readonly List<byte> _output = [];
 
@@ -21,12 +23,12 @@ internal sealed class MooneyeSerialResultObserver : IRomResultObserver
 
     public RomTestObservation? Observe()
     {
-        if (ContainsReport(PassReport))
+        if (ContainsReport(_passReport))
         {
             return new RomTestObservation(Source, RomTestStatus.Passed, FormatOutput());
         }
 
-        return ContainsReport(FailReport)
+        return ContainsReport(_failReport)
             ? new RomTestObservation(Source, RomTestStatus.Failed, FormatOutput())
             : null;
     }
