@@ -13,16 +13,28 @@ internal sealed class CartridgeRamWindow(int sizeBytes, bool hasBattery)
 
     private bool _enabled;
 
+    /// <summary>
+    /// Backing RAM behind the CPU-visible A000-BFFF window.
+    /// </summary>
     public CartridgeRam Ram { get; } = new(sizeBytes, hasBattery);
 
+    /// <summary>
+    /// Updates the MBC RAM-enable latch using the low nibble of a ROM-area write.
+    /// </summary>
     public void WriteEnableRegister(byte value)
     {
         _enabled = (value & RamEnableMask) == RamEnableValue;
     }
 
+    /// <summary>
+    /// Reads from the selected RAM bank, returning FF while RAM is disabled or absent.
+    /// </summary>
     public byte ReadOffset(ushort offset, int bank) =>
         !CanAccess ? (byte)0xFF : Ram.Read(GetEffectiveOffset(offset, bank));
 
+    /// <summary>
+    /// Writes to the selected RAM bank when enabled; disabled or absent RAM ignores writes.
+    /// </summary>
     public void WriteOffset(ushort offset, byte value, int bank)
     {
         if (CanAccess)

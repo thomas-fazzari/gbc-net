@@ -84,24 +84,42 @@ internal sealed class DmgPpuEngine : IPpuEngine
     private BackgroundFetcherStep _fetcherStep;
     private PixelFetcherSource _fetcherSource;
 
+    /// <summary>
+    /// DMG LY register value advanced by the scanline sequencer.
+    /// </summary>
     public byte LcdYCoordinate { get; private set; }
 
+    /// <summary>
+    /// DMG STAT coincidence flag derived from LY and LYC.
+    /// </summary>
     public bool LycEqualsLy { get; private set; } = true;
 
+    /// <summary>
+    /// CPU-visible DMG STAT mode, including the four-dot visible-line startup delay.
+    /// </summary>
     public PpuMode StatusMode { get; private set; }
 
     private PpuMode _statInterruptMode;
 
+    /// <summary>
+    /// Indicates that DMG VRAM reads are blocked by Mode 3 drawing ownership.
+    /// </summary>
     public bool IsCpuVideoRamReadBlocked =>
         LcdYCoordinate < PpuGeometry.VBlankStartLine
         && _lineDots >= OamScanDots
         && _lineDots < GetCurrentDrawingEndDots();
 
+    /// <summary>
+    /// Indicates that DMG VRAM writes are blocked by Mode 3 drawing ownership.
+    /// </summary>
     public bool IsCpuVideoRamWriteBlocked =>
         LcdYCoordinate < PpuGeometry.VBlankStartLine
         && _lineDots >= GetCurrentDrawingStartDots()
         && _lineDots < GetCurrentDrawingEndDots();
 
+    /// <summary>
+    /// Indicates that DMG OAM reads are blocked by OAM scan or drawing ownership.
+    /// </summary>
     public bool IsCpuObjectAttributeMemoryReadBlocked =>
         LcdYCoordinate < PpuGeometry.VBlankStartLine
         && (
@@ -110,6 +128,9 @@ internal sealed class DmgPpuEngine : IPpuEngine
                 : _lineDots < GetCurrentDrawingEndDots()
         );
 
+    /// <summary>
+    /// Indicates that DMG OAM writes are blocked by OAM scan or drawing ownership.
+    /// </summary>
     public bool IsCpuObjectAttributeMemoryWriteBlocked =>
         LcdYCoordinate < PpuGeometry.VBlankStartLine
         && (
@@ -122,6 +143,9 @@ internal sealed class DmgPpuEngine : IPpuEngine
                     )
         );
 
+    /// <summary>
+    /// Advances DMG LCD timing, renderer FIFO state, STAT interrupts, and VBlank frame completion.
+    /// </summary>
     public PpuEngineTickResult Tick(int tCycles, PpuEngineInputs inputs)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(tCycles);
@@ -168,6 +192,9 @@ internal sealed class DmgPpuEngine : IPpuEngine
         return new PpuEngineTickResult(requests, completedFrame);
     }
 
+    /// <summary>
+    /// Starts DMG LCD timing at the shortened first scanline after LCD enable.
+    /// </summary>
     public PpuInterruptRequest EnableLcd(PpuEngineInputs inputs)
     {
         _lineDots = 0;
@@ -199,6 +226,9 @@ internal sealed class DmgPpuEngine : IPpuEngine
         return PpuInterruptRequest.None;
     }
 
+    /// <summary>
+    /// Stops DMG LCD timing and resets LY, STAT mode, renderer, and STAT interrupt line state.
+    /// </summary>
     public void DisableLcd()
     {
         _lineDots = 0;
@@ -216,11 +246,17 @@ internal sealed class DmgPpuEngine : IPpuEngine
         _statInterruptLine = false;
     }
 
+    /// <summary>
+    /// Applies DMG STAT interrupt line edge behavior after STAT interrupt select bits change.
+    /// </summary>
     public PpuInterruptRequest WriteStatusInterruptSelect(
         PpuEngineInputs inputs,
         bool lcdEnabled
     ) => RefreshStatInterruptLine(inputs.StatusInterruptSelect, lcdEnabled, requestInterrupt: true);
 
+    /// <summary>
+    /// Applies DMG LYC write comparison and STAT interrupt line edge behavior.
+    /// </summary>
     public PpuInterruptRequest WriteLycCompare(PpuEngineInputs inputs, bool lcdEnabled)
     {
         if (!lcdEnabled)
@@ -236,6 +272,9 @@ internal sealed class DmgPpuEngine : IPpuEngine
         );
     }
 
+    /// <summary>
+    /// Seeds DMG STAT state when constructing post-boot or saved hardware state.
+    /// </summary>
     public void SetStatusState(byte value, PpuEngineInputs inputs, bool lcdEnabled)
     {
         LycEqualsLy = (value & PpuStatusRegister.LycEqualsLyMask) != 0;
@@ -244,6 +283,9 @@ internal sealed class DmgPpuEngine : IPpuEngine
         RefreshStatInterruptLine(inputs.StatusInterruptSelect, lcdEnabled, requestInterrupt: false);
     }
 
+    /// <summary>
+    /// Seeds DMG LY state and refreshes scanline-local rendering selectors.
+    /// </summary>
     public void SetLcdYCoordinateState(byte value, PpuEngineInputs inputs, bool lcdEnabled)
     {
         LcdYCoordinate = value;
@@ -263,6 +305,9 @@ internal sealed class DmgPpuEngine : IPpuEngine
         RefreshStatInterruptLine(inputs.StatusInterruptSelect, lcdEnabled, requestInterrupt: false);
     }
 
+    /// <summary>
+    /// Seeds DMG LYC comparison state without requesting a CPU-visible STAT edge.
+    /// </summary>
     public void SetLycCompareState(PpuEngineInputs inputs, bool lcdEnabled)
     {
         RefreshLycEqualsLy(inputs.LcdYCompare);

@@ -77,6 +77,9 @@ internal sealed class MemoryBus
     /// </summary>
     internal ICpuMemoryWriteObserver? CpuMemoryWriteObserver { private get; set; }
 
+    /// <summary>
+    /// Creates the CPU-visible bus and model-specific DMA/PPU policies for a cartridge.
+    /// </summary>
     public MemoryBus(Cartridge cartridge, IHardwareStrategy hardwareStrategy)
     {
         _cartridge = cartridge;
@@ -115,6 +118,9 @@ internal sealed class MemoryBus
         }
     }
 
+    /// <summary>
+    /// Reads a CPU-visible byte, applying active OAM DMA conflicts and PPU bus blocking.
+    /// </summary>
     public byte ReadByte(ushort address)
     {
         if (TryReadDmaConflictedByte(address, out byte value))
@@ -125,6 +131,9 @@ internal sealed class MemoryBus
         return IsCpuVideoMemoryReadBlockedByPpu(address) ? (byte)0xFF : ReadMappedByte(address);
     }
 
+    /// <summary>
+    /// Writes a CPU-visible byte unless OAM DMA or PPU ownership blocks the address.
+    /// </summary>
     public void WriteByte(ushort address, byte value)
     {
         if (IsCpuWriteBlocked(address))
@@ -170,6 +179,7 @@ internal sealed class MemoryBus
 
         if (_dmaTransferStrategy.IsCpuAddressBlocked(address, sourceAddress))
         {
+            // During a DMA bus conflict, the CPU sees the byte currently driven by DMA source reads
             value = ReadOamDmaSourceByte(sourceAddress);
             return true;
         }

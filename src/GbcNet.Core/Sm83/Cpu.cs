@@ -117,12 +117,14 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
             return;
         }
 
+        // EI followed by HALT with a pending interrupt fetches HALT twice instead of entering HALT
         if (ImeEnablePending)
         {
             Registers.PC = unchecked((ushort)(Registers.PC - 1));
             return;
         }
 
+        // With IME disabled and an interrupt pending, the next opcode is fetched without PC advance
         if (!Ime)
         {
             HaltBugPending = true;

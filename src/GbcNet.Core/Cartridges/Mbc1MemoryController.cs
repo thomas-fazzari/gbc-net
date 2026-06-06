@@ -65,6 +65,7 @@ internal sealed class Mbc1MemoryController(
     private int GetSwitchableRomBank()
     {
         int bank = (_bankHigh << 5) | _romBankLow;
+        // MBC1 cannot select bank 00, 20, 40, or 60 in the switchable ROM window
         if ((bank & RomBankLowMask) == 0)
         {
             bank++;

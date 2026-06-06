@@ -7,9 +7,15 @@ namespace GbcNet.Core.Cartridges;
 /// </summary>
 public sealed class CartridgeLoadError(CartridgeLoadErrorCode code, string message) : Error(message)
 {
+    /// <summary>
+    /// Machine-readable category for a cartridge load failure.
+    /// </summary>
     public CartridgeLoadErrorCode Code { get; } = code;
 }
 
+/// <summary>
+/// Typed cartridge load failure reasons.
+/// </summary>
 public enum CartridgeLoadErrorCode
 {
     /// <summary>

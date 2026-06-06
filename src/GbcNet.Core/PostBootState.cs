@@ -57,6 +57,9 @@ internal static class PostBootState
             0xF1,
         ];
 
+    /// <summary>
+    /// Seeds CPU registers and IO registers to the selected model's post-boot-ROM hand-off state.
+    /// </summary>
     public static void Apply(
         HardwareModel hardwareModel,
         Cartridge cartridge,

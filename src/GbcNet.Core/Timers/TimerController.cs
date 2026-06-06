@@ -111,6 +111,7 @@ internal sealed class TimerController(InterruptController interrupts, SystemCoun
         bool isTimerInputHigh = IsTimerInputHigh(newTimerControl, systemCounter.Value);
         _timerControl = newTimerControl;
 
+        // TAC writes can create a synthetic falling edge without the system counter ticking
         if (wasTimerInputHigh && !isTimerInputHigh)
         {
             IncrementTimerCounter();
@@ -132,10 +133,12 @@ internal sealed class TimerController(InterruptController interrupts, SystemCoun
     {
         switch (_reloadState)
         {
+            // The interrupt is delayed one M-cycle after TIMA overflows and reloads from TMA
             case TimerReloadState.Reloading:
                 interrupts.Request(InterruptSource.Timer);
                 _reloadState = TimerReloadState.Reloaded;
                 return;
+            // CPU writes to TIMA during the reload M-cycle are ignored, then normal writes resume
             case TimerReloadState.Reloaded:
                 _reloadState = TimerReloadState.Running;
                 return;

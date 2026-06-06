@@ -37,8 +37,14 @@ internal sealed class DmgObjectLayer
     private int _scanlineObjectHeight = PpuObjectAttributes.Size8;
     private bool _scanlineObjectsSelected;
 
+    /// <summary>
+    /// Additional Mode 3 dots caused by OBJ fetches on the selected scanline.
+    /// </summary>
     public int PenaltyDots { get; private set; }
 
+    /// <summary>
+    /// Clears scanline-local OBJ selection and fetch penalty state.
+    /// </summary>
     public void Clear()
     {
         _scanlineObjectCount = 0;
@@ -47,6 +53,9 @@ internal sealed class DmgObjectLayer
         _scanlineObjectsSelected = false;
     }
 
+    /// <summary>
+    /// Performs the once-per-scanline OAM selection pass after OAM scan has completed.
+    /// </summary>
     public void EnsureSelected(
         PpuEngineInputs inputs,
         byte lcdYCoordinate,
@@ -77,6 +86,9 @@ internal sealed class DmgObjectLayer
         _scanlineObjectsSelected = true;
     }
 
+    /// <summary>
+    /// Selects the frontmost non-transparent DMG OBJ pixel for a screen X position.
+    /// </summary>
     public DmgObjectPixel? SelectPixel(int screenX, byte lcdYCoordinate, PpuEngineInputs inputs)
     {
         if ((inputs.LcdControl & PpuLcdControlRegister.ObjectEnableMask) == 0)
@@ -154,6 +166,7 @@ internal sealed class DmgObjectLayer
             }
         }
 
+        // DMG priority resolves by X coordinate first, then original OAM index for ties
         _scanlineObjects
             .AsSpan(0, _scanlineObjectCount)
             .Sort(
@@ -185,6 +198,7 @@ internal sealed class DmgObjectLayer
                 continue;
             }
 
+            // Objects that begin in the same tile fetch slot share one fetch session penalty
             int tileIndex = GetObjectTileIndex(firstObject.X, scrollXLowBits);
             int sessionEnd = index + 1;
             while (
@@ -211,6 +225,7 @@ internal sealed class DmgObjectLayer
                     continue;
                 }
 
+                // A later visible fetch session pays a gap penalty based on the previous session
                 penaltyDots += (objects[sessionEnd - 1].X & LowThreeBitsMask) switch
                 {
                     0 or 2 or 4 => 3,
@@ -266,11 +281,23 @@ internal sealed class DmgObjectLayer
     private readonly record struct ScanlineObject(int Index, byte X, byte Y, byte Tile, byte Flags);
 }
 
+/// <summary>
+/// Decoded non-transparent DMG OBJ pixel attributes selected for composition.
+/// </summary>
 internal readonly struct DmgObjectPixel(byte colorId, bool usesPalette1, bool hasBackgroundPriority)
 {
+    /// <summary>
+    /// Two-bit OBJ color index; zero is transparent and never returned.
+    /// </summary>
     public byte ColorId { get; } = colorId;
 
+    /// <summary>
+    /// Selects OBP1 instead of OBP0 for final shade mapping.
+    /// </summary>
     public bool UsesPalette1 { get; } = usesPalette1;
 
+    /// <summary>
+    /// Indicates that non-zero background/window pixels have priority over this OBJ pixel.
+    /// </summary>
     public bool HasBackgroundPriority { get; } = hasBackgroundPriority;
 }
