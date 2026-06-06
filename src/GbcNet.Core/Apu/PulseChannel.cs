@@ -40,7 +40,6 @@ internal sealed class PulseChannel
     private int _envelopeTimer;
     private int _periodTimer;
     private int _tCycleAccumulator;
-    private ushort _period;
     private byte _duty;
     private byte _dutyStep;
     private bool _lengthEnabled;
@@ -50,6 +49,8 @@ internal sealed class PulseChannel
     public bool IsActive { get; private set; }
 
     public byte Volume { get; private set; }
+
+    public ushort Period { get; private set; }
 
     public byte DigitalOutput =>
         IsActive && !_suppressInitialOutput && _dutyPatterns[(_duty * 8) + _dutyStep] != 0
@@ -66,7 +67,12 @@ internal sealed class PulseChannel
 
     public void WritePeriodLow(byte value)
     {
-        _period = (ushort)((_period & 0x700) | value);
+        Period = (ushort)((Period & 0x700) | value);
+    }
+
+    public void SetPeriod(ushort period)
+    {
+        Period = (ushort)(period & 0x07FF);
     }
 
     public void WriteEnvelope(byte value)
@@ -82,7 +88,7 @@ internal sealed class PulseChannel
 
     public void WriteControl(byte value, byte envelope)
     {
-        _period = (ushort)((_period & 0xFF) | ((value & PeriodHighMask) << PeriodHighShift));
+        Period = (ushort)((Period & 0xFF) | ((value & PeriodHighMask) << PeriodHighShift));
         _lengthEnabled = (value & LengthEnableMask) != 0;
 
         if ((value & TriggerMask) == 0)
@@ -95,7 +101,7 @@ internal sealed class PulseChannel
             _lengthCounter = MaxLength;
         }
 
-        _periodTimer = PeriodReloadBase - _period;
+        _periodTimer = PeriodReloadBase - Period;
         _tCycleAccumulator = 0;
 
         Volume = (byte)(envelope >> InitialVolumeShift);
@@ -124,7 +130,7 @@ internal sealed class PulseChannel
                 continue;
             }
 
-            _periodTimer = PeriodReloadBase - _period;
+            _periodTimer = PeriodReloadBase - Period;
             _dutyStep = (byte)((_dutyStep + 1) & 0x07);
             _suppressInitialOutput = false;
         }
@@ -170,6 +176,12 @@ internal sealed class PulseChannel
         }
     }
 
+    public void Disable()
+    {
+        IsActive = false;
+        _suppressInitialOutput = false;
+    }
+
     public void PowerOff()
     {
         _lengthCounter = 0;
@@ -177,7 +189,7 @@ internal sealed class PulseChannel
         _envelopeTimer = 0;
         _periodTimer = 0;
         _tCycleAccumulator = 0;
-        _period = 0;
+        Period = 0;
         _duty = 0;
         _dutyStep = 0;
         _lengthEnabled = false;

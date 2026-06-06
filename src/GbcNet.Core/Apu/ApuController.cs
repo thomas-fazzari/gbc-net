@@ -12,6 +12,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     private const ushort UnmappedAudioAddressFf15 = 0xFF15;
     private const ushort UnmappedAudioAddressFf1F = 0xFF1F;
 
+    private const ushort Channel1SweepRegister = 0xFF10;
     private const ushort Channel1LengthRegister = 0xFF11;
     private const ushort Channel1EnvelopeRegister = 0xFF12;
     private const ushort Channel1PeriodLowRegister = 0xFF13;
@@ -37,12 +38,15 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
 
     private const byte RightVolumeMask = 0x07;
     private const byte LeftVolumeMask = 0x70;
+    private const byte PeriodHighMask = 0x07;
+    private const byte TriggerMask = 0x80;
     private const int LeftVolumeShift = 4;
     private const byte DivApuStepMask = 0x07;
 
     private readonly byte[] _registers = new byte[RegisterEnd - RegisterStart + 1];
     private readonly PulseChannel _channel1 = new();
     private readonly PulseChannel _channel2 = new();
+    private readonly Channel1Sweep _channel1Sweep = new();
 
     /// <summary>
     /// Current DIV-APU frame sequencer step, advanced at 512 Hz.
@@ -52,6 +56,8 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     internal byte Channel2Volume => _channel2.Volume;
 
     internal byte Channel2DigitalOutput => _channel2.DigitalOutput;
+
+    internal ushort Channel1Period => _channel1.Period;
 
     /// <summary>
     /// Returns whether an address is owned by the APU register block.
@@ -101,6 +107,30 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
             {
                 _registers[AudioMasterControlRegister - RegisterStart] &= unchecked(
                     (byte)~AudioChannel2StatusMask
+                );
+            }
+        }
+
+        if (events.Sweep)
+        {
+            Channel1SweepResult sweepResult = _channel1Sweep.Clock();
+            if (sweepResult.PeriodChanged)
+            {
+                _channel1.SetPeriod(sweepResult.Period);
+                _registers[Channel1PeriodLowRegister - RegisterStart] = (byte)sweepResult.Period;
+                _registers[Channel1PeriodHighControlRegister - RegisterStart] = (byte)(
+                    (
+                        _registers[Channel1PeriodHighControlRegister - RegisterStart]
+                        & ~PeriodHighMask
+                    ) | (sweepResult.Period >> 8)
+                );
+            }
+
+            if (sweepResult.Overflowed)
+            {
+                _channel1.Disable();
+                _registers[AudioMasterControlRegister - RegisterStart] &= unchecked(
+                    (byte)~AudioChannel1StatusMask
                 );
             }
         }
@@ -178,6 +208,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
                 Array.Clear(_registers);
                 _channel1.PowerOff();
                 _channel2.PowerOff();
+                _channel1Sweep.PowerOff();
                 return;
             }
 
@@ -197,6 +228,10 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
 
         switch (address)
         {
+            case Channel1SweepRegister:
+                _channel1Sweep.WriteRegister(value);
+                return;
+
             case Channel1LengthRegister:
                 _channel1.WriteLength(value);
                 return;
@@ -217,6 +252,17 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
 
             case Channel1PeriodHighControlRegister:
                 _channel1.WriteControl(value, _registers[Channel1EnvelopeRegister - RegisterStart]);
+                if ((value & TriggerMask) != 0)
+                {
+                    Channel1SweepResult triggerSweepResult = _channel1Sweep.Trigger(
+                        _channel1.Period
+                    );
+                    if (triggerSweepResult.Overflowed)
+                    {
+                        _channel1.Disable();
+                    }
+                }
+
                 if (_channel1.IsActive)
                 {
                     _registers[AudioMasterControlRegister - RegisterStart] |=

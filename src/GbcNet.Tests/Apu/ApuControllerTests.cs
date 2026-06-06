@@ -120,6 +120,83 @@ public sealed class ApuControllerTests
     }
 
     [Fact]
+    public void WriteRegister_Channel1SweepImmediateOverflowClearsChannel1Status()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF10, 0x01);
+        apu.WriteRegister(0xFF12, 0xF0);
+        apu.WriteRegister(0xFF13, 0x00);
+        apu.WriteRegister(0xFF14, 0x87);
+
+        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void TickSystemCounter_Channel1SweepWritesValidNewPeriod()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF10, 0x19);
+        apu.WriteRegister(0xFF12, 0xF0);
+        apu.WriteRegister(0xFF13, 0x00);
+        apu.WriteRegister(0xFF14, 0x84);
+
+        ApuFrameSequencerEvents events;
+        do
+        {
+            events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+        } while (!events.Sweep);
+
+        Assert.Equal(0x0200, apu.Channel1Period);
+        Assert.Equal(0xF1, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void TickSystemCounter_Channel1SweepOverflowClearsChannel1Status()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF10, 0x11);
+        apu.WriteRegister(0xFF12, 0xF0);
+        apu.WriteRegister(0xFF13, 0x00);
+        apu.WriteRegister(0xFF14, 0x84);
+
+        ApuFrameSequencerEvents events;
+        do
+        {
+            events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+        } while (!events.Sweep);
+
+        Assert.Equal(0x0600, apu.Channel1Period);
+        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void TickSystemCounter_Channel1SweepWithShiftZeroDoesNotWriteBackPeriod()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF10, 0x10);
+        apu.WriteRegister(0xFF12, 0xF0);
+        apu.WriteRegister(0xFF13, 0x00);
+        apu.WriteRegister(0xFF14, 0x84);
+
+        ApuFrameSequencerEvents events;
+        do
+        {
+            events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+        } while (!events.Sweep);
+
+        Assert.Equal(0x0400, apu.Channel1Period);
+        Assert.Equal(0xF1, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
     public void WriteRegister_TriggeringChannel2WithDacEnabledSetsAudioMasterChannel2Status()
     {
         ApuController apu = new(new DmgApuHardwareProfile());
