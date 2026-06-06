@@ -40,7 +40,10 @@ public sealed class CartridgeSaveFileServiceTests
         }
         finally
         {
-            Directory.Delete(tempDirectory, recursive: true);
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
         }
     }
 
@@ -63,7 +66,10 @@ public sealed class CartridgeSaveFileServiceTests
         }
         finally
         {
-            Directory.Delete(tempDirectory, recursive: true);
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
         }
     }
 

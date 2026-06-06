@@ -15,6 +15,6 @@ public sealed class BlarggInstructionTimingRomTests
 
         RomTestResult result = RomTestRunner.Run(rom, MaxMachineCycles);
 
-        Assert.True(result.Status is RomTestStatus.Passed, result.ToFailureMessage());
+        RomTestAssertions.AssertPassed(result);
     }
 }

@@ -73,11 +73,13 @@ public sealed class DmgAcid2VisualRomTests
             }
 
             ReadOnlySpan<byte> actual = result.Frame.Pixels.Span;
-            int differenceCount = 0;
+            int comparedLength = Math.Min(expected.Length, actual.Length);
+            int unmatchedLength = Math.Abs(expected.Length - actual.Length);
+            int differenceCount = unmatchedLength;
             string[] firstDifferences = new string[MaxReportedDiffOffsets];
             int reportedDifferenceCount = 0;
 
-            for (int offset = 0; offset < Math.Min(expected.Length, actual.Length); offset++)
+            for (int offset = 0; offset < comparedLength; offset++)
             {
                 if (expected[offset] == actual[offset])
                 {
@@ -99,12 +101,9 @@ public sealed class DmgAcid2VisualRomTests
 
             return string.Create(
                 CultureInfo.InvariantCulture,
-                $"Frame {result.CompletedFrames} differs at {differenceCount} pixels after {result.MachineCycles} M-cycles. First differences: {FormatDifferences(firstDifferences.AsSpan()[..reportedDifferenceCount])}."
+                $"Frame {result.CompletedFrames} differs at {differenceCount} pixels after {result.MachineCycles} M-cycles. Expected length={expected.Length}, actual length={actual.Length}, unmatched tail={unmatchedLength}. First differences: {string.Join(", ", firstDifferences.AsSpan()[..reportedDifferenceCount])}."
             );
         }
-
-        private static string FormatDifferences(ReadOnlySpan<string> differences) =>
-            string.Join(", ", differences);
 
         private static string FormatDifference(int offset, byte expected, byte actual)
         {

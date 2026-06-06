@@ -1,6 +1,5 @@
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using FluentResults;
@@ -41,7 +40,9 @@ internal sealed partial class MainWindow : Window, IDisposable
     private readonly InputRouter _inputRouter;
     private byte[]? _loadedRom;
     private string _loadedRomName = string.Empty;
-    private WriteableBitmap? _screenBitmap;
+    private readonly LcdFrameBitmapRenderer _screenRenderer = new();
+    private bool _closeAfterAsyncStop;
+    private int _closeStopStarted;
 
     public MainWindow(
         InputConfiguration inputConfiguration,
@@ -91,6 +92,43 @@ internal sealed partial class MainWindow : Window, IDisposable
         NativeMenu.SetMenu(this, [fileMenuItem, emulationMenuItem]);
     }
 
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        base.OnClosing(e);
+
+        if (e.Cancel || _closeAfterAsyncStop)
+        {
+            return;
+        }
+
+        e.Cancel = true;
+
+        if (Interlocked.Exchange(ref _closeStopStarted, 1) == 0)
+        {
+            _ = StopEmulationSessionAsync()
+                .ContinueWith(
+                    static (task, state) =>
+                    {
+                        var window = (MainWindow)state!;
+
+                        if (task.IsFaulted)
+                        {
+                            window.Title = task.Exception!.GetBaseException().Message;
+                            Volatile.Write(ref window._closeStopStarted, 0);
+                            return;
+                        }
+
+                        window._closeAfterAsyncStop = true;
+                        window.Close();
+                    },
+                    this,
+                    CancellationToken.None,
+                    TaskContinuationOptions.None,
+                    TaskScheduler.FromCurrentSynchronizationContext()
+                );
+        }
+    }
+
     protected override void OnClosed(EventArgs e)
     {
         Dispose();
@@ -99,8 +137,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     public void Dispose()
     {
-        StopEmulationSession();
-        _screenBitmap?.Dispose();
+        _screenRenderer.Dispose();
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -151,12 +188,30 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private void ResetMenu_OnClick(object? sender, EventArgs e)
     {
+        _ = ResetRomAsync()
+            .ContinueWith(
+                static (task, state) =>
+                {
+                    if (task.Exception is not null)
+                    {
+                        ((MainWindow)state!).Title = task.Exception.GetBaseException().Message;
+                    }
+                },
+                this,
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted,
+                TaskScheduler.FromCurrentSynchronizationContext()
+            );
+    }
+
+    private async Task ResetRomAsync()
+    {
         if (_loadedRom is null)
         {
             return;
         }
 
-        StopEmulationSession();
+        await StopEmulationSessionAsync().ConfigureAwait(true);
         Result<Cartridge> cartridge = LoadCartridge(_loadedRom);
 
         if (cartridge.IsFailed)
@@ -190,7 +245,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
 
         byte[] rom = await ReadFileAsync(files[0]).ConfigureAwait(true);
-        StopEmulationSession();
+        await StopEmulationSessionAsync().ConfigureAwait(true);
         Result<Cartridge> cartridge = LoadCartridge(rom);
 
         if (cartridge.IsFailed)
@@ -250,19 +305,21 @@ internal sealed partial class MainWindow : Window, IDisposable
         _resetMenuItem.IsEnabled = true;
     }
 
-    private void StopEmulationSession()
+    private async Task StopEmulationSessionAsync()
     {
-        if (_emulationSession is null)
+        EmulationSession? session = _emulationSession;
+
+        if (session is null)
         {
             return;
         }
 
-        _emulationSession.Dispose();
         _emulationSession = null;
         _inputRouter.Clear();
         _pauseMenuItem.Header = "Pause";
         _pauseMenuItem.IsEnabled = false;
         _resetMenuItem.IsEnabled = false;
+        await session.StopAsync().ConfigureAwait(true);
     }
 
     private void ApplyKeyboardInput(KeyEventArgs e, bool pressed)
@@ -282,9 +339,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         Dispatcher.UIThread.Post(() =>
         {
-            _screenBitmap?.Dispose();
-            _screenBitmap = LcdFrameBitmapConverter.ToBitmap(e.Frame);
-            ScreenImage.Source = _screenBitmap;
+            ScreenImage.Source = _screenRenderer.Render(e.Frame);
         });
     }
 

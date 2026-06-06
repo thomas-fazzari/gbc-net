@@ -82,7 +82,7 @@ internal sealed class DmaController
         ArgumentNullException.ThrowIfNull(readSourceByte);
         ArgumentNullException.ThrowIfNull(writeOamByte);
 
-        if (!IsActive || machineCycles == 0)
+        if (machineCycles == 0 || (!IsActive && !_restartPending))
         {
             return;
         }

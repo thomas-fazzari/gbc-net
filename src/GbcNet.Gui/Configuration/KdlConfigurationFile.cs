@@ -15,9 +15,15 @@ internal static class KdlConfigurationFile
 
     public static string UserConfigPath { get; } =
         Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".config",
-            "gbc-net",
+            Environment.GetEnvironmentVariable("XDG_CONFIG_HOME") switch
+            {
+                { } xdgConfigHome when !string.IsNullOrWhiteSpace(xdgConfigHome) => xdgConfigHome,
+                _ => Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ".config"
+                ),
+            },
+            ApplicationDirectoryNames.Linux,
             FileName
         );
 

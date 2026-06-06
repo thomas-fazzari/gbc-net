@@ -57,7 +57,7 @@ internal static class KdlInputOptionsReader
             return version.ToResult<InputOptions>();
         }
 
-        if (version.Value != 1)
+        if (version.Value != InputOptions.SupportedVersion)
         {
             return Result.Fail(
                 $"Input config version {version.Value.ToString(CultureInfo.InvariantCulture)} is not supported."
@@ -84,7 +84,7 @@ internal static class KdlInputOptionsReader
 
         return new InputOptions
         {
-            Version = 1,
+            Version = InputOptions.SupportedVersion,
             ActiveProfile = activeProfile.Value,
             Profiles = profiles.Value,
         };

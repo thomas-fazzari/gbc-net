@@ -10,7 +10,7 @@ namespace GbcNet.Gui.Emulation;
 /// <summary>
 /// Runs a Game Boy instance on a background loop.
 /// </summary>
-internal sealed class EmulationSession : IDisposable
+internal sealed class EmulationSession
 {
     private const int MachineCyclesPerSecond = 1_048_576;
     private const int MachineCyclesPerThrottle = 4096;
@@ -19,13 +19,15 @@ internal sealed class EmulationSession : IDisposable
     private readonly Func<Result> _flushBatterySave;
     private readonly Action<Exception> _handleFault;
     private readonly Action<FrameCompletedEventArgs> _handleFrame;
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly GameBoy _gameBoy;
     private readonly ConcurrentQueue<(JoypadButton Button, bool Pressed)> _pendingButtonStates =
         new();
+    private readonly TaskCompletionSource _stopRequested = new(
+        TaskCreationOptions.RunContinuationsAsynchronously
+    );
     private readonly Task _runTask;
     private int _isPaused;
-    private int _isDisposed;
+    private int _isStopped;
 
     public bool IsPaused
     {
@@ -45,34 +47,31 @@ internal sealed class EmulationSession : IDisposable
         _handleFault = handleFault;
         _flushBatterySave = flushBatterySave;
         _gameBoy.FrameCompleted += OnFrameCompleted;
-        _runTask = RunAsync(_cancellationTokenSource.Token);
+        _runTask = Task.Run(RunAsync, CancellationToken.None);
     }
 
-    public void Dispose()
+    public async ValueTask StopAsync()
     {
-        if (Interlocked.Exchange(ref _isDisposed, 1) != 0)
+        if (Interlocked.Exchange(ref _isStopped, 1) == 0)
         {
-            return;
+            _gameBoy.FrameCompleted -= OnFrameCompleted;
+            _stopRequested.SetResult();
         }
 
-        _gameBoy.FrameCompleted -= OnFrameCompleted;
-        _cancellationTokenSource.Cancel();
-
         // Wait for the emulation loop to run its final save before the next session loads SRAM.
-        _runTask.GetAwaiter().GetResult();
-        _cancellationTokenSource.Dispose();
+        await _runTask.ConfigureAwait(false);
     }
 
     public void SetButtonState(JoypadButton button, bool pressed)
     {
-        if (Volatile.Read(ref _isDisposed) == 0)
+        if (Volatile.Read(ref _isStopped) == 0)
         {
             // Avalonia raises input on the UI thread while emulation runs on the session thread.
             _pendingButtonStates.Enqueue((button, pressed));
         }
     }
 
-    private async Task RunAsync(CancellationToken cancellationToken)
+    private async Task RunAsync()
     {
         var stopwatch = Stopwatch.StartNew();
         long elapsedMachineCycles = 0;
@@ -81,15 +80,27 @@ internal sealed class EmulationSession : IDisposable
 
         try
         {
-            while (!cancellationToken.IsCancellationRequested)
+            while (!_stopRequested.Task.IsCompleted)
             {
                 if (IsPaused)
                 {
-                    await Task.Delay(16, CancellationToken.None).ConfigureAwait(false);
+                    await Task.WhenAny(
+                            Task.Delay(TimeSpan.FromMilliseconds(16), CancellationToken.None),
+                            _stopRequested.Task
+                        )
+                        .ConfigureAwait(false);
                     continue;
                 }
 
-                ApplyPendingButtonStates();
+                while (
+                    _pendingButtonStates.TryDequeue(
+                        out (JoypadButton Button, bool Pressed) buttonState
+                    )
+                )
+                {
+                    _gameBoy.SetButtonState(buttonState.Button, buttonState.Pressed);
+                }
+
                 elapsedMachineCycles += _gameBoy.Step();
 
                 if (elapsedMachineCycles >= nextSaveMachineCycles)
@@ -103,7 +114,21 @@ internal sealed class EmulationSession : IDisposable
                     continue;
                 }
 
-                await ThrottleAsync(stopwatch, elapsedMachineCycles).ConfigureAwait(false);
+                // Throttle against total emulated time instead of per-chunk delay to avoid drift.
+                var expectedElapsed = TimeSpan.FromSeconds(
+                    elapsedMachineCycles / (double)MachineCyclesPerSecond
+                );
+                TimeSpan delay = expectedElapsed - stopwatch.Elapsed;
+
+                if (delay > TimeSpan.Zero)
+                {
+                    await Task.WhenAny(
+                            Task.Delay(delay, CancellationToken.None),
+                            _stopRequested.Task
+                        )
+                        .ConfigureAwait(false);
+                }
+
                 nextThrottleMachineCycles += MachineCyclesPerThrottle;
             }
         }
@@ -115,29 +140,6 @@ internal sealed class EmulationSession : IDisposable
         finally
         {
             FlushBatterySave();
-        }
-    }
-
-    private void ApplyPendingButtonStates()
-    {
-        while (_pendingButtonStates.TryDequeue(out (JoypadButton Button, bool Pressed) buttonState))
-        {
-            _gameBoy.SetButtonState(buttonState.Button, buttonState.Pressed);
-        }
-    }
-
-    private static async Task ThrottleAsync(Stopwatch stopwatch, long elapsedMachineCycles)
-    {
-        // Throttle against total emulated time instead of per-chunk delay to avoid drift.
-        var expectedElapsed = TimeSpan.FromSeconds(
-            elapsedMachineCycles / (double)MachineCyclesPerSecond
-        );
-
-        TimeSpan delay = expectedElapsed - stopwatch.Elapsed;
-
-        if (delay > TimeSpan.Zero)
-        {
-            await Task.Delay(delay, CancellationToken.None).ConfigureAwait(false);
         }
     }
 

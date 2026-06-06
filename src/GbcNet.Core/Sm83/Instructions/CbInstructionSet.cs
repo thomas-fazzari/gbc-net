@@ -1,6 +1,4 @@
-using GbcNet.Core.Sm83.Instructions;
-
-namespace GbcNet.Core.Sm83;
+namespace GbcNet.Core.Sm83.Instructions;
 
 /// <summary>
 /// SM83 CB-prefixed opcode table.

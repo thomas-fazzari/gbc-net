@@ -14,15 +14,11 @@ public sealed class Cartridge
 
     private readonly ICartridgeMemoryController _memoryController;
 
-    private Cartridge(
-        byte[] rom,
-        CartridgeHeader header,
-        ICartridgeMemoryController memoryController
-    )
+    private Cartridge(CartridgeHeader header, ICartridgeMemoryController memoryController)
     {
         Header = header;
         _memoryController = memoryController;
-        RomLength = rom.Length;
+        RomLength = header.RomSizeBytes;
     }
 
     /// <summary>
@@ -88,7 +84,7 @@ public sealed class Cartridge
 
         return memoryControllerResult.IsFailed
             ? Result.Fail<Cartridge>(memoryControllerResult.Errors)
-            : Result.Ok(new Cartridge(romBytes, header, memoryControllerResult.Value));
+            : Result.Ok(new Cartridge(header, memoryControllerResult.Value));
     }
 
     /// <summary>

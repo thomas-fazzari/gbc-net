@@ -9,13 +9,11 @@ namespace GbcNet.Gui.Input.Configuration;
 /// </summary>
 internal sealed class InputOptionsValidator : IValidateOptions<InputOptions>
 {
-    private const int SupportedVersion = 1;
-
     public ValidateOptionsResult Validate(string? name, InputOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        if (options.Version != SupportedVersion)
+        if (options.Version != InputOptions.SupportedVersion)
         {
             return ValidateOptionsResult.Fail(
                 $"Input config version {options.Version} is not supported."

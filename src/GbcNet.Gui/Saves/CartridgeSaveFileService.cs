@@ -10,8 +10,6 @@ namespace GbcNet.Gui.Saves;
 /// </summary>
 internal sealed class CartridgeSaveFileService
 {
-    private const string LinuxAppDirectoryName = "gbc-net";
-    private const string DesktopAppDirectoryName = "GbcNet";
     private const string SaveDirectoryName = "saves";
     private const string SaveFileExtension = ".sav";
     private const int ShortHashHexLength = 8;
@@ -118,7 +116,7 @@ internal sealed class CartridgeSaveFileService
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                 "Library",
                 "Application Support",
-                DesktopAppDirectoryName,
+                ApplicationDirectoryNames.Desktop,
                 SaveDirectoryName
             );
         }
@@ -127,7 +125,7 @@ internal sealed class CartridgeSaveFileService
         {
             return Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                DesktopAppDirectoryName,
+                ApplicationDirectoryNames.Desktop,
                 SaveDirectoryName
             );
         }
@@ -141,6 +139,6 @@ internal sealed class CartridgeSaveFileService
             )
             : xdgDataHome;
 
-        return Path.Combine(dataHome, LinuxAppDirectoryName, SaveDirectoryName);
+        return Path.Combine(dataHome, ApplicationDirectoryNames.Linux, SaveDirectoryName);
     }
 }

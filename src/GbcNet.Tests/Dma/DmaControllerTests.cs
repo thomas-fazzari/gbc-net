@@ -180,6 +180,49 @@ public sealed class DmaControllerTests
         Assert.Equal(expectedWrites, writes);
     }
 
+    [Fact]
+    public void StartOamTransfer_PendingRestartStartsAfterCurrentTransferCompletesNearEnd()
+    {
+        var dma = new DmaController();
+        var writes = new List<(ushort Address, byte Value)>();
+
+        dma.StartOamTransfer(0xC0);
+        dma.Tick(
+            2,
+            ReadSourceHighByte,
+            (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
+        );
+        dma.Tick(
+            159,
+            ReadSourceHighByte,
+            (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
+        );
+
+        dma.StartOamTransfer(0xD0);
+        dma.Tick(
+            1,
+            ReadSourceHighByte,
+            (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
+        );
+        Assert.False(dma.IsActive);
+
+        dma.Tick(
+            1,
+            ReadSourceHighByte,
+            (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
+        );
+        Assert.True(dma.IsActive);
+        dma.Tick(
+            1,
+            ReadSourceHighByte,
+            (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
+        );
+
+        Assert.Equal(161, writes.Count);
+        Assert.Equal((AddressMap.ObjectAttributeMemoryEnd, (byte)0xC0), writes[159]);
+        Assert.Equal((AddressMap.ObjectAttributeMemoryStart, (byte)0xD0), writes[160]);
+    }
+
     private static byte ReadLowByte(ushort address) => (byte)address;
 
     private static byte ReadSourceHighByte(ushort address) => (byte)(address >> 8);

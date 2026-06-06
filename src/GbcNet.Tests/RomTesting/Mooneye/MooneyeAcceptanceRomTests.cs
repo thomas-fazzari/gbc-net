@@ -1,3 +1,4 @@
+using GbcNet.Tests.RomTesting;
 using GbcNet.Tests.RomTesting.Utils;
 
 namespace GbcNet.Tests.RomTesting.Mooneye;
@@ -81,6 +82,6 @@ public sealed class MooneyeAcceptanceRomTests
 
         RomTestResult result = RomTestRunner.Run(rom, MaxMachineCycles, RomTestProtocol.Mooneye);
 
-        Assert.True(result.Status is RomTestStatus.Passed, result.ToFailureMessage());
+        RomTestAssertions.AssertPassed(result);
     }
 }

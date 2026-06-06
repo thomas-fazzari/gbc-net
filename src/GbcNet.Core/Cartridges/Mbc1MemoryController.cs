@@ -1,5 +1,3 @@
-using GbcNet.Core.Memory;
-
 namespace GbcNet.Core.Cartridges;
 
 /// <summary>
@@ -12,13 +10,9 @@ internal sealed class Mbc1MemoryController(
 ) : ICartridgeMemoryController
 {
     private const int RomBankSize = Cartridge.FixedRomBankSize;
-    private const int RamBankSize = AddressMap.ExternalRamWindowSize;
-
     private const ushort RomBank0End = 0x3FFF;
     private const ushort RomBankNStart = 0x4000;
 
-    private const byte RamEnableValue = 0x0A;
-    private const byte RamEnableMask = 0x0F;
     private const byte RomBankLowMask = 0x1F;
     private const byte BankHighMask = 0x03;
     private const byte BankingModeMask = 0x01;
@@ -26,9 +20,12 @@ internal sealed class Mbc1MemoryController(
     private byte _romBankLow;
     private byte _bankHigh;
     private byte _bankingMode;
-    private bool _ramEnabled;
+    private readonly CartridgeRamWindow _externalRam = new(
+        header.RamSizeBytes,
+        hasBatteryBackedRam
+    );
 
-    public CartridgeRam ExternalRam { get; } = new(header.RamSizeBytes, hasBatteryBackedRam);
+    public CartridgeRam ExternalRam => _externalRam.Ram;
 
     public byte ReadRom(ushort address)
     {
@@ -42,7 +39,7 @@ internal sealed class Mbc1MemoryController(
         switch (address)
         {
             case <= 0x1FFF:
-                _ramEnabled = (value & RamEnableMask) == RamEnableValue;
+                _externalRam.WriteEnableRegister(value);
                 return;
             case <= 0x3FFF:
                 _romBankLow = (byte)(value & RomBankLowMask);
@@ -56,15 +53,11 @@ internal sealed class Mbc1MemoryController(
         }
     }
 
-    public byte ReadRamOffset(ushort offset) =>
-        !CanAccessRam() ? (byte)0xFF : ExternalRam.Read(GetEffectiveRamOffset(offset));
+    public byte ReadRamOffset(ushort offset) => _externalRam.ReadOffset(offset, GetRamBank());
 
     public void WriteRamOffset(ushort offset, byte value)
     {
-        if (CanAccessRam())
-        {
-            ExternalRam.Write(GetEffectiveRamOffset(offset), value);
-        }
+        _externalRam.WriteOffset(offset, value, GetRamBank());
     }
 
     private int GetFixedAreaRomBank() => _bankingMode == 0 ? 0 : WrapRomBank(_bankHigh << 5);
@@ -82,12 +75,5 @@ internal sealed class Mbc1MemoryController(
 
     private int WrapRomBank(int bank) => bank % header.RomBankCount;
 
-    private bool CanAccessRam() => _ramEnabled && ExternalRam.Size != 0;
-
-    private int GetEffectiveRamOffset(ushort offset)
-    {
-        int bank = _bankingMode == 0 ? 0 : _bankHigh;
-        int effectiveOffset = (bank * RamBankSize) + offset;
-        return effectiveOffset % ExternalRam.Size;
-    }
+    private int GetRamBank() => _bankingMode == 0 ? 0 : _bankHigh;
 }

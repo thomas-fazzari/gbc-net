@@ -1,6 +1,3 @@
-using System.Runtime.InteropServices;
-using GbcNet.Core.Memory;
-
 namespace GbcNet.Core.Ppu.Engines;
 
 /// <summary>
@@ -45,26 +42,6 @@ internal sealed class DmgPpuEngine : IPpuEngine
     private const byte ScrollXLowBitsMask = 0x07;
 
     /// <summary>
-    /// OBJ fetch adds a six-dot minimum Mode 3 penalty.
-    /// </summary>
-    private const int ObjectBasePenaltyDots = 6;
-
-    /// <summary>
-    /// Startup penalty for an object fetch session beginning at X mod 8 equal to 0 or 1.
-    /// </summary>
-    private const int SlowObjectSessionStartupDots = 8;
-
-    /// <summary>
-    /// Startup penalty for an object fetch session beginning at X mod 8 equal to 2 or 3.
-    /// </summary>
-    private const int NormalObjectSessionStartupDots = 6;
-
-    /// <summary>
-    /// Startup penalty for an object fetch session beginning at X mod 8 equal to 4, 5, 6, or 7.
-    /// </summary>
-    private const int FastObjectSessionStartupDots = 4;
-
-    /// <summary>
     /// Window startup resets the BG fetcher and adds six dots to Mode 3.
     /// </summary>
     private const int WindowStartupPenaltyDots = 6;
@@ -84,12 +61,9 @@ internal sealed class DmgPpuEngine : IPpuEngine
         PpuGeometry.FrameWidth * PpuGeometry.FrameHeight
     ];
     private readonly byte[] _backgroundFifo = new byte[16];
-    private readonly ScanlineObject[] _scanlineObjects = new ScanlineObject[
-        PpuObjectAttributes.MaxObjectsPerScanline
-    ];
+    private readonly DmgObjectLayer _objects = new();
     private byte _latchedScrollX;
     private byte _latchedScrollY;
-    private int _latchedObjectPenaltyDots;
     private int _windowPenaltyDots;
     private int _windowLine;
     private int _activeWindowLine;
@@ -99,15 +73,12 @@ internal sealed class DmgPpuEngine : IPpuEngine
     private int _fetcherTileX;
     private int _discardedPixels;
     private int _renderedPixels;
-    private int _scanlineObjectCount;
-    private int _scanlineObjectHeight = PpuObjectAttributes.Size8;
     private byte _fetcherTileId;
     private byte _fetcherTileDataLow;
     private byte _fetcherTileDataHigh;
     private bool _statInterruptLine;
     private bool _firstScanlineAfterLcdEnable;
     private bool _renderingScanline;
-    private bool _scanlineObjectsSelected;
     private bool _windowYCondition;
     private bool _windowActiveThisLine;
     private BackgroundFetcherStep _fetcherStep;
@@ -202,7 +173,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
         _lineDots = 0;
         LatchScroll(inputs);
         RefreshWindowYCondition(inputs);
-        ClearScanlineObjects();
+        _objects.Clear();
         ResetRenderer();
         _firstScanlineAfterLcdEnable = true;
         StatusMode = PpuMode.HBlank;
@@ -236,7 +207,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
         _windowLine = 0;
         _activeWindowLine = 0;
         _windowYCondition = false;
-        ClearScanlineObjects();
+        _objects.Clear();
         ResetRenderer();
         LcdYCoordinate = 0;
         StatusMode = PpuMode.HBlank;
@@ -280,11 +251,11 @@ internal sealed class DmgPpuEngine : IPpuEngine
         {
             LatchScroll(inputs);
             RefreshWindowYCondition(inputs);
-            ClearScanlineObjects();
+            _objects.Clear();
         }
         else
         {
-            ClearScanlineObjects();
+            _objects.Clear();
             _windowPenaltyDots = 0;
         }
 
@@ -307,10 +278,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
             ? FirstScanlineAfterLcdEnableDrawingEndDots
             : NormalScanlineDrawingEndDots;
 
-        return drawingEndDots
-            + LatchedScrollXLowBits
-            + _windowPenaltyDots
-            + _latchedObjectPenaltyDots;
+        return drawingEndDots + LatchedScrollXLowBits + _windowPenaltyDots + _objects.PenaltyDots;
     }
 
     private int GetNextTimingBoundary(int scanlineDots, int drawingStartDots, int drawingEndDots)
@@ -368,11 +336,11 @@ internal sealed class DmgPpuEngine : IPpuEngine
             case < PpuGeometry.VBlankStartLine:
                 LatchScroll(inputs);
                 RefreshWindowYCondition(inputs);
-                ClearScanlineObjects();
+                _objects.Clear();
                 ResetRenderer();
                 break;
             case PpuGeometry.VBlankStartLine:
-                ClearScanlineObjects();
+                _objects.Clear();
                 _windowYCondition = false;
                 _windowLine = 0;
                 ResetRenderer();
@@ -398,7 +366,12 @@ internal sealed class DmgPpuEngine : IPpuEngine
 
     private PpuInterruptRequest RefreshPpuState(PpuEngineInputs inputs, bool requestInterrupt)
     {
-        EnsureScanlineObjectsSelected(inputs);
+        _objects.EnsureSelected(
+            inputs,
+            LcdYCoordinate,
+            _lineDots >= OamScanDots,
+            LatchedScrollXLowBits
+        );
         StatusMode = CalculateMode();
         _statInterruptMode = StatusMode;
         RefreshLycEqualsLy(inputs.LcdYCompare);
@@ -454,7 +427,12 @@ internal sealed class DmgPpuEngine : IPpuEngine
 
     private void TickRenderer(int dots, PpuEngineInputs inputs)
     {
-        EnsureScanlineObjectsSelected(inputs);
+        _objects.EnsureSelected(
+            inputs,
+            LcdYCoordinate,
+            _lineDots >= OamScanDots,
+            LatchedScrollXLowBits
+        );
 
         if (!_renderingScanline)
         {
@@ -630,7 +608,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
 
     private byte MixPixel(byte backgroundColorId, PpuEngineInputs inputs)
     {
-        ObjectPixel? objectPixel = SelectObjectPixel(_renderedPixels, inputs);
+        DmgObjectPixel? objectPixel = _objects.SelectPixel(_renderedPixels, LcdYCoordinate, inputs);
 
         if (
             objectPixel is null
@@ -650,67 +628,6 @@ internal sealed class DmgPpuEngine : IPpuEngine
             : inputs.ObjectPalette0;
 
         return ApplyPalette(objectPixel.Value.ColorId, objectPalette);
-    }
-
-    private ObjectPixel? SelectObjectPixel(int screenX, PpuEngineInputs inputs)
-    {
-        if ((inputs.LcdControl & PpuLcdControlRegister.ObjectEnableMask) == 0)
-        {
-            return null;
-        }
-
-        foreach (ScanlineObject scanlineObject in _scanlineObjects.AsSpan(0, _scanlineObjectCount))
-        {
-            int objectLeft = scanlineObject.X - PpuObjectAttributes.XScreenOffset;
-            if (screenX < objectLeft || screenX >= objectLeft + PpuTileData.TileSizePixels)
-            {
-                continue;
-            }
-
-            byte colorId = ReadObjectColorId(scanlineObject, screenX, inputs);
-            if (colorId == 0)
-            {
-                continue;
-            }
-
-            return new ObjectPixel(
-                colorId,
-                (scanlineObject.Flags & PpuObjectAttributes.DmgPalette1Mask) != 0,
-                (scanlineObject.Flags & PpuObjectAttributes.BackgroundPriorityMask) != 0
-            );
-        }
-
-        return null;
-    }
-
-    private byte ReadObjectColorId(
-        ScanlineObject scanlineObject,
-        int screenX,
-        PpuEngineInputs inputs
-    )
-    {
-        int objectLine = LcdYCoordinate - (scanlineObject.Y - PpuObjectAttributes.YScreenOffset);
-
-        if ((scanlineObject.Flags & PpuObjectAttributes.YFlipMask) != 0)
-        {
-            objectLine = _scanlineObjectHeight - 1 - objectLine;
-        }
-
-        byte tileId =
-            _scanlineObjectHeight == PpuObjectAttributes.Size16
-                ? (byte)((scanlineObject.Tile & 0xFE) | (objectLine / PpuTileData.TileSizePixels))
-                : scanlineObject.Tile;
-        int tileLine = objectLine & ScrollXLowBitsMask;
-        int tileAddress =
-            PpuTileData.UnsignedTileDataStart
-            + (tileId * PpuTileData.TileDataBytes)
-            + (tileLine * PpuTileData.TileRowBytes);
-        int pixel = screenX - (scanlineObject.X - PpuObjectAttributes.XScreenOffset);
-        int bit = (scanlineObject.Flags & PpuObjectAttributes.XFlipMask) == 0 ? 7 - pixel : pixel;
-        byte lowByte = inputs.VideoRam.Read((ushort)tileAddress);
-        byte highByte = inputs.VideoRam.Read((ushort)(tileAddress + 1));
-
-        return (byte)((((highByte >> bit) & 0x01) << 1) | ((lowByte >> bit) & 0x01));
     }
 
     private void TryStartWindow(PpuEngineInputs inputs)
@@ -830,170 +747,6 @@ internal sealed class DmgPpuEngine : IPpuEngine
         _fetcherStepDots = 0;
     }
 
-    private int CalculateObjectPenaltyDots()
-    {
-        if (LcdYCoordinate >= PpuGeometry.VBlankStartLine || _scanlineObjectCount == 0)
-        {
-            return 0;
-        }
-
-        ReadOnlySpan<ScanlineObject> objects = _scanlineObjects.AsSpan(0, _scanlineObjectCount);
-
-        int penaltyDots = 0;
-        int index = 0;
-        while (index < objects.Length)
-        {
-            ScanlineObject firstObject = objects[index];
-            if (firstObject.X >= PpuObjectAttributes.FirstFullyHiddenRightX)
-            {
-                index++;
-                continue;
-            }
-
-            int tileIndex = GetObjectTileIndex(firstObject.X, LatchedScrollXLowBits);
-            int sessionEnd = index + 1;
-            while (
-                sessionEnd < objects.Length
-                && objects[sessionEnd].X < PpuObjectAttributes.FirstFullyHiddenRightX
-                && GetObjectTileIndex(objects[sessionEnd].X, LatchedScrollXLowBits) == tileIndex
-            )
-            {
-                sessionEnd++;
-            }
-
-            penaltyDots += GetObjectSessionStartupDots(firstObject.X);
-            penaltyDots += (sessionEnd - index - 1) * ObjectBasePenaltyDots;
-
-            for (int laterIndex = sessionEnd; laterIndex < objects.Length; laterIndex++)
-            {
-                if (objects[laterIndex].X >= PpuObjectAttributes.FirstFullyHiddenRightX)
-                {
-                    continue;
-                }
-
-                penaltyDots += GetObjectSessionShutdownDots(objects[sessionEnd - 1].X);
-                break;
-            }
-
-            index = sessionEnd;
-        }
-
-        return penaltyDots;
-    }
-
-    private void EnsureScanlineObjectsSelected(PpuEngineInputs inputs)
-    {
-        if (
-            _scanlineObjectsSelected
-            || LcdYCoordinate >= PpuGeometry.VBlankStartLine
-            || _lineDots < OamScanDots
-        )
-        {
-            return;
-        }
-
-        SelectScanlineObjects(inputs);
-        _latchedObjectPenaltyDots = CalculateObjectPenaltyDots();
-        _scanlineObjectsSelected = true;
-    }
-
-    private void ClearScanlineObjects()
-    {
-        _scanlineObjectCount = 0;
-        _scanlineObjectHeight = PpuObjectAttributes.Size8;
-        _latchedObjectPenaltyDots = 0;
-        _scanlineObjectsSelected = false;
-    }
-
-    private void SelectScanlineObjects(PpuEngineInputs inputs)
-    {
-        if (
-            LcdYCoordinate >= PpuGeometry.VBlankStartLine
-            || (inputs.LcdControl & PpuLcdControlRegister.ObjectEnableMask) == 0
-        )
-        {
-            _scanlineObjectCount = 0;
-            _scanlineObjectHeight = PpuObjectAttributes.Size8;
-            return;
-        }
-
-        _scanlineObjectHeight = GetObjectHeight(inputs.LcdControl);
-        _scanlineObjectCount = 0;
-        for (int objectIndex = 0; objectIndex < PpuObjectAttributes.ObjectCount; objectIndex++)
-        {
-            ushort objectAddress = (ushort)(
-                AddressMap.ObjectAttributeMemoryStart
-                + (objectIndex * PpuObjectAttributes.AttributeSize)
-            );
-            byte objectY = inputs.ObjectAttributeMemory.Read(
-                (ushort)(objectAddress + PpuObjectAttributes.YCoordinateOffset)
-            );
-            int objectTop = objectY - PpuObjectAttributes.YScreenOffset;
-
-            if (objectTop > LcdYCoordinate || objectTop + _scanlineObjectHeight <= LcdYCoordinate)
-            {
-                continue;
-            }
-
-            _scanlineObjects[_scanlineObjectCount] = new(
-                objectIndex,
-                inputs.ObjectAttributeMemory.Read(
-                    (ushort)(objectAddress + PpuObjectAttributes.XCoordinateOffset)
-                ),
-                objectY,
-                inputs.ObjectAttributeMemory.Read(
-                    (ushort)(objectAddress + PpuObjectAttributes.TileIndexOffset)
-                ),
-                inputs.ObjectAttributeMemory.Read(
-                    (ushort)(objectAddress + PpuObjectAttributes.FlagsOffset)
-                )
-            );
-
-            _scanlineObjectCount++;
-
-            if (_scanlineObjectCount == PpuObjectAttributes.MaxObjectsPerScanline)
-            {
-                break;
-            }
-        }
-
-        _scanlineObjects
-            .AsSpan(0, _scanlineObjectCount)
-            .Sort(
-                static (x, y) =>
-                {
-                    int xComparison = x.X.CompareTo(y.X);
-                    return xComparison != 0 ? xComparison : x.Index.CompareTo(y.Index);
-                }
-            );
-    }
-
-    private static int GetObjectHeight(byte lcdControl) =>
-        (lcdControl & PpuLcdControlRegister.ObjectSizeMask) == 0
-            ? PpuObjectAttributes.Size8
-            : PpuObjectAttributes.Size16;
-
-    private static int GetObjectTileIndex(byte objectX, byte scrollXLowBits)
-    {
-        int pixel = objectX - PpuObjectAttributes.XScreenOffset + scrollXLowBits;
-        return (pixel >> 3) & (PpuTileData.TilesPerMapRow - 1);
-    }
-
-    private static int GetObjectSessionStartupDots(byte objectX) =>
-        (objectX & ScrollXLowBitsMask) switch
-        {
-            <= 1 => SlowObjectSessionStartupDots,
-            <= 3 => NormalObjectSessionStartupDots,
-            _ => FastObjectSessionStartupDots,
-        };
-
-    private static int GetObjectSessionShutdownDots(byte objectX) =>
-        (objectX & ScrollXLowBitsMask) switch
-        {
-            0 or 2 or 4 => 3,
-            _ => 2,
-        };
-
     private void RefreshLycEqualsLy(byte lcdYCompare)
     {
         LycEqualsLy = IsLycCompareActiveOnCurrentDot() && LcdYCoordinate == lcdYCompare;
@@ -1043,14 +796,4 @@ internal sealed class DmgPpuEngine : IPpuEngine
         && LycEqualsLy
         && (statusInterruptSelect & PpuStatusRegister.LycEqualsLyInterruptSelectMask) != 0
         && (statusInterruptSelect & PpuStatusRegister.Mode0InterruptSelectMask) == 0;
-
-    [StructLayout(LayoutKind.Sequential)]
-    private readonly record struct ScanlineObject(int Index, byte X, byte Y, byte Tile, byte Flags);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private readonly record struct ObjectPixel(
-        byte ColorId,
-        bool UsesPalette1,
-        bool HasBackgroundPriority
-    );
 }

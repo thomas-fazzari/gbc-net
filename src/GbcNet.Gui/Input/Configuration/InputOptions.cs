@@ -8,7 +8,9 @@ internal sealed class InputOptions
     /// <summary>
     /// Supported input configuration schema version.
     /// </summary>
-    public int Version { get; set; } = 1;
+    public const int SupportedVersion = 1;
+
+    public int Version { get; set; } = SupportedVersion;
 
     /// <summary>
     /// Profile selected by the GUI.
