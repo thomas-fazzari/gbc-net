@@ -12,13 +12,13 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     private const ushort UnmappedAudioAddressFf15 = 0xFF15;
     private const ushort UnmappedAudioAddressFf1F = 0xFF1F;
 
+    private const ushort Channel2LengthRegister = 0xFF16;
     private const ushort Channel2EnvelopeRegister = 0xFF17;
     private const ushort Channel2ControlRegister = 0xFF19;
     private const ushort AudioMasterControlRegister = 0xFF26;
     private const byte AudioMasterWritableMask = 0x80;
     private const byte AudioChannelStatusMask = 0x0F;
     private const byte AudioChannel2StatusMask = 0x02;
-    private const byte TriggerMask = 0x80;
     private const byte DivApuStepMask = 0x07;
 
     private readonly byte[] _registers = new byte[RegisterEnd - RegisterStart + 1];
@@ -55,11 +55,26 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
         }
 
         DivApuStep = (byte)((DivApuStep + 1) & DivApuStepMask);
-        return new ApuFrameSequencerEvents(
+        var events = new ApuFrameSequencerEvents(
             Length: DivApuStep is 1 or 3 or 5 or 7,
             Sweep: DivApuStep is 3 or 7,
             Envelope: DivApuStep is 7
         );
+
+        if (!events.Length)
+        {
+            return events;
+        }
+
+        _channel2.ClockLength();
+        if (!_channel2.IsActive)
+        {
+            _registers[AudioMasterControlRegister - RegisterStart] &= unchecked(
+                (byte)~AudioChannel2StatusMask
+            );
+        }
+
+        return events;
     }
 
     /// <summary>
@@ -98,6 +113,10 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
 
         switch (address)
         {
+            case Channel2LengthRegister:
+                _channel2.WriteLength(value);
+                return;
+
             case Channel2EnvelopeRegister:
                 _channel2.WriteEnvelope(value);
                 if (!_channel2.IsActive)
@@ -108,8 +127,8 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
                 }
                 return;
 
-            case Channel2ControlRegister when (value & TriggerMask) != 0:
-                _channel2.Trigger(_registers[Channel2EnvelopeRegister - RegisterStart]);
+            case Channel2ControlRegister:
+                _channel2.WriteControl(value, _registers[Channel2EnvelopeRegister - RegisterStart]);
                 if (_channel2.IsActive)
                 {
                     _registers[AudioMasterControlRegister - RegisterStart] |=

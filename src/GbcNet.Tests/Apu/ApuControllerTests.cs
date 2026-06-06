@@ -161,6 +161,67 @@ public sealed class ApuControllerTests
     }
 
     [Fact]
+    public void TickSystemCounter_DisablesChannel2WhenLengthExpires()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF16, 0x3F);
+        apu.WriteRegister(0xFF17, 0xF0);
+        apu.WriteRegister(0xFF19, 0xC0);
+
+        apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+
+        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void TickSystemCounter_KeepsChannel2ActiveWhenLengthDisabled()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF16, 0x3F);
+        apu.WriteRegister(0xFF17, 0xF0);
+        apu.WriteRegister(0xFF19, 0x80);
+
+        apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+
+        Assert.Equal(0xF2, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void WriteRegister_TriggeringChannel2ReloadsExpiredLengthCounter()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF16, 0x3F);
+        apu.WriteRegister(0xFF17, 0xF0);
+        apu.WriteRegister(0xFF19, 0xC0);
+        apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+
+        apu.WriteRegister(0xFF19, 0xC0);
+        for (int lengthEvents = 0; lengthEvents < 63; )
+        {
+            if (apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).Length)
+            {
+                lengthEvents++;
+            }
+        }
+
+        Assert.Equal(0xF2, apu.ReadRegister(0xFF26));
+
+        ApuFrameSequencerEvents events;
+        do
+        {
+            events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+        } while (!events.Length);
+
+        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
     public void TickSystemCounter_AdvancesDivApuStepOnNormalSpeedDivBit4FallingEdge()
     {
         ApuController apu = new(new DmgApuHardwareProfile());
