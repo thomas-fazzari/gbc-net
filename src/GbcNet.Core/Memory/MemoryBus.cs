@@ -89,7 +89,7 @@ internal sealed class MemoryBus
         Timers = new TimerController(Interrupts, SystemCounter);
         Joypad = new JoypadController(Interrupts);
         Serial = new SerialController(Interrupts);
-        Apu = new ApuController();
+        Apu = new ApuController(hardwareStrategy.CreateApuHardwareStrategy());
         Ppu = new PpuController(Interrupts, hardwareStrategy.CreatePpuEngine());
         Dma = new DmaController();
         _readByteForDma = ReadOamDmaSourceByte;
@@ -366,6 +366,7 @@ internal sealed class MemoryBus
                     ushort fallingEdges = SystemCounter.Reset();
                     Timers.TickSystemCounter(fallingEdges);
                     Serial.TickSystemCounter(fallingEdges);
+                    Apu.TickSystemCounter(new ApuTickInputs(fallingEdges, CgbDoubleSpeed: false));
                 }
                 else
                 {

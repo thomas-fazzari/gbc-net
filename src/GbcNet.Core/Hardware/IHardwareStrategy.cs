@@ -1,3 +1,4 @@
+using GbcNet.Core.Apu;
 using GbcNet.Core.Dma;
 using GbcNet.Core.Ppu;
 
@@ -17,4 +18,9 @@ internal interface IHardwareStrategy
     /// Creates the OAM DMA transfer strategy for this hardware model.
     /// </summary>
     IDmaTransferStrategy CreateDmaTransferStrategy();
+
+    /// <summary>
+    /// Creates the APU strategy for this hardware model.
+    /// </summary>
+    IApuHardwareStrategy CreateApuHardwareStrategy();
 }

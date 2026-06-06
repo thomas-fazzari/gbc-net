@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using GbcNet.Core.Apu;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu;
 
@@ -28,6 +29,7 @@ internal sealed class MachineClock(MemoryBus bus)
         ushort fallingEdges = bus.SystemCounter.AdvanceMachineCycle();
         bus.Timers.TickSystemCounter(fallingEdges);
         bus.Serial.TickSystemCounter(fallingEdges);
+        bus.Apu.TickSystemCounter(new ApuTickInputs(fallingEdges, CgbDoubleSpeed: false));
 
         if (bus.Ppu.Tick(HardwareTiming.MachineCycleTCycles) is { } completedFrame)
         {

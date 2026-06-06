@@ -1,4 +1,5 @@
 using GbcNet.Core.Apu;
+using GbcNet.Core.Apu.Strategies;
 
 namespace GbcNet.Tests.Apu;
 
@@ -24,8 +25,9 @@ public sealed class ApuControllerTests
         byte expected
     )
     {
-        var apu = new ApuController();
+        ApuController apu = new(new DmgApuHardwareStrategy());
 
+        apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(address, writeValue);
 
         Assert.Equal(expected, (byte)(apu.ReadRegister(address) & mask));
@@ -34,7 +36,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void SetRegisterState_CanSeedAudioMasterStatusBits()
     {
-        var apu = new ApuController();
+        ApuController apu = new(new DmgApuHardwareStrategy());
 
         apu.SetRegisterState(0xFF26, 0x81);
 
@@ -44,11 +46,85 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_CannotSetAudioMasterStatusBits()
     {
-        var apu = new ApuController();
+        ApuController apu = new(new DmgApuHardwareStrategy());
 
         apu.WriteRegister(0xFF26, 0x81);
 
         Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void WriteRegister_IgnoresNonMasterRegistersWhenPoweredOff()
+    {
+        ApuController apu = new(new DmgApuHardwareStrategy());
+
+        apu.WriteRegister(0xFF24, 0x77);
+        apu.WriteRegister(0xFF25, 0xFF);
+
+        Assert.Equal(0x00, apu.ReadRegister(0xFF24));
+        Assert.Equal(0x00, apu.ReadRegister(0xFF25));
+    }
+
+    [Fact]
+    public void WriteRegister_AcceptsNonMasterRegistersWhenPoweredOn()
+    {
+        ApuController apu = new(new DmgApuHardwareStrategy());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF24, 0x77);
+        apu.WriteRegister(0xFF25, 0xFF);
+
+        Assert.Equal(0x77, apu.ReadRegister(0xFF24));
+        Assert.Equal(0xFF, apu.ReadRegister(0xFF25));
+    }
+
+    [Fact]
+    public void WriteRegister_PoweringOffClearsPoweredRegisters()
+    {
+        ApuController apu = new(new DmgApuHardwareStrategy());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF24, 0x77);
+        apu.WriteRegister(0xFF25, 0xFF);
+
+        apu.WriteRegister(0xFF26, 0x00);
+        apu.WriteRegister(0xFF26, 0x80);
+
+        Assert.Equal(0x00, apu.ReadRegister(0xFF24));
+        Assert.Equal(0x00, apu.ReadRegister(0xFF25));
+        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void WriteRegister_PoweringOffClearsChannelStatusBits()
+    {
+        ApuController apu = new(new DmgApuHardwareStrategy());
+
+        apu.SetRegisterState(0xFF26, 0x8F);
+
+        apu.WriteRegister(0xFF26, 0x00);
+
+        Assert.Equal(0x70, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void TickSystemCounter_AdvancesDivApuStepOnNormalSpeedDivBit4FallingEdge()
+    {
+        ApuController apu = new(new DmgApuHardwareStrategy());
+
+        apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+
+        Assert.Equal(1, apu.DivApuStep);
+    }
+
+    [Fact]
+    public void TickSystemCounter_IgnoresOtherSystemCounterFallingEdges()
+    {
+        ApuController apu = new(new DmgApuHardwareStrategy());
+
+        apu.TickSystemCounter(new ApuTickInputs(1 << 11, CgbDoubleSpeed: false));
+
+        Assert.Equal(0, apu.DivApuStep);
     }
 
     [Theory]

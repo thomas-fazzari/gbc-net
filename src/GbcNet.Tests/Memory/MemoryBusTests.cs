@@ -1,3 +1,4 @@
+using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware.Strategies;
 using GbcNet.Core.Joypad;
@@ -244,6 +245,17 @@ public sealed class MemoryBusTests
         Assert.Equal(0x12, bus.ReadByte(AddressMap.TimerCounterRegister));
         Assert.Equal(0x34, bus.ReadByte(AddressMap.TimerModuloRegister));
         Assert.Equal(0b1111_1101, bus.ReadByte(AddressMap.TimerControlRegister));
+    }
+
+    [Fact]
+    public void WriteByte_DividerRegisterTicksApuDivApuOnFallingEdge()
+    {
+        MemoryBus bus = CreateBus();
+        bus.SystemCounter.SetCounter(1 << 12);
+
+        bus.WriteByte(AddressMap.DividerRegister, 0x00);
+
+        Assert.Equal(1, bus.Apu.DivApuStep);
     }
 
     [Fact]
@@ -550,6 +562,7 @@ public sealed class MemoryBusTests
             ushort fallingEdges = bus.SystemCounter.AdvanceMachineCycle();
             bus.Timers.TickSystemCounter(fallingEdges);
             bus.Serial.TickSystemCounter(fallingEdges);
+            bus.Apu.TickSystemCounter(new ApuTickInputs(fallingEdges, CgbDoubleSpeed: false));
         }
     }
 }

@@ -1,3 +1,5 @@
+using GbcNet.Core.Apu;
+using GbcNet.Core.Apu.Strategies;
 using GbcNet.Core.Dma;
 using GbcNet.Core.Dma.Strategies;
 using GbcNet.Core.Ppu;
@@ -13,4 +15,6 @@ internal sealed class DmgHardwareStrategy : IHardwareStrategy
     public IPpuEngine CreatePpuEngine() => new DmgPpuEngine();
 
     public IDmaTransferStrategy CreateDmaTransferStrategy() => new DmgDmaTransferStrategy();
+
+    public IApuHardwareStrategy CreateApuHardwareStrategy() => new DmgApuHardwareStrategy();
 }
