@@ -12,24 +12,36 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     private const ushort UnmappedAudioAddressFf15 = 0xFF15;
     private const ushort UnmappedAudioAddressFf1F = 0xFF1F;
 
+    private const ushort Channel1LengthRegister = 0xFF11;
+    private const ushort Channel1EnvelopeRegister = 0xFF12;
+    private const ushort Channel1PeriodLowRegister = 0xFF13;
+    private const ushort Channel1PeriodHighControlRegister = 0xFF14;
+
     private const ushort Channel2LengthRegister = 0xFF16;
     private const ushort Channel2EnvelopeRegister = 0xFF17;
     private const ushort Channel2PeriodLowRegister = 0xFF18;
     private const ushort Channel2PeriodHighControlRegister = 0xFF19;
+
     private const ushort MasterVolumeRegister = 0xFF24;
     private const ushort SoundPanningRegister = 0xFF25;
     private const ushort AudioMasterControlRegister = 0xFF26;
     private const byte AudioMasterWritableMask = 0x80;
     private const byte AudioChannelStatusMask = 0x0F;
+    private const byte AudioChannel1StatusMask = 0x01;
     private const byte AudioChannel2StatusMask = 0x02;
+
+    private const byte Channel1RightRouteMask = 0x01;
     private const byte Channel2RightRouteMask = 0x02;
+    private const byte Channel1LeftRouteMask = 0x10;
     private const byte Channel2LeftRouteMask = 0x20;
+
     private const byte RightVolumeMask = 0x07;
     private const byte LeftVolumeMask = 0x70;
     private const int LeftVolumeShift = 4;
     private const byte DivApuStepMask = 0x07;
 
     private readonly byte[] _registers = new byte[RegisterEnd - RegisterStart + 1];
+    private readonly PulseChannel _channel1 = new();
     private readonly PulseChannel _channel2 = new();
 
     /// <summary>
@@ -76,7 +88,15 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
 
         if (events.Length)
         {
+            _channel1.ClockLength();
             _channel2.ClockLength();
+            if (!_channel1.IsActive)
+            {
+                _registers[AudioMasterControlRegister - RegisterStart] &= unchecked(
+                    (byte)~AudioChannel1StatusMask
+                );
+            }
+
             if (!_channel2.IsActive)
             {
                 _registers[AudioMasterControlRegister - RegisterStart] &= unchecked(
@@ -87,6 +107,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
 
         if (events.Envelope)
         {
+            _channel1.ClockEnvelope();
             _channel2.ClockEnvelope();
         }
 
@@ -98,25 +119,43 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     /// </summary>
     internal void Tick(int tCycles)
     {
+        _channel1.Tick(tCycles);
         _channel2.Tick(tCycles);
     }
 
     /// <summary>
-    /// Returns the current CH2-only stereo mix using NR50 and NR51 routing.
+    /// Returns the current pulse-channel stereo mix using NR50 and NR51 routing.
     /// </summary>
     internal ApuStereoSample GetStereoSample()
     {
         byte masterVolume = _registers[MasterVolumeRegister - RegisterStart];
         byte panning = _registers[SoundPanningRegister - RegisterStart];
-        byte channel2Output = _channel2.DigitalOutput;
+        int leftInput = 0;
+        int rightInput = 0;
+
+        if ((panning & Channel1LeftRouteMask) != 0)
+        {
+            leftInput += _channel1.DigitalOutput;
+        }
+
+        if ((panning & Channel2LeftRouteMask) != 0)
+        {
+            leftInput += _channel2.DigitalOutput;
+        }
+
+        if ((panning & Channel1RightRouteMask) != 0)
+        {
+            rightInput += _channel1.DigitalOutput;
+        }
+
+        if ((panning & Channel2RightRouteMask) != 0)
+        {
+            rightInput += _channel2.DigitalOutput;
+        }
 
         return new ApuStereoSample(
-            Left: (panning & Channel2LeftRouteMask) != 0
-                ? channel2Output * (((masterVolume & LeftVolumeMask) >> LeftVolumeShift) + 1)
-                : 0,
-            Right: (panning & Channel2RightRouteMask) != 0
-                ? channel2Output * ((masterVolume & RightVolumeMask) + 1)
-                : 0
+            Left: leftInput * (((masterVolume & LeftVolumeMask) >> LeftVolumeShift) + 1),
+            Right: rightInput * ((masterVolume & RightVolumeMask) + 1)
         );
     }
 
@@ -137,6 +176,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
             {
                 // NR52 power-off clears APU registers and silences active channels, but not Wave RAM
                 Array.Clear(_registers);
+                _channel1.PowerOff();
                 _channel2.PowerOff();
                 return;
             }
@@ -157,6 +197,39 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
 
         switch (address)
         {
+            case Channel1LengthRegister:
+                _channel1.WriteLength(value);
+                return;
+
+            case Channel1EnvelopeRegister:
+                _channel1.WriteEnvelope(value);
+                if (!_channel1.IsActive)
+                {
+                    _registers[AudioMasterControlRegister - RegisterStart] &= unchecked(
+                        (byte)~AudioChannel1StatusMask
+                    );
+                }
+                return;
+
+            case Channel1PeriodLowRegister:
+                _channel1.WritePeriodLow(value);
+                return;
+
+            case Channel1PeriodHighControlRegister:
+                _channel1.WriteControl(value, _registers[Channel1EnvelopeRegister - RegisterStart]);
+                if (_channel1.IsActive)
+                {
+                    _registers[AudioMasterControlRegister - RegisterStart] |=
+                        AudioChannel1StatusMask;
+                }
+                else
+                {
+                    _registers[AudioMasterControlRegister - RegisterStart] &= unchecked(
+                        (byte)~AudioChannel1StatusMask
+                    );
+                }
+                return;
+
             case Channel2LengthRegister:
                 _channel2.WriteLength(value);
                 return;

@@ -108,6 +108,18 @@ public sealed class ApuControllerTests
     }
 
     [Fact]
+    public void WriteRegister_TriggeringChannel1WithDacEnabledSetsAudioMasterChannel1Status()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF12, 0xF0);
+        apu.WriteRegister(0xFF14, 0x80);
+
+        Assert.Equal(0xF1, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
     public void WriteRegister_TriggeringChannel2WithDacEnabledSetsAudioMasterChannel2Status()
     {
         ApuController apu = new(new DmgApuHardwareProfile());
@@ -400,6 +412,44 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF19, 0x87);
 
         Assert.Equal(10, apu.Channel2DigitalOutput);
+    }
+
+    [Fact]
+    public void GetStereoSample_MixesChannel1UsingNr50AndNr51()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF11, 0xC0);
+        apu.WriteRegister(0xFF12, 0x40);
+        apu.WriteRegister(0xFF13, 0xFF);
+        apu.WriteRegister(0xFF14, 0x87);
+        apu.Tick(4);
+        apu.WriteRegister(0xFF24, 0x00);
+        apu.WriteRegister(0xFF25, 0x11);
+
+        Assert.Equal(new ApuStereoSample(4, 4), apu.GetStereoSample());
+    }
+
+    [Fact]
+    public void GetStereoSample_MixesChannel1AndChannel2Independently()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF11, 0xC0);
+        apu.WriteRegister(0xFF12, 0x40);
+        apu.WriteRegister(0xFF13, 0xFF);
+        apu.WriteRegister(0xFF14, 0x87);
+        apu.WriteRegister(0xFF16, 0xC0);
+        apu.WriteRegister(0xFF17, 0x60);
+        apu.WriteRegister(0xFF18, 0xFF);
+        apu.WriteRegister(0xFF19, 0x87);
+        apu.Tick(4);
+        apu.WriteRegister(0xFF24, 0x00);
+        apu.WriteRegister(0xFF25, 0x03);
+
+        Assert.Equal(new ApuStereoSample(0, 10), apu.GetStereoSample());
     }
 
     [Fact]
