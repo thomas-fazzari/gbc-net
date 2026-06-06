@@ -3,7 +3,7 @@ namespace GbcNet.Core.Apu;
 /// <summary>
 /// Stores CPU-visible Audio Processing Unit registers and delegates hardware-specific behavior.
 /// </summary>
-internal sealed class ApuController(IApuHardwareStrategy hardwareStrategy)
+internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
 {
     private const ushort RegisterStart = 0xFF10;
     private const ushort RegisterEnd = 0xFF26;
@@ -42,7 +42,7 @@ internal sealed class ApuController(IApuHardwareStrategy hardwareStrategy)
         if (
             (
                 inputs.SystemCounterFallingEdges
-                & hardwareStrategy.GetDivApuFallingEdgeMask(inputs.CgbDoubleSpeed)
+                & hardwareProfile.GetDivApuFallingEdgeMask(inputs.CgbDoubleSpeed)
             ) != 0
         )
         {
@@ -54,7 +54,7 @@ internal sealed class ApuController(IApuHardwareStrategy hardwareStrategy)
     /// Reads an APU register with hardware-specific unused and write-only bits applied.
     /// </summary>
     public byte ReadRegister(ushort address) =>
-        hardwareStrategy.ApplyRegisterReadMask(address, _registers[address - RegisterStart]);
+        hardwareProfile.ApplyRegisterReadMask(address, _registers[address - RegisterStart]);
 
     /// <summary>
     /// Writes an APU register, respecting NR52 power state and read-only channel status bits.

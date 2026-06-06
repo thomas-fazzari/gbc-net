@@ -28,7 +28,7 @@ internal sealed class MemoryBus
 
     private readonly WorkRam _workRam = new();
     private readonly Cartridge _cartridge;
-    private readonly IDmaTransferStrategy _dmaTransferStrategy;
+    private readonly IDmaTransferPolicy _dmaTransferPolicy;
     private readonly Func<ushort, byte> _readByteForDma;
     private readonly Action<ushort, byte> _writeOamByteForDma;
 
@@ -80,17 +80,17 @@ internal sealed class MemoryBus
     /// <summary>
     /// Creates the CPU-visible bus and model-specific DMA/PPU policies for a cartridge.
     /// </summary>
-    public MemoryBus(Cartridge cartridge, IHardwareStrategy hardwareStrategy)
+    public MemoryBus(Cartridge cartridge, IHardwareProfile hardwareProfile)
     {
         _cartridge = cartridge;
-        _dmaTransferStrategy = hardwareStrategy.CreateDmaTransferStrategy();
+        _dmaTransferPolicy = hardwareProfile.CreateDmaTransferPolicy();
         Interrupts = new InterruptController();
         SystemCounter = new SystemCounter();
         Timers = new TimerController(Interrupts, SystemCounter);
         Joypad = new JoypadController(Interrupts);
         Serial = new SerialController(Interrupts);
-        Apu = new ApuController(hardwareStrategy.CreateApuHardwareStrategy());
-        Ppu = new PpuController(Interrupts, hardwareStrategy.CreatePpuEngine());
+        Apu = new ApuController(hardwareProfile.CreateApuHardwareProfile());
+        Ppu = new PpuController(Interrupts, hardwareProfile.CreatePpuEngine());
         Dma = new DmaController();
         _readByteForDma = ReadOamDmaSourceByte;
         _writeOamByteForDma = Ppu.ObjectAttributeMemory.Write;
@@ -160,7 +160,7 @@ internal sealed class MemoryBus
         (IsObjectAttributeMemory(address) && Dma.IsCpuOamBlocked)
         || (
             Dma.TryGetCpuConflictSourceAddress(out ushort sourceAddress)
-            && _dmaTransferStrategy.IsCpuAddressBlocked(address, sourceAddress)
+            && _dmaTransferPolicy.IsCpuAddressBlocked(address, sourceAddress)
         );
 
     private bool TryReadDmaConflictedByte(ushort address, out byte value)
@@ -177,7 +177,7 @@ internal sealed class MemoryBus
             return false;
         }
 
-        if (_dmaTransferStrategy.IsCpuAddressBlocked(address, sourceAddress))
+        if (_dmaTransferPolicy.IsCpuAddressBlocked(address, sourceAddress))
         {
             // During a DMA bus conflict, the CPU sees the byte currently driven by DMA source reads
             value = ReadOamDmaSourceByte(sourceAddress);
@@ -232,7 +232,7 @@ internal sealed class MemoryBus
 
     private byte ReadOamDmaSourceByte(ushort address)
     {
-        if (!_dmaTransferStrategy.TryMapSourceAddress(address, out ushort mappedAddress))
+        if (!_dmaTransferPolicy.TryMapSourceAddress(address, out ushort mappedAddress))
         {
             return 0xFF;
         }

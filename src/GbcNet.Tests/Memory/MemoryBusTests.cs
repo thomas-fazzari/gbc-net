@@ -1,6 +1,6 @@
 using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
-using GbcNet.Core.Hardware.Strategies;
+using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
 using GbcNet.Tests.Cartridges;
@@ -551,7 +551,7 @@ public sealed class MemoryBusTests
     private static MemoryBus CreateBus(byte[] rom)
     {
         Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
-        return new MemoryBus(cartridge, new DmgHardwareStrategy());
+        return new MemoryBus(cartridge, new DmgHardwareProfile());
     }
 
     private static void TickMachineCycles(MemoryBus bus, int machineCycles)

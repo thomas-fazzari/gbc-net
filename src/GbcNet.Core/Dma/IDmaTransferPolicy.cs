@@ -3,7 +3,7 @@ namespace GbcNet.Core.Dma;
 /// <summary>
 /// Models hardware-specific OAM DMA source decoding and CPU bus conflicts.
 /// </summary>
-internal interface IDmaTransferStrategy
+internal interface IDmaTransferPolicy
 {
     /// <summary>
     /// Maps an OAM DMA source address to the memory address read by this hardware model.

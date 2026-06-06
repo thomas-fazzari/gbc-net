@@ -1,11 +1,11 @@
 using GbcNet.Core.Memory;
 
-namespace GbcNet.Core.Dma.Strategies;
+namespace GbcNet.Core.Dma.Policies;
 
 /// <summary>
 /// DMG OAM DMA behavior, where E000-FFFF source pages mirror C000-DFFF.
 /// </summary>
-internal sealed class DmgDmaTransferStrategy : IDmaTransferStrategy
+internal sealed class DmgDmaTransferPolicy : IDmaTransferPolicy
 {
     /// <summary>
     /// Clears address bit 13 for E000-FFFF OAM DMA source pages.

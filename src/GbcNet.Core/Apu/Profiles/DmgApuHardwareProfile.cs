@@ -1,9 +1,9 @@
-namespace GbcNet.Core.Apu.Strategies;
+namespace GbcNet.Core.Apu.Profiles;
 
 /// <summary>
 /// DMG APU register masks and timing source selection.
 /// </summary>
-internal sealed class DmgApuHardwareStrategy : IApuHardwareStrategy
+internal sealed class DmgApuHardwareProfile : IApuHardwareProfile
 {
     private const ushort DivApuNormalSpeedFallingEdgeMask = 1 << 12;
 

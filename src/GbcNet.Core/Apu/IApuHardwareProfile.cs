@@ -3,7 +3,7 @@ namespace GbcNet.Core.Apu;
 /// <summary>
 /// Provides model-specific APU register masks and timing edges.
 /// </summary>
-internal interface IApuHardwareStrategy
+internal interface IApuHardwareProfile
 {
     /// <summary>
     /// Applies model-specific read masks for CPU-visible APU registers.

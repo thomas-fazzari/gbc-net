@@ -1,7 +1,7 @@
 using GbcNet.Core;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware;
-using GbcNet.Core.Hardware.Strategies;
+using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Sm83;
 using GbcNet.Tests.Cartridges;
@@ -69,7 +69,7 @@ public sealed class PostBootStateTests
 
     private static (Cpu Cpu, MemoryBus Bus) CreateHardware(Cartridge cartridge)
     {
-        var bus = new MemoryBus(cartridge, new DmgHardwareStrategy());
+        var bus = new MemoryBus(cartridge, new DmgHardwareProfile());
         return (new Cpu(bus), bus);
     }
 

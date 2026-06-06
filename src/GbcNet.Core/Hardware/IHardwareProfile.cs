@@ -5,9 +5,9 @@ using GbcNet.Core.Ppu;
 namespace GbcNet.Core.Hardware;
 
 /// <summary>
-/// Selects model-specific component strategies and policies.
+/// Selects model-specific component profiles and policies.
 /// </summary>
-internal interface IHardwareStrategy
+internal interface IHardwareProfile
 {
     /// <summary>
     /// Creates the LCD/PPU engine for this hardware model.
@@ -15,12 +15,12 @@ internal interface IHardwareStrategy
     IPpuEngine CreatePpuEngine();
 
     /// <summary>
-    /// Creates the OAM DMA transfer strategy for this hardware model.
+    /// Creates the OAM DMA transfer policy for this hardware model.
     /// </summary>
-    IDmaTransferStrategy CreateDmaTransferStrategy();
+    IDmaTransferPolicy CreateDmaTransferPolicy();
 
     /// <summary>
-    /// Creates the APU strategy for this hardware model.
+    /// Creates the APU profile for this hardware model.
     /// </summary>
-    IApuHardwareStrategy CreateApuHardwareStrategy();
+    IApuHardwareProfile CreateApuHardwareProfile();
 }

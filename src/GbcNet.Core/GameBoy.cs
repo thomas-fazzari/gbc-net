@@ -1,6 +1,6 @@
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware;
-using GbcNet.Core.Hardware.Strategies;
+using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu;
@@ -21,9 +21,9 @@ public sealed class GameBoy
     /// </summary>
     public GameBoy(Cartridge cartridge, HardwareModel hardwareModel)
     {
-        IHardwareStrategy hardwareStrategy = hardwareModel switch
+        IHardwareProfile hardwareProfile = hardwareModel switch
         {
-            HardwareModel.Dmg => new DmgHardwareStrategy(),
+            HardwareModel.Dmg => new DmgHardwareProfile(),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(hardwareModel),
                 hardwareModel,
@@ -31,7 +31,7 @@ public sealed class GameBoy
             ),
         };
 
-        Bus = new MemoryBus(cartridge, hardwareStrategy);
+        Bus = new MemoryBus(cartridge, hardwareProfile);
         Bus.Serial.ByteTransferred += OnSerialByteTransferred;
         _clock = new MachineClock(Bus);
         Cpu = new Cpu(Bus, _clock.TickMachineCycle);
