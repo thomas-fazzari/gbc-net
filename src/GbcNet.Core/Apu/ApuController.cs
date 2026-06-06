@@ -12,12 +12,17 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     private const ushort UnmappedAudioAddressFf15 = 0xFF15;
     private const ushort UnmappedAudioAddressFf1F = 0xFF1F;
 
+    private const ushort Channel2EnvelopeRegister = 0xFF17;
+    private const ushort Channel2ControlRegister = 0xFF19;
     private const ushort AudioMasterControlRegister = 0xFF26;
     private const byte AudioMasterWritableMask = 0x80;
     private const byte AudioChannelStatusMask = 0x0F;
+    private const byte AudioChannel2StatusMask = 0x02;
+    private const byte TriggerMask = 0x80;
     private const byte DivApuStepMask = 0x07;
 
     private readonly byte[] _registers = new byte[RegisterEnd - RegisterStart + 1];
+    private readonly PulseChannel _channel2 = new();
 
     /// <summary>
     /// Current DIV-APU frame sequencer step, advanced at 512 Hz.
@@ -73,6 +78,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
             if ((value & AudioMasterWritableMask) == 0)
             {
                 Array.Clear(_registers);
+                _channel2.PowerOff();
                 return;
             }
 
@@ -89,6 +95,34 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
         }
 
         _registers[address - RegisterStart] = value;
+
+        switch (address)
+        {
+            case Channel2EnvelopeRegister:
+                _channel2.WriteEnvelope(value);
+                if (!_channel2.IsActive)
+                {
+                    _registers[AudioMasterControlRegister - RegisterStart] &= unchecked(
+                        (byte)~AudioChannel2StatusMask
+                    );
+                }
+                return;
+
+            case Channel2ControlRegister when (value & TriggerMask) != 0:
+                _channel2.Trigger(_registers[Channel2EnvelopeRegister - RegisterStart]);
+                if (_channel2.IsActive)
+                {
+                    _registers[AudioMasterControlRegister - RegisterStart] |=
+                        AudioChannel2StatusMask;
+                }
+                else
+                {
+                    _registers[AudioMasterControlRegister - RegisterStart] &= unchecked(
+                        (byte)~AudioChannel2StatusMask
+                    );
+                }
+                return;
+        }
     }
 
     /// <summary>

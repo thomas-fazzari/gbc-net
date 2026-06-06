@@ -108,6 +108,59 @@ public sealed class ApuControllerTests
     }
 
     [Fact]
+    public void WriteRegister_TriggeringChannel2WithDacEnabledSetsAudioMasterChannel2Status()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF17, 0xF0);
+        apu.WriteRegister(0xFF19, 0x80);
+
+        Assert.Equal(0xF2, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void WriteRegister_TriggeringChannel2WithDacDisabledKeepsChannel2Inactive()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF17, 0x00);
+        apu.WriteRegister(0xFF19, 0x80);
+
+        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void WriteRegister_DisablingChannel2DacClearsChannel2Status()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF17, 0xF0);
+        apu.WriteRegister(0xFF19, 0x80);
+
+        apu.WriteRegister(0xFF17, 0x00);
+
+        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void WriteRegister_PoweringOffDisablesChannel2()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF17, 0xF0);
+        apu.WriteRegister(0xFF19, 0x80);
+
+        apu.WriteRegister(0xFF26, 0x00);
+        apu.WriteRegister(0xFF26, 0x80);
+
+        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
     public void TickSystemCounter_AdvancesDivApuStepOnNormalSpeedDivBit4FallingEdge()
     {
         ApuController apu = new(new DmgApuHardwareProfile());
