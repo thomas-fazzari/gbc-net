@@ -170,7 +170,7 @@ public sealed class ApuControllerTests
         );
 
         Assert.Equal(1, apu.DivApuStep);
-        Assert.False(events.Length);
+        Assert.True(events.Length);
         Assert.False(events.Sweep);
         Assert.False(events.Envelope);
     }
@@ -189,14 +189,14 @@ public sealed class ApuControllerTests
     }
 
     [Theory]
-    [InlineData(1, 1, false, false, false)]
-    [InlineData(2, 2, true, true, false)]
-    [InlineData(3, 3, false, false, false)]
-    [InlineData(4, 4, true, false, false)]
-    [InlineData(5, 5, false, false, false)]
-    [InlineData(6, 6, true, true, false)]
-    [InlineData(7, 7, false, false, true)]
-    [InlineData(8, 0, true, false, false)]
+    [InlineData(1, 1, true, false, false)]
+    [InlineData(2, 2, false, false, false)]
+    [InlineData(3, 3, true, true, false)]
+    [InlineData(4, 4, false, false, false)]
+    [InlineData(5, 5, true, false, false)]
+    [InlineData(6, 6, false, false, false)]
+    [InlineData(7, 7, true, true, true)]
+    [InlineData(8, 0, false, false, false)]
     public void TickSystemCounter_ReturnsFrameSequencerEventsForNewDivApuStep(
         int ticks,
         byte expectedStep,

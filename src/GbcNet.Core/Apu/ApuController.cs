@@ -56,8 +56,8 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
 
         DivApuStep = (byte)((DivApuStep + 1) & DivApuStepMask);
         return new ApuFrameSequencerEvents(
-            Length: DivApuStep is 0 or 2 or 4 or 6,
-            Sweep: DivApuStep is 2 or 6,
+            Length: DivApuStep is 1 or 3 or 5 or 7,
+            Sweep: DivApuStep is 3 or 7,
             Envelope: DivApuStep is 7
         );
     }
