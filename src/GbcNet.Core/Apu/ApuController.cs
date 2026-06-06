@@ -29,6 +29,8 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     /// </summary>
     internal byte DivApuStep { get; private set; }
 
+    internal byte Channel2Volume => _channel2.Volume;
+
     /// <summary>
     /// Returns whether an address is owned by the APU register block.
     /// </summary>
@@ -55,23 +57,27 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
         }
 
         DivApuStep = (byte)((DivApuStep + 1) & DivApuStepMask);
+        // Events are based on the frame sequencer step reached after this DIV-APU tick
         var events = new ApuFrameSequencerEvents(
             Length: DivApuStep is 1 or 3 or 5 or 7,
             Sweep: DivApuStep is 3 or 7,
             Envelope: DivApuStep is 7
         );
 
-        if (!events.Length)
+        if (events.Length)
         {
-            return events;
+            _channel2.ClockLength();
+            if (!_channel2.IsActive)
+            {
+                _registers[AudioMasterControlRegister - RegisterStart] &= unchecked(
+                    (byte)~AudioChannel2StatusMask
+                );
+            }
         }
 
-        _channel2.ClockLength();
-        if (!_channel2.IsActive)
+        if (events.Envelope)
         {
-            _registers[AudioMasterControlRegister - RegisterStart] &= unchecked(
-                (byte)~AudioChannel2StatusMask
-            );
+            _channel2.ClockEnvelope();
         }
 
         return events;
@@ -92,6 +98,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
         {
             if ((value & AudioMasterWritableMask) == 0)
             {
+                // NR52 power-off clears APU registers and silences active channels, but not Wave RAM
                 Array.Clear(_registers);
                 _channel2.PowerOff();
                 return;
