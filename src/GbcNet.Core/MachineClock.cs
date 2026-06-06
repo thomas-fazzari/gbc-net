@@ -30,6 +30,7 @@ internal sealed class MachineClock(MemoryBus bus)
         bus.Timers.TickSystemCounter(fallingEdges);
         bus.Serial.TickSystemCounter(fallingEdges);
         bus.Apu.TickSystemCounter(new ApuTickInputs(fallingEdges, CgbDoubleSpeed: false));
+        bus.Apu.Tick(HardwareTiming.MachineCycleTCycles);
 
         if (bus.Ppu.Tick(HardwareTiming.MachineCycleTCycles) is { } completedFrame)
         {

@@ -315,6 +315,116 @@ public sealed class ApuControllerTests
     }
 
     [Fact]
+    public void Channel2DigitalOutput_ReturnsZeroWhenChannel2IsInactive()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF17, 0xA0);
+
+        Assert.Equal(0, apu.Channel2DigitalOutput);
+    }
+
+    [Fact]
+    public void Channel2DigitalOutput_ReturnsZeroWhenPulseChannelFirstStartsEvenIfDutyStepIsHigh()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF16, 0x40);
+        apu.WriteRegister(0xFF17, 0xA0);
+        apu.WriteRegister(0xFF18, 0xFF);
+        apu.WriteRegister(0xFF19, 0x87);
+
+        Assert.Equal(0, apu.Channel2DigitalOutput);
+    }
+
+    [Fact]
+    public void Channel2DigitalOutput_UsesDutyPatternAndVolume()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF16, 0xC0);
+        apu.WriteRegister(0xFF17, 0xA0);
+        apu.WriteRegister(0xFF18, 0xFF);
+        apu.WriteRegister(0xFF19, 0x87);
+
+        Assert.Equal(0, apu.Channel2DigitalOutput);
+
+        apu.Tick(4);
+
+        Assert.Equal(10, apu.Channel2DigitalOutput);
+    }
+
+    [Fact]
+    public void Tick_AdvancesChannel2DutyStepFasterForHigherPeriodValues()
+    {
+        ApuController fastApu = new(new DmgApuHardwareProfile());
+        fastApu.WriteRegister(0xFF26, 0x80);
+        fastApu.WriteRegister(0xFF16, 0xC0);
+        fastApu.WriteRegister(0xFF17, 0xF0);
+        fastApu.WriteRegister(0xFF18, 0xFF);
+        fastApu.WriteRegister(0xFF19, 0x87);
+
+        ApuController slowApu = new(new DmgApuHardwareProfile());
+        slowApu.WriteRegister(0xFF26, 0x80);
+        slowApu.WriteRegister(0xFF16, 0xC0);
+        slowApu.WriteRegister(0xFF17, 0xF0);
+        slowApu.WriteRegister(0xFF18, 0xFE);
+        slowApu.WriteRegister(0xFF19, 0x87);
+
+        fastApu.Tick(4);
+        slowApu.Tick(4);
+
+        Assert.Equal(15, fastApu.Channel2DigitalOutput);
+        Assert.Equal(0, slowApu.Channel2DigitalOutput);
+
+        slowApu.Tick(4);
+
+        Assert.Equal(15, slowApu.Channel2DigitalOutput);
+    }
+
+    [Fact]
+    public void WriteRegister_TriggeringChannel2DoesNotResetDutyStep()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF16, 0xC0);
+        apu.WriteRegister(0xFF17, 0xA0);
+        apu.WriteRegister(0xFF18, 0xFF);
+        apu.WriteRegister(0xFF19, 0x87);
+        apu.Tick(4);
+
+        apu.WriteRegister(0xFF19, 0x87);
+
+        Assert.Equal(10, apu.Channel2DigitalOutput);
+    }
+
+    [Fact]
+    public void WriteRegister_PoweringOffResetsChannel2DutyStep()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF16, 0xC0);
+        apu.WriteRegister(0xFF17, 0xA0);
+        apu.WriteRegister(0xFF18, 0xFF);
+        apu.WriteRegister(0xFF19, 0x87);
+        apu.Tick(4);
+
+        apu.WriteRegister(0xFF26, 0x00);
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF16, 0xC0);
+        apu.WriteRegister(0xFF17, 0xA0);
+        apu.WriteRegister(0xFF18, 0xFF);
+        apu.WriteRegister(0xFF19, 0x87);
+
+        Assert.Equal(0, apu.Channel2DigitalOutput);
+    }
+
+    [Fact]
     public void TickSystemCounter_AdvancesDivApuStepOnNormalSpeedDivBit4FallingEdge()
     {
         ApuController apu = new(new DmgApuHardwareProfile());

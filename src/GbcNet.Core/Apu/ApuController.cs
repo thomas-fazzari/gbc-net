@@ -14,7 +14,8 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
 
     private const ushort Channel2LengthRegister = 0xFF16;
     private const ushort Channel2EnvelopeRegister = 0xFF17;
-    private const ushort Channel2ControlRegister = 0xFF19;
+    private const ushort Channel2PeriodLowRegister = 0xFF18;
+    private const ushort Channel2PeriodHighControlRegister = 0xFF19;
     private const ushort AudioMasterControlRegister = 0xFF26;
     private const byte AudioMasterWritableMask = 0x80;
     private const byte AudioChannelStatusMask = 0x0F;
@@ -30,6 +31,8 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     internal byte DivApuStep { get; private set; }
 
     internal byte Channel2Volume => _channel2.Volume;
+
+    internal byte Channel2DigitalOutput => _channel2.DigitalOutput;
 
     /// <summary>
     /// Returns whether an address is owned by the APU register block.
@@ -84,6 +87,14 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     }
 
     /// <summary>
+    /// Advances channel period timers by elapsed T-cycles.
+    /// </summary>
+    internal void Tick(int tCycles)
+    {
+        _channel2.Tick(tCycles);
+    }
+
+    /// <summary>
     /// Reads an APU register with hardware-specific unused and write-only bits applied.
     /// </summary>
     public byte ReadRegister(ushort address) =>
@@ -134,7 +145,11 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
                 }
                 return;
 
-            case Channel2ControlRegister:
+            case Channel2PeriodLowRegister:
+                _channel2.WritePeriodLow(value);
+                return;
+
+            case Channel2PeriodHighControlRegister:
                 _channel2.WriteControl(value, _registers[Channel2EnvelopeRegister - RegisterStart]);
                 if (_channel2.IsActive)
                 {

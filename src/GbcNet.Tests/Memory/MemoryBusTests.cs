@@ -1,3 +1,4 @@
+using GbcNet.Core;
 using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware.Profiles;
@@ -563,6 +564,7 @@ public sealed class MemoryBusTests
             bus.Timers.TickSystemCounter(fallingEdges);
             bus.Serial.TickSystemCounter(fallingEdges);
             bus.Apu.TickSystemCounter(new ApuTickInputs(fallingEdges, CgbDoubleSpeed: false));
+            bus.Apu.Tick(HardwareTiming.MachineCycleTCycles);
         }
     }
 }
