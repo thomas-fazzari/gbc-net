@@ -403,6 +403,62 @@ public sealed class ApuControllerTests
     }
 
     [Fact]
+    public void GetStereoSample_ReturnsSilenceWhenChannel2IsInactive()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF24, 0x77);
+        apu.WriteRegister(0xFF25, 0x22);
+
+        Assert.Equal(new ApuStereoSample(0, 0), apu.GetStereoSample());
+    }
+
+    [Fact]
+    public void GetStereoSample_ReturnsSilenceWhenChannel2IsNotRouted()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF16, 0xC0);
+        apu.WriteRegister(0xFF17, 0xA0);
+        apu.WriteRegister(0xFF18, 0xFF);
+        apu.WriteRegister(0xFF19, 0x87);
+        apu.Tick(4);
+        apu.WriteRegister(0xFF24, 0x77);
+        apu.WriteRegister(0xFF25, 0x00);
+
+        Assert.Equal(new ApuStereoSample(0, 0), apu.GetStereoSample());
+    }
+
+    [Theory]
+    [InlineData(0x00, 0x22, 10, 10)]
+    [InlineData(0x77, 0x22, 80, 80)]
+    [InlineData(0x70, 0x22, 80, 10)]
+    [InlineData(0x06, 0x02, 0, 70)]
+    [InlineData(0x60, 0x20, 70, 0)]
+    public void GetStereoSample_MixesChannel2UsingNr50AndNr51(
+        byte masterVolume,
+        byte panning,
+        int expectedLeft,
+        int expectedRight
+    )
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF16, 0xC0);
+        apu.WriteRegister(0xFF17, 0xA0);
+        apu.WriteRegister(0xFF18, 0xFF);
+        apu.WriteRegister(0xFF19, 0x87);
+        apu.Tick(4);
+        apu.WriteRegister(0xFF24, masterVolume);
+        apu.WriteRegister(0xFF25, panning);
+
+        Assert.Equal(new ApuStereoSample(expectedLeft, expectedRight), apu.GetStereoSample());
+    }
+
+    [Fact]
     public void WriteRegister_PoweringOffResetsChannel2DutyStep()
     {
         ApuController apu = new(new DmgApuHardwareProfile());

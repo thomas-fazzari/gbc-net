@@ -16,10 +16,17 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     private const ushort Channel2EnvelopeRegister = 0xFF17;
     private const ushort Channel2PeriodLowRegister = 0xFF18;
     private const ushort Channel2PeriodHighControlRegister = 0xFF19;
+    private const ushort MasterVolumeRegister = 0xFF24;
+    private const ushort SoundPanningRegister = 0xFF25;
     private const ushort AudioMasterControlRegister = 0xFF26;
     private const byte AudioMasterWritableMask = 0x80;
     private const byte AudioChannelStatusMask = 0x0F;
     private const byte AudioChannel2StatusMask = 0x02;
+    private const byte Channel2RightRouteMask = 0x02;
+    private const byte Channel2LeftRouteMask = 0x20;
+    private const byte RightVolumeMask = 0x07;
+    private const byte LeftVolumeMask = 0x70;
+    private const int LeftVolumeShift = 4;
     private const byte DivApuStepMask = 0x07;
 
     private readonly byte[] _registers = new byte[RegisterEnd - RegisterStart + 1];
@@ -92,6 +99,25 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     internal void Tick(int tCycles)
     {
         _channel2.Tick(tCycles);
+    }
+
+    /// <summary>
+    /// Returns the current CH2-only stereo mix using NR50 and NR51 routing.
+    /// </summary>
+    internal ApuStereoSample GetStereoSample()
+    {
+        byte masterVolume = _registers[MasterVolumeRegister - RegisterStart];
+        byte panning = _registers[SoundPanningRegister - RegisterStart];
+        byte channel2Output = _channel2.DigitalOutput;
+
+        return new ApuStereoSample(
+            Left: (panning & Channel2LeftRouteMask) != 0
+                ? channel2Output * (((masterVolume & LeftVolumeMask) >> LeftVolumeShift) + 1)
+                : 0,
+            Right: (panning & Channel2RightRouteMask) != 0
+                ? channel2Output * ((masterVolume & RightVolumeMask) + 1)
+                : 0
+        );
     }
 
     /// <summary>
