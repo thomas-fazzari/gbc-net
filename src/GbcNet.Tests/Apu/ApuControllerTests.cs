@@ -112,9 +112,14 @@ public sealed class ApuControllerTests
     {
         ApuController apu = new(new DmgApuHardwareProfile());
 
-        apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+        ApuFrameSequencerEvents events = apu.TickSystemCounter(
+            new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)
+        );
 
         Assert.Equal(1, apu.DivApuStep);
+        Assert.False(events.Length);
+        Assert.False(events.Sweep);
+        Assert.False(events.Envelope);
     }
 
     [Fact]
@@ -122,9 +127,43 @@ public sealed class ApuControllerTests
     {
         ApuController apu = new(new DmgApuHardwareProfile());
 
-        apu.TickSystemCounter(new ApuTickInputs(1 << 11, CgbDoubleSpeed: false));
+        ApuFrameSequencerEvents events = apu.TickSystemCounter(
+            new ApuTickInputs(1 << 11, CgbDoubleSpeed: false)
+        );
 
         Assert.Equal(0, apu.DivApuStep);
+        Assert.Equal(default, events);
+    }
+
+    [Theory]
+    [InlineData(1, 1, false, false, false)]
+    [InlineData(2, 2, true, true, false)]
+    [InlineData(3, 3, false, false, false)]
+    [InlineData(4, 4, true, false, false)]
+    [InlineData(5, 5, false, false, false)]
+    [InlineData(6, 6, true, true, false)]
+    [InlineData(7, 7, false, false, true)]
+    [InlineData(8, 0, true, false, false)]
+    public void TickSystemCounter_ReturnsFrameSequencerEventsForNewDivApuStep(
+        int ticks,
+        byte expectedStep,
+        bool expectedLength,
+        bool expectedSweep,
+        bool expectedEnvelope
+    )
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuFrameSequencerEvents events = default;
+
+        for (int tick = 0; tick < ticks; tick++)
+        {
+            events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+        }
+
+        Assert.Equal(expectedStep, apu.DivApuStep);
+        Assert.Equal(expectedLength, events.Length);
+        Assert.Equal(expectedSweep, events.Sweep);
+        Assert.Equal(expectedEnvelope, events.Envelope);
     }
 
     [Theory]

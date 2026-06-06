@@ -37,17 +37,24 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     /// <summary>
     /// Applies system-counter falling edges that clock DIV-APU timing.
     /// </summary>
-    public void TickSystemCounter(ApuTickInputs inputs)
+    internal ApuFrameSequencerEvents TickSystemCounter(ApuTickInputs inputs)
     {
         if (
             (
                 inputs.SystemCounterFallingEdges
                 & hardwareProfile.GetDivApuFallingEdgeMask(inputs.CgbDoubleSpeed)
-            ) != 0
+            ) == 0
         )
         {
-            DivApuStep = (byte)((DivApuStep + 1) & DivApuStepMask);
+            return default;
         }
+
+        DivApuStep = (byte)((DivApuStep + 1) & DivApuStepMask);
+        return new ApuFrameSequencerEvents(
+            Length: DivApuStep is 0 or 2 or 4 or 6,
+            Sweep: DivApuStep is 2 or 6,
+            Envelope: DivApuStep is 7
+        );
     }
 
     /// <summary>
