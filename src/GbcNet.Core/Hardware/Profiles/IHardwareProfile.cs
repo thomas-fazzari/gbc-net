@@ -1,8 +1,8 @@
-using GbcNet.Core.Apu;
-using GbcNet.Core.Dma;
-using GbcNet.Core.Ppu;
+using GbcNet.Core.Apu.Profiles;
+using GbcNet.Core.Dma.Policies;
+using GbcNet.Core.Ppu.Engines;
 
-namespace GbcNet.Core.Hardware;
+namespace GbcNet.Core.Hardware.Profiles;
 
 /// <summary>
 /// Selects model-specific component profiles and policies.

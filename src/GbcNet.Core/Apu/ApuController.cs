@@ -1,3 +1,5 @@
+using GbcNet.Core.Apu.Profiles;
+
 namespace GbcNet.Core.Apu;
 
 /// <summary>

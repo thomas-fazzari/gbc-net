@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Ppu;
+namespace GbcNet.Core.Ppu.Engines;
 
 /// <summary>
 /// Models hardware-specific LCD behavior and exposes the resulting CPU-visible signals.

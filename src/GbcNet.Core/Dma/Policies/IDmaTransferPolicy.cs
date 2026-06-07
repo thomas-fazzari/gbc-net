@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Dma;
+namespace GbcNet.Core.Dma.Policies;
 
 /// <summary>
 /// Models hardware-specific OAM DMA source decoding and CPU bus conflicts.

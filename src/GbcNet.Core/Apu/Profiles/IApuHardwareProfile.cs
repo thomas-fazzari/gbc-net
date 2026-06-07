@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Apu;
+namespace GbcNet.Core.Apu.Profiles;
 
 /// <summary>
 /// Provides model-specific APU register masks and timing edges.

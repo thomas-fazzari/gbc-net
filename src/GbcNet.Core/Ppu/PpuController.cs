@@ -1,5 +1,6 @@
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
+using GbcNet.Core.Ppu.Engines;
 
 namespace GbcNet.Core.Ppu;
 

@@ -1,7 +1,8 @@
 using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Dma;
-using GbcNet.Core.Hardware;
+using GbcNet.Core.Dma.Policies;
+using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Ppu;
