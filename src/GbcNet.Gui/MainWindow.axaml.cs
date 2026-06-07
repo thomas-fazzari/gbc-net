@@ -35,6 +35,12 @@ internal sealed partial class MainWindow : Window, IDisposable
         Gesture = KeyGesture.Parse("Meta+R"),
         IsEnabled = false,
     };
+    private readonly NativeMenuItem _fastForwardMenuItem = new("Fast Forward")
+    {
+        ToggleType = MenuItemToggleType.CheckBox,
+    };
+    private readonly List<(NativeMenuItem Item, EmulationSpeed Speed)> _fastForwardSpeedMenuItems =
+    [];
     private EmulationSession? _emulationSession;
     private readonly IAudioOutput _audioOutput;
     private readonly KeyboardInputMapper _keyboardInputMapper;
@@ -44,6 +50,8 @@ internal sealed partial class MainWindow : Window, IDisposable
     private string _loadedRomName = string.Empty;
     private readonly LcdFrameBitmapRenderer _screenRenderer = new();
     private bool _closeAfterAsyncStop;
+    private bool _fastForwardEnabled;
+    private EmulationSpeed _fastForwardSpeed = EmulationSpeed.Two;
     private int _closeStopStarted;
 
     public MainWindow(
@@ -83,6 +91,12 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         _pauseMenuItem.Click += PauseMenu_OnClick;
         _resetMenuItem.Click += ResetMenu_OnClick;
+        _fastForwardMenuItem.Click += FastForwardMenu_OnClick;
+
+        NativeMenuItem fastForwardSpeedMenuItem = new("Fast Forward Speed")
+        {
+            Menu = CreateFastForwardSpeedMenu(),
+        };
 
         var fileMenuItem = new NativeMenuItem("File")
         {
@@ -90,10 +104,36 @@ internal sealed partial class MainWindow : Window, IDisposable
         };
         var emulationMenuItem = new NativeMenuItem("Emulation")
         {
-            Menu = [_pauseMenuItem, _resetMenuItem],
+            Menu =
+            [
+                _pauseMenuItem,
+                _resetMenuItem,
+                new NativeMenuItemSeparator(),
+                _fastForwardMenuItem,
+                fastForwardSpeedMenuItem,
+            ],
         };
 
         NativeMenu.SetMenu(this, [fileMenuItem, emulationMenuItem]);
+    }
+
+    private NativeMenu CreateFastForwardSpeedMenu()
+    {
+        NativeMenu menu = [];
+
+        foreach (EmulationSpeed speed in Enum.GetValues<EmulationSpeed>())
+        {
+            NativeMenuItem menuItem = new(speed.GetDisplayName())
+            {
+                ToggleType = MenuItemToggleType.CheckBox,
+                IsChecked = speed == _fastForwardSpeed,
+            };
+            menuItem.Click += (_, _) => SetFastForwardSpeed(speed);
+            _fastForwardSpeedMenuItems.Add((menuItem, speed));
+            menu.Add(menuItem);
+        }
+
+        return menu;
     }
 
     protected override void OnClosing(WindowClosingEventArgs e)
@@ -208,6 +248,18 @@ internal sealed partial class MainWindow : Window, IDisposable
             );
     }
 
+    private void FastForwardMenu_OnClick(object? sender, EventArgs e)
+    {
+        _fastForwardEnabled = !_fastForwardEnabled;
+        ApplyFastForwardSettings();
+    }
+
+    private void SetFastForwardSpeed(EmulationSpeed speed)
+    {
+        _fastForwardSpeed = speed;
+        ApplyFastForwardSettings();
+    }
+
     private async Task ResetRomAsync()
     {
         if (_loadedRom is null)
@@ -304,6 +356,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             OnEmulationFaulted,
             () => _cartridgeSaveFileService.Save(cartridge, rom)
         );
+        ApplyFastForwardSettings();
         Title = romName;
         _pauseMenuItem.Header = "Pause";
         _pauseMenuItem.IsEnabled = true;
@@ -351,5 +404,17 @@ internal sealed partial class MainWindow : Window, IDisposable
     private void OnEmulationFaulted(Exception e)
     {
         Dispatcher.UIThread.Post(() => Title = e.Message);
+    }
+
+    private void ApplyFastForwardSettings()
+    {
+        _fastForwardMenuItem.IsChecked = _fastForwardEnabled;
+
+        foreach ((NativeMenuItem item, EmulationSpeed speed) in _fastForwardSpeedMenuItems)
+        {
+            item.IsChecked = speed == _fastForwardSpeed;
+        }
+
+        _emulationSession?.SetFastForward(_fastForwardEnabled, _fastForwardSpeed);
     }
 }

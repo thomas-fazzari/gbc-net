@@ -35,6 +35,9 @@ internal sealed class EmulationSession
     private readonly Task _runTask;
     private int _isPaused;
     private int _isStopped;
+    private int _isFastForwardEnabled;
+    private int _fastForwardSpeed = (int)EmulationSpeed.Two;
+    private int _pacingRevision;
 
     public bool IsPaused
     {
@@ -89,12 +92,42 @@ internal sealed class EmulationSession
         }
     }
 
+    public void SetFastForward(bool enabled, EmulationSpeed speed)
+    {
+        if (!Enum.IsDefined(speed))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(speed),
+                speed,
+                "Fast-forward speed must be one of the supported GUI multipliers."
+            );
+        }
+
+        bool enabledChanged =
+            Interlocked.Exchange(ref _isFastForwardEnabled, enabled ? 1 : 0) != (enabled ? 1 : 0);
+
+        bool speedChanged = Interlocked.Exchange(ref _fastForwardSpeed, (int)speed) != (int)speed;
+
+        if (!enabledChanged && !speedChanged)
+        {
+            return;
+        }
+
+        // Queued audio produced for the old pacing mode
+        // Dropped instead of playing stale sound
+        _audioOutput.Clear();
+        Interlocked.Increment(ref _pacingRevision);
+    }
+
     private async Task RunAsync()
     {
         var stopwatch = Stopwatch.StartNew();
         long elapsedMachineCycles = 0;
         long nextThrottleMachineCycles = MachineCyclesPerThrottle;
         long nextSaveMachineCycles = MachineCyclesPerSaveFlush;
+        long pacingBaseMachineCycles = 0;
+        TimeSpan pacingBaseElapsed = TimeSpan.Zero;
+        int pacingRevision = Volatile.Read(ref _pacingRevision);
 
         try
         {
@@ -120,7 +153,8 @@ internal sealed class EmulationSession
                 }
 
                 elapsedMachineCycles += _gameBoy.Step();
-                DrainAudioSamples();
+
+                DrainAudioSamples(enqueueOutput: !ShouldMuteAudio());
 
                 if (elapsedMachineCycles >= nextSaveMachineCycles)
                 {
@@ -133,10 +167,23 @@ internal sealed class EmulationSession
                     continue;
                 }
 
+                int currentPacingRevision = Volatile.Read(ref _pacingRevision);
+                if (currentPacingRevision != pacingRevision)
+                {
+                    // Timing baseline restarted when speed changes to avoid a catch-up delay
+                    pacingRevision = currentPacingRevision;
+                    pacingBaseMachineCycles = elapsedMachineCycles;
+                    pacingBaseElapsed = stopwatch.Elapsed;
+                    nextThrottleMachineCycles = elapsedMachineCycles + MachineCyclesPerThrottle;
+                }
+
                 // Throttle against total emulated time instead of per-chunk delay to avoid drift.
-                var expectedElapsed = TimeSpan.FromSeconds(
-                    elapsedMachineCycles / (double)MachineCyclesPerSecond
-                );
+                TimeSpan expectedElapsed =
+                    pacingBaseElapsed
+                    + TimeSpan.FromSeconds(
+                        (elapsedMachineCycles - pacingBaseMachineCycles)
+                            / (MachineCyclesPerSecond * GetSpeedMultiplier())
+                    );
                 TimeSpan delay = expectedElapsed - stopwatch.Elapsed;
 
                 if (delay > TimeSpan.Zero)
@@ -163,7 +210,16 @@ internal sealed class EmulationSession
         }
     }
 
-    private void DrainAudioSamples()
+    private double GetSpeedMultiplier() =>
+        Volatile.Read(ref _isFastForwardEnabled) != 0
+            ? Volatile.Read(ref _fastForwardSpeed) / (double)(int)EmulationSpeed.Normal
+            : 1.0;
+
+    private bool ShouldMuteAudio() =>
+        Volatile.Read(ref _isFastForwardEnabled) != 0
+        && Volatile.Read(ref _fastForwardSpeed) > (int)EmulationSpeed.Normal;
+
+    private void DrainAudioSamples(bool enqueueOutput)
     {
         int drained;
 
@@ -171,7 +227,7 @@ internal sealed class EmulationSession
         {
             drained = _gameBoy.DrainAudioSamples(_audioSamples);
 
-            if (drained > 0)
+            if (enqueueOutput && drained > 0)
             {
                 _audioOutput.EnqueueSamples(_audioSamples.AsSpan(0, drained));
             }
