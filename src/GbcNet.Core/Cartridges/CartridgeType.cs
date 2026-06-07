@@ -80,6 +80,12 @@ internal static class CartridgeTypeExtensions
 {
     extension(CartridgeType cartridgeType)
     {
+        public bool IsNoMbc() =>
+            cartridgeType
+                is CartridgeType.RomOnly
+                    or CartridgeType.RomRam
+                    or CartridgeType.RomRamBattery;
+
         public bool IsMbc1() =>
             cartridgeType
                 is CartridgeType.Mbc1
@@ -100,7 +106,8 @@ internal static class CartridgeTypeExtensions
 
         public bool HasBatteryBackedRam() =>
             cartridgeType
-                is CartridgeType.Mbc1RamBattery
+                is CartridgeType.RomRamBattery
+                    or CartridgeType.Mbc1RamBattery
                     or CartridgeType.Mbc3RamBattery
                     or CartridgeType.Mbc5RamBattery;
     }

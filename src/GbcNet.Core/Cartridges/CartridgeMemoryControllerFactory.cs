@@ -18,8 +18,8 @@ internal static class CartridgeMemoryControllerFactory
 
         return cartridgeType switch
         {
-            CartridgeType.RomOnly => Result.Ok<ICartridgeMemoryController>(
-                new RomOnlyMemoryController(rom)
+            _ when cartridgeType.IsNoMbc() => Result.Ok<ICartridgeMemoryController>(
+                new NoMbcMemoryController(rom, header, cartridgeType.HasBatteryBackedRam())
             ),
             _ when cartridgeType.IsMbc1() => Result.Ok<ICartridgeMemoryController>(
                 new Mbc1MemoryController(rom, header, cartridgeType.HasBatteryBackedRam())
