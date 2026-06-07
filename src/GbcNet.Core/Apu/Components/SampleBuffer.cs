@@ -63,19 +63,24 @@ internal sealed class SampleBuffer
     }
 
     /// <summary>
-    /// Returns buffered samples in playback order and clears the buffer.
+    /// Drains buffered samples in playback order, preserving samples that do not fit.
     /// </summary>
-    public ApuStereoSample[] Drain()
+    public int Drain(Span<ApuStereoSample> destination)
     {
-        var drained = new ApuStereoSample[Count];
+        int drained = Math.Min(destination.Length, Count);
 
-        for (int index = 0; index < drained.Length; index++)
+        for (int index = 0; index < drained; index++)
         {
-            drained[index] = _samples[(_start + index) % _samples.Length];
+            destination[index] = _samples[(_start + index) % _samples.Length];
         }
 
-        _start = 0;
-        Count = 0;
+        _start = (_start + drained) % _samples.Length;
+        Count -= drained;
+        if (Count == 0)
+        {
+            _start = 0;
+        }
+
         return drained;
     }
 }

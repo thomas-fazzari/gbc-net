@@ -215,7 +215,8 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     /// <summary>
     /// Drains buffered fixed-rate APU samples.
     /// </summary>
-    internal ApuStereoSample[] DrainBufferedSamples() => _sampleBuffer.Drain();
+    internal int DrainBufferedSamples(Span<ApuStereoSample> destination) =>
+        _sampleBuffer.Drain(destination);
 
     /// <summary>
     /// Reads an APU register with hardware-specific unused and write-only bits applied.

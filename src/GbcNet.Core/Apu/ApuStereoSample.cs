@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 namespace GbcNet.Core.Apu;
 
 /// <summary>
-/// Stereo mix from the APU core before High Pass Filter/backend conversion.
+/// Raw stereo mix from the APU before high-pass filter or backend conversion.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
-internal readonly record struct ApuStereoSample(int Left, int Right);
+public readonly record struct ApuStereoSample(int Left, int Right);

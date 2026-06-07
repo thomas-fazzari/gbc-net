@@ -1,4 +1,5 @@
 using GbcNet.Core;
+using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Joypad;
@@ -65,6 +66,49 @@ public sealed class GameBoyTests
         Assert.Equal(HardwareModel.Dmg, gameBoy.HardwareModel);
         Assert.Equal(0xAB, gameBoy.Bus.ReadByte(AddressMap.DividerRegister));
         Assert.Equal(0xE1, gameBoy.Bus.ReadByte(AddressMap.InterruptFlagRegister));
+    }
+
+    [Fact]
+    public void DrainAudioSamples_ReturnsProducedSamples()
+    {
+        Cartridge cartridge = ResultAssertions.AssertSuccess(
+            Cartridge.Load(TestRomFactory.Create())
+        );
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
+        var destination = new ApuStereoSample[1];
+
+        gameBoy.Bus.Apu.Tick(88);
+
+        Assert.Equal(1, gameBoy.DrainAudioSamples(destination));
+        Assert.Equal(new ApuStereoSample(0, 0), destination[0]);
+    }
+
+    [Fact]
+    public void DrainAudioSamples_PreservesSamplesThatDoNotFit()
+    {
+        Cartridge cartridge = ResultAssertions.AssertSuccess(
+            Cartridge.Load(TestRomFactory.Create())
+        );
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
+        var firstDrain = new ApuStereoSample[1];
+        var secondDrain = new ApuStereoSample[2];
+
+        gameBoy.Bus.Apu.Tick(264);
+
+        Assert.Equal(1, gameBoy.DrainAudioSamples(firstDrain));
+        Assert.Equal(2, gameBoy.DrainAudioSamples(secondDrain));
+    }
+
+    [Fact]
+    public void DrainAudioSamples_ReturnsZeroWhenEmpty()
+    {
+        Cartridge cartridge = ResultAssertions.AssertSuccess(
+            Cartridge.Load(TestRomFactory.Create())
+        );
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
+        Span<ApuStereoSample> destination = stackalloc ApuStereoSample[1];
+
+        Assert.Equal(0, gameBoy.DrainAudioSamples(destination));
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
@@ -66,6 +67,12 @@ public sealed class GameBoy
 
         return machineCycles;
     }
+
+    /// <summary>
+    /// Drains raw APU stereo samples produced before high-pass filter or backend conversion.
+    /// </summary>
+    public int DrainAudioSamples(Span<ApuStereoSample> destination) =>
+        Bus.Apu.DrainBufferedSamples(destination);
 
     /// <summary>
     /// Updates a joypad button state for the emulated machine.

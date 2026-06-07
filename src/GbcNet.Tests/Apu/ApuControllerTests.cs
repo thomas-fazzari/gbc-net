@@ -1065,13 +1065,15 @@ public sealed class ApuControllerTests
     {
         ApuController apu = new(new DmgApuHardwareProfile());
 
+        Span<ApuStereoSample> destination = stackalloc ApuStereoSample[1];
+
         apu.Tick(87);
 
-        Assert.Empty(apu.DrainBufferedSamples());
+        Assert.Equal(0, apu.DrainBufferedSamples(destination));
 
         apu.Tick(1);
 
-        Assert.Single(apu.DrainBufferedSamples());
+        Assert.Equal(1, apu.DrainBufferedSamples(destination));
     }
 
     [Fact]
@@ -1087,10 +1089,13 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, 0x00);
         apu.WriteRegister(0xFF25, 0x11);
 
+        ApuStereoSample[] destination = new ApuStereoSample[1];
+
         apu.Tick(88);
 
-        Assert.Equal([new ApuStereoSample(4, 4)], apu.DrainBufferedSamples());
-        Assert.Empty(apu.DrainBufferedSamples());
+        Assert.Equal(1, apu.DrainBufferedSamples(destination));
+        Assert.Equal([new ApuStereoSample(4, 4)], destination);
+        Assert.Equal(0, apu.DrainBufferedSamples(destination));
     }
 
     [Fact]
