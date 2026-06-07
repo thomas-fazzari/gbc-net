@@ -14,4 +14,14 @@ internal interface IApuHardwareProfile
     /// Returns the system-counter falling-edge bit that clocks DIV-APU for current speed mode.
     /// </summary>
     ushort GetDivApuFallingEdgeMask(bool cgbDoubleSpeed);
+
+    /// <summary>
+    /// Source clock used by the fixed-rate output sample scheduler.
+    /// </summary>
+    int OutputClockHz { get; }
+
+    /// <summary>
+    /// Returns the HPF charge factor for the requested output sample rate.
+    /// </summary>
+    double GetOutputHighPassChargeFactor(int sampleRate);
 }

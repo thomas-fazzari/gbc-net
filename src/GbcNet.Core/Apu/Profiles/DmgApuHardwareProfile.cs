@@ -6,6 +6,16 @@ namespace GbcNet.Core.Apu.Profiles;
 internal sealed class DmgApuHardwareProfile : IApuHardwareProfile
 {
     private const ushort DivApuNormalSpeedFallingEdgeMask = 1 << 12;
+    private const double DmgHighPassChargeFactorPerTCycle = 0.999958;
+
+    public int OutputClockHz => 4_194_304;
+
+    public double GetOutputHighPassChargeFactor(int sampleRate)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sampleRate);
+
+        return Math.Pow(DmgHighPassChargeFactorPerTCycle, OutputClockHz / (double)sampleRate);
+    }
 
     public byte ApplyRegisterReadMask(ushort address, byte value) =>
         address switch

@@ -69,7 +69,7 @@ public sealed class GameBoy
     }
 
     /// <summary>
-    /// Drains raw APU stereo samples produced before high-pass filter or backend conversion.
+    /// Drains signed PCM-friendly APU stereo samples after output conditioning.
     /// </summary>
     public int DrainAudioSamples(Span<ApuStereoSample> destination) =>
         Bus.Apu.DrainBufferedSamples(destination);

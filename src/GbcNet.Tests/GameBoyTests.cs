@@ -80,7 +80,7 @@ public sealed class GameBoyTests
         gameBoy.Bus.Apu.Tick(88);
 
         Assert.Equal(1, gameBoy.DrainAudioSamples(destination));
-        Assert.Equal(new ApuStereoSample(0, 0), destination[0]);
+        Assert.Equal(default, destination[0]);
     }
 
     [Fact]

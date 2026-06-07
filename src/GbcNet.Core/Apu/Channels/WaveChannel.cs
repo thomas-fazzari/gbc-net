@@ -38,6 +38,11 @@ internal sealed class WaveChannel
     public bool IsActive { get; private set; }
 
     /// <summary>
+    /// Whether the channel DAC is enabled.
+    /// </summary>
+    public bool DacEnabled => _dacEnabled;
+
+    /// <summary>
     /// Current 11-bit wave period latched from NR33/NR34.
     /// </summary>
     public ushort Period { get; private set; }

@@ -42,6 +42,8 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     private const ushort SoundPanningRegister = 0xFF25;
     private const ushort AudioMasterControlRegister = 0xFF26;
     private const byte AudioMasterWritableMask = 0x80;
+    private const byte EnvelopeDacEnableMask = 0xF8;
+    private const byte WaveDacEnableMask = 0x80;
 
     private const byte AudioChannelStatusMask = 0x0F;
     private const byte AudioChannel1StatusMask = 0x01;
@@ -71,7 +73,12 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     private readonly PulseChannel _channel2 = new();
     private readonly WaveChannel _channel3 = new();
     private readonly NoiseChannel _channel4 = new();
-    private readonly SampleBuffer _sampleBuffer = new();
+    private readonly SampleBuffer<ApuStereoSample> _sampleBuffer = new(
+        hardwareProfile.OutputClockHz
+    );
+    private readonly ApuOutputFilter _outputFilter = new(
+        hardwareProfile.GetOutputHighPassChargeFactor(ApuSampleTiming.DefaultSampleRate)
+    );
 
     /// <summary>
     /// Current DIV-APU frame sequencer step, advanced at 512 Hz.
@@ -182,14 +189,14 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
 
         for (int samplesDue = _sampleBuffer.Tick(tCycles); samplesDue > 0; samplesDue--)
         {
-            _sampleBuffer.Add(GetStereoSample());
+            _sampleBuffer.Add(_outputFilter.Filter(GetAnalogStereoSample(), IsAnyDacEnabled()));
         }
     }
 
     /// <summary>
     /// Returns the current channel stereo mix using NR50 and NR51 routing.
     /// </summary>
-    internal ApuStereoSample GetStereoSample()
+    internal ApuRawStereoSample GetRawStereoSample()
     {
         byte masterVolume = _registers[MasterVolumeRegister - RegisterStart];
         byte panning = _registers[SoundPanningRegister - RegisterStart];
@@ -206,11 +213,67 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
             + ((panning & Channel3RightRouteMask) != 0 ? _channel3.DigitalOutput : 0)
             + ((panning & Channel4RightRouteMask) != 0 ? _channel4.DigitalOutput : 0);
 
-        return new ApuStereoSample(
+        return new ApuRawStereoSample(
             Left: leftInput * (((masterVolume & LeftVolumeMask) >> LeftVolumeShift) + 1),
             Right: rightInput * ((masterVolume & RightVolumeMask) + 1)
         );
     }
+
+    private ApuAnalogStereoSample GetAnalogStereoSample()
+    {
+        byte masterVolume = _registers[MasterVolumeRegister - RegisterStart];
+        byte panning = _registers[SoundPanningRegister - RegisterStart];
+
+        int leftVolume = ((masterVolume & LeftVolumeMask) >> LeftVolumeShift) + 1;
+        double leftInput = 0;
+        int rightVolume = (masterVolume & RightVolumeMask) + 1;
+        double rightInput = 0;
+
+        if ((panning & Channel1LeftRouteMask) != 0)
+        {
+            leftInput += DigitalToAnalog(_channel1.DigitalOutput, _channel1.DacEnabled);
+        }
+
+        if ((panning & Channel2LeftRouteMask) != 0)
+        {
+            leftInput += DigitalToAnalog(_channel2.DigitalOutput, _channel2.DacEnabled);
+        }
+
+        if ((panning & Channel3LeftRouteMask) != 0)
+        {
+            leftInput += DigitalToAnalog(_channel3.DigitalOutput, _channel3.DacEnabled);
+        }
+
+        if ((panning & Channel4LeftRouteMask) != 0)
+        {
+            leftInput += DigitalToAnalog(_channel4.DigitalOutput, _channel4.DacEnabled);
+        }
+
+        if ((panning & Channel1RightRouteMask) != 0)
+        {
+            rightInput += DigitalToAnalog(_channel1.DigitalOutput, _channel1.DacEnabled);
+        }
+
+        if ((panning & Channel2RightRouteMask) != 0)
+        {
+            rightInput += DigitalToAnalog(_channel2.DigitalOutput, _channel2.DacEnabled);
+        }
+
+        if ((panning & Channel3RightRouteMask) != 0)
+        {
+            rightInput += DigitalToAnalog(_channel3.DigitalOutput, _channel3.DacEnabled);
+        }
+
+        if ((panning & Channel4RightRouteMask) != 0)
+        {
+            rightInput += DigitalToAnalog(_channel4.DigitalOutput, _channel4.DacEnabled);
+        }
+
+        return new ApuAnalogStereoSample(leftInput * leftVolume, rightInput * rightVolume);
+    }
+
+    private static double DigitalToAnalog(byte digitalOutput, bool dacEnabled) =>
+        dacEnabled ? 1.0 - (digitalOutput / 7.5) : 0.0;
 
     /// <summary>
     /// Drains buffered fixed-rate APU samples.
@@ -362,6 +425,12 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
                 return;
         }
     }
+
+    private bool IsAnyDacEnabled() =>
+        (_registers[Channel1EnvelopeRegister - RegisterStart] & EnvelopeDacEnableMask) != 0
+        || (_registers[Channel2EnvelopeRegister - RegisterStart] & EnvelopeDacEnableMask) != 0
+        || (_registers[Channel3DacRegister - RegisterStart] & WaveDacEnableMask) != 0
+        || (_registers[Channel4EnvelopeRegister - RegisterStart] & EnvelopeDacEnableMask) != 0;
 
     private void UpdateChannelStatus(byte statusMask, bool isActive)
     {

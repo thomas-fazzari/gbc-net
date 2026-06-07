@@ -1,25 +1,28 @@
 namespace GbcNet.Core.Apu.Components;
 
 /// <summary>
-/// Converts elapsed APU T-cycles into fixed-rate stereo sample slots without floating-point drift.
+/// Converts elapsed APU T-cycles into fixed-rate sample slots without floating-point drift.
 /// </summary>
-internal sealed class SampleBuffer
+internal sealed class SampleBuffer<TSample>
 {
-    internal const int DefaultSampleRate = 48_000;
-    internal const int DmgClockHz = 4_194_304;
-    internal const int DefaultCapacity = DefaultSampleRate / 10;
-
-    private readonly ApuStereoSample[] _samples;
+    private readonly TSample[] _samples;
     private readonly int _sampleRate;
+    private readonly int _sourceClockHz;
     private int _start;
     private long _accumulator;
 
-    public SampleBuffer(int sampleRate = DefaultSampleRate, int capacity = DefaultCapacity)
+    public SampleBuffer(
+        int sourceClockHz,
+        int sampleRate = ApuSampleTiming.DefaultSampleRate,
+        int capacity = ApuSampleTiming.DefaultCapacity
+    )
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sourceClockHz);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sampleRate);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
+        _sourceClockHz = sourceClockHz;
         _sampleRate = sampleRate;
-        _samples = new ApuStereoSample[capacity];
+        _samples = new TSample[capacity];
     }
 
     /// <summary>
@@ -28,7 +31,7 @@ internal sealed class SampleBuffer
     public int Count { get; private set; }
 
     /// <summary>
-    /// Advances sample timing and returns how many mixer samples are due.
+    /// Advances sample timing and returns how many samples are due.
     /// </summary>
     public int Tick(int tCycles)
     {
@@ -37,19 +40,19 @@ internal sealed class SampleBuffer
         _accumulator += (long)tCycles * _sampleRate;
         int samplesDue = 0;
 
-        while (_accumulator >= DmgClockHz)
+        while (_accumulator >= _sourceClockHz)
         {
             samplesDue++;
-            _accumulator -= DmgClockHz;
+            _accumulator -= _sourceClockHz;
         }
 
         return samplesDue;
     }
 
     /// <summary>
-    /// Buffers one mixed stereo sample, dropping the oldest sample if full.
+    /// Buffers one sample, dropping the oldest sample if full.
     /// </summary>
-    public void Add(ApuStereoSample sample)
+    public void Add(TSample sample)
     {
         if (Count == _samples.Length)
         {
@@ -65,7 +68,7 @@ internal sealed class SampleBuffer
     /// <summary>
     /// Drains buffered samples in playback order, preserving samples that do not fit.
     /// </summary>
-    public int Drain(Span<ApuStereoSample> destination)
+    public int Drain(Span<TSample> destination)
     {
         int drained = Math.Min(destination.Length, Count);
 

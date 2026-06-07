@@ -5,38 +5,41 @@ namespace GbcNet.Tests.Apu;
 
 public sealed class SampleBufferTests
 {
+    private const int SourceClockHz = 100;
+    private const int SampleRate = 10;
+
     [Fact]
-    public void Tick_ReturnsDefaultSampleRateAfterOneDmgSecond()
+    public void Tick_ReturnsSampleRateAfterOneSourceSecond()
     {
-        SampleBuffer buffer = new();
+        SampleBuffer<ApuStereoSample> buffer = new(SourceClockHz, SampleRate);
 
-        int samplesDue = buffer.Tick(SampleBuffer.DmgClockHz);
+        int samplesDue = buffer.Tick(SourceClockHz);
 
-        Assert.Equal(SampleBuffer.DefaultSampleRate, samplesDue);
+        Assert.Equal(SampleRate, samplesDue);
     }
 
     [Fact]
     public void Tick_AccumulatesPartialTicksWithoutLosingProgress()
     {
-        SampleBuffer buffer = new();
+        SampleBuffer<ApuStereoSample> buffer = new(SourceClockHz, SampleRate);
 
-        Assert.Equal(0, buffer.Tick(87));
+        Assert.Equal(0, buffer.Tick(9));
         Assert.Equal(1, buffer.Tick(1));
     }
 
     [Fact]
     public void Tick_ReturnsZeroBeforeSampleIsDue()
     {
-        SampleBuffer buffer = new();
+        SampleBuffer<ApuStereoSample> buffer = new(SourceClockHz, SampleRate);
 
-        Assert.Equal(0, buffer.Tick(87));
+        Assert.Equal(0, buffer.Tick(9));
         Assert.Equal(0, buffer.Count);
     }
 
     [Fact]
     public void Drain_CopiesBufferedSamplesAndClearsBuffer()
     {
-        SampleBuffer buffer = new();
+        SampleBuffer<ApuStereoSample> buffer = new(SourceClockHz, SampleRate);
         var destination = new ApuStereoSample[2];
 
         buffer.Add(new ApuStereoSample(1, 2));
@@ -50,7 +53,7 @@ public sealed class SampleBufferTests
     [Fact]
     public void Drain_PreservesSamplesThatDoNotFit()
     {
-        SampleBuffer buffer = new();
+        SampleBuffer<ApuStereoSample> buffer = new(SourceClockHz, SampleRate);
         var firstDrain = new ApuStereoSample[1];
         var secondDrain = new ApuStereoSample[2];
 
@@ -68,7 +71,7 @@ public sealed class SampleBufferTests
     [Fact]
     public void Drain_ReturnsZeroWhenEmpty()
     {
-        SampleBuffer buffer = new();
+        SampleBuffer<ApuStereoSample> buffer = new(SourceClockHz, SampleRate);
         Span<ApuStereoSample> destination = stackalloc ApuStereoSample[1];
 
         Assert.Equal(0, buffer.Drain(destination));
@@ -77,7 +80,7 @@ public sealed class SampleBufferTests
     [Fact]
     public void Add_DropsOldestSampleWhenFull()
     {
-        SampleBuffer buffer = new(capacity: 2);
+        SampleBuffer<ApuStereoSample> buffer = new(SourceClockHz, SampleRate, capacity: 2);
         var destination = new ApuStereoSample[2];
 
         buffer.Add(new ApuStereoSample(1, 2));
@@ -92,7 +95,7 @@ public sealed class SampleBufferTests
     [Fact]
     public void Add_PreservesPlaybackOrderAfterRingWrap()
     {
-        SampleBuffer buffer = new(capacity: 3);
+        SampleBuffer<ApuStereoSample> buffer = new(SourceClockHz, SampleRate, capacity: 3);
         Span<ApuStereoSample> discard = stackalloc ApuStereoSample[2];
         var destination = new ApuStereoSample[2];
 
@@ -109,9 +112,21 @@ public sealed class SampleBufferTests
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
+    public void Constructor_RejectsNonPositiveSourceClock(int sourceClockHz)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new SampleBuffer<ApuStereoSample>(sourceClockHz, SampleRate)
+        );
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
     public void Constructor_RejectsNonPositiveSampleRate(int sampleRate)
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new SampleBuffer(sampleRate));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new SampleBuffer<ApuStereoSample>(SourceClockHz, sampleRate)
+        );
     }
 
     [Theory]
@@ -119,6 +134,8 @@ public sealed class SampleBufferTests
     [InlineData(-1)]
     public void Constructor_RejectsNonPositiveCapacity(int capacity)
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new SampleBuffer(capacity: capacity));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new SampleBuffer<ApuStereoSample>(SourceClockHz, SampleRate, capacity)
+        );
     }
 }

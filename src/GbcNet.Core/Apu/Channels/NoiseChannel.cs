@@ -32,6 +32,11 @@ internal sealed class NoiseChannel
     public bool IsActive { get; private set; }
 
     /// <summary>
+    /// Whether the channel DAC is enabled.
+    /// </summary>
+    public bool DacEnabled => _envelope.DacEnabled;
+
+    /// <summary>
     /// Current envelope volume.
     /// </summary>
     public byte Volume => _envelope.Volume;
