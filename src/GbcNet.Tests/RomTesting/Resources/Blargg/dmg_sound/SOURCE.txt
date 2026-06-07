@@ -1,0 +1,41 @@
+Blargg DMG Sound Tests
+======================
+
+Source repository:
+https://github.com/retrio/gb-test-roms/tree/master/dmg_sound
+
+Reference/reproducible source:
+https://github.com/crzysdrs/blarggs-test-roms
+
+Imported files:
+01-registers.gb
+02-len ctr.gb
+03-trigger.gb
+04-sweep.gb
+05-sweep details.gb
+06-overflow on trigger.gb
+07-len sweep period sync.gb
+08-len ctr during power.gb
+09-wave read while on.gb
+10-wave trigger while on.gb
+11-regs after power.gb
+12-wave write while on.gb
+readme.txt
+
+Checksums:
+c6b9fa4b9d9d26919b33ebe78a6ef19ad2df854186cf741ca2746179cc9fc3f1  01-registers.gb
+745544125a5065729cab22494a79f65c3836e4426f89e4cc43d330afe711b413  02-len ctr.gb
+bb11e7266a7143bafb8aa2a73ca70957c6011f36cd4e0b6aaf0678378294e75c  03-trigger.gb
+58bc14541d91bb020c7761b423825b3432cfde7ee2fa4d1116126e4cb9573c7e  04-sweep.gb
+f582ca3a0b2544b9510797d7d4dd56a17f53e000511b0ae88a6353200dcd9167  05-sweep details.gb
+1a511e95e84ed6fe6077cabf451a98b4e01fdef59cadae3efbc178113eb064b1  06-overflow on trigger.gb
+56bf5b0c18b996929c9b052ba5a02b450cb619bb6c24cc1d34ea20951c977bf7  07-len sweep period sync.gb
+31cb41f7be106a708ec0bc94f2a9d0b506d247cd591e9d0a2a6a960dc3bf6595  08-len ctr during power.gb
+378b86f6a25daa16855260d7ef0c24e48146ba05df434a0b5413983a1447e875  09-wave read while on.gb
+fa63c8ed7473411e54285d318e33bf23ff6d637ed2caa7555ddeaf80578e3279  10-wave trigger while on.gb
+d27dab46e8b881028723f1975328572d38e25d295289b974cd698916a0be5dab  11-regs after power.gb
+2efbecd2c6d40928d44f45da4f634626bcd2790165b3949aedfe377c73913774  12-wave write while on.gb
+731ee0cf7dc72634630f4d14b3bed84223dee2eac6f019e511c631b3526dc7b6  readme.txt
+
+License/provenance:
+Blargg test ROMs, originally by Shay Green.
