@@ -5,7 +5,6 @@ namespace GbcNet.Gui.Configuration;
 /// </summary>
 internal static class UserDataPaths
 {
-    private const string ConfigFileName = "config.kdl";
     private const string SaveDirectoryName = "saves";
 
     /// <summary>
@@ -27,7 +26,7 @@ internal static class UserDataPaths
                 "Library",
                 "Application Support",
                 ApplicationDirectoryNames.Desktop,
-                ConfigFileName
+                ApplicationDirectoryNames.ConfigFile
             );
         }
 
@@ -36,14 +35,14 @@ internal static class UserDataPaths
             return Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 ApplicationDirectoryNames.Desktop,
-                ConfigFileName
+                ApplicationDirectoryNames.ConfigFile
             );
         }
 
         return Path.Combine(
             GetXdgDirectoryPath("XDG_CONFIG_HOME", ".config"),
             ApplicationDirectoryNames.Linux,
-            ConfigFileName
+            ApplicationDirectoryNames.ConfigFile
         );
     }
 

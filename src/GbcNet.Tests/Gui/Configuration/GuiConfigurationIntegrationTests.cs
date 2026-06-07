@@ -1,4 +1,5 @@
 using GbcNet.Core.Joypad;
+using GbcNet.Gui;
 using GbcNet.Gui.Configuration;
 using GbcNet.Gui.Input;
 using GbcNet.Gui.Input.Configuration;
@@ -16,7 +17,7 @@ public sealed class GuiConfigurationIntegrationTests
             "gbc-net-tests",
             Guid.NewGuid().ToString("N")
         );
-        string configPath = Path.Combine(tempDirectory, KdlConfigurationFile.FileName);
+        string configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
 
         try
         {

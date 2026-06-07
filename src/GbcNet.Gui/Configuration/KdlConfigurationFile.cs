@@ -11,7 +11,6 @@ internal static class KdlConfigurationFile
 {
     private const string TemplateDirectoryName = "Configuration";
     private const string TemplateSubdirectoryName = "Templates";
-    internal const string FileName = "config.kdl";
 
     /// <summary>
     /// Loads the configuration document, creates it from defaults when it does not exist.
@@ -85,7 +84,7 @@ internal static class KdlConfigurationFile
             AppContext.BaseDirectory,
             TemplateDirectoryName,
             TemplateSubdirectoryName,
-            FileName
+            ApplicationDirectoryNames.ConfigFile
         );
 
     private static Result<KdlDocument> Parse(string text)
