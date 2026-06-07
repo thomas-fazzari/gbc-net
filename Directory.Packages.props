@@ -28,5 +28,6 @@
     <PackageVersion Include="KdlSharp" Version="1.1.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.8" />
+    <PackageVersion Include="SoundFlow" Version="1.4.1" />
   </ItemGroup>
 </Project>

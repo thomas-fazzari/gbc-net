@@ -2,8 +2,10 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using FluentResults;
 using GbcNet.Core;
+using GbcNet.Core.Apu;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Ppu;
+using GbcNet.Gui.Audio;
 
 namespace GbcNet.Gui.Emulation;
 
@@ -15,11 +17,16 @@ internal sealed class EmulationSession
     private const int MachineCyclesPerSecond = 1_048_576;
     private const int MachineCyclesPerThrottle = 4096;
     private const int MachineCyclesPerSaveFlush = 5 * MachineCyclesPerSecond;
+    private const int AudioDrainSampleCapacity = 512;
 
     private readonly Func<Result> _flushBatterySave;
     private readonly Action<Exception> _handleFault;
     private readonly Action<FrameCompletedEventArgs> _handleFrame;
     private readonly GameBoy _gameBoy;
+    private readonly IAudioOutput _audioOutput;
+    private readonly ApuStereoSample[] _audioSamples = new ApuStereoSample[
+        AudioDrainSampleCapacity
+    ];
     private readonly ConcurrentQueue<(JoypadButton Button, bool Pressed)> _pendingButtonStates =
         new();
     private readonly TaskCompletionSource _stopRequested = new(
@@ -32,17 +39,28 @@ internal sealed class EmulationSession
     public bool IsPaused
     {
         get => Volatile.Read(ref _isPaused) != 0;
-        set => Volatile.Write(ref _isPaused, value ? 1 : 0);
+        set
+        {
+            Volatile.Write(ref _isPaused, value ? 1 : 0);
+
+            if (value)
+            {
+                _audioOutput.Clear();
+            }
+        }
     }
 
     public EmulationSession(
         GameBoy gameBoy,
+        IAudioOutput audioOutput,
         Action<FrameCompletedEventArgs> handleFrame,
         Action<Exception> handleFault,
         Func<Result> flushBatterySave
     )
     {
         _gameBoy = gameBoy;
+        _audioOutput = audioOutput;
+        _audioOutput.Clear();
         _handleFrame = handleFrame;
         _handleFault = handleFault;
         _flushBatterySave = flushBatterySave;
@@ -102,6 +120,7 @@ internal sealed class EmulationSession
                 }
 
                 elapsedMachineCycles += _gameBoy.Step();
+                DrainAudioSamples();
 
                 if (elapsedMachineCycles >= nextSaveMachineCycles)
                 {
@@ -140,7 +159,23 @@ internal sealed class EmulationSession
         finally
         {
             FlushBatterySave();
+            _audioOutput.Clear();
         }
+    }
+
+    private void DrainAudioSamples()
+    {
+        int drained;
+
+        do
+        {
+            drained = _gameBoy.DrainAudioSamples(_audioSamples);
+
+            if (drained > 0)
+            {
+                _audioOutput.EnqueueSamples(_audioSamples.AsSpan(0, drained));
+            }
+        } while (drained == _audioSamples.Length);
     }
 
     private void FlushBatterySave()

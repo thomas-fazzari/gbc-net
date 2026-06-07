@@ -1,6 +1,7 @@
 SOLUTION = GbcNet.slnx
 APP = src/GbcNet.Gui/GbcNet.Gui.csproj
 CONFIGURATION ?= Debug
+AOT_RUNTIME ?= osx-arm64
 
 .PHONY: install
 install:
@@ -15,6 +16,10 @@ lint:
 .PHONY: test
 test:
 	dotnet test --solution $(SOLUTION) --configuration $(CONFIGURATION)
+
+.PHONY: aot-check
+aot-check:
+	dotnet publish $(APP) --configuration Release --runtime $(AOT_RUNTIME) -p:PublishAot=true
 
 .PHONY: run
 run:

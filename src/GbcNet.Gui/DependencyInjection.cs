@@ -1,3 +1,4 @@
+using GbcNet.Gui.Audio;
 using GbcNet.Gui.Configuration;
 using GbcNet.Gui.Input;
 using GbcNet.Gui.Input.Configuration;
@@ -42,6 +43,7 @@ internal static class DependencyInjection
         services.AddSingleton(_ => new CartridgeSaveFileService(
             CartridgeSaveFileService.UserSaveDirectoryPath
         ));
+        services.AddSingleton<IAudioOutput, SoundFlowAudioOutput>();
         services.AddTransient<MainWindow>();
 
         return services.BuildServiceProvider();

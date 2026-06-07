@@ -7,6 +7,7 @@ using GbcNet.Core;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Ppu;
+using GbcNet.Gui.Audio;
 using GbcNet.Gui.Configuration;
 using GbcNet.Gui.Emulation;
 using GbcNet.Gui.Input;
@@ -35,6 +36,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         IsEnabled = false,
     };
     private EmulationSession? _emulationSession;
+    private readonly IAudioOutput _audioOutput;
     private readonly KeyboardInputMapper _keyboardInputMapper;
     private readonly CartridgeSaveFileService _cartridgeSaveFileService;
     private readonly InputRouter _inputRouter;
@@ -47,7 +49,8 @@ internal sealed partial class MainWindow : Window, IDisposable
     public MainWindow(
         InputConfiguration inputConfiguration,
         StartupConfiguration startupConfiguration,
-        CartridgeSaveFileService cartridgeSaveFileService
+        CartridgeSaveFileService cartridgeSaveFileService,
+        IAudioOutput audioOutput
     )
     {
         InitializeComponent();
@@ -59,6 +62,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
 
         _cartridgeSaveFileService = cartridgeSaveFileService;
+        _audioOutput = audioOutput;
         _keyboardInputMapper = new KeyboardInputMapper(inputConfiguration.Bindings);
         _inputRouter = new InputRouter(
             inputConfiguration.Bindings,
@@ -295,6 +299,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         _inputRouter.Clear();
         _emulationSession = new EmulationSession(
             new GameBoy(cartridge, HardwareModel.Dmg),
+            _audioOutput,
             OnFrameCompleted,
             OnEmulationFaulted,
             () => _cartridgeSaveFileService.Save(cartridge, rom)
