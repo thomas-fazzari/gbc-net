@@ -13,20 +13,6 @@ internal static class KdlConfigurationFile
     private const string TemplateSubdirectoryName = "Templates";
     internal const string FileName = "config.kdl";
 
-    public static string UserConfigPath { get; } =
-        Path.Combine(
-            Environment.GetEnvironmentVariable("XDG_CONFIG_HOME") switch
-            {
-                { } xdgConfigHome when !string.IsNullOrWhiteSpace(xdgConfigHome) => xdgConfigHome,
-                _ => Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    ".config"
-                ),
-            },
-            ApplicationDirectoryNames.Linux,
-            FileName
-        );
-
     /// <summary>
     /// Loads the configuration document, creates it from defaults when it does not exist.
     /// </summary>

@@ -1,0 +1,93 @@
+namespace GbcNet.Gui.Configuration;
+
+/// <summary>
+/// Centralizes OS-specific per-user GUI data paths.
+/// </summary>
+internal static class UserDataPaths
+{
+    private const string ConfigFileName = "config.kdl";
+    private const string SaveDirectoryName = "saves";
+
+    /// <summary>
+    /// Per-user configuration file path for the current OS.
+    /// </summary>
+    public static string ConfigFilePath { get; } = GetConfigFilePath();
+
+    /// <summary>
+    /// Per-user battery save directory path for the current OS.
+    /// </summary>
+    public static string SaveDirectoryPath { get; } = GetSaveDirectoryPath();
+
+    private static string GetConfigFilePath()
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            return Path.Combine(
+                GetUserProfilePath(),
+                "Library",
+                "Application Support",
+                ApplicationDirectoryNames.Desktop,
+                ConfigFileName
+            );
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                ApplicationDirectoryNames.Desktop,
+                ConfigFileName
+            );
+        }
+
+        return Path.Combine(
+            GetXdgDirectoryPath("XDG_CONFIG_HOME", ".config"),
+            ApplicationDirectoryNames.Linux,
+            ConfigFileName
+        );
+    }
+
+    private static string GetSaveDirectoryPath()
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            return Path.Combine(
+                GetUserProfilePath(),
+                "Library",
+                "Application Support",
+                ApplicationDirectoryNames.Desktop,
+                SaveDirectoryName
+            );
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                ApplicationDirectoryNames.Desktop,
+                SaveDirectoryName
+            );
+        }
+
+        return Path.Combine(
+            GetXdgDirectoryPath("XDG_DATA_HOME", Path.Combine(".local", "share")),
+            ApplicationDirectoryNames.Linux,
+            SaveDirectoryName
+        );
+    }
+
+    private static string GetXdgDirectoryPath(
+        string environmentVariableName,
+        string fallbackDirectoryName
+    )
+    {
+        string? directoryPath = Environment.GetEnvironmentVariable(environmentVariableName);
+
+        return string.IsNullOrWhiteSpace(directoryPath)
+            ? Path.Combine(GetUserProfilePath(), fallbackDirectoryName)
+            : directoryPath;
+    }
+
+    private static string GetUserProfilePath() =>
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+}

@@ -21,7 +21,7 @@ internal static class DependencyInjection
         services.AddSingleton(provider =>
             StartupConfigurationLoader.Load(
                 provider.GetRequiredService<IValidateOptions<InputOptions>>(),
-                KdlConfigurationFile.UserConfigPath
+                UserDataPaths.ConfigFilePath
             )
         );
         services
@@ -40,9 +40,7 @@ internal static class DependencyInjection
                 provider.GetRequiredService<IOptions<InputOptions>>().Value
             )
         );
-        services.AddSingleton(_ => new CartridgeSaveFileService(
-            CartridgeSaveFileService.UserSaveDirectoryPath
-        ));
+        services.AddSingleton(_ => new CartridgeSaveFileService(UserDataPaths.SaveDirectoryPath));
         services.AddSingleton<IAudioOutput, SoundFlowAudioOutput>();
         services.AddTransient<MainWindow>();
 

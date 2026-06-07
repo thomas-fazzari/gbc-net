@@ -6,11 +6,10 @@ using GbcNet.Core.Cartridges;
 namespace GbcNet.Gui.Saves;
 
 /// <summary>
-/// Persists cartridge battery-backed RAM under the per-user application data folder.
+/// Persists cartridge battery-backed RAM under the configured save directory.
 /// </summary>
 internal sealed class CartridgeSaveFileService
 {
-    private const string SaveDirectoryName = "saves";
     private const string SaveFileExtension = ".sav";
     private const int ShortHashHexLength = 8;
     private const string FallbackSaveName = "GAME";
@@ -21,8 +20,6 @@ internal sealed class CartridgeSaveFileService
     {
         _saveDirectoryPath = saveDirectoryPath;
     }
-
-    public static string UserSaveDirectoryPath { get; } = GetUserSaveDirectoryPath();
 
     public Result Load(Cartridge cartridge, ReadOnlySpan<byte> rom)
     {
@@ -106,39 +103,5 @@ internal sealed class CartridgeSaveFileService
         }
 
         return builder.Length == 0 ? FallbackSaveName : builder.ToString();
-    }
-
-    private static string GetUserSaveDirectoryPath()
-    {
-        if (OperatingSystem.IsMacOS())
-        {
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                "Library",
-                "Application Support",
-                ApplicationDirectoryNames.Desktop,
-                SaveDirectoryName
-            );
-        }
-
-        if (OperatingSystem.IsWindows())
-        {
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                ApplicationDirectoryNames.Desktop,
-                SaveDirectoryName
-            );
-        }
-
-        string? xdgDataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
-        string dataHome = string.IsNullOrWhiteSpace(xdgDataHome)
-            ? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ".local",
-                "share"
-            )
-            : xdgDataHome;
-
-        return Path.Combine(dataHome, ApplicationDirectoryNames.Linux, SaveDirectoryName);
     }
 }
