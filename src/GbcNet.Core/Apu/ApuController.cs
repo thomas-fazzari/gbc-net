@@ -29,6 +29,11 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     private const ushort Channel3PeriodLowRegister = 0xFF1D;
     private const ushort Channel3PeriodHighControlRegister = 0xFF1E;
 
+    private const ushort Channel4LengthRegister = 0xFF20;
+    private const ushort Channel4EnvelopeRegister = 0xFF21;
+    private const ushort Channel4FrequencyRegister = 0xFF22;
+    private const ushort Channel4ControlRegister = 0xFF23;
+
     private const ushort MasterVolumeRegister = 0xFF24;
     private const ushort SoundPanningRegister = 0xFF25;
     private const ushort AudioMasterControlRegister = 0xFF26;
@@ -38,13 +43,16 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     private const byte AudioChannel1StatusMask = 0x01;
     private const byte AudioChannel2StatusMask = 0x02;
     private const byte AudioChannel3StatusMask = 0x04;
+    private const byte AudioChannel4StatusMask = 0x08;
 
     private const byte Channel1RightRouteMask = 0x01;
     private const byte Channel2RightRouteMask = 0x02;
     private const byte Channel3RightRouteMask = 0x04;
+    private const byte Channel4RightRouteMask = 0x08;
     private const byte Channel1LeftRouteMask = 0x10;
     private const byte Channel2LeftRouteMask = 0x20;
     private const byte Channel3LeftRouteMask = 0x40;
+    private const byte Channel4LeftRouteMask = 0x80;
 
     private const byte RightVolumeMask = 0x07;
     private const byte LeftVolumeMask = 0x70;
@@ -58,6 +66,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     private readonly Channel1Sweep _channel1Sweep = new();
     private readonly PulseChannel _channel2 = new();
     private readonly WaveChannel _channel3 = new();
+    private readonly NoiseChannel _channel4 = new();
 
     /// <summary>
     /// Current DIV-APU frame sequencer step, advanced at 512 Hz.
@@ -71,6 +80,10 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     internal byte Channel2DigitalOutput => _channel2.DigitalOutput;
 
     internal byte Channel3DigitalOutput => _channel3.DigitalOutput;
+
+    internal byte Channel4Volume => _channel4.Volume;
+
+    internal byte Channel4DigitalOutput => _channel4.DigitalOutput;
 
     /// <summary>
     /// Returns whether an address is owned by the APU register block.
@@ -113,9 +126,12 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
             _channel1.ClockLength();
             _channel2.ClockLength();
             _channel3.ClockLength();
+            _channel4.ClockLength();
+
             UpdateChannelStatus(AudioChannel1StatusMask, _channel1.IsActive);
             UpdateChannelStatus(AudioChannel2StatusMask, _channel2.IsActive);
             UpdateChannelStatus(AudioChannel3StatusMask, _channel3.IsActive);
+            UpdateChannelStatus(AudioChannel4StatusMask, _channel4.IsActive);
         }
 
         if (events.Sweep)
@@ -147,6 +163,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
 
         _channel1.ClockEnvelope();
         _channel2.ClockEnvelope();
+        _channel4.ClockEnvelope();
 
         return events;
     }
@@ -159,6 +176,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
         _channel1.Tick(tCycles);
         _channel2.Tick(tCycles);
         _channel3.Tick(tCycles);
+        _channel4.Tick(tCycles);
     }
 
     /// <summary>
@@ -172,12 +190,14 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
         int leftInput =
             ((panning & Channel1LeftRouteMask) != 0 ? _channel1.DigitalOutput : 0)
             + ((panning & Channel2LeftRouteMask) != 0 ? _channel2.DigitalOutput : 0)
-            + ((panning & Channel3LeftRouteMask) != 0 ? _channel3.DigitalOutput : 0);
+            + ((panning & Channel3LeftRouteMask) != 0 ? _channel3.DigitalOutput : 0)
+            + ((panning & Channel4LeftRouteMask) != 0 ? _channel4.DigitalOutput : 0);
 
         int rightInput =
             ((panning & Channel1RightRouteMask) != 0 ? _channel1.DigitalOutput : 0)
             + ((panning & Channel2RightRouteMask) != 0 ? _channel2.DigitalOutput : 0)
-            + ((panning & Channel3RightRouteMask) != 0 ? _channel3.DigitalOutput : 0);
+            + ((panning & Channel3RightRouteMask) != 0 ? _channel3.DigitalOutput : 0)
+            + ((panning & Channel4RightRouteMask) != 0 ? _channel4.DigitalOutput : 0);
 
         return new ApuStereoSample(
             Left: leftInput * (((masterVolume & LeftVolumeMask) >> LeftVolumeShift) + 1),
@@ -198,6 +218,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     /// </summary>
     public void WriteRegister(ushort address, byte value)
     {
+        // Wave RAM and NR52 bypass normal APU power gating
         switch (address)
         {
             case >= WaveChannel.WaveRamStart and <= WaveChannel.WaveRamEnd:
@@ -209,6 +230,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
                 _channel1.PowerOff();
                 _channel2.PowerOff();
                 _channel3.PowerOff();
+                _channel4.PowerOff();
                 _channel1Sweep.PowerOff();
                 return;
             case AudioMasterControlRegister:
@@ -226,10 +248,12 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
             return;
         }
 
+        // Keep write-only register bits latched for later trigger side effects
         _registers[address - RegisterStart] = value;
 
         switch (address)
         {
+            // CH1: pulse plus sweep overflow handling
             case Channel1SweepRegister:
                 _channel1Sweep.WriteRegister(value);
                 return;
@@ -263,6 +287,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
                 UpdateChannelStatus(AudioChannel1StatusMask, _channel1.IsActive);
                 return;
 
+            // CH2: pulse without sweep
             case Channel2LengthRegister:
                 _channel2.WriteLength(value);
                 return;
@@ -281,6 +306,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
                 UpdateChannelStatus(AudioChannel2StatusMask, _channel2.IsActive);
                 return;
 
+            // CH3: wave channel, including DAC-controlled activity
             case Channel3DacRegister:
                 _channel3.WriteDac(value);
                 UpdateChannelStatus(AudioChannel3StatusMask, _channel3.IsActive);
@@ -301,6 +327,25 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
             case Channel3PeriodHighControlRegister:
                 _channel3.WriteControl(value);
                 UpdateChannelStatus(AudioChannel3StatusMask, _channel3.IsActive);
+                return;
+
+            // CH4: noise channel, including envelope and LFSR timing
+            case Channel4LengthRegister:
+                _channel4.WriteLength(value);
+                return;
+
+            case Channel4EnvelopeRegister:
+                _channel4.WriteEnvelope(value);
+                UpdateChannelStatus(AudioChannel4StatusMask, _channel4.IsActive);
+                return;
+
+            case Channel4FrequencyRegister:
+                _channel4.WriteFrequency(value);
+                return;
+
+            case Channel4ControlRegister:
+                _channel4.WriteControl(value, _registers[Channel4EnvelopeRegister - RegisterStart]);
+                UpdateChannelStatus(AudioChannel4StatusMask, _channel4.IsActive);
                 return;
         }
     }

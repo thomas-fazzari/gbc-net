@@ -842,6 +842,225 @@ public sealed class ApuControllerTests
     }
 
     [Fact]
+    public void WriteRegister_TriggeringChannel4WithDacEnabledSetsAudioMasterChannel4Status()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF21, 0xF0);
+        apu.WriteRegister(0xFF23, 0x80);
+
+        Assert.Equal(0xF8, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void WriteRegister_TriggeringChannel4WithDacDisabledKeepsChannel4Inactive()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF21, 0x00);
+        apu.WriteRegister(0xFF23, 0x80);
+
+        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void WriteRegister_DisablingChannel4DacClearsChannel4Status()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF21, 0xF0);
+        apu.WriteRegister(0xFF23, 0x80);
+
+        apu.WriteRegister(0xFF21, 0x00);
+
+        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void TickSystemCounter_DisablesChannel4WhenLengthExpires()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF20, 0x3F);
+        apu.WriteRegister(0xFF21, 0xF0);
+        apu.WriteRegister(0xFF23, 0xC0);
+
+        apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+
+        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void TickSystemCounter_IncreasesChannel4VolumeAtEnvelopePace()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF21, 0x1A);
+        apu.WriteRegister(0xFF23, 0x80);
+
+        for (int envelopeEvents = 0; envelopeEvents < 2; )
+        {
+            if (apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).Envelope)
+            {
+                envelopeEvents++;
+            }
+        }
+
+        Assert.Equal(2, apu.Channel4Volume);
+    }
+
+    [Fact]
+    public void TickSystemCounter_DecreasesChannel4VolumeAtEnvelopePace()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF21, 0x21);
+        apu.WriteRegister(0xFF23, 0x80);
+
+        ApuFrameSequencerEvents events;
+        do
+        {
+            events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+        } while (!events.Envelope);
+
+        Assert.Equal(1, apu.Channel4Volume);
+    }
+
+    [Fact]
+    public void TickSystemCounter_DoesNotChangeChannel4VolumeWhenEnvelopePaceIsZero()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF21, 0x58);
+        apu.WriteRegister(0xFF23, 0x80);
+
+        for (int envelopeEvents = 0; envelopeEvents < 2; )
+        {
+            if (apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).Envelope)
+            {
+                envelopeEvents++;
+            }
+        }
+
+        Assert.Equal(5, apu.Channel4Volume);
+    }
+
+    [Theory]
+    [InlineData(0xF9, 15)]
+    [InlineData(0x11, 0)]
+    public void TickSystemCounter_DoesNotChangeChannel4VolumePastEnvelopeBounds(
+        byte envelope,
+        byte expectedVolume
+    )
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF21, envelope);
+        apu.WriteRegister(0xFF23, 0x80);
+
+        for (int envelopeEvents = 0; envelopeEvents < 2; )
+        {
+            if (apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).Envelope)
+            {
+                envelopeEvents++;
+            }
+        }
+
+        Assert.Equal(expectedVolume, apu.Channel4Volume);
+    }
+
+    [Fact]
+    public void Tick_Channel4LfsrAdvancesAfterExpectedTimer()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF21, 0xF0);
+        apu.WriteRegister(0xFF22, 0x01);
+        apu.WriteRegister(0xFF23, 0x80);
+
+        apu.Tick(239);
+
+        Assert.Equal(0, apu.Channel4DigitalOutput);
+
+        apu.Tick(1);
+
+        Assert.Equal(15, apu.Channel4DigitalOutput);
+    }
+
+    [Fact]
+    public void Tick_Channel4WidthModeUsesSevenBitFeedbackPath()
+    {
+        ApuController wideApu = new(new DmgApuHardwareProfile());
+        wideApu.WriteRegister(0xFF26, 0x80);
+        wideApu.WriteRegister(0xFF21, 0xF0);
+        wideApu.WriteRegister(0xFF22, 0x08);
+        wideApu.WriteRegister(0xFF23, 0x80);
+
+        ApuController normalApu = new(new DmgApuHardwareProfile());
+        normalApu.WriteRegister(0xFF26, 0x80);
+        normalApu.WriteRegister(0xFF21, 0xF0);
+        normalApu.WriteRegister(0xFF22, 0x00);
+        normalApu.WriteRegister(0xFF23, 0x80);
+
+        wideApu.Tick(56);
+        normalApu.Tick(56);
+
+        Assert.Equal(15, wideApu.Channel4DigitalOutput);
+        Assert.Equal(0, normalApu.Channel4DigitalOutput);
+    }
+
+    [Theory]
+    [InlineData(0xE8)]
+    [InlineData(0xF8)]
+    public void Tick_Channel4ShiftFourteenOrFifteenDoesNotClockLfsr(byte frequency)
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF21, 0xF0);
+        apu.WriteRegister(0xFF22, frequency);
+        apu.WriteRegister(0xFF23, 0x80);
+
+        apu.Tick(4096);
+
+        Assert.Equal(0, apu.Channel4DigitalOutput);
+    }
+
+    [Theory]
+    [InlineData(0x00, 0x88, 15, 15)]
+    [InlineData(0x77, 0x88, 120, 120)]
+    [InlineData(0x70, 0x88, 120, 15)]
+    [InlineData(0x06, 0x08, 0, 105)]
+    [InlineData(0x60, 0x80, 105, 0)]
+    public void GetStereoSample_MixesChannel4UsingNr50AndNr51(
+        byte masterVolume,
+        byte panning,
+        int expectedLeft,
+        int expectedRight
+    )
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF21, 0xF0);
+        apu.WriteRegister(0xFF23, 0x80);
+        apu.Tick(120);
+        apu.WriteRegister(0xFF24, masterVolume);
+        apu.WriteRegister(0xFF25, panning);
+
+        Assert.Equal(new ApuStereoSample(expectedLeft, expectedRight), apu.GetStereoSample());
+    }
+
+    [Fact]
     public void TickSystemCounter_AdvancesDivApuStepOnNormalSpeedDivBit4FallingEdge()
     {
         ApuController apu = new(new DmgApuHardwareProfile());
