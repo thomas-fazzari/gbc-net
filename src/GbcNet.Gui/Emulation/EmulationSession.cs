@@ -18,6 +18,7 @@ internal sealed class EmulationSession
     private const int MachineCyclesPerThrottle = 4096;
     private const int MachineCyclesPerSaveFlush = 5 * MachineCyclesPerSecond;
     private const int AudioDrainSampleCapacity = 512;
+    private static readonly long FastForwardFrameIntervalTimestamp = Stopwatch.Frequency / 60;
 
     private readonly Func<Result> _flushBatterySave;
     private readonly Action<Exception> _handleFault;
@@ -38,6 +39,7 @@ internal sealed class EmulationSession
     private int _isFastForwardEnabled;
     private int _fastForwardSpeed = (int)EmulationSpeed.Two;
     private int _pacingRevision;
+    private long _nextFastForwardFrameTimestamp;
 
     public bool IsPaused
     {
@@ -116,6 +118,7 @@ internal sealed class EmulationSession
         // Queued audio produced for the old pacing mode
         // Dropped instead of playing stale sound
         _audioOutput.Clear();
+        Volatile.Write(ref _nextFastForwardFrameTimestamp, 0);
         Interlocked.Increment(ref _pacingRevision);
     }
 
@@ -250,6 +253,37 @@ internal sealed class EmulationSession
 
     private void OnFrameCompleted(object? sender, FrameCompletedEventArgs e)
     {
+        if (!ShouldPresentFrame())
+        {
+            return;
+        }
+
         _handleFrame(e);
+    }
+
+    private bool ShouldPresentFrame()
+    {
+        if (
+            Volatile.Read(ref _isFastForwardEnabled) == 0
+            || Volatile.Read(ref _fastForwardSpeed) <= (int)EmulationSpeed.Normal
+        )
+        {
+            return true;
+        }
+
+        // Fast-forward produces more completed frames than the UI should render
+        long timestamp = Stopwatch.GetTimestamp();
+        long nextFrameTimestamp = Volatile.Read(ref _nextFastForwardFrameTimestamp);
+
+        if (timestamp < nextFrameTimestamp)
+        {
+            return false;
+        }
+
+        Volatile.Write(
+            ref _nextFastForwardFrameTimestamp,
+            timestamp + FastForwardFrameIntervalTimestamp
+        );
+        return true;
     }
 }

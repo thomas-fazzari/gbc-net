@@ -49,10 +49,12 @@ internal sealed partial class MainWindow : Window, IDisposable
     private byte[]? _loadedRom;
     private string _loadedRomName = string.Empty;
     private readonly LcdFrameBitmapRenderer _screenRenderer = new();
+    private LcdFrame? _pendingFrame;
     private bool _closeAfterAsyncStop;
     private bool _fastForwardEnabled;
     private EmulationSpeed _fastForwardSpeed = EmulationSpeed.Two;
     private int _closeStopStarted;
+    private int _isFrameRenderQueued;
 
     public MainWindow(
         InputConfiguration inputConfiguration,
@@ -395,10 +397,33 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private void OnFrameCompleted(FrameCompletedEventArgs e)
     {
-        Dispatcher.UIThread.Post(() =>
+        Interlocked.Exchange(ref _pendingFrame, e.Frame);
+
+        if (Interlocked.Exchange(ref _isFrameRenderQueued, 1) == 0)
         {
-            ScreenImage.Source = _screenRenderer.Render(e.Frame);
-        });
+            Dispatcher.UIThread.Post(RenderPendingFrame);
+        }
+    }
+
+    private void RenderPendingFrame()
+    {
+        LcdFrame? frame = Interlocked.Exchange(location1: ref _pendingFrame, value: null);
+        Volatile.Write(location: ref _isFrameRenderQueued, value: 0);
+
+        if (frame is not null)
+        {
+            ScreenImage.Source = _screenRenderer.Render(frame: frame);
+        }
+
+        // Keep latest frame only; fast-forward must not build a Dispatcher backlog.
+        if (
+            Interlocked.CompareExchange(location1: ref _pendingFrame, value: null, comparand: null)
+                is not null
+            && Interlocked.Exchange(location1: ref _isFrameRenderQueued, value: 1) == 0
+        )
+        {
+            Dispatcher.UIThread.Post(action: RenderPendingFrame);
+        }
     }
 
     private void OnEmulationFaulted(Exception e)

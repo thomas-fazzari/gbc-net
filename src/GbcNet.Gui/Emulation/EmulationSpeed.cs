@@ -4,7 +4,7 @@ using System.Reflection;
 namespace GbcNet.Gui.Emulation;
 
 /// <summary>
-/// Host pacing multipliers exposed by the GUI.
+/// Host allowed pacing multipliers.
 /// </summary>
 internal enum EmulationSpeed
 {
