@@ -2,7 +2,6 @@
 
 ## Defaults
 
-- Use `$caveman` for every response. Stop only when the user says `normal mode` or `stop caveman`.
 - Use `$grill-me` before non-trivial feature, refactor, or architecture work unless the user explicitly skips it.
 - Use `$gameboy-development` before changing Game Boy hardware behavior, emulator timing, CPU, PPU, APU, timers, interrupts, DMA, MBC, CGB, or SGB logic.
 
