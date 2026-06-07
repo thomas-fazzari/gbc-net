@@ -10,6 +10,12 @@
 
 - Avoid unnecessary abstractions, indirections, wrappers/helper methods and intermediate variables: inline simple expressions and one-off construction unless naming significantly improves correctness, readability, reuse, or test diagnostics.
 
+## Tests
+
+- With xUnit v3/Microsoft Testing Platform, filter a specific test class through the test executable:
+  `dotnet run --project src/GbcNet.Tests/GbcNet.Tests.csproj -- --filter-class Fully.Qualified.TestClassName`.
+- Do not use `dotnet test --filter`; this project uses the MTP runner and that filter option is not supported here.
+
 ## Git
 
 - Do not stage, unstage, commit, reset, restore, checkout, branch, push, or otherwise mutate git state unless the user explicitly asks for that exact git action.
