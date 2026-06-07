@@ -33,19 +33,19 @@ public sealed class Cartridge
     public int RomLength { get; }
 
     /// <summary>
-    /// Indicates whether the cartridge has battery-backed external RAM.
+    /// Indicates whether the cartridge has battery-backed cartridge RAM.
     /// </summary>
-    public bool HasBatteryBackedRam => _memoryController.ExternalRam.HasBatteryBackedRam;
+    public bool HasBatteryBackedRam => _memoryController.CartridgeRam.HasBatteryBackedRam;
 
     /// <summary>
-    /// Battery-backed external RAM size, in bytes.
+    /// Battery-backed cartridge RAM size, in bytes.
     /// </summary>
-    public int BatteryRamSize => _memoryController.ExternalRam.BatteryRamSize;
+    public int BatteryRamSize => _memoryController.CartridgeRam.BatteryRamSize;
 
     /// <summary>
     /// Indicates whether battery-backed RAM changed since load or the last clear.
     /// </summary>
-    public bool IsBatteryRamDirty => _memoryController.ExternalRam.IsBatteryRamDirty;
+    public bool IsBatteryRamDirty => _memoryController.CartridgeRam.IsBatteryRamDirty;
 
     /// <summary>
     /// Parses and loads a cartridge image.
@@ -178,22 +178,22 @@ public sealed class Cartridge
     }
 
     /// <summary>
-    /// Copies battery-backed external RAM for persistence.
+    /// Copies battery-backed cartridge RAM for persistence.
     /// </summary>
-    public byte[] ExportBatteryRam() => _memoryController.ExternalRam.ExportBatteryRam();
+    public byte[] ExportBatteryRam() => _memoryController.CartridgeRam.ExportBatteryRam();
 
     /// <summary>
-    /// Loads persisted battery-backed external RAM into the cartridge.
+    /// Loads persisted battery-backed cartridge RAM into the cartridge.
     /// </summary>
     public Result ImportBatteryRam(ReadOnlySpan<byte> data) =>
-        _memoryController.ExternalRam.ImportBatteryRam(data);
+        _memoryController.CartridgeRam.ImportBatteryRam(data);
 
     /// <summary>
-    /// Marks battery-backed external RAM as persisted.
+    /// Marks battery-backed cartridge RAM as persisted.
     /// </summary>
     public void ClearBatteryRamDirty()
     {
-        _memoryController.ExternalRam.ClearBatteryRamDirty();
+        _memoryController.CartridgeRam.ClearBatteryRamDirty();
     }
 
     private static ushort GetExternalRamOffset(ushort address) =>

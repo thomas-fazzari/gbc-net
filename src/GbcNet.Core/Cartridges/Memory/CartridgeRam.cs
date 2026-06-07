@@ -4,7 +4,7 @@ using FluentResults;
 namespace GbcNet.Core.Cartridges.Memory;
 
 /// <summary>
-/// Cartridge external RAM storage, including battery-backed persistence state.
+/// Cartridge RAM storage, including battery-backed persistence state.
 /// </summary>
 internal sealed class CartridgeRam(int sizeBytes, bool hasBattery)
 {
@@ -12,7 +12,7 @@ internal sealed class CartridgeRam(int sizeBytes, bool hasBattery)
     private bool _dirty;
 
     /// <summary>
-    /// Total external RAM capacity exposed by the cartridge hardware.
+    /// Total cartridge RAM capacity exposed by the cartridge hardware.
     /// </summary>
     public int Size => _bytes.Length;
 
@@ -32,12 +32,12 @@ internal sealed class CartridgeRam(int sizeBytes, bool hasBattery)
     public bool IsBatteryRamDirty => HasBatteryBackedRam && _dirty;
 
     /// <summary>
-    /// Reads a byte from an already resolved external RAM offset.
+    /// Reads a byte from an already resolved cartridge RAM offset.
     /// </summary>
     public byte Read(int offset) => _bytes[offset];
 
     /// <summary>
-    /// Writes a byte to an already resolved external RAM offset and marks save data dirty.
+    /// Writes a byte to an already resolved cartridge RAM offset and marks save data dirty.
     /// </summary>
     public void Write(int offset, byte value)
     {

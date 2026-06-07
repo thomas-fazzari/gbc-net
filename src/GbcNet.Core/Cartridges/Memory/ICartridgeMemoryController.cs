@@ -1,7 +1,7 @@
 namespace GbcNet.Core.Cartridges.Memory;
 
 /// <summary>
-/// Handles cartridge-local ROM, external RAM, and MBC control register accesses.
+/// Handles cartridge-local ROM, cartridge RAM, and MBC control register accesses.
 /// </summary>
 internal interface ICartridgeMemoryController
 {
@@ -26,7 +26,7 @@ internal interface ICartridgeMemoryController
     void WriteRamOffset(ushort offset, byte value);
 
     /// <summary>
-    /// Backing external RAM storage used for battery save import and export.
+    /// Backing cartridge RAM storage used for battery save import and export.
     /// </summary>
-    CartridgeRam ExternalRam { get; }
+    CartridgeRam CartridgeRam { get; }
 }
