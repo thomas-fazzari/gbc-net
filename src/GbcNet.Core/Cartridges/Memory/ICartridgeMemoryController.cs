@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Cartridges;
+namespace GbcNet.Core.Cartridges.Memory;
 
 /// <summary>
 /// Handles cartridge-local ROM, external RAM, and MBC control register accesses.

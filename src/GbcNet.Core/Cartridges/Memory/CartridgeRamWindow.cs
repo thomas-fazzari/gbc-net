@@ -1,6 +1,6 @@
 using GbcNet.Core.Memory;
 
-namespace GbcNet.Core.Cartridges;
+namespace GbcNet.Core.Cartridges.Memory;
 
 /// <summary>
 /// External cartridge RAM window shared by banked MBC implementations.

@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Cartridges;
+namespace GbcNet.Core.Cartridges.Memory;
 
 /// <summary>
 /// Plain 32 KiB ROM cartridge with no MBC registers or external RAM.

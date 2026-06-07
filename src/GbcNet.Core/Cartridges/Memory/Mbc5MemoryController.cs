@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Cartridges;
+namespace GbcNet.Core.Cartridges.Memory;
 
 /// <summary>
 /// MBC5 cartridge controller for 9-bit ROM banking and optional external RAM banking.

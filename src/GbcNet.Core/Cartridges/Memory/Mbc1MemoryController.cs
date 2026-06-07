@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Cartridges;
+namespace GbcNet.Core.Cartridges.Memory;
 
 /// <summary>
 /// MBC1 cartridge controller for ROM banking and optional external RAM banking.

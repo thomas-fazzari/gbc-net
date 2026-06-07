@@ -1,7 +1,7 @@
 using System.Globalization;
 using FluentResults;
 
-namespace GbcNet.Core.Cartridges;
+namespace GbcNet.Core.Cartridges.Memory;
 
 /// <summary>
 /// Cartridge external RAM storage, including battery-backed persistence state.

@@ -1,5 +1,6 @@
 using System.Globalization;
 using FluentResults;
+using GbcNet.Core.Cartridges.Memory;
 using GbcNet.Core.Memory;
 
 namespace GbcNet.Core.Cartridges;
@@ -77,10 +78,8 @@ public sealed class Cartridge
         }
 
         byte[] romBytes = rom.ToArray();
-        Result<ICartridgeMemoryController> memoryControllerResult = CreateMemoryController(
-            romBytes,
-            header
-        );
+        Result<ICartridgeMemoryController> memoryControllerResult =
+            CartridgeMemoryControllerFactory.Create(romBytes, header);
 
         return memoryControllerResult.IsFailed
             ? Result.Fail<Cartridge>(memoryControllerResult.Errors)
@@ -199,41 +198,4 @@ public sealed class Cartridge
 
     private static ushort GetExternalRamOffset(ushort address) =>
         (ushort)(address - AddressMap.ExternalRamStart);
-
-    private static Result<ICartridgeMemoryController> CreateMemoryController(
-        byte[] rom,
-        CartridgeHeader header
-    ) =>
-        header.CartridgeType switch
-        {
-            CartridgeType.RomOnly => Result.Ok<ICartridgeMemoryController>(
-                new RomOnlyMemoryController(rom)
-            ),
-            CartridgeType.Mbc1 or CartridgeType.Mbc1Ram or CartridgeType.Mbc1RamBattery =>
-                Result.Ok<ICartridgeMemoryController>(
-                    new Mbc1MemoryController(
-                        rom,
-                        header,
-                        header.CartridgeType is CartridgeType.Mbc1RamBattery
-                    )
-                ),
-            CartridgeType.Mbc5 or CartridgeType.Mbc5Ram or CartridgeType.Mbc5RamBattery =>
-                Result.Ok<ICartridgeMemoryController>(
-                    new Mbc5MemoryController(
-                        rom,
-                        header,
-                        header.CartridgeType is CartridgeType.Mbc5RamBattery
-                    )
-                ),
-            _ => Result.Fail<ICartridgeMemoryController>(
-                new CartridgeLoadError(
-                    CartridgeLoadErrorCode.UnsupportedCartridgeType,
-                    string.Format(
-                        CultureInfo.InvariantCulture,
-                        "Cartridge type 0x{0:X2} is not supported yet.",
-                        (int)header.CartridgeType
-                    )
-                )
-            ),
-        };
 }
