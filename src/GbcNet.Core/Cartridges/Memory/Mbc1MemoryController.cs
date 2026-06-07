@@ -25,7 +25,7 @@ internal sealed class Mbc1MemoryController(
         hasBatteryBackedRam
     );
 
-    public ICartridgeRamStorage CartridgeRam => _externalRam.Ram;
+    public ICartridgeSaveData SaveData => _externalRam.Ram;
 
     public byte ReadRom(ushort address)
     {

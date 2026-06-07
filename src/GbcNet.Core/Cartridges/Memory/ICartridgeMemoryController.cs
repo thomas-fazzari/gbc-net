@@ -26,7 +26,7 @@ internal interface ICartridgeMemoryController
     void WriteRamOffset(ushort offset, byte value);
 
     /// <summary>
-    /// Backing cartridge RAM storage used for battery save import and export.
+    /// Battery-backed save data exposed by this cartridge controller.
     /// </summary>
-    ICartridgeRamStorage CartridgeRam { get; }
+    ICartridgeSaveData SaveData { get; }
 }

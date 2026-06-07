@@ -6,7 +6,7 @@ namespace GbcNet.Core.Cartridges.Memory;
 /// <summary>
 /// Cartridge RAM storage, including battery-backed persistence state.
 /// </summary>
-internal sealed class CartridgeRam(int sizeBytes, bool hasBattery) : ICartridgeRamStorage
+internal sealed class CartridgeRam(int sizeBytes, bool hasBattery) : ICartridgeSaveData
 {
     private readonly byte[] _bytes = new byte[sizeBytes];
     private bool _dirty;
@@ -19,17 +19,17 @@ internal sealed class CartridgeRam(int sizeBytes, bool hasBattery) : ICartridgeR
     /// <summary>
     /// Indicates that this RAM should be persisted to a save file.
     /// </summary>
-    public bool HasBatteryBackedRam => hasBattery && _bytes.Length != 0;
+    public bool HasBatteryBackedSave => hasBattery && _bytes.Length != 0;
 
     /// <summary>
     /// Number of bytes exported for battery-backed save data.
     /// </summary>
-    public int BatteryRamSize => HasBatteryBackedRam ? _bytes.Length : 0;
+    public int BatterySaveSize => HasBatteryBackedSave ? _bytes.Length : 0;
 
     /// <summary>
-    /// Indicates that battery-backed RAM changed since the last import, export, or clear.
+    /// Indicates that battery-backed RAM changed since the last import or clear.
     /// </summary>
-    public bool IsBatteryRamDirty => HasBatteryBackedRam && _dirty;
+    public bool IsBatterySaveDirty => HasBatteryBackedSave && _dirty;
 
     /// <summary>
     /// Reads a byte from an already resolved cartridge RAM offset.
@@ -42,20 +42,20 @@ internal sealed class CartridgeRam(int sizeBytes, bool hasBattery) : ICartridgeR
     public void Write(int offset, byte value)
     {
         _bytes[offset] = value;
-        _dirty |= HasBatteryBackedRam;
+        _dirty |= HasBatteryBackedSave;
     }
 
     /// <summary>
     /// Exports a defensive copy of battery-backed RAM, or an empty array when unavailable.
     /// </summary>
-    public byte[] ExportBatteryRam() => HasBatteryBackedRam ? (byte[])_bytes.Clone() : [];
+    public byte[] ExportBatterySave() => HasBatteryBackedSave ? (byte[])_bytes.Clone() : [];
 
     /// <summary>
     /// Imports battery-backed RAM and validates that the save length matches cartridge RAM size.
     /// </summary>
-    public Result ImportBatteryRam(ReadOnlySpan<byte> data)
+    public Result ImportBatterySave(ReadOnlySpan<byte> data)
     {
-        if (!HasBatteryBackedRam)
+        if (!HasBatteryBackedSave)
         {
             return data.IsEmpty ? Result.Ok() : Result.Fail("Cartridge has no battery-backed RAM.");
         }
@@ -80,7 +80,7 @@ internal sealed class CartridgeRam(int sizeBytes, bool hasBattery) : ICartridgeR
     /// <summary>
     /// Marks battery-backed RAM as clean after save data has been persisted.
     /// </summary>
-    public void ClearBatteryRamDirty()
+    public void ClearBatterySaveDirty()
     {
         _dirty = false;
     }

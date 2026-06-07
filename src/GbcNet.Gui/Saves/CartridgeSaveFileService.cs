@@ -6,7 +6,7 @@ using GbcNet.Core.Cartridges;
 namespace GbcNet.Gui.Saves;
 
 /// <summary>
-/// Persists cartridge battery-backed RAM under the configured save directory.
+/// Persists cartridge battery-backed save data under the configured save directory.
 /// </summary>
 internal sealed class CartridgeSaveFileService
 {
@@ -23,7 +23,7 @@ internal sealed class CartridgeSaveFileService
 
     public Result Load(Cartridge cartridge, ReadOnlySpan<byte> rom)
     {
-        if (!cartridge.HasBatteryBackedRam)
+        if (!cartridge.HasBatteryBackedSave)
         {
             return Result.Ok();
         }
@@ -36,7 +36,7 @@ internal sealed class CartridgeSaveFileService
 
         try
         {
-            return cartridge.ImportBatteryRam(File.ReadAllBytes(path));
+            return cartridge.ImportBatterySave(File.ReadAllBytes(path));
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -46,7 +46,7 @@ internal sealed class CartridgeSaveFileService
 
     public Result Save(Cartridge cartridge, ReadOnlySpan<byte> rom)
     {
-        if (!cartridge.HasBatteryBackedRam || !cartridge.IsBatteryRamDirty)
+        if (!cartridge.HasBatteryBackedSave || !cartridge.IsBatterySaveDirty)
         {
             return Result.Ok();
         }
@@ -62,9 +62,9 @@ internal sealed class CartridgeSaveFileService
                 ".tmp"
             );
 
-            File.WriteAllBytes(temporaryPath, cartridge.ExportBatteryRam());
+            File.WriteAllBytes(temporaryPath, cartridge.ExportBatterySave());
             File.Move(temporaryPath, savePath, overwrite: true);
-            cartridge.ClearBatteryRamDirty();
+            cartridge.ClearBatterySaveDirty();
             return Result.Ok();
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -88,7 +88,7 @@ internal sealed class CartridgeSaveFileService
 
     private static string SanitizeName(string name)
     {
-        var builder = new StringBuilder(name.Length);
+        StringBuilder builder = new(name.Length);
 
         foreach (char character in name)
         {

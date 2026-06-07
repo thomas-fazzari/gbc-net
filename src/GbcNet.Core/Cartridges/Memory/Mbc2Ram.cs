@@ -6,7 +6,7 @@ namespace GbcNet.Core.Cartridges.Memory;
 /// <summary>
 /// MBC2 built-in 512 x 4-bit RAM with optional battery-backed persistence.
 /// </summary>
-internal sealed class Mbc2Ram(bool hasBattery) : ICartridgeRamStorage
+internal sealed class Mbc2Ram(bool hasBattery) : ICartridgeSaveData
 {
     private const int RamSize = 512;
     private const byte StoredNibbleMask = 0x0F;
@@ -15,11 +15,11 @@ internal sealed class Mbc2Ram(bool hasBattery) : ICartridgeRamStorage
     private readonly byte[] _bytes = new byte[RamSize];
     private bool _dirty;
 
-    public bool HasBatteryBackedRam => hasBattery;
+    public bool HasBatteryBackedSave => hasBattery;
 
-    public int BatteryRamSize => hasBattery ? _bytes.Length : 0;
+    public int BatterySaveSize => hasBattery ? _bytes.Length : 0;
 
-    public bool IsBatteryRamDirty => hasBattery && _dirty;
+    public bool IsBatterySaveDirty => hasBattery && _dirty;
 
     /// <summary>
     /// Reads a stored nibble as an MBC2 RAM byte with high bits set.
@@ -35,9 +35,9 @@ internal sealed class Mbc2Ram(bool hasBattery) : ICartridgeRamStorage
         _dirty |= hasBattery;
     }
 
-    public byte[] ExportBatteryRam() => hasBattery ? (byte[])_bytes.Clone() : [];
+    public byte[] ExportBatterySave() => hasBattery ? (byte[])_bytes.Clone() : [];
 
-    public Result ImportBatteryRam(ReadOnlySpan<byte> data)
+    public Result ImportBatterySave(ReadOnlySpan<byte> data)
     {
         if (!hasBattery)
         {
@@ -65,7 +65,7 @@ internal sealed class Mbc2Ram(bool hasBattery) : ICartridgeRamStorage
         return Result.Ok();
     }
 
-    public void ClearBatteryRamDirty()
+    public void ClearBatterySaveDirty()
     {
         _dirty = false;
     }

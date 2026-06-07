@@ -33,19 +33,19 @@ public sealed class Cartridge
     public int RomLength { get; }
 
     /// <summary>
-    /// Indicates whether the cartridge has battery-backed cartridge RAM.
+    /// Indicates whether the cartridge has battery-backed save data.
     /// </summary>
-    public bool HasBatteryBackedRam => _memoryController.CartridgeRam.HasBatteryBackedRam;
+    public bool HasBatteryBackedSave => _memoryController.SaveData.HasBatteryBackedSave;
 
     /// <summary>
-    /// Battery-backed cartridge RAM size, in bytes.
+    /// Battery-backed save payload size, in bytes.
     /// </summary>
-    public int BatteryRamSize => _memoryController.CartridgeRam.BatteryRamSize;
+    public int BatterySaveSize => _memoryController.SaveData.BatterySaveSize;
 
     /// <summary>
-    /// Indicates whether battery-backed RAM changed since load or the last clear.
+    /// Indicates whether battery-backed save data changed since load or the last clear.
     /// </summary>
-    public bool IsBatteryRamDirty => _memoryController.CartridgeRam.IsBatteryRamDirty;
+    public bool IsBatterySaveDirty => _memoryController.SaveData.IsBatterySaveDirty;
 
     /// <summary>
     /// Parses and loads a cartridge image.
@@ -53,7 +53,10 @@ public sealed class Cartridge
     /// <returns>
     /// A loaded cartridge, or a typed cartridge load error.
     /// </returns>
-    public static Result<Cartridge> Load(ReadOnlySpan<byte> rom)
+    public static Result<Cartridge> Load(ReadOnlySpan<byte> rom) =>
+        Load(rom, static () => DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+
+    internal static Result<Cartridge> Load(ReadOnlySpan<byte> rom, Func<long> getUnixTimeSeconds)
     {
         Result<CartridgeHeader> headerResult = CartridgeHeader.Parse(rom);
         if (headerResult.IsFailed)
@@ -79,7 +82,7 @@ public sealed class Cartridge
 
         byte[] romBytes = rom.ToArray();
         Result<ICartridgeMemoryController> memoryControllerResult =
-            CartridgeMemoryControllerFactory.Create(romBytes, header);
+            CartridgeMemoryControllerFactory.Create(romBytes, header, getUnixTimeSeconds);
 
         return memoryControllerResult.IsFailed
             ? Result.Fail<Cartridge>(memoryControllerResult.Errors)
@@ -178,22 +181,22 @@ public sealed class Cartridge
     }
 
     /// <summary>
-    /// Copies battery-backed cartridge RAM for persistence.
+    /// Copies battery-backed save data for persistence.
     /// </summary>
-    public byte[] ExportBatteryRam() => _memoryController.CartridgeRam.ExportBatteryRam();
+    public byte[] ExportBatterySave() => _memoryController.SaveData.ExportBatterySave();
 
     /// <summary>
-    /// Loads persisted battery-backed cartridge RAM into the cartridge.
+    /// Loads persisted battery-backed save data into the cartridge.
     /// </summary>
-    public Result ImportBatteryRam(ReadOnlySpan<byte> data) =>
-        _memoryController.CartridgeRam.ImportBatteryRam(data);
+    public Result ImportBatterySave(ReadOnlySpan<byte> data) =>
+        _memoryController.SaveData.ImportBatterySave(data);
 
     /// <summary>
-    /// Marks battery-backed cartridge RAM as persisted.
+    /// Marks battery-backed save data as persisted.
     /// </summary>
-    public void ClearBatteryRamDirty()
+    public void ClearBatterySaveDirty()
     {
-        _memoryController.CartridgeRam.ClearBatteryRamDirty();
+        _memoryController.SaveData.ClearBatterySaveDirty();
     }
 
     private static ushort GetExternalRamOffset(ushort address) =>

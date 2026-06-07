@@ -46,6 +46,16 @@ public enum CartridgeType
     RomRamBattery = 0x09,
 
     /// <summary>
+    /// MBC3 memory bank controller with RTC and battery, without external RAM.
+    /// </summary>
+    Mbc3TimerBattery = 0x0F,
+
+    /// <summary>
+    /// MBC3 memory bank controller with RTC, external RAM, and battery.
+    /// </summary>
+    Mbc3TimerRamBattery = 0x10,
+
+    /// <summary>
     /// MBC3 memory bank controller without external RAM.
     /// </summary>
     Mbc3 = 0x11,
@@ -96,7 +106,9 @@ internal static class CartridgeTypeExtensions
 
         public bool IsMbc3() =>
             cartridgeType
-                is CartridgeType.Mbc3
+                is CartridgeType.Mbc3TimerBattery
+                    or CartridgeType.Mbc3TimerRamBattery
+                    or CartridgeType.Mbc3
                     or CartridgeType.Mbc3Ram
                     or CartridgeType.Mbc3RamBattery;
 
@@ -106,11 +118,14 @@ internal static class CartridgeTypeExtensions
                     or CartridgeType.Mbc5Ram
                     or CartridgeType.Mbc5RamBattery;
 
-        public bool HasBatteryBackedRam() =>
+        public bool HasRtc() =>
+            cartridgeType is CartridgeType.Mbc3TimerBattery or CartridgeType.Mbc3TimerRamBattery;
+
+        public bool HasBatteryBackedExternalRam() =>
             cartridgeType
                 is CartridgeType.RomRamBattery
                     or CartridgeType.Mbc1RamBattery
-                    or CartridgeType.Mbc2Battery
+                    or CartridgeType.Mbc3TimerRamBattery
                     or CartridgeType.Mbc3RamBattery
                     or CartridgeType.Mbc5RamBattery;
     }

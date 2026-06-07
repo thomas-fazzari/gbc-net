@@ -111,54 +111,54 @@ public sealed class Mbc2CartridgeTests
     }
 
     [Fact]
-    public void BatteryRam_ExportsAndImportsMbc2Ram()
+    public void BatterySave_ExportsAndImportsMbc2Ram()
     {
         Cartridge cartridge = LoadMbc2WithEnabledRam(CartridgeType.Mbc2Battery);
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0xAB);
         cartridge.WriteRam(AddressMap.ExternalRamStart + 1, 0x0C);
 
-        byte[] save = cartridge.ExportBatteryRam();
+        byte[] save = cartridge.ExportBatterySave();
 
-        Assert.True(cartridge.HasBatteryBackedRam);
-        Assert.Equal(512, cartridge.BatteryRamSize);
-        Assert.True(cartridge.IsBatteryRamDirty);
+        Assert.True(cartridge.HasBatteryBackedSave);
+        Assert.Equal(512, cartridge.BatterySaveSize);
+        Assert.True(cartridge.IsBatterySaveDirty);
         Assert.Equal(512, save.Length);
         Assert.Equal(0x0B, save[0]);
         Assert.Equal(0x0C, save[1]);
 
         save[1] = 0xBC;
         Cartridge reloaded = LoadMbc2WithEnabledRam(CartridgeType.Mbc2Battery);
-        Result import = reloaded.ImportBatteryRam(save);
+        Result import = reloaded.ImportBatterySave(save);
 
         Assert.True(
             import.IsSuccess,
             string.Join(Environment.NewLine, import.Errors.Select(error => error.Message))
         );
-        Assert.False(reloaded.IsBatteryRamDirty);
+        Assert.False(reloaded.IsBatterySaveDirty);
         Assert.Equal(0xFB, reloaded.ReadRam(AddressMap.ExternalRamStart));
         Assert.Equal(0xFC, reloaded.ReadRam(AddressMap.ExternalRamStart + 1));
     }
 
     [Fact]
-    public void BatteryRam_IsUnavailableForMbc2WithoutBattery()
+    public void BatterySave_IsUnavailableForMbc2WithoutBattery()
     {
         Cartridge cartridge = LoadMbc2WithEnabledRam(CartridgeType.Mbc2);
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x0B);
 
-        Assert.False(cartridge.HasBatteryBackedRam);
-        Assert.Equal(0, cartridge.BatteryRamSize);
-        Assert.False(cartridge.IsBatteryRamDirty);
-        Assert.Empty(cartridge.ExportBatteryRam());
+        Assert.False(cartridge.HasBatteryBackedSave);
+        Assert.Equal(0, cartridge.BatterySaveSize);
+        Assert.False(cartridge.IsBatterySaveDirty);
+        Assert.Empty(cartridge.ExportBatterySave());
     }
 
     [Fact]
-    public void BatteryRam_RejectsInvalidMbc2SaveSize()
+    public void BatterySave_RejectsInvalidMbc2SaveSize()
     {
         Cartridge cartridge = LoadMbc2WithEnabledRam(CartridgeType.Mbc2Battery);
 
-        Result result = cartridge.ImportBatteryRam(new byte[1]);
+        Result result = cartridge.ImportBatterySave(new byte[1]);
 
         Assert.True(result.IsFailed);
     }

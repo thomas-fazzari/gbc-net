@@ -20,7 +20,7 @@ internal sealed class Mbc2MemoryController(
     private byte _romBank = 1;
     private bool _ramEnabled;
 
-    public ICartridgeRamStorage CartridgeRam => _ram;
+    public ICartridgeSaveData SaveData => _ram;
 
     public byte ReadRom(ushort address)
     {

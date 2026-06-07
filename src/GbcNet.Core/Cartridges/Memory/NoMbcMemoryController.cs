@@ -11,7 +11,7 @@ internal sealed class NoMbcMemoryController(
 {
     private readonly CartridgeRam _cartridgeRam = new(header.RamSizeBytes, hasBatteryBackedRam);
 
-    public ICartridgeRamStorage CartridgeRam => _cartridgeRam;
+    public ICartridgeSaveData SaveData => _cartridgeRam;
 
     public byte ReadRom(ushort address) => rom[address];
 

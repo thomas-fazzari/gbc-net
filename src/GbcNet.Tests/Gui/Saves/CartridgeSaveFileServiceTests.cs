@@ -9,11 +9,11 @@ namespace GbcNet.Tests.Gui.Saves;
 public sealed class CartridgeSaveFileServiceTests
 {
     [Fact]
-    public void SaveAndLoad_PersistsBatteryRamByTitleAndRomHash()
+    public void SaveAndLoad_PersistsBatterySaveByTitleAndRomHash()
     {
         string tempDirectory = CreateTempDirectory();
         byte[] rom = CreateBatteryBackedMbc1Rom();
-        var saveFiles = new CartridgeSaveFileService(tempDirectory);
+        CartridgeSaveFileService saveFiles = new(tempDirectory);
 
         try
         {
@@ -24,7 +24,7 @@ public sealed class CartridgeSaveFileServiceTests
             Result save = saveFiles.Save(cartridge, rom);
 
             AssertSuccess(save);
-            Assert.False(cartridge.IsBatteryRamDirty);
+            Assert.False(cartridge.IsBatterySaveDirty);
             string savePath = saveFiles.GetSavePath(cartridge, rom);
             Assert.True(File.Exists(savePath));
             Assert.StartsWith("TEST_ROM-", Path.GetFileName(savePath), StringComparison.Ordinal);
@@ -33,7 +33,7 @@ public sealed class CartridgeSaveFileServiceTests
             Result load = saveFiles.Load(reloaded, rom);
 
             AssertSuccess(load);
-            Assert.False(reloaded.IsBatteryRamDirty);
+            Assert.False(reloaded.IsBatterySaveDirty);
 
             reloaded.WriteRom(0x0000, 0x0A);
             Assert.Equal(0x42, reloaded.ReadRam(AddressMap.ExternalRamStart));
@@ -52,7 +52,7 @@ public sealed class CartridgeSaveFileServiceTests
     {
         string tempDirectory = CreateTempDirectory();
         byte[] rom = CreateBatteryBackedMbc1Rom();
-        var saveFiles = new CartridgeSaveFileService(tempDirectory);
+        CartridgeSaveFileService saveFiles = new(tempDirectory);
 
         try
         {
