@@ -75,3 +75,33 @@ public enum CartridgeType
     /// </summary>
     Mbc5RamBattery = 0x1B,
 }
+
+internal static class CartridgeTypeExtensions
+{
+    extension(CartridgeType cartridgeType)
+    {
+        public bool IsMbc1() =>
+            cartridgeType
+                is CartridgeType.Mbc1
+                    or CartridgeType.Mbc1Ram
+                    or CartridgeType.Mbc1RamBattery;
+
+        public bool IsMbc3() =>
+            cartridgeType
+                is CartridgeType.Mbc3
+                    or CartridgeType.Mbc3Ram
+                    or CartridgeType.Mbc3RamBattery;
+
+        public bool IsMbc5() =>
+            cartridgeType
+                is CartridgeType.Mbc5
+                    or CartridgeType.Mbc5Ram
+                    or CartridgeType.Mbc5RamBattery;
+
+        public bool HasBatteryBackedRam() =>
+            cartridgeType
+                is CartridgeType.Mbc1RamBattery
+                    or CartridgeType.Mbc3RamBattery
+                    or CartridgeType.Mbc5RamBattery;
+    }
+}
