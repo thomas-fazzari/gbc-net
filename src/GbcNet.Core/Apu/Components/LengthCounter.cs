@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Apu;
+namespace GbcNet.Core.Apu.Components;
 
 /// <summary>
 /// Shared APU length counter that disables a channel when enabled and expired.

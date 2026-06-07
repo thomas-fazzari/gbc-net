@@ -1,4 +1,6 @@
-namespace GbcNet.Core.Apu;
+using GbcNet.Core.Apu.Components;
+
+namespace GbcNet.Core.Apu.Channels;
 
 /// <summary>
 /// CH4 noise channel state, including envelope, length, and LFSR timing.

@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Apu;
+namespace GbcNet.Core.Apu.Channels;
 
 /// <summary>
 /// CH3 wave channel state, including CPU-visible Wave RAM.

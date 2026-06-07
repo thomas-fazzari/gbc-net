@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Apu;
+namespace GbcNet.Core.Apu.Channels;
 
 /// <summary>
 /// CH1 sweep result for one trigger or sweep clock.

@@ -1,4 +1,4 @@
-namespace GbcNet.Core.Apu;
+namespace GbcNet.Core.Apu.Components;
 
 /// <summary>
 /// Shared volume envelope and DAC-enable register logic.

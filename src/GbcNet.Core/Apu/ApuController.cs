@@ -1,3 +1,4 @@
+using GbcNet.Core.Apu.Channels;
 using GbcNet.Core.Apu.Profiles;
 
 namespace GbcNet.Core.Apu;

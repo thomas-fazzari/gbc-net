@@ -1,4 +1,6 @@
-namespace GbcNet.Core.Apu;
+using GbcNet.Core.Apu.Components;
+
+namespace GbcNet.Core.Apu.Channels;
 
 /// <summary>
 /// Shared pulse-channel state for DAC power and channel trigger/active behavior.
