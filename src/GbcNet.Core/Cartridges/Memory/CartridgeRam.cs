@@ -6,7 +6,7 @@ namespace GbcNet.Core.Cartridges.Memory;
 /// <summary>
 /// Cartridge RAM storage, including battery-backed persistence state.
 /// </summary>
-internal sealed class CartridgeRam(int sizeBytes, bool hasBattery)
+internal sealed class CartridgeRam(int sizeBytes, bool hasBattery) : ICartridgeRamStorage
 {
     private readonly byte[] _bytes = new byte[sizeBytes];
     private bool _dirty;

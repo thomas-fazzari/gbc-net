@@ -96,7 +96,7 @@ public sealed class CartridgeTests
     [Fact]
     public void Load_RejectsUnsupportedCartridgeType()
     {
-        byte[] rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)CartridgeType.Mbc2);
+        byte[] rom = TestRomFactory.Create(bytes => bytes[0x0147] = 0x0B);
 
         Result<Cartridge> result = Cartridge.Load(rom);
 

@@ -24,6 +24,9 @@ internal static class CartridgeMemoryControllerFactory
             _ when cartridgeType.IsMbc1() => Result.Ok<ICartridgeMemoryController>(
                 new Mbc1MemoryController(rom, header, cartridgeType.HasBatteryBackedRam())
             ),
+            _ when cartridgeType.IsMbc2() => Result.Ok<ICartridgeMemoryController>(
+                new Mbc2MemoryController(rom, header, cartridgeType.HasBatteryBackedRam())
+            ),
             _ when cartridgeType.IsMbc3() => Result.Ok<ICartridgeMemoryController>(
                 new Mbc3MemoryController(rom, header, cartridgeType.HasBatteryBackedRam())
             ),

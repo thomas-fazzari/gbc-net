@@ -28,5 +28,5 @@ internal interface ICartridgeMemoryController
     /// <summary>
     /// Backing cartridge RAM storage used for battery save import and export.
     /// </summary>
-    CartridgeRam CartridgeRam { get; }
+    ICartridgeRamStorage CartridgeRam { get; }
 }

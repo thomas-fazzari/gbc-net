@@ -92,6 +92,8 @@ internal static class CartridgeTypeExtensions
                     or CartridgeType.Mbc1Ram
                     or CartridgeType.Mbc1RamBattery;
 
+        public bool IsMbc2() => cartridgeType is CartridgeType.Mbc2 or CartridgeType.Mbc2Battery;
+
         public bool IsMbc3() =>
             cartridgeType
                 is CartridgeType.Mbc3
@@ -108,6 +110,7 @@ internal static class CartridgeTypeExtensions
             cartridgeType
                 is CartridgeType.RomRamBattery
                     or CartridgeType.Mbc1RamBattery
+                    or CartridgeType.Mbc2Battery
                     or CartridgeType.Mbc3RamBattery
                     or CartridgeType.Mbc5RamBattery;
     }

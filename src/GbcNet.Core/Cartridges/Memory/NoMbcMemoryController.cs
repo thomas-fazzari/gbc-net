@@ -9,20 +9,22 @@ internal sealed class NoMbcMemoryController(
     bool hasBatteryBackedRam
 ) : ICartridgeMemoryController
 {
-    public CartridgeRam CartridgeRam { get; } = new(header.RamSizeBytes, hasBatteryBackedRam);
+    private readonly CartridgeRam _cartridgeRam = new(header.RamSizeBytes, hasBatteryBackedRam);
+
+    public ICartridgeRamStorage CartridgeRam => _cartridgeRam;
 
     public byte ReadRom(ushort address) => rom[address];
 
     public void WriteRom(ushort address, byte value) { }
 
     public byte ReadRamOffset(ushort offset) =>
-        CartridgeRam.Size == 0 ? (byte)0xFF : CartridgeRam.Read(offset % CartridgeRam.Size);
+        _cartridgeRam.Size == 0 ? (byte)0xFF : _cartridgeRam.Read(offset % _cartridgeRam.Size);
 
     public void WriteRamOffset(ushort offset, byte value)
     {
-        if (CartridgeRam.Size != 0)
+        if (_cartridgeRam.Size != 0)
         {
-            CartridgeRam.Write(offset % CartridgeRam.Size, value);
+            _cartridgeRam.Write(offset % _cartridgeRam.Size, value);
         }
     }
 }
