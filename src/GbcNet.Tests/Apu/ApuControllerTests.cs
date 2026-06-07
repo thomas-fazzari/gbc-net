@@ -1061,6 +1061,39 @@ public sealed class ApuControllerTests
     }
 
     [Fact]
+    public void Tick_BuffersApuSamplesThroughSampleBuffer()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.Tick(87);
+
+        Assert.Empty(apu.DrainBufferedSamples());
+
+        apu.Tick(1);
+
+        Assert.Single(apu.DrainBufferedSamples());
+    }
+
+    [Fact]
+    public void DrainBufferedSamples_ReturnsCurrentMixerSamplesAndClearsBuffer()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF11, 0xC0);
+        apu.WriteRegister(0xFF12, 0x40);
+        apu.WriteRegister(0xFF13, 0xFF);
+        apu.WriteRegister(0xFF14, 0x87);
+        apu.WriteRegister(0xFF24, 0x00);
+        apu.WriteRegister(0xFF25, 0x11);
+
+        apu.Tick(88);
+
+        Assert.Equal([new ApuStereoSample(4, 4)], apu.DrainBufferedSamples());
+        Assert.Empty(apu.DrainBufferedSamples());
+    }
+
+    [Fact]
     public void TickSystemCounter_AdvancesDivApuStepOnNormalSpeedDivBit4FallingEdge()
     {
         ApuController apu = new(new DmgApuHardwareProfile());

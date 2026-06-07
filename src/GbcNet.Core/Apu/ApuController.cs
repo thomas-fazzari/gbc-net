@@ -1,4 +1,5 @@
 using GbcNet.Core.Apu.Channels;
+using GbcNet.Core.Apu.Components;
 using GbcNet.Core.Apu.Profiles;
 
 namespace GbcNet.Core.Apu;
@@ -70,6 +71,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     private readonly PulseChannel _channel2 = new();
     private readonly WaveChannel _channel3 = new();
     private readonly NoiseChannel _channel4 = new();
+    private readonly SampleBuffer _sampleBuffer = new();
 
     /// <summary>
     /// Current DIV-APU frame sequencer step, advanced at 512 Hz.
@@ -79,13 +81,10 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     internal ushort Channel1Period => _channel1.Period;
 
     internal byte Channel2Volume => _channel2.Volume;
-
     internal byte Channel2DigitalOutput => _channel2.DigitalOutput;
-
     internal byte Channel3DigitalOutput => _channel3.DigitalOutput;
 
     internal byte Channel4Volume => _channel4.Volume;
-
     internal byte Channel4DigitalOutput => _channel4.DigitalOutput;
 
     /// <summary>
@@ -172,7 +171,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     }
 
     /// <summary>
-    /// Advances channel period timers by elapsed T-cycles.
+    /// Advances channel period timers and buffers fixed-rate APU samples by elapsed T-cycles.
     /// </summary>
     internal void Tick(int tCycles)
     {
@@ -180,6 +179,11 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
         _channel2.Tick(tCycles);
         _channel3.Tick(tCycles);
         _channel4.Tick(tCycles);
+
+        for (int samplesDue = _sampleBuffer.Tick(tCycles); samplesDue > 0; samplesDue--)
+        {
+            _sampleBuffer.Add(GetStereoSample());
+        }
     }
 
     /// <summary>
@@ -207,6 +211,11 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
             Right: rightInput * ((masterVolume & RightVolumeMask) + 1)
         );
     }
+
+    /// <summary>
+    /// Drains buffered fixed-rate APU samples.
+    /// </summary>
+    internal ApuStereoSample[] DrainBufferedSamples() => _sampleBuffer.Drain();
 
     /// <summary>
     /// Reads an APU register with hardware-specific unused and write-only bits applied.
