@@ -608,6 +608,240 @@ public sealed class ApuControllerTests
     }
 
     [Fact]
+    public void WaveRam_InactiveReadWriteIsNormal()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF30, 0xAB);
+        apu.WriteRegister(0xFF3F, 0xCD);
+
+        Assert.Equal(0xAB, apu.ReadRegister(0xFF30));
+        Assert.Equal(0xCD, apu.ReadRegister(0xFF3F));
+    }
+
+    [Fact]
+    public void WaveRam_ActiveCpuReadReturnsFfAndWriteIsIgnored()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF30, 0xAB);
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF1A, 0x80);
+        apu.WriteRegister(0xFF1E, 0x80);
+
+        apu.WriteRegister(0xFF30, 0xCD);
+
+        Assert.Equal(0xFF, apu.ReadRegister(0xFF30));
+        apu.WriteRegister(0xFF1A, 0x00);
+        Assert.Equal(0xAB, apu.ReadRegister(0xFF30));
+    }
+
+    [Fact]
+    public void SetRegisterState_CanSeedWaveRamWhileChannel3IsActive()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF30, 0xAB);
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF1A, 0x80);
+        apu.WriteRegister(0xFF1E, 0x80);
+
+        apu.SetRegisterState(0xFF30, 0xCD);
+        apu.WriteRegister(0xFF1A, 0x00);
+
+        Assert.Equal(0xCD, apu.ReadRegister(0xFF30));
+    }
+
+    [Fact]
+    public void WriteRegister_DisablingChannel3DacClearsChannel3Status()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF1A, 0x80);
+        apu.WriteRegister(0xFF1E, 0x80);
+
+        apu.WriteRegister(0xFF1A, 0x00);
+
+        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void WriteRegister_TriggeringChannel3WithDacEnabledSetsAudioMasterChannel3Status()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF1A, 0x80);
+        apu.WriteRegister(0xFF1E, 0x80);
+
+        Assert.Equal(0xF4, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void WriteRegister_TriggeringChannel3WithDacDisabledKeepsChannel3Inactive()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF1A, 0x00);
+        apu.WriteRegister(0xFF1E, 0x80);
+
+        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+    }
+
+    [Fact]
+    public void TickSystemCounter_DisablesChannel3WhenLengthExpires()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF1A, 0x80);
+        apu.WriteRegister(0xFF1B, 0xFF);
+        apu.WriteRegister(0xFF1E, 0xC0);
+
+        apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+
+        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+    }
+
+    [Theory]
+    [InlineData(0x00, 0)]
+    [InlineData(0x20, 12)]
+    [InlineData(0x40, 6)]
+    [InlineData(0x60, 3)]
+    public void Channel3DigitalOutput_AppliesNr32OutputLevel(byte outputLevel, byte expected)
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF30, 0x0C);
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF1A, 0x80);
+        apu.WriteRegister(0xFF1C, outputLevel);
+        apu.WriteRegister(0xFF1D, 0xFF);
+        apu.WriteRegister(0xFF1E, 0x87);
+        apu.Tick(2);
+
+        Assert.Equal(expected, apu.Channel3DigitalOutput);
+    }
+
+    [Fact]
+    public void WriteRegister_TriggeringChannel3KeepsOldSampleBufferUntilFirstWaveTick()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF30, 0x0C);
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF1A, 0x80);
+        apu.WriteRegister(0xFF1C, 0x20);
+        apu.WriteRegister(0xFF1D, 0xFF);
+        apu.WriteRegister(0xFF1E, 0x87);
+
+        Assert.Equal(0, apu.Channel3DigitalOutput);
+    }
+
+    [Fact]
+    public void Tick_Channel3FirstWaveTickReadsLowerNibbleOfFf30()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF30, 0xAB);
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF1A, 0x80);
+        apu.WriteRegister(0xFF1C, 0x20);
+        apu.WriteRegister(0xFF1D, 0xFF);
+        apu.WriteRegister(0xFF1E, 0x87);
+
+        apu.Tick(2);
+
+        Assert.Equal(0x0B, apu.Channel3DigitalOutput);
+    }
+
+    [Fact]
+    public void Tick_AdvancesChannel3WaveFasterForHigherPeriodValues()
+    {
+        ApuController fastApu = new(new DmgApuHardwareProfile());
+        fastApu.WriteRegister(0xFF30, 0x01);
+        fastApu.WriteRegister(0xFF26, 0x80);
+        fastApu.WriteRegister(0xFF1A, 0x80);
+        fastApu.WriteRegister(0xFF1C, 0x20);
+        fastApu.WriteRegister(0xFF1D, 0xFF);
+        fastApu.WriteRegister(0xFF1E, 0x87);
+
+        ApuController slowApu = new(new DmgApuHardwareProfile());
+        slowApu.WriteRegister(0xFF30, 0x01);
+        slowApu.WriteRegister(0xFF26, 0x80);
+        slowApu.WriteRegister(0xFF1A, 0x80);
+        slowApu.WriteRegister(0xFF1C, 0x20);
+        slowApu.WriteRegister(0xFF1D, 0xFE);
+        slowApu.WriteRegister(0xFF1E, 0x87);
+
+        fastApu.Tick(2);
+        slowApu.Tick(2);
+
+        Assert.Equal(1, fastApu.Channel3DigitalOutput);
+        Assert.Equal(0, slowApu.Channel3DigitalOutput);
+
+        slowApu.Tick(2);
+
+        Assert.Equal(1, slowApu.Channel3DigitalOutput);
+    }
+
+    [Theory]
+    [InlineData(0x00, 0x44, 4, 4)]
+    [InlineData(0x77, 0x44, 32, 32)]
+    [InlineData(0x70, 0x44, 32, 4)]
+    [InlineData(0x06, 0x04, 0, 28)]
+    [InlineData(0x60, 0x40, 28, 0)]
+    public void GetStereoSample_MixesChannel3UsingNr50AndNr51(
+        byte masterVolume,
+        byte panning,
+        int expectedLeft,
+        int expectedRight
+    )
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF30, 0x04);
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF1A, 0x80);
+        apu.WriteRegister(0xFF1C, 0x20);
+        apu.WriteRegister(0xFF1D, 0xFF);
+        apu.WriteRegister(0xFF1E, 0x87);
+        apu.Tick(2);
+        apu.WriteRegister(0xFF24, masterVolume);
+        apu.WriteRegister(0xFF25, panning);
+
+        Assert.Equal(new ApuStereoSample(expectedLeft, expectedRight), apu.GetStereoSample());
+    }
+
+    [Fact]
+    public void WriteRegister_PoweringOffClearsChannel3StateButNotWaveRam()
+    {
+        ApuController apu = new(new DmgApuHardwareProfile());
+
+        apu.WriteRegister(0xFF30, 0x0C);
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF1A, 0x80);
+        apu.WriteRegister(0xFF1C, 0x20);
+        apu.WriteRegister(0xFF1D, 0xFF);
+        apu.WriteRegister(0xFF1E, 0x87);
+        apu.Tick(2);
+
+        apu.WriteRegister(0xFF26, 0x00);
+        apu.WriteRegister(0xFF26, 0x80);
+
+        Assert.Equal(0x0C, apu.ReadRegister(0xFF30));
+
+        apu.WriteRegister(0xFF1A, 0x80);
+        apu.WriteRegister(0xFF1C, 0x20);
+        apu.WriteRegister(0xFF1D, 0xFF);
+        apu.WriteRegister(0xFF1E, 0x87);
+
+        Assert.Equal(0, apu.Channel3DigitalOutput);
+    }
+
+    [Fact]
     public void TickSystemCounter_AdvancesDivApuStepOnNormalSpeedDivBit4FallingEdge()
     {
         ApuController apu = new(new DmgApuHardwareProfile());
@@ -671,6 +905,8 @@ public sealed class ApuControllerTests
     [InlineData(0xFF14)]
     [InlineData(0xFF1E)]
     [InlineData(0xFF26)]
+    [InlineData(0xFF30)]
+    [InlineData(0xFF3F)]
     public void ContainsRegister_ReturnsTrueForApuRegisters(ushort address)
     {
         Assert.True(ApuController.ContainsRegister(address));
