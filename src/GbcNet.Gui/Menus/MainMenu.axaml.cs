@@ -6,20 +6,26 @@ namespace GbcNet.Gui.Menus;
 
 internal sealed partial class MainMenu : UserControl
 {
+    private static readonly KeyGesture _fastForwardGesture = KeyGesture.Parse("Tab");
+
     private readonly NativeMenuItem _nativePauseMenuItem = new("Pause")
     {
         Gesture = KeyGesture.Parse("Space"),
         IsEnabled = false,
     };
+
     private readonly NativeMenuItem _nativeResetMenuItem = new("Reset")
     {
         Gesture = KeyGesture.Parse("Meta+R"),
         IsEnabled = false,
     };
+
     private readonly NativeMenuItem _nativeFastForwardMenuItem = new("Fast Forward")
     {
+        Gesture = _fastForwardGesture,
         ToggleType = MenuItemToggleType.CheckBox,
     };
+
     private readonly List<(
         NativeMenuItem Item,
         EmulationSpeed Speed
@@ -99,6 +105,7 @@ internal sealed partial class MainMenu : UserControl
         CloseWindowMenuItem.Click += (_, _) => CloseRequested?.Invoke(this, EventArgs.Empty);
         PauseEmulationMenuItem.Click += (_, _) => PauseRequested?.Invoke(this, EventArgs.Empty);
         ResetEmulationMenuItem.Click += (_, _) => ResetRequested?.Invoke(this, EventArgs.Empty);
+        FastForwardMenuItem.InputGesture = _fastForwardGesture;
         FastForwardMenuItem.Click += (_, _) => FastForwardRequested?.Invoke(this, EventArgs.Empty);
 
         foreach (EmulationSpeed speed in Enum.GetValues<EmulationSpeed>())

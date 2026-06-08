@@ -334,6 +334,14 @@ internal sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
+        if (pressed && e.Key == Key.Tab)
+        {
+            _fastForwardEnabled = !_fastForwardEnabled;
+            ApplyFastForwardSettings();
+            e.Handled = true;
+            return;
+        }
+
         if (_keyboardInputMapper.TryMap(e.Key, out PhysicalInput input))
         {
             e.Handled = _inputRouter.Apply(input, pressed);
