@@ -20,8 +20,10 @@ internal sealed partial class MainMenu : UserControl
     {
         ToggleType = MenuItemToggleType.CheckBox,
     };
-    private readonly List<(NativeMenuItem Item, EmulationSpeed Speed)> _nativeFastForwardSpeedMenuItems =
-    [];
+    private readonly List<(
+        NativeMenuItem Item,
+        EmulationSpeed Speed
+    )> _nativeFastForwardSpeedMenuItems = [];
     private readonly List<(MenuItem Item, EmulationSpeed Speed)> _windowFastForwardSpeedMenuItems =
     [];
     private readonly NativeMenu _nativeMenu;
@@ -78,7 +80,9 @@ internal sealed partial class MainMenu : UserControl
         _nativeFastForwardMenuItem.IsChecked = isEnabled;
         FastForwardMenuItem.IsChecked = isEnabled;
 
-        foreach ((NativeMenuItem item, EmulationSpeed itemSpeed) in _nativeFastForwardSpeedMenuItems)
+        foreach (
+            (NativeMenuItem item, EmulationSpeed itemSpeed) in _nativeFastForwardSpeedMenuItems
+        )
         {
             item.IsChecked = itemSpeed == speed;
         }

@@ -15,6 +15,10 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
 {
     private const int Channels = 2;
     private const int SampleRate = 48_000;
+    private const int DevicePeriodMilliseconds = 15;
+    private const int DevicePeriods = 4;
+    private const int PrebufferMilliseconds = 60;
+    private const int PrebufferFrameCount = SampleRate * PrebufferMilliseconds / 1000;
     private const int BufferFrameCapacity = SampleRate / 2;
     private const float PcmScale = 32768f;
     private static readonly AudioFormat _audioFormat = new()
@@ -24,16 +28,15 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
         SampleRate = SampleRate,
     };
 
-    private readonly Lock _bufferLock = new();
     private readonly Lock _deviceLock = new();
-    private readonly ApuStereoSample[] _buffer = new ApuStereoSample[BufferFrameCapacity];
+    private readonly AudioRingBuffer _buffer = new(BufferFrameCapacity);
     private MiniAudioEngine? _engine;
     private AudioPlaybackDevice? _device;
     private SoundFlowSampleSource? _source;
-    private int _bufferStart;
-    private int _bufferCount;
+    private int _isDeviceCreated;
     private int _isDisposed;
     private int _isStarted;
+    private int _needsPrebuffer = 1;
     private int _isUnavailable;
 
     /// <inheritdoc />
@@ -43,36 +46,21 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
             samples.IsEmpty
             || Volatile.Read(ref _isDisposed) != 0
             || Volatile.Read(ref _isUnavailable) != 0
-            || !TryStart()
+            || !EnsureDeviceCreated()
         )
         {
             return;
         }
 
-        lock (_bufferLock)
-        {
-            foreach (ApuStereoSample sample in samples)
-            {
-                if (_bufferCount == _buffer.Length)
-                {
-                    _bufferStart = (_bufferStart + 1) % _buffer.Length;
-                    _bufferCount--;
-                }
-
-                _buffer[(_bufferStart + _bufferCount) % _buffer.Length] = sample;
-                _bufferCount++;
-            }
-        }
+        _buffer.Enqueue(samples);
+        TryStartPlayback();
     }
 
     /// <inheritdoc />
     public void Clear()
     {
-        lock (_bufferLock)
-        {
-            _bufferStart = 0;
-            _bufferCount = 0;
-        }
+        _buffer.Clear();
+        Volatile.Write(ref _needsPrebuffer, 1);
     }
 
     /// <inheritdoc />
@@ -91,16 +79,16 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
         }
     }
 
-    private bool TryStart()
+    private bool EnsureDeviceCreated()
     {
-        if (Volatile.Read(ref _isStarted) != 0)
+        if (Volatile.Read(ref _isDeviceCreated) != 0)
         {
             return true;
         }
 
         lock (_deviceLock)
         {
-            if (Volatile.Read(ref _isStarted) != 0)
+            if (Volatile.Read(ref _isDeviceCreated) != 0)
             {
                 return true;
             }
@@ -117,11 +105,14 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
                 _device = _engine.InitializePlaybackDevice(
                     deviceInfo: null,
                     _audioFormat,
-                    new MiniAudioDeviceConfig { PeriodSizeInMilliseconds = 10, Periods = 3 }
+                    new MiniAudioDeviceConfig
+                    {
+                        PeriodSizeInMilliseconds = DevicePeriodMilliseconds,
+                        Periods = DevicePeriods,
+                    }
                 );
                 _device.MasterMixer.AddComponent(_source);
-                _device.Start();
-                Volatile.Write(ref _isStarted, 1);
+                Volatile.Write(ref _isDeviceCreated, 1);
                 return true;
             }
             catch (Exception exception) when (IsExpectedAudioStartupException(exception))
@@ -129,6 +120,32 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
                 DisableAudio();
                 return false;
             }
+        }
+    }
+
+    private void TryStartPlayback()
+    {
+        if (
+            Volatile.Read(ref _isStarted) != 0
+            || Volatile.Read(ref _isDisposed) != 0
+            || Volatile.Read(ref _isUnavailable) != 0
+            || _buffer.Count < PrebufferFrameCount
+        )
+        {
+            return;
+        }
+
+        lock (_deviceLock)
+        {
+            if (Volatile.Read(ref _isStarted) != 0 || _device is null)
+            {
+                return;
+            }
+
+            // Start with queued audio so slower hosts do not underrun immediately
+            _device.Start();
+            Volatile.Write(ref _needsPrebuffer, 0);
+            Volatile.Write(ref _isStarted, 1);
         }
     }
 
@@ -144,15 +161,21 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
         AudioPlaybackDevice? device = _device;
         SoundFlowSampleSource? source = _source;
         MiniAudioEngine? engine = _engine;
+        bool wasStarted = Volatile.Read(ref _isStarted) != 0;
 
         _device = null;
         _source = null;
         _engine = null;
+        Volatile.Write(ref _isDeviceCreated, 0);
         Volatile.Write(ref _isStarted, 0);
+        Volatile.Write(ref _needsPrebuffer, 1);
 
         if (device is not null)
         {
-            device.Stop();
+            if (wasStarted)
+            {
+                device.Stop();
+            }
 
             if (source is not null)
             {
@@ -174,26 +197,32 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
             return;
         }
 
-        lock (_bufferLock)
+        int requestedFrames = output.Length / Channels;
+
+        if (Volatile.Read(ref _needsPrebuffer) != 0)
         {
-            int frames = Math.Min(output.Length / Channels, _bufferCount);
-
-            for (int frame = 0; frame < frames; frame++)
+            if (_buffer.Count < PrebufferFrameCount)
             {
-                ApuStereoSample sample = _buffer[(_bufferStart + frame) % _buffer.Length];
-                output[frame * Channels] = sample.Left / PcmScale;
-                output[(frame * Channels) + 1] = sample.Right / PcmScale;
+                output.Clear();
+                return;
             }
 
-            _bufferStart = (_bufferStart + frames) % _buffer.Length;
-            _bufferCount -= frames;
+            Volatile.Write(ref _needsPrebuffer, 0);
+        }
 
-            if (_bufferCount == 0)
-            {
-                _bufferStart = 0;
-            }
+        int frame = 0;
 
-            output[(frames * Channels)..].Clear();
+        for (; frame < requestedFrames && _buffer.TryDequeue(out ApuStereoSample sample); frame++)
+        {
+            output[frame * Channels] = sample.Left / PcmScale;
+            output[(frame * Channels) + 1] = sample.Right / PcmScale;
+        }
+
+        output[(frame * Channels)..].Clear();
+
+        if (frame < requestedFrames)
+        {
+            Volatile.Write(ref _needsPrebuffer, 1);
         }
     }
 
