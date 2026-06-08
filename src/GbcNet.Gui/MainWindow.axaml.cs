@@ -11,6 +11,7 @@ using GbcNet.Gui.Audio;
 using GbcNet.Gui.Configuration;
 using GbcNet.Gui.Emulation;
 using GbcNet.Gui.Input;
+using GbcNet.Gui.Menus;
 using GbcNet.Gui.Rendering;
 using GbcNet.Gui.Saves;
 
@@ -25,22 +26,6 @@ internal sealed partial class MainWindow : Window, IDisposable
         MimeTypes = ["application/octet-stream"],
     };
 
-    private readonly NativeMenuItem _pauseMenuItem = new("Pause")
-    {
-        Gesture = KeyGesture.Parse("Space"),
-        IsEnabled = false,
-    };
-    private readonly NativeMenuItem _resetMenuItem = new("Reset")
-    {
-        Gesture = KeyGesture.Parse("Meta+R"),
-        IsEnabled = false,
-    };
-    private readonly NativeMenuItem _fastForwardMenuItem = new("Fast Forward")
-    {
-        ToggleType = MenuItemToggleType.CheckBox,
-    };
-    private readonly List<(NativeMenuItem Item, EmulationSpeed Speed)> _fastForwardSpeedMenuItems =
-    [];
     private EmulationSession? _emulationSession;
     private readonly IAudioOutput _audioOutput;
     private readonly KeyboardInputMapper _keyboardInputMapper;
@@ -64,7 +49,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     )
     {
         InitializeComponent();
-        ConfigureNativeMenu();
+        ConfigureMenu();
 
         if (startupConfiguration.StartupMessage is not null)
         {
@@ -80,62 +65,16 @@ internal sealed partial class MainWindow : Window, IDisposable
         );
     }
 
-    private void ConfigureNativeMenu()
+    private void ConfigureMenu()
     {
-        var openMenuItem = new NativeMenuItem("Open ROM...")
-        {
-            Gesture = KeyGesture.Parse("Meta+O"),
-        };
-        openMenuItem.Click += OpenRomMenu_OnClick;
-
-        var closeMenuItem = new NativeMenuItem("Close") { Gesture = KeyGesture.Parse("Meta+W") };
-        closeMenuItem.Click += CloseMenu_OnClick;
-
-        _pauseMenuItem.Click += PauseMenu_OnClick;
-        _resetMenuItem.Click += ResetMenu_OnClick;
-        _fastForwardMenuItem.Click += FastForwardMenu_OnClick;
-
-        NativeMenuItem fastForwardSpeedMenuItem = new("Fast Forward Speed")
-        {
-            Menu = CreateFastForwardSpeedMenu(),
-        };
-
-        var fileMenuItem = new NativeMenuItem("File")
-        {
-            Menu = [openMenuItem, new NativeMenuItemSeparator(), closeMenuItem],
-        };
-        var emulationMenuItem = new NativeMenuItem("Emulation")
-        {
-            Menu =
-            [
-                _pauseMenuItem,
-                _resetMenuItem,
-                new NativeMenuItemSeparator(),
-                _fastForwardMenuItem,
-                fastForwardSpeedMenuItem,
-            ],
-        };
-
-        NativeMenu.SetMenu(this, [fileMenuItem, emulationMenuItem]);
-    }
-
-    private NativeMenu CreateFastForwardSpeedMenu()
-    {
-        NativeMenu menu = [];
-
-        foreach (EmulationSpeed speed in Enum.GetValues<EmulationSpeed>())
-        {
-            NativeMenuItem menuItem = new(speed.GetDisplayName())
-            {
-                ToggleType = MenuItemToggleType.CheckBox,
-                IsChecked = speed == _fastForwardSpeed,
-            };
-            menuItem.Click += (_, _) => SetFastForwardSpeed(speed);
-            _fastForwardSpeedMenuItems.Add((menuItem, speed));
-            menu.Add(menuItem);
-        }
-
-        return menu;
+        MainMenu.AttachNativeMenu(this);
+        MainMenu.OpenRomRequested += OpenRomMenu_OnClick;
+        MainMenu.CloseRequested += CloseMenu_OnClick;
+        MainMenu.PauseRequested += PauseMenu_OnClick;
+        MainMenu.ResetRequested += ResetMenu_OnClick;
+        MainMenu.FastForwardRequested += FastForwardMenu_OnClick;
+        MainMenu.FastForwardSpeedSelected += FastForwardSpeedMenu_OnSelected;
+        MainMenu.SetFastForwardState(_fastForwardEnabled, _fastForwardSpeed);
     }
 
     protected override void OnClosing(WindowClosingEventArgs e)
@@ -229,7 +168,15 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
 
         _emulationSession.IsPaused = !_emulationSession.IsPaused;
-        _pauseMenuItem.Header = _emulationSession.IsPaused ? "Resume" : "Pause";
+        MainMenu.SetPauseState(isEnabled: true, _emulationSession.IsPaused);
+    }
+
+    private void FastForwardSpeedMenu_OnSelected(
+        object? sender,
+        FastForwardSpeedSelectedEventArgs e
+    )
+    {
+        SetFastForwardSpeed(e.Speed);
     }
 
     private void ResetMenu_OnClick(object? sender, EventArgs e)
@@ -360,9 +307,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         );
         ApplyFastForwardSettings();
         Title = romName;
-        _pauseMenuItem.Header = "Pause";
-        _pauseMenuItem.IsEnabled = true;
-        _resetMenuItem.IsEnabled = true;
+        MainMenu.SetEmulationActionsEnabled(isEnabled: true);
     }
 
     private async Task StopEmulationSessionAsync()
@@ -376,9 +321,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         _emulationSession = null;
         _inputRouter.Clear();
-        _pauseMenuItem.Header = "Pause";
-        _pauseMenuItem.IsEnabled = false;
-        _resetMenuItem.IsEnabled = false;
+        MainMenu.SetEmulationActionsEnabled(isEnabled: false);
         await session.StopAsync().ConfigureAwait(true);
     }
 
@@ -433,13 +376,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private void ApplyFastForwardSettings()
     {
-        _fastForwardMenuItem.IsChecked = _fastForwardEnabled;
-
-        foreach ((NativeMenuItem item, EmulationSpeed speed) in _fastForwardSpeedMenuItems)
-        {
-            item.IsChecked = speed == _fastForwardSpeed;
-        }
-
+        MainMenu.SetFastForwardState(_fastForwardEnabled, _fastForwardSpeed);
         _emulationSession?.SetFastForward(_fastForwardEnabled, _fastForwardSpeed);
     }
 }

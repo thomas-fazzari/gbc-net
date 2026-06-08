@@ -1,16 +1,22 @@
 <Window xmlns="https://github.com/avaloniaui"
-         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-         x:Class="GbcNet.Gui.MainWindow"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:menus="clr-namespace:GbcNet.Gui.Menus"
+        x:Class="GbcNet.Gui.MainWindow"
         Title="GbcNet"
         Width="960"
         Height="720"
         MinWidth="640"
         MinHeight="576"
         WindowStartupLocation="CenterScreen"
+        FontFamily="Inter"
         Background="#101010">
-    <Grid>
+    <Grid RowDefinitions="Auto,*">
+        <menus:MainMenu x:Name="MainMenu"
+                        Grid.Row="0" />
+
         <Border Background="#050505"
-                Padding="24">
+                Padding="24"
+                Grid.Row="1">
             <Viewbox Stretch="Uniform">
                 <Border Width="160"
                         Height="144"
