@@ -117,7 +117,7 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
             }
             catch (Exception exception) when (IsExpectedAudioStartupException(exception))
             {
-                DisableAudio();
+                DisableAudioCore();
                 return false;
             }
         }
@@ -144,13 +144,13 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
 
             // Start with queued audio so slower hosts do not underrun immediately
             _device.Start();
-            Volatile.Write(ref _needsPrebuffer, 0);
             Volatile.Write(ref _isStarted, 1);
         }
     }
 
-    private void DisableAudio()
+    private void DisableAudioCore()
     {
+        // Called while _deviceLock is held during startup failure handling
         Volatile.Write(ref _isUnavailable, 1);
         Clear();
         ReleaseDevice();

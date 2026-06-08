@@ -41,7 +41,11 @@ internal sealed class AudioRingBuffer
         {
             if (writeCursor - readCursor >= _samples.Length)
             {
-                break;
+                readCursor = Volatile.Read(ref _readCursor);
+                if (writeCursor - readCursor >= _samples.Length)
+                {
+                    break;
+                }
             }
 
             _samples[(int)(writeCursor % _samples.Length)] = sample;
