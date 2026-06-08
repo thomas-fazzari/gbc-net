@@ -1,6 +1,7 @@
 SOLUTION = GbcNet.slnx
 APP = src/GbcNet.Gui/GbcNet.Gui.csproj
 CONFIGURATION ?= Debug
+RUN_CONFIGURATION ?= Release
 AOT_RUNTIME ?= osx-arm64
 
 .PHONY: install
@@ -23,7 +24,7 @@ aot-check:
 
 .PHONY: run
 run:
-	dotnet run --project $(APP) --configuration $(CONFIGURATION)
+	dotnet run --project $(APP) --configuration $(RUN_CONFIGURATION)
 
 .PHONY: fix
 fix:

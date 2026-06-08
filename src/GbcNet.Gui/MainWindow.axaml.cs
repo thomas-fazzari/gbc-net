@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
@@ -302,6 +303,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             new GameBoy(cartridge, HardwareModel.Dmg),
             _audioOutput,
             OnFrameCompleted,
+            OnEmulationMetricsUpdated,
             OnEmulationFaulted,
             () => _cartridgeSaveFileService.Save(cartridge, rom)
         );
@@ -372,6 +374,22 @@ internal sealed partial class MainWindow : Window, IDisposable
     private void OnEmulationFaulted(Exception e)
     {
         Dispatcher.UIThread.Post(() => Title = e.Message);
+    }
+
+    private void OnEmulationMetricsUpdated(EmulationMetrics metrics)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_emulationSession is null)
+            {
+                return;
+            }
+
+            Title = string.Create(
+                CultureInfo.InvariantCulture,
+                $"{_loadedRomName} | {metrics.TargetSpeed:0.#}x | {metrics.DisplayFramesPerSecond:0} fps"
+            );
+        });
     }
 
     private void ApplyFastForwardSettings()

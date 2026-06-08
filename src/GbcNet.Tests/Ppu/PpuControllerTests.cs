@@ -149,6 +149,40 @@ public sealed class PpuControllerTests
     }
 
     [Fact]
+    public void Tick_SkipsCompletedFrameWhenVideoRenderingIsDisabled()
+    {
+        var interrupts = new InterruptController();
+        PpuController ppu = CreatePpu(interrupts);
+        ppu.VideoRenderingEnabled = false;
+        ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
+
+        LcdFrame? frame = ppu.Tick(456 * 144);
+
+        Assert.Null(frame);
+        Assert.Equal(144, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
+        Assert.Equal(VBlankInterruptMask, interrupts.InterruptFlag);
+    }
+
+    [Fact]
+    public void Tick_CapturesFrameAfterVideoRenderingIsEnabledAgain()
+    {
+        PpuController ppu = CreatePpu();
+        ppu.VideoRenderingEnabled = false;
+        ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
+
+        Assert.Null(ppu.Tick(456 * 144));
+
+        ppu.VideoRenderingEnabled = true;
+        ppu.Tick(456 * 10);
+
+        LcdFrame? frame = ppu.Tick(456 * 144);
+
+        Assert.NotNull(frame);
+        Assert.Equal(PpuGeometry.FrameWidth, frame.Width);
+        Assert.Equal(PpuGeometry.FrameHeight, frame.Height);
+    }
+
+    [Fact]
     public void Tick_RequestsModeTwoLcdInterruptWhenEnteringVBlank()
     {
         var interrupts = new InterruptController();
@@ -480,6 +514,23 @@ public sealed class PpuControllerTests
     public void Tick_WindowStartupExtendsDrawingMode()
     {
         PpuController ppu = CreatePpu();
+        ppu.WriteRegister(AddressMap.WindowXRegister, 0x07);
+        ppu.WriteRegister(
+            AddressMap.LcdControlRegister,
+            LcdEnable | BackgroundEnable | WindowEnable
+        );
+        ppu.Tick(456 * 154);
+
+        ppu.Tick(256);
+
+        Assert.Equal(0x03, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
+    }
+
+    [Fact]
+    public void Tick_DisabledVideoRenderingPreservesWindowTiming()
+    {
+        PpuController ppu = CreatePpu();
+        ppu.VideoRenderingEnabled = false;
         ppu.WriteRegister(AddressMap.WindowXRegister, 0x07);
         ppu.WriteRegister(
             AddressMap.LcdControlRegister,

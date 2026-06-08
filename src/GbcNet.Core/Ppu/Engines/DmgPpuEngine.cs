@@ -81,6 +81,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
     private bool _renderingScanline;
     private bool _windowYCondition;
     private bool _windowActiveThisLine;
+    private bool _renderCurrentFrame = true;
     private BackgroundFetcherStep _fetcherStep;
     private PixelFetcherSource _fetcherSource;
 
@@ -146,7 +147,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
     /// <summary>
     /// Advances DMG LCD timing, renderer FIFO state, STAT interrupts, and VBlank frame completion.
     /// </summary>
-    public PpuEngineTickResult Tick(int tCycles, PpuEngineInputs inputs)
+    public PpuEngineTickResult Tick(int tCycles, PpuEngineInputs inputs, bool renderFrame)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(tCycles);
 
@@ -172,7 +173,14 @@ internal sealed class DmgPpuEngine : IPpuEngine
             int elapsedCycles = Math.Min(remainingCycles, nextBoundary - _lineDots);
             if (IsRenderingInterval(drawingStartDots, drawingEndDots))
             {
-                TickRenderer(elapsedCycles, inputs);
+                if (_renderCurrentFrame)
+                {
+                    TickRenderer(elapsedCycles, inputs);
+                }
+                else
+                {
+                    TickVideoTimingOnly(inputs);
+                }
             }
 
             _lineDots += elapsedCycles;
@@ -180,7 +188,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
 
             if (_lineDots == scanlineDots)
             {
-                PpuEngineTickResult result = AdvanceScanline(inputs);
+                PpuEngineTickResult result = AdvanceScanline(inputs, renderFrame);
                 requests |= result.Interrupts;
                 completedFrame ??= result.CompletedFrame;
                 continue;
@@ -195,7 +203,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
     /// <summary>
     /// Starts DMG LCD timing at the shortened first scanline after LCD enable.
     /// </summary>
-    public PpuInterruptRequest EnableLcd(PpuEngineInputs inputs)
+    public PpuInterruptRequest EnableLcd(PpuEngineInputs inputs, bool renderFrame)
     {
         _lineDots = 0;
         LatchScroll(inputs);
@@ -203,6 +211,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
         _objects.Clear();
         ResetRenderer();
         _firstScanlineAfterLcdEnable = true;
+        _renderCurrentFrame = renderFrame;
         StatusMode = PpuMode.HBlank;
         _statInterruptMode = PpuMode.HBlank;
 
@@ -237,6 +246,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
         _windowLine = 0;
         _activeWindowLine = 0;
         _windowYCondition = false;
+        _renderCurrentFrame = true;
         _objects.Clear();
         ResetRenderer();
         LcdYCoordinate = 0;
@@ -363,7 +373,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
         return scanlineDots;
     }
 
-    private PpuEngineTickResult AdvanceScanline(PpuEngineInputs inputs)
+    private PpuEngineTickResult AdvanceScanline(PpuEngineInputs inputs, bool renderFrame)
     {
         _lineDots = 0;
         _firstScanlineAfterLcdEnable = false;
@@ -379,6 +389,11 @@ internal sealed class DmgPpuEngine : IPpuEngine
         switch (LcdYCoordinate)
         {
             case < PpuGeometry.VBlankStartLine:
+                if (LcdYCoordinate == 0)
+                {
+                    _renderCurrentFrame = renderFrame;
+                }
+
                 LatchScroll(inputs);
                 RefreshWindowYCondition(inputs);
                 _objects.Clear();
@@ -390,12 +405,15 @@ internal sealed class DmgPpuEngine : IPpuEngine
                 _windowLine = 0;
                 ResetRenderer();
                 requests |= PpuInterruptRequest.VBlank;
-                completedFrame = new LcdFrame(
-                    PpuGeometry.FrameWidth,
-                    PpuGeometry.FrameHeight,
-                    LcdPixelFormat.DmgShadeIndex8,
-                    _frameBuffer
-                );
+                if (_renderCurrentFrame)
+                {
+                    completedFrame = new LcdFrame(
+                        PpuGeometry.FrameWidth,
+                        PpuGeometry.FrameHeight,
+                        LcdPixelFormat.DmgShadeIndex8,
+                        _frameBuffer
+                    );
+                }
                 break;
         }
 
@@ -469,6 +487,27 @@ internal sealed class DmgPpuEngine : IPpuEngine
         LcdYCoordinate < PpuGeometry.VBlankStartLine
         && _lineDots >= drawingStartDots
         && _lineDots < drawingEndDots;
+
+    private void TickVideoTimingOnly(PpuEngineInputs inputs)
+    {
+        _objects.EnsureSelected(
+            inputs,
+            LcdYCoordinate,
+            _lineDots >= OamScanDots,
+            LatchedScrollXLowBits
+        );
+
+        if (_renderingScanline)
+        {
+            return;
+        }
+
+        BeginRenderingScanline();
+        if (CanStartWindow(inputs))
+        {
+            StartWindow();
+        }
+    }
 
     private void TickRenderer(int dots, PpuEngineInputs inputs)
     {
@@ -678,31 +717,39 @@ internal sealed class DmgPpuEngine : IPpuEngine
     private void TryStartWindow(PpuEngineInputs inputs)
     {
         if (
-            _windowActiveThisLine
-            || !_windowYCondition
-            || inputs.WindowX > MaxVisibleWindowX
-            || (
-                inputs.LcdControl
-                & (
-                    PpuLcdControlRegister.BackgroundWindowEnableOrPriorityMask
-                    | PpuLcdControlRegister.WindowEnableMask
-                )
-            )
-                != (
-                    PpuLcdControlRegister.BackgroundWindowEnableOrPriorityMask
-                    | PpuLcdControlRegister.WindowEnableMask
-                )
+            !CanStartWindow(inputs)
             || _renderedPixels < Math.Max(0, inputs.WindowX - WindowXScreenOffset)
         )
         {
             return;
         }
 
+        StartWindow();
+        ClearBackgroundFetcher(PixelFetcherSource.Window);
+    }
+
+    private bool CanStartWindow(PpuEngineInputs inputs) =>
+        !_windowActiveThisLine
+        && _windowYCondition
+        && inputs.WindowX <= MaxVisibleWindowX
+        && (
+            inputs.LcdControl
+            & (
+                PpuLcdControlRegister.BackgroundWindowEnableOrPriorityMask
+                | PpuLcdControlRegister.WindowEnableMask
+            )
+        )
+            == (
+                PpuLcdControlRegister.BackgroundWindowEnableOrPriorityMask
+                | PpuLcdControlRegister.WindowEnableMask
+            );
+
+    private void StartWindow()
+    {
         _windowPenaltyDots += WindowStartupPenaltyDots;
         _windowActiveThisLine = true;
         _activeWindowLine = _windowLine;
         _windowLine++;
-        ClearBackgroundFetcher(PixelFetcherSource.Window);
     }
 
     private void RefreshWindowYCondition(PpuEngineInputs inputs)

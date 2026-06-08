@@ -66,6 +66,11 @@ internal sealed class PpuController(InterruptController interrupts, IPpuEngine e
     public bool IsLcdEnabled => (_control & PpuLcdControlRegister.LcdEnableMask) != 0;
 
     /// <summary>
+    /// Controls whether the PPU materializes host-visible frames.
+    /// </summary>
+    public bool VideoRenderingEnabled { get; set; } = true;
+
+    /// <summary>
     /// Indicates whether the PPU blocks CPU reads from VRAM at 8000-9FFF.
     /// </summary>
     public bool IsCpuVideoRamReadBlocked => IsLcdEnabled && engine.IsCpuVideoRamReadBlocked;
@@ -141,7 +146,7 @@ internal sealed class PpuController(InterruptController interrupts, IPpuEngine e
             return null;
         }
 
-        PpuEngineTickResult result = engine.Tick(tCycles, EngineInputs);
+        PpuEngineTickResult result = engine.Tick(tCycles, EngineInputs, VideoRenderingEnabled);
         RequestInterrupts(result.Interrupts);
         return result.CompletedFrame;
     }
@@ -224,7 +229,7 @@ internal sealed class PpuController(InterruptController interrupts, IPpuEngine e
 
         if (!wasEnabled && IsLcdEnabled)
         {
-            RequestInterrupts(engine.EnableLcd(EngineInputs));
+            RequestInterrupts(engine.EnableLcd(EngineInputs, VideoRenderingEnabled));
         }
     }
 

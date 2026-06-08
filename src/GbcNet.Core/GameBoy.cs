@@ -51,6 +51,15 @@ public sealed class GameBoy
     public event EventHandler<FrameCompletedEventArgs>? FrameCompleted;
 
     /// <summary>
+    /// Enables host-visible LCD frame rendering while keeping LCD timing active either way.
+    /// </summary>
+    public bool VideoRenderingEnabled
+    {
+        get => Bus.Ppu.VideoRenderingEnabled;
+        set => Bus.Ppu.VideoRenderingEnabled = value;
+    }
+
+    /// <summary>
     /// Executes one CPU step and advances hardware that runs from CPU cycles.
     /// </summary>
     /// <returns>

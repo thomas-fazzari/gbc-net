@@ -43,12 +43,12 @@ internal interface IPpuEngine
     /// <summary>
     /// Advances LCD timing by elapsed T-cycles and returns interrupt requests or a completed frame.
     /// </summary>
-    PpuEngineTickResult Tick(int tCycles, PpuEngineInputs inputs);
+    PpuEngineTickResult Tick(int tCycles, PpuEngineInputs inputs, bool renderFrame);
 
     /// <summary>
     /// Applies the model-specific LCD-enable transition and returns any STAT interrupt request.
     /// </summary>
-    PpuInterruptRequest EnableLcd(PpuEngineInputs inputs);
+    PpuInterruptRequest EnableLcd(PpuEngineInputs inputs, bool renderFrame);
 
     /// <summary>
     /// Applies the model-specific LCD-disable transition and clears transient rendering state.

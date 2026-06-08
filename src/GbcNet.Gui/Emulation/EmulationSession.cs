@@ -15,14 +15,16 @@ namespace GbcNet.Gui.Emulation;
 internal sealed class EmulationSession
 {
     private const int MachineCyclesPerSecond = 1_048_576;
-    private const int MachineCyclesPerThrottle = 4096;
+    private const int ThrottleIntervalMilliseconds = 8;
     private const int MachineCyclesPerSaveFlush = 5 * MachineCyclesPerSecond;
     private const int AudioDrainSampleCapacity = 512;
-    private static readonly long FastForwardFrameIntervalTimestamp = Stopwatch.Frequency / 60;
+    private const double ThrottleIntervalSeconds = ThrottleIntervalMilliseconds / 1000.0;
+    private static readonly long _fastForwardFrameIntervalTimestamp = Stopwatch.Frequency / 60;
 
     private readonly Func<Result> _flushBatterySave;
     private readonly Action<Exception> _handleFault;
     private readonly Action<FrameCompletedEventArgs> _handleFrame;
+    private readonly Action<EmulationMetrics> _handleMetrics;
     private readonly GameBoy _gameBoy;
     private readonly IAudioOutput _audioOutput;
     private readonly ApuStereoSample[] _audioSamples = new ApuStereoSample[
@@ -39,6 +41,8 @@ internal sealed class EmulationSession
     private int _isFastForwardEnabled;
     private int _fastForwardSpeed = (int)EmulationSpeed.Two;
     private int _pacingRevision;
+    private int _videoFrameRenderRequested = 1;
+    private int _completedFrameCount;
     private long _nextFastForwardFrameTimestamp;
 
     public bool IsPaused
@@ -59,6 +63,7 @@ internal sealed class EmulationSession
         GameBoy gameBoy,
         IAudioOutput audioOutput,
         Action<FrameCompletedEventArgs> handleFrame,
+        Action<EmulationMetrics> handleMetrics,
         Action<Exception> handleFault,
         Func<Result> flushBatterySave
     )
@@ -67,6 +72,7 @@ internal sealed class EmulationSession
         _audioOutput = audioOutput;
         _audioOutput.Clear();
         _handleFrame = handleFrame;
+        _handleMetrics = handleMetrics;
         _handleFault = handleFault;
         _flushBatterySave = flushBatterySave;
         _gameBoy.FrameCompleted += OnFrameCompleted;
@@ -115,9 +121,9 @@ internal sealed class EmulationSession
             return;
         }
 
-        // Queued audio produced for the old pacing mode
-        // Dropped instead of playing stale sound
+        // Old pacing mode may have queued audio with obsolete timing.
         _audioOutput.Clear();
+        Volatile.Write(ref _videoFrameRenderRequested, 1);
         Volatile.Write(ref _nextFastForwardFrameTimestamp, 0);
         Interlocked.Increment(ref _pacingRevision);
     }
@@ -126,10 +132,12 @@ internal sealed class EmulationSession
     {
         var stopwatch = Stopwatch.StartNew();
         long elapsedMachineCycles = 0;
-        long nextThrottleMachineCycles = MachineCyclesPerThrottle;
+        long nextThrottleMachineCycles = GetThrottleMachineCycles();
         long nextSaveMachineCycles = MachineCyclesPerSaveFlush;
         long pacingBaseMachineCycles = 0;
         TimeSpan pacingBaseElapsed = TimeSpan.Zero;
+        long metricsTimestamp = Stopwatch.GetTimestamp();
+        int metricsFrameCount = 0;
         int pacingRevision = Volatile.Read(ref _pacingRevision);
 
         try
@@ -155,6 +163,7 @@ internal sealed class EmulationSession
                     _gameBoy.SetButtonState(buttonState.Button, buttonState.Pressed);
                 }
 
+                _gameBoy.VideoRenderingEnabled = ShouldRenderVideoFrame();
                 elapsedMachineCycles += _gameBoy.Step();
 
                 DrainAudioSamples(enqueueOutput: !ShouldMuteAudio());
@@ -177,7 +186,6 @@ internal sealed class EmulationSession
                     pacingRevision = currentPacingRevision;
                     pacingBaseMachineCycles = elapsedMachineCycles;
                     pacingBaseElapsed = stopwatch.Elapsed;
-                    nextThrottleMachineCycles = elapsedMachineCycles + MachineCyclesPerThrottle;
                 }
 
                 // Throttle against total emulated time instead of per-chunk delay to avoid drift.
@@ -198,7 +206,8 @@ internal sealed class EmulationSession
                         .ConfigureAwait(false);
                 }
 
-                nextThrottleMachineCycles += MachineCyclesPerThrottle;
+                PublishMetricsIfDue(ref metricsTimestamp, ref metricsFrameCount);
+                nextThrottleMachineCycles = elapsedMachineCycles + GetThrottleMachineCycles();
             }
         }
         catch (Exception exception)
@@ -218,9 +227,41 @@ internal sealed class EmulationSession
             ? Volatile.Read(ref _fastForwardSpeed) / (double)(int)EmulationSpeed.Normal
             : 1.0;
 
-    private bool ShouldMuteAudio() =>
-        Volatile.Read(ref _isFastForwardEnabled) != 0
-        && Volatile.Read(ref _fastForwardSpeed) > (int)EmulationSpeed.Normal;
+    private long GetThrottleMachineCycles() =>
+        Math.Max(
+            1,
+            (long)
+                Math.Round(
+                    MachineCyclesPerSecond * GetSpeedMultiplier() * ThrottleIntervalSeconds,
+                    MidpointRounding.ToEven
+                )
+        );
+
+    private bool ShouldMuteAudio()
+    {
+        // Current audio output is real-time; fast-forward audio needs separate resampling.
+        return Volatile.Read(ref _isFastForwardEnabled) != 0
+            && Volatile.Read(ref _fastForwardSpeed) > (int)EmulationSpeed.Normal;
+    }
+
+    private void PublishMetricsIfDue(ref long metricsTimestamp, ref int metricsFrameCount)
+    {
+        long timestamp = Stopwatch.GetTimestamp();
+        double elapsedSeconds = (timestamp - metricsTimestamp) / (double)Stopwatch.Frequency;
+
+        if (elapsedSeconds < 1)
+        {
+            return;
+        }
+
+        int completedFrameCount = _completedFrameCount;
+        double displayFramesPerSecond = (completedFrameCount - metricsFrameCount) / elapsedSeconds;
+
+        _handleMetrics(new EmulationMetrics(GetSpeedMultiplier(), displayFramesPerSecond));
+
+        metricsTimestamp = timestamp;
+        metricsFrameCount = completedFrameCount;
+    }
 
     private void DrainAudioSamples(bool enqueueOutput)
     {
@@ -253,15 +294,20 @@ internal sealed class EmulationSession
 
     private void OnFrameCompleted(object? sender, FrameCompletedEventArgs e)
     {
-        if (!ShouldPresentFrame())
+        if (Volatile.Read(ref _isFastForwardEnabled) != 0)
         {
-            return;
+            Volatile.Write(
+                ref _nextFastForwardFrameTimestamp,
+                Stopwatch.GetTimestamp() + _fastForwardFrameIntervalTimestamp
+            );
         }
 
+        Volatile.Write(ref _videoFrameRenderRequested, 0);
+        _completedFrameCount++;
         _handleFrame(e);
     }
 
-    private bool ShouldPresentFrame()
+    private bool ShouldRenderVideoFrame()
     {
         if (
             Volatile.Read(ref _isFastForwardEnabled) == 0
@@ -271,19 +317,17 @@ internal sealed class EmulationSession
             return true;
         }
 
-        // Fast-forward produces more completed frames than the UI should render
-        long timestamp = Stopwatch.GetTimestamp();
-        long nextFrameTimestamp = Volatile.Read(ref _nextFastForwardFrameTimestamp);
+        if (Volatile.Read(ref _videoFrameRenderRequested) != 0)
+        {
+            return true;
+        }
 
-        if (timestamp < nextFrameTimestamp)
+        if (Stopwatch.GetTimestamp() < Volatile.Read(ref _nextFastForwardFrameTimestamp))
         {
             return false;
         }
 
-        Volatile.Write(
-            ref _nextFastForwardFrameTimestamp,
-            timestamp + FastForwardFrameIntervalTimestamp
-        );
+        Volatile.Write(ref _videoFrameRenderRequested, 1);
         return true;
     }
 }
