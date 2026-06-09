@@ -16,7 +16,7 @@ internal static class CpuTestFactory
         Cartridge cartridge = ResultAssertions.AssertSuccess(
             Cartridge.Load(TestRomFactory.Create(configure))
         );
-        var bus = new MemoryBus(cartridge, new DmgHardwareProfile());
+        var bus = new MemoryBus(cartridge, DmgHardwareProfile.Instance);
         var cpu = new Cpu(bus);
         Buses.Add(cpu, bus);
         return cpu;

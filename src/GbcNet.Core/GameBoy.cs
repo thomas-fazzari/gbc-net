@@ -22,22 +22,19 @@ public sealed class GameBoy
     /// </summary>
     public GameBoy(Cartridge cartridge, HardwareModel hardwareModel)
     {
-        IHardwareProfile hardwareProfile = hardwareModel switch
-        {
-            HardwareModel.Dmg => new DmgHardwareProfile(),
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(hardwareModel),
-                hardwareModel,
-                "Unsupported hardware model."
-            ),
-        };
+        ArgumentNullException.ThrowIfNull(cartridge);
+
+        IHardwareProfile hardwareProfile = HardwareProfileFactory.Create(
+            hardwareModel,
+            cartridge.Header
+        );
 
         Bus = new MemoryBus(cartridge, hardwareProfile);
         Bus.Serial.ByteTransferred += OnSerialByteTransferred;
         _clock = new MachineClock(Bus);
         Cpu = new Cpu(Bus, _clock.TickMachineCycle);
-        HardwareModel = hardwareModel;
-        PostBootState.Apply(hardwareModel, cartridge, Cpu, Bus);
+        HardwareModel = hardwareProfile.Model;
+        PostBootState.Apply(hardwareProfile, cartridge, Cpu, Bus);
     }
 
     /// <summary>

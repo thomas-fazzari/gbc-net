@@ -1,6 +1,5 @@
 using GbcNet.Core;
 using GbcNet.Core.Cartridges;
-using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Sm83;
@@ -16,7 +15,7 @@ public sealed class PostBootStateTests
         Cartridge cartridge = LoadCartridge(TestRomFactory.Create());
         (Cpu cpu, MemoryBus bus) = CreateHardware(cartridge);
 
-        PostBootState.Apply(HardwareModel.Dmg, cartridge, cpu, bus);
+        PostBootState.Apply(DmgHardwareProfile.Instance, cartridge, cpu, bus);
 
         Assert.Equal(0x01, cpu.Registers.A);
         Assert.Equal(0xB0, cpu.Registers.F);
@@ -33,7 +32,7 @@ public sealed class PostBootStateTests
         Cartridge cartridge = LoadCartridge(CreateRomWithZeroHeaderChecksum());
         (Cpu cpu, MemoryBus bus) = CreateHardware(cartridge);
 
-        PostBootState.Apply(HardwareModel.Dmg, cartridge, cpu, bus);
+        PostBootState.Apply(DmgHardwareProfile.Instance, cartridge, cpu, bus);
 
         Assert.Equal(0x80, cpu.Registers.F);
     }
@@ -44,7 +43,7 @@ public sealed class PostBootStateTests
         Cartridge cartridge = LoadCartridge(TestRomFactory.Create());
         (Cpu cpu, MemoryBus bus) = CreateHardware(cartridge);
 
-        PostBootState.Apply(HardwareModel.Dmg, cartridge, cpu, bus);
+        PostBootState.Apply(DmgHardwareProfile.Instance, cartridge, cpu, bus);
 
         Assert.Equal(0xCF, bus.ReadByte(AddressMap.JoypadRegister));
         Assert.Equal(0x00, bus.ReadByte(AddressMap.SerialTransferDataRegister));
@@ -69,7 +68,7 @@ public sealed class PostBootStateTests
 
     private static (Cpu Cpu, MemoryBus Bus) CreateHardware(Cartridge cartridge)
     {
-        var bus = new MemoryBus(cartridge, new DmgHardwareProfile());
+        var bus = new MemoryBus(cartridge, DmgHardwareProfile.Instance);
         return (new Cpu(bus), bus);
     }
 

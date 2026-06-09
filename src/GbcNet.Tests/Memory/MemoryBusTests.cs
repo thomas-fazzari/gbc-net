@@ -552,7 +552,7 @@ public sealed class MemoryBusTests
     private static MemoryBus CreateBus(byte[] rom)
     {
         Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
-        return new MemoryBus(cartridge, new DmgHardwareProfile());
+        return new MemoryBus(cartridge, DmgHardwareProfile.Instance);
     }
 
     private static void TickMachineCycles(MemoryBus bus, int machineCycles)
