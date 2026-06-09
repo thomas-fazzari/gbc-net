@@ -1,21 +1,53 @@
 namespace GbcNet.Core.Memory;
 
 /// <summary>
-/// Stores DMG work RAM and mirrors E000-FDFF onto C000-DDFF.
+/// Stores banked work RAM and mirrors E000-FDFF onto C000-DDFF.
 /// </summary>
 internal sealed class WorkRam
 {
-    private readonly byte[] _bytes = new byte[AddressMap.WorkRamEnd - AddressMap.WorkRamStart + 1];
+    private const int BankSize = 4 * 1024;
+    private const int MinimumBankCount = 2;
+    private const int BankSelectMask = 0b111;
 
-    public byte Read(ushort address) => _bytes[GetOffset(address)];
+    private readonly byte[] _banks;
+    private readonly int _bankCount;
+    private int _selectedSwitchableBank = 1;
+
+    public WorkRam(int bankCount)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(bankCount, MinimumBankCount);
+
+        _bankCount = bankCount;
+        _banks = new byte[bankCount * BankSize];
+    }
+
+    public byte Read(ushort address) => _banks[GetOffset(address)];
 
     public void Write(ushort address, byte value)
     {
-        _bytes[GetOffset(address)] = value;
+        _banks[GetOffset(address)] = value;
     }
 
-    private static int GetOffset(ushort address) =>
-        address >= AddressMap.EchoRamStart
-            ? address - AddressMap.EchoRamStart
-            : address - AddressMap.WorkRamStart;
+    internal void SelectSwitchableBank(byte value)
+    {
+        int selectedBank = value & BankSelectMask;
+
+        if (selectedBank == 0 || selectedBank >= _bankCount)
+        {
+            selectedBank = 1;
+        }
+
+        _selectedSwitchableBank = selectedBank;
+    }
+
+    private int GetOffset(ushort address)
+    {
+        ushort mappedAddress =
+            address >= AddressMap.EchoRamStart ? (ushort)(address - 0x2000) : address;
+
+        return mappedAddress <= AddressMap.WorkRamFixedBankEnd
+            ? mappedAddress - AddressMap.WorkRamStart
+            : (_selectedSwitchableBank * BankSize)
+                + (mappedAddress - AddressMap.WorkRamSwitchableBankStart);
+    }
 }

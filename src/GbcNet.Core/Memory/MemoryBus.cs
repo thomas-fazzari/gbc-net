@@ -22,7 +22,7 @@ internal sealed class MemoryBus
     /// </summary>
     private readonly MappedMemory _highRam = new(AddressMap.HighRamStart, AddressMap.HighRamEnd);
 
-    private readonly WorkRam _workRam = new();
+    private readonly WorkRam _workRam;
     private readonly Cartridge _cartridge;
     private readonly IDmaTransferPolicy _dmaTransferPolicy;
     private readonly Func<ushort, byte> _readByteForDma;
@@ -80,6 +80,7 @@ internal sealed class MemoryBus
     public MemoryBus(Cartridge cartridge, IHardwareProfile hardwareProfile)
     {
         _cartridge = cartridge;
+        _workRam = new WorkRam(hardwareProfile.WorkRamBankCount);
         _dmaTransferPolicy = hardwareProfile.CreateDmaTransferPolicy();
         Interrupts = new InterruptController();
         Joypad = new JoypadController(Interrupts);

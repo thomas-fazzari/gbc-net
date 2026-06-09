@@ -18,6 +18,8 @@ internal sealed class DmgHardwareProfile : IHardwareProfile
 
     public HardwareModel Model => HardwareModel.Dmg;
 
+    public int WorkRamBankCount => 2;
+
     public IPpuEngine CreatePpuEngine() => new DmgPpuEngine();
 
     public IDmaTransferPolicy CreateDmaTransferPolicy() => new DmgDmaTransferPolicy();

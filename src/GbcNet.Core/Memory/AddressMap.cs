@@ -51,6 +51,16 @@ internal static class AddressMap
     public const ushort WorkRamStart = 0xC000;
 
     /// <summary>
+    /// Last address of WRAM bank 0, fixed on all models.
+    /// </summary>
+    public const ushort WorkRamFixedBankEnd = 0xCFFF;
+
+    /// <summary>
+    /// First address of the switchable WRAM bank window.
+    /// </summary>
+    public const ushort WorkRamSwitchableBankStart = 0xD000;
+
+    /// <summary>
     /// Last address of directly addressable work RAM.
     /// </summary>
     public const ushort WorkRamEnd = 0xDFFF;

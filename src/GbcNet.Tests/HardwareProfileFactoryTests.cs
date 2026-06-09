@@ -21,5 +21,6 @@ public sealed class HardwareProfileFactoryTests
 
         Assert.Same(DmgHardwareProfile.Instance, profile);
         Assert.Equal(HardwareModel.Dmg, profile.Model);
+        Assert.Equal(2, profile.WorkRamBankCount);
     }
 }

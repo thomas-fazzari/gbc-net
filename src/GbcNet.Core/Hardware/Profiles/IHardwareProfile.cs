@@ -18,6 +18,11 @@ internal interface IHardwareProfile
     HardwareModel Model { get; }
 
     /// <summary>
+    /// Number of physical 4 KiB WRAM banks available to the model.
+    /// </summary>
+    int WorkRamBankCount { get; }
+
+    /// <summary>
     /// Creates the LCD/PPU engine for this hardware model.
     /// </summary>
     IPpuEngine CreatePpuEngine();
