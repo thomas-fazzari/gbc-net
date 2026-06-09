@@ -12,6 +12,7 @@ namespace GbcNet.Tests;
 public sealed class GameBoyTests
 {
     private const byte HaltOpcode = 0x76;
+    private const byte StopOpcode = 0x10;
     private const byte JumpImmediate16Opcode = 0xC3;
 
     [Fact]
@@ -30,6 +31,24 @@ public sealed class GameBoyTests
 
         Assert.Equal(1, machineCycles);
         Assert.Equal(0x01, gameBoy.Bus.ReadByte(AddressMap.TimerCounterRegister));
+    }
+
+    [Fact]
+    public void Step_ReturnsZeroAfterCpuEntersStop()
+    {
+        Cartridge cartridge = ResultAssertions.AssertSuccess(
+            Cartridge.Load(
+                TestRomFactory.Create(bytes =>
+                {
+                    bytes[0x0100] = StopOpcode;
+                    bytes[0x0101] = 0x00;
+                })
+            )
+        );
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
+
+        Assert.Equal(2, gameBoy.Step());
+        Assert.Equal(0, gameBoy.Step());
     }
 
     [Fact]

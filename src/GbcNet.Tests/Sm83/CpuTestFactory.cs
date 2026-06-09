@@ -11,13 +11,13 @@ internal static class CpuTestFactory
 {
     private static readonly ConditionalWeakTable<Cpu, MemoryBus> Buses = [];
 
-    public static Cpu CreateCpu(Action<byte[]>? configure = null)
+    public static Cpu CreateCpu(Action<byte[]>? configure = null, Action? tickMachineCycle = null)
     {
         Cartridge cartridge = ResultAssertions.AssertSuccess(
             Cartridge.Load(TestRomFactory.Create(configure))
         );
         var bus = new MemoryBus(cartridge, DmgHardwareProfile.Instance);
-        var cpu = new Cpu(bus);
+        var cpu = new Cpu(bus, tickMachineCycle);
         Buses.Add(cpu, bus);
         return cpu;
     }

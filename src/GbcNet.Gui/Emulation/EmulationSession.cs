@@ -20,6 +20,7 @@ internal sealed class EmulationSession
     private const int AudioDrainSampleCapacity = 512;
     private const double ThrottleIntervalSeconds = ThrottleIntervalMilliseconds / 1000.0;
     private static readonly long _fastForwardFrameIntervalTimestamp = Stopwatch.Frequency / 60;
+    private static readonly TimeSpan _stoppedCpuSleepInterval = TimeSpan.FromMilliseconds(1);
 
     private readonly Func<Result> _flushBatterySave;
     private readonly Action<Exception> _handleFault;
@@ -164,7 +165,18 @@ internal sealed class EmulationSession
                 }
 
                 _gameBoy.VideoRenderingEnabled = ShouldRenderVideoFrame();
-                elapsedMachineCycles += _gameBoy.Step();
+                int stepMachineCycles = _gameBoy.Step();
+                if (stepMachineCycles == 0)
+                {
+                    await Task.WhenAny(
+                            Task.Delay(_stoppedCpuSleepInterval, CancellationToken.None),
+                            _stopRequested.Task
+                        )
+                        .ConfigureAwait(false);
+                    continue;
+                }
+
+                elapsedMachineCycles += stepMachineCycles;
 
                 DrainAudioSamples(enqueueOutput: !ShouldMuteAudio());
 

@@ -51,6 +51,11 @@ internal sealed class JoypadController(InterruptController interrupts)
     public byte Read() => (byte)(HighBitsReadMask | _selectedGroups | ReadLowNibble());
 
     /// <summary>
+    /// Indicates that at least one selected button line is pulled low.
+    /// </summary>
+    internal bool HasSelectedButtonPressed => ReadLowNibble() != ReleasedLowNibble;
+
+    /// <summary>
     /// Writes JOYP selection bits, ignoring read-only button state bits.
     /// </summary>
     public void Write(byte value, bool requestInterruptOnTransition)

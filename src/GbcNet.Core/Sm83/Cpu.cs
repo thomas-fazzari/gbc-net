@@ -18,6 +18,11 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     public bool Halted { get; private set; }
 
     /// <summary>
+    /// Indicates that STOP has suspended CPU fetches until a selected joypad line goes low.
+    /// </summary>
+    public bool Stopped { get; private set; }
+
+    /// <summary>
     /// Indicates that the next opcode fetch must not advance PC because of the HALT bug.
     /// </summary>
     public bool HaltBugPending { get; private set; }
@@ -52,6 +57,11 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     public int Step()
     {
         _currentInstructionMachineCycles = 0;
+
+        if (Stopped)
+        {
+            return StepStopped();
+        }
 
         if (Halted)
         {
@@ -132,6 +142,16 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     }
 
     /// <summary>
+    /// Executes STOP by entering the low-power stopped state and resetting DIV.
+    /// </summary>
+    internal void Stop()
+    {
+        bus.Clock.ResetDivider();
+        Halted = false;
+        Stopped = true;
+    }
+
+    /// <summary>
     /// Reads one byte from CPU-visible memory and consumes one machine cycle.
     /// </summary>
     internal byte ReadBus(ushort address)
@@ -205,6 +225,16 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
         instruction.Execute(this, firstOperand, secondOperand);
         InstructionObserver?.OnInstructionExecuted(opcode, Registers);
         return _currentInstructionMachineCycles;
+    }
+
+    private int StepStopped()
+    {
+        if (bus.Joypad.HasSelectedButtonPressed)
+        {
+            Stopped = false;
+        }
+
+        return 0;
     }
 
     private int StepHalted()

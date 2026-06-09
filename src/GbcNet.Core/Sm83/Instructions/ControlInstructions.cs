@@ -8,6 +8,7 @@ namespace GbcNet.Core.Sm83.Instructions;
 internal static class ControlInstructions
 {
     private const byte NopOpcode = 0x00;
+    private const byte StopOpcode = 0x10;
     private const byte CbPrefixOpcode = 0xCB;
     private const byte HaltOpcode = 0x76;
     private const byte DisableInterruptsOpcode = 0xF3;
@@ -19,6 +20,7 @@ internal static class ControlInstructions
     public static void Map(OpcodeTableBuilder builder)
     {
         builder.MapNoOperand(NopOpcode, static _ => { });
+        builder.MapImmediate8(StopOpcode, static (cpu, _) => cpu.Stop());
         builder.MapPrefixed(CbPrefixOpcode, ExecuteCbPrefix);
         builder.MapNoOperand(HaltOpcode, static cpu => cpu.Halt());
         builder.MapNoOperand(DisableInterruptsOpcode, static cpu => cpu.DisableInterrupts());
