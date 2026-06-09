@@ -1,0 +1,25 @@
+{
+	"file_scan_exclusions": [
+		"**/.git",
+		"**/CVS",
+		"**/.DS_Store",
+		"**/Thumbs.db",
+		"**/.classpath",
+		"**/.settings",
+		"**/.idea",
+		"**/.vscode",
+		"**/bin",
+		"**/obj",
+		"**/TestResults",
+		"**/artifacts",
+		"**/coverage",
+		"**/out",
+		"**/publish",
+		"**/*.dmp"
+	],
+	"languages": {
+		"CSharp": {
+			"language_servers": ["omnisharp", "!roslyn", "..."]
+		}
+	}
+}
