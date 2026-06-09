@@ -1,3 +1,4 @@
+using GbcNet.Core.Clock;
 using GbcNet.Core.Interrupts;
 
 namespace GbcNet.Core.Timers;

@@ -1,6 +1,5 @@
-using GbcNet.Core;
-using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Clock;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
@@ -252,7 +251,7 @@ public sealed class MemoryBusTests
     public void WriteByte_DividerRegisterTicksApuDivApuOnFallingEdge()
     {
         MemoryBus bus = CreateBus();
-        bus.SystemCounter.SetCounter(1 << 12);
+        bus.Clock.SetCounter(1 << 12);
 
         bus.WriteByte(AddressMap.DividerRegister, 0x00);
 
@@ -559,11 +558,7 @@ public sealed class MemoryBusTests
     {
         for (int cycle = 0; cycle < machineCycles; cycle++)
         {
-            bus.Timers.AdvanceReloadPipeline();
-            ushort fallingEdges = bus.SystemCounter.AdvanceMachineCycle();
-            bus.Timers.TickSystemCounter(fallingEdges);
-            bus.Serial.TickSystemCounter(fallingEdges);
-            bus.Apu.TickSystemCounter(new ApuTickInputs(fallingEdges, CgbDoubleSpeed: false));
+            bus.Clock.TickMachineCycle();
             bus.Apu.Tick(HardwareTiming.MachineCycleTCycles);
         }
     }

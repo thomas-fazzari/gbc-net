@@ -1,5 +1,6 @@
 using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Clock;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Joypad;

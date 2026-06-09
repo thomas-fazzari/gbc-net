@@ -1,4 +1,5 @@
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Clock;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Sm83;
 
@@ -77,8 +78,7 @@ internal static class DmgPostBootState
     public static void Apply(Cartridge cartridge, Cpu cpu, MemoryBus bus)
     {
         PostBootState.SetCpuRegisters(cpu.Registers, CreateCpuRegisterState(cartridge));
-        bus.SystemCounter.SetCounter(DividerCounter);
-        bus.Serial.SetMasterClockStateFromCounter(DividerCounter);
+        bus.Clock.SetCounter(DividerCounter);
         PostBootState.SetHardwareRegisterStates(bus, _registerStatesBeforeAudio);
         ApplyAudioRegisters(bus);
         PostBootState.SetHardwareRegisterStates(bus, _registerStatesAfterAudio);

@@ -1,5 +1,6 @@
 using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Clock;
 using GbcNet.Core.Dma;
 using GbcNet.Core.Dma.Policies;
 using GbcNet.Core.Hardware.Profiles;
@@ -39,14 +40,14 @@ internal sealed class MemoryBus
     public InterruptController Interrupts { get; }
 
     /// <summary>
+    /// Shared clock controller routed through DIV and used by timer, serial, and APU frame clocks.
+    /// </summary>
+    public ClockController Clock { get; }
+
+    /// <summary>
     /// Divider and timer registers routed through FF04-FF07.
     /// </summary>
     public TimerController Timers { get; }
-
-    /// <summary>
-    /// Shared divider counter used by timer and serial clocks.
-    /// </summary>
-    public SystemCounter SystemCounter { get; }
 
     /// <summary>
     /// Joypad matrix register routed through FF00.
@@ -86,11 +87,11 @@ internal sealed class MemoryBus
         _cartridge = cartridge;
         _dmaTransferPolicy = hardwareProfile.CreateDmaTransferPolicy();
         Interrupts = new InterruptController();
-        SystemCounter = new SystemCounter();
-        Timers = new TimerController(Interrupts, SystemCounter);
         Joypad = new JoypadController(Interrupts);
         Serial = new SerialController(Interrupts);
         Apu = new ApuController(hardwareProfile.CreateApuHardwareProfile());
+        Clock = new ClockController(Interrupts, Serial, Apu);
+        Timers = Clock.Timers;
         Ppu = new PpuController(Interrupts, hardwareProfile.CreatePpuEngine());
         Dma = new DmaController();
         _readByteForDma = ReadOamDmaSourceByte;
@@ -299,7 +300,7 @@ internal sealed class MemoryBus
             AddressMap.JoypadRegister => Joypad.Read(),
             AddressMap.SerialTransferDataRegister => Serial.TransferData,
             AddressMap.SerialTransferControlRegister => Serial.ReadControl(),
-            AddressMap.DividerRegister => SystemCounter.ReadDivider(),
+            AddressMap.DividerRegister => Clock.ReadDivider(),
             AddressMap.TimerCounterRegister => Timers.TimerCounter,
             AddressMap.TimerModuloRegister => Timers.TimerModulo,
             AddressMap.TimerControlRegister => Timers.ReadTimerControl(),
@@ -364,15 +365,11 @@ internal sealed class MemoryBus
             case AddressMap.DividerRegister:
                 if (mode is IoRegisterWriteMode.CpuWrite)
                 {
-                    ushort fallingEdges = SystemCounter.Reset();
-                    Timers.TickSystemCounter(fallingEdges);
-                    Serial.TickSystemCounter(fallingEdges);
-                    Apu.TickSystemCounter(new ApuTickInputs(fallingEdges, CgbDoubleSpeed: false));
+                    Clock.ResetDivider();
                 }
                 else
                 {
-                    SystemCounter.SetDivider(value);
-                    Serial.SetMasterClockStateFromCounter(SystemCounter.Value);
+                    Clock.SetDivider(value);
                 }
 
                 return;
