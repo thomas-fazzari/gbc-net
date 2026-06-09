@@ -17,12 +17,6 @@ namespace GbcNet.Core.Memory;
 /// </summary>
 internal sealed class MemoryBus
 {
-    private enum IoRegisterWriteMode
-    {
-        CpuWrite = 0,
-        SeedState = 1,
-    }
-
     /// <summary>
     /// Plain backing store for HRAM at FF80-FFFE.
     /// </summary>
@@ -33,6 +27,7 @@ internal sealed class MemoryBus
     private readonly IDmaTransferPolicy _dmaTransferPolicy;
     private readonly Func<ushort, byte> _readByteForDma;
     private readonly Action<ushort, byte> _writeOamByteForDma;
+    private readonly IoRegisters _ioRegisters;
 
     /// <summary>
     /// Interrupt request and enable registers routed through FF0F and FFFF.
@@ -94,6 +89,7 @@ internal sealed class MemoryBus
         Timers = Clock.Timers;
         Ppu = new PpuController(Interrupts, hardwareProfile.CreatePpuEngine());
         Dma = new DmaController();
+        _ioRegisters = new IoRegisters(Interrupts, Clock, Joypad, Serial, Apu, Ppu, Dma);
         _readByteForDma = ReadOamDmaSourceByte;
         _writeOamByteForDma = Ppu.ObjectAttributeMemory.Write;
     }
@@ -106,7 +102,7 @@ internal sealed class MemoryBus
         switch (address)
         {
             case >= AddressMap.IoRegistersStart and <= AddressMap.IoRegistersEnd:
-                WriteIoRegister(address, value, IoRegisterWriteMode.SeedState);
+                _ioRegisters.SetState(address, value);
                 return;
             case AddressMap.InterruptEnableRegister:
                 Interrupts.InterruptEnable = value;
@@ -215,9 +211,8 @@ internal sealed class MemoryBus
             _ => false,
         };
 
-    private byte ReadMappedByte(ushort address)
-    {
-        return address switch
+    private byte ReadMappedByte(ushort address) =>
+        address switch
         {
             <= AddressMap.RomEnd => _cartridge.ReadRom(address),
             <= AddressMap.VideoRamEnd => Ppu.VideoRam.Read(address),
@@ -226,11 +221,10 @@ internal sealed class MemoryBus
             <= AddressMap.EchoRamEnd => _workRam.Read(address),
             <= AddressMap.ObjectAttributeMemoryEnd => Ppu.ObjectAttributeMemory.Read(address),
             <= AddressMap.NotUsableEnd => 0x00,
-            <= AddressMap.IoRegistersEnd => ReadIoRegister(address),
+            <= AddressMap.IoRegistersEnd => _ioRegisters.Read(address),
             <= AddressMap.HighRamEnd => _highRam.Read(address),
             AddressMap.InterruptEnableRegister => Interrupts.InterruptEnable,
         };
-    }
 
     private byte ReadOamDmaSourceByte(ushort address)
     {
@@ -272,155 +266,13 @@ internal sealed class MemoryBus
             case <= AddressMap.NotUsableEnd:
                 return;
             case <= AddressMap.IoRegistersEnd:
-                WriteIoRegister(address, value, IoRegisterWriteMode.CpuWrite);
+                _ioRegisters.WriteCpu(address, value);
                 return;
             case <= AddressMap.HighRamEnd:
                 _highRam.Write(address, value);
                 return;
             case AddressMap.InterruptEnableRegister:
                 Interrupts.InterruptEnable = value;
-                return;
-        }
-    }
-
-    private byte ReadIoRegister(ushort address)
-    {
-        if (PpuController.ContainsRegister(address))
-        {
-            return Ppu.ReadRegister(address);
-        }
-
-        if (ApuController.ContainsRegister(address))
-        {
-            return Apu.ReadRegister(address);
-        }
-
-        return address switch
-        {
-            AddressMap.JoypadRegister => Joypad.Read(),
-            AddressMap.SerialTransferDataRegister => Serial.TransferData,
-            AddressMap.SerialTransferControlRegister => Serial.ReadControl(),
-            AddressMap.DividerRegister => Clock.ReadDivider(),
-            AddressMap.TimerCounterRegister => Timers.TimerCounter,
-            AddressMap.TimerModuloRegister => Timers.TimerModulo,
-            AddressMap.TimerControlRegister => Timers.ReadTimerControl(),
-            AddressMap.InterruptFlagRegister => Interrupts.ReadInterruptFlag(),
-            AddressMap.DmaRegister => Dma.ReadRegister(),
-            _ => 0xFF,
-        };
-    }
-
-    private void WriteIoRegister(ushort address, byte value, IoRegisterWriteMode mode)
-    {
-        if (PpuController.ContainsRegister(address))
-        {
-            if (mode is IoRegisterWriteMode.CpuWrite)
-            {
-                Ppu.WriteRegister(address, value);
-            }
-            else
-            {
-                Ppu.SetRegisterState(address, value);
-            }
-
-            return;
-        }
-
-        if (ApuController.ContainsRegister(address))
-        {
-            if (mode is IoRegisterWriteMode.CpuWrite)
-            {
-                Apu.WriteRegister(address, value);
-            }
-            else
-            {
-                Apu.SetRegisterState(address, value);
-            }
-
-            return;
-        }
-
-        switch (address)
-        {
-            case AddressMap.JoypadRegister:
-                Joypad.Write(
-                    value,
-                    requestInterruptOnTransition: mode is IoRegisterWriteMode.CpuWrite
-                );
-                return;
-            case AddressMap.SerialTransferDataRegister:
-                Serial.TransferData = value;
-                return;
-            case AddressMap.SerialTransferControlRegister:
-                if (mode is IoRegisterWriteMode.CpuWrite)
-                {
-                    Serial.WriteControl(value);
-                }
-                else
-                {
-                    Serial.SetControlState(value);
-                }
-
-                return;
-            case AddressMap.DividerRegister:
-                if (mode is IoRegisterWriteMode.CpuWrite)
-                {
-                    Clock.ResetDivider();
-                }
-                else
-                {
-                    Clock.SetDivider(value);
-                }
-
-                return;
-            case AddressMap.TimerCounterRegister:
-                if (mode is IoRegisterWriteMode.CpuWrite)
-                {
-                    Timers.WriteTimerCounter(value);
-                }
-                else
-                {
-                    Timers.TimerCounter = value;
-                }
-
-                return;
-            case AddressMap.TimerModuloRegister:
-                if (mode is IoRegisterWriteMode.CpuWrite)
-                {
-                    Timers.WriteTimerModulo(value);
-                }
-                else
-                {
-                    Timers.TimerModulo = value;
-                }
-
-                return;
-            case AddressMap.TimerControlRegister:
-                if (mode is IoRegisterWriteMode.CpuWrite)
-                {
-                    Timers.WriteTimerControl(value);
-                }
-                else
-                {
-                    Timers.SetTimerControlState(value);
-                }
-
-                return;
-            case AddressMap.InterruptFlagRegister:
-                Interrupts.SetInterruptFlag(value);
-                return;
-            case AddressMap.DmaRegister:
-                if (mode is IoRegisterWriteMode.CpuWrite)
-                {
-                    Dma.StartOamTransfer(value);
-                }
-                else
-                {
-                    Dma.SetRegisterState(value);
-                }
-
-                return;
-            default:
                 return;
         }
     }
