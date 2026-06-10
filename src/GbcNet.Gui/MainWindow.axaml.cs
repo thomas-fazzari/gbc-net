@@ -24,7 +24,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         Patterns = ["*.gb", "*.gbc"],
         AppleUniformTypeIdentifiers = ["public.data"],
-        MimeTypes = ["application/octet-stream"],
+        MimeTypes = ["application/x-gameboy-rom", "application/x-gameboy-color-rom"],
     };
 
     private EmulationSession? _emulationSession;
