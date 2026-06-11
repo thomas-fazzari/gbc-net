@@ -31,6 +31,12 @@
                 <MenuItem x:Name="FastForwardSpeedMenuItem"
                           Header="Fast Forward _Speed" />
             </MenuItem>
+
+            <MenuItem Header="_View">
+                <MenuItem x:Name="FullscreenMenuItem"
+                          Header="_Fullscreen"
+                          ToggleType="CheckBox" />
+            </MenuItem>
         </Menu>
     </Border>
 </UserControl>

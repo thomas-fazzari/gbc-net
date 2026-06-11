@@ -1,4 +1,5 @@
 using System.Globalization;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
@@ -27,6 +28,8 @@ internal sealed partial class MainWindow : Window, IDisposable
         MimeTypes = ["application/x-gameboy-rom", "application/x-gameboy-color-rom"],
     };
 
+    private const string UnsupportedDroppedFileMessage = "Drop a .gb or .gbc ROM file.";
+
     private EmulationSession? _emulationSession;
     private readonly IAudioOutput _audioOutput;
     private readonly KeyboardInputMapper _keyboardInputMapper;
@@ -51,6 +54,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         InitializeComponent();
         ConfigureMenu();
+        ConfigureDragDrop();
 
         if (startupConfiguration.StartupMessage is not null)
         {
@@ -75,7 +79,16 @@ internal sealed partial class MainWindow : Window, IDisposable
         MainMenu.ResetRequested += ResetMenu_OnClick;
         MainMenu.FastForwardRequested += FastForwardMenu_OnClick;
         MainMenu.FastForwardSpeedSelected += FastForwardSpeedMenu_OnSelected;
+        MainMenu.FullscreenRequested += FullscreenMenu_OnClick;
         MainMenu.SetFastForwardState(_fastForwardEnabled, _fastForwardSpeed);
+        MainMenu.SetFullscreenState(isFullscreen: false);
+    }
+
+    private void ConfigureDragDrop()
+    {
+        DragDrop.SetAllowDrop(this, true);
+        DragDrop.AddDragOverHandler(this, DragDrop_OnDragOver);
+        DragDrop.AddDropHandler(this, DragDrop_OnDrop);
     }
 
     protected override void OnClosing(WindowClosingEventArgs e)
@@ -115,6 +128,16 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
     }
 
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == WindowStateProperty && MainMenu is not null)
+        {
+            MainMenu.SetFullscreenState(WindowState is WindowState.FullScreen);
+        }
+    }
+
     protected override void OnClosed(EventArgs e)
     {
         Dispose();
@@ -136,6 +159,68 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         base.OnKeyUp(e);
         ApplyKeyboardInput(e, pressed: false);
+    }
+
+    private static void DragDrop_OnDragOver(object? sender, DragEventArgs e)
+    {
+        e.DragEffects = e.DataTransfer.Formats.Contains(DataFormat.File)
+            ? DragDropEffects.Copy
+            : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void DragDrop_OnDrop(object? sender, DragEventArgs e)
+    {
+        e.Handled = true;
+
+        IStorageFile? file = GetFirstDroppedRom(e.DataTransfer.TryGetFiles());
+
+        if (file is null)
+        {
+            Title = UnsupportedDroppedFileMessage;
+            return;
+        }
+
+        _ = OpenRomFileAsync(file)
+            .ContinueWith(
+                static (task, state) =>
+                {
+                    if (task.Exception is not null)
+                    {
+                        ((MainWindow)state!).Title = task.Exception.GetBaseException().Message;
+                    }
+                },
+                this,
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted,
+                TaskScheduler.FromCurrentSynchronizationContext()
+            );
+    }
+
+    private static IStorageFile? GetFirstDroppedRom(IEnumerable<IStorageItem>? items)
+    {
+        if (items is null)
+        {
+            return null;
+        }
+
+        foreach (IStorageItem item in items)
+        {
+            if (item is IStorageFile file && IsRomFileName(file.Name))
+            {
+                return file;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsRomFileName(string fileName)
+    {
+        string extension = Path.GetExtension(fileName);
+
+        return extension.Equals(".gb", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".gbc", StringComparison.OrdinalIgnoreCase);
     }
 
     private void OpenRomMenu_OnClick(object? sender, EventArgs e)
@@ -180,6 +265,11 @@ internal sealed partial class MainWindow : Window, IDisposable
         SetFastForwardSpeed(e.Speed);
     }
 
+    private void FullscreenMenu_OnClick(object? sender, EventArgs e)
+    {
+        ToggleFullscreen();
+    }
+
     private void ResetMenu_OnClick(object? sender, EventArgs e)
     {
         _ = ResetRomAsync()
@@ -208,6 +298,12 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         _fastForwardSpeed = speed;
         ApplyFastForwardSettings();
+    }
+
+    private void ToggleFullscreen()
+    {
+        WindowState =
+            WindowState is WindowState.FullScreen ? WindowState.Normal : WindowState.FullScreen;
     }
 
     private async Task ResetRomAsync()
@@ -250,7 +346,12 @@ internal sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
-        byte[] rom = await ReadFileAsync(files[0]).ConfigureAwait(true);
+        await OpenRomFileAsync(files[0]).ConfigureAwait(true);
+    }
+
+    private async Task OpenRomFileAsync(IStorageFile file)
+    {
+        byte[] rom = await ReadFileAsync(file).ConfigureAwait(true);
         await StopEmulationSessionAsync().ConfigureAwait(true);
         Result<Cartridge> cartridge = LoadCartridge(rom);
 
@@ -264,8 +365,8 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
 
         _loadedRom = rom;
-        _loadedRomName = files[0].Name;
-        StartEmulation(cartridge.Value, rom, files[0].Name);
+        _loadedRomName = file.Name;
+        StartEmulation(cartridge.Value, rom, file.Name);
     }
 
     private static async Task<byte[]> ReadFileAsync(IStorageFile file)
@@ -329,6 +430,13 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private void ApplyKeyboardInput(KeyEventArgs e, bool pressed)
     {
+        if (pressed && e.Key is Key.Enter && e.KeyModifiers.HasFlag(KeyModifiers.Alt))
+        {
+            ToggleFullscreen();
+            e.Handled = true;
+            return;
+        }
+
         if (_emulationSession is null)
         {
             return;
