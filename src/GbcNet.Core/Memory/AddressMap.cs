@@ -211,6 +211,26 @@ internal static class AddressMap
     public const ushort VideoRamBankRegister = 0xFF4F;
 
     /// <summary>
+    /// Address of BCPS/BGPI, the CGB background palette index register.
+    /// </summary>
+    public const ushort BackgroundPaletteIndexRegister = 0xFF68;
+
+    /// <summary>
+    /// Address of BCPD/BGPD, the CGB background palette data register.
+    /// </summary>
+    public const ushort BackgroundPaletteDataRegister = 0xFF69;
+
+    /// <summary>
+    /// Address of OCPS/OBPI, the CGB object palette index register.
+    /// </summary>
+    public const ushort ObjectPaletteIndexRegister = 0xFF6A;
+
+    /// <summary>
+    /// Address of OCPD/OBPD, the CGB object palette data register.
+    /// </summary>
+    public const ushort ObjectPaletteDataRegister = 0xFF6B;
+
+    /// <summary>
     /// Address of SVBK, the CGB WRAM bank selection register.
     /// </summary>
     public const ushort WorkRamBankRegister = 0xFF70;

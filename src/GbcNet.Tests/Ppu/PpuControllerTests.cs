@@ -80,6 +80,108 @@ public sealed class PpuControllerTests
     }
 
     [Fact]
+    public void ReadWriteRegister_StoresColorPaletteIndexWithReadMask()
+    {
+        PpuController ppu = CreatePpu(isColorPaletteRamEnabled: true);
+
+        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0xFF);
+
+        Assert.Equal(0xFF, ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister));
+
+        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x40);
+
+        Assert.Equal(0x40, ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister));
+    }
+
+    [Fact]
+    public void ReadWriteRegister_StoresColorPaletteData()
+    {
+        PpuController ppu = CreatePpu(isColorPaletteRamEnabled: true);
+
+        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x02);
+        ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0xAB);
+
+        Assert.Equal(0xAB, ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister));
+    }
+
+    [Fact]
+    public void WriteRegister_AutoIncrementsColorPaletteIndexAfterDataWrite()
+    {
+        PpuController ppu = CreatePpu(isColorPaletteRamEnabled: true);
+
+        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x82);
+        ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x11);
+        ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x22);
+
+        Assert.Equal(0xC4, ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister));
+
+        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x02);
+
+        Assert.Equal(0x11, ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister));
+
+        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x03);
+
+        Assert.Equal(0x22, ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister));
+    }
+
+    [Fact]
+    public void ReadRegister_DoesNotAutoIncrementColorPaletteIndexAfterDataRead()
+    {
+        PpuController ppu = CreatePpu(isColorPaletteRamEnabled: true);
+
+        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x80);
+        ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x11);
+        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x80);
+
+        Assert.Equal(0x11, ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister));
+        Assert.Equal(0xC0, ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister));
+    }
+
+    [Fact]
+    public void WriteRegister_WrapsColorPaletteAutoIncrement()
+    {
+        PpuController ppu = CreatePpu(isColorPaletteRamEnabled: true);
+
+        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0xBF);
+        ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x33);
+
+        Assert.Equal(0xC0, ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister));
+    }
+
+    [Fact]
+    public void ReadWriteRegister_StoresBackgroundAndObjectColorPalettesIndependently()
+    {
+        PpuController ppu = CreatePpu(isColorPaletteRamEnabled: true);
+
+        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x01);
+        ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x12);
+        ppu.WriteRegister(AddressMap.ObjectPaletteIndexRegister, 0x01);
+        ppu.WriteRegister(AddressMap.ObjectPaletteDataRegister, 0x34);
+
+        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x01);
+        ppu.WriteRegister(AddressMap.ObjectPaletteIndexRegister, 0x01);
+
+        Assert.Equal(0x12, ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister));
+        Assert.Equal(0x34, ppu.ReadRegister(AddressMap.ObjectPaletteDataRegister));
+    }
+
+    [Fact]
+    public void ReadWriteRegister_IgnoresColorPaletteRegistersWhenDisabled()
+    {
+        PpuController ppu = CreatePpu();
+
+        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x81);
+        ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x12);
+        ppu.WriteRegister(AddressMap.ObjectPaletteIndexRegister, 0x82);
+        ppu.WriteRegister(AddressMap.ObjectPaletteDataRegister, 0x34);
+
+        Assert.Equal(0xFF, ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister));
+        Assert.Equal(0xFF, ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister));
+        Assert.Equal(0xFF, ppu.ReadRegister(AddressMap.ObjectPaletteIndexRegister));
+        Assert.Equal(0xFF, ppu.ReadRegister(AddressMap.ObjectPaletteDataRegister));
+    }
+
+    [Fact]
     public void ReadRegister_ReturnsStatusReadMaskAndPpuState()
     {
         PpuController ppu = CreatePpu();
@@ -725,8 +827,15 @@ public sealed class PpuControllerTests
 
     private static PpuController CreatePpu(
         InterruptController? interrupts = null,
-        int videoRamBankCount = 1
-    ) => new(interrupts ?? new InterruptController(), new DmgPpuEngine(), videoRamBankCount);
+        int videoRamBankCount = 1,
+        bool isColorPaletteRamEnabled = false
+    ) =>
+        new(
+            interrupts ?? new InterruptController(),
+            new DmgPpuEngine(),
+            videoRamBankCount,
+            isColorPaletteRamEnabled
+        );
 
     private static LcdFrame RenderSecondFrame(PpuController ppu, byte lcdControl)
     {

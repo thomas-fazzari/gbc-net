@@ -10,13 +10,24 @@ namespace GbcNet.Core.Ppu;
 internal sealed class PpuController(
     InterruptController interrupts,
     IPpuEngine engine,
-    int videoRamBankCount
+    int videoRamBankCount,
+    bool isColorPaletteRamEnabled
 )
 {
     /// <summary>
     /// VRAM at 8000-9FFF, banked by VBK when the active hardware mode exposes it.
     /// </summary>
     internal VideoRam VideoRam { get; } = new(videoRamBankCount);
+
+    /// <summary>
+    /// CGB background color palette RAM accessed through BGPI/BGPD.
+    /// </summary>
+    private CgbPaletteRam BackgroundPaletteRam { get; } = new(isColorPaletteRamEnabled);
+
+    /// <summary>
+    /// CGB object color palette RAM accessed through OBPI/OBPD.
+    /// </summary>
+    private CgbPaletteRam ObjectPaletteRam { get; } = new(isColorPaletteRamEnabled);
 
     /// <summary>
     /// Sprite attribute table at FE00-FE9F.
@@ -45,7 +56,7 @@ internal sealed class PpuController(
                 and not AddressMap.DmaRegister;
 
     /// <summary>
-    /// Reads an LCD/PPU register at FF40-FF45, FF47-FF4B, or FF4F.
+    /// Reads an LCD/PPU register at FF40-FF45, FF47-FF4B, FF4F, or FF68-FF6B.
     /// </summary>
     public byte ReadRegister(ushort address) =>
         address switch
@@ -62,6 +73,10 @@ internal sealed class PpuController(
             AddressMap.WindowYRegister => _windowY,
             AddressMap.WindowXRegister => _windowX,
             AddressMap.VideoRamBankRegister => VideoRam.ReadBankRegister(),
+            AddressMap.BackgroundPaletteIndexRegister => BackgroundPaletteRam.ReadIndexRegister(),
+            AddressMap.BackgroundPaletteDataRegister => BackgroundPaletteRam.ReadDataRegister(),
+            AddressMap.ObjectPaletteIndexRegister => ObjectPaletteRam.ReadIndexRegister(),
+            AddressMap.ObjectPaletteDataRegister => ObjectPaletteRam.ReadDataRegister(),
             _ => throw CreateUnsupportedRegisterException(address),
         };
 
@@ -218,6 +233,18 @@ internal sealed class PpuController(
                 return;
             case AddressMap.VideoRamBankRegister:
                 VideoRam.WriteBankRegister(value);
+                return;
+            case AddressMap.BackgroundPaletteIndexRegister:
+                BackgroundPaletteRam.WriteIndexRegister(value);
+                return;
+            case AddressMap.BackgroundPaletteDataRegister:
+                BackgroundPaletteRam.WriteDataRegister(value);
+                return;
+            case AddressMap.ObjectPaletteIndexRegister:
+                ObjectPaletteRam.WriteIndexRegister(value);
+                return;
+            case AddressMap.ObjectPaletteDataRegister:
+                ObjectPaletteRam.WriteDataRegister(value);
                 return;
             default:
                 throw CreateUnsupportedRegisterException(address);

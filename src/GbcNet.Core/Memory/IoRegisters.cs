@@ -51,7 +51,11 @@ internal sealed class IoRegisters(
             AddressMap.TimerControlRegister => _timers.ReadTimerControl(),
             AddressMap.InterruptFlagRegister => interrupts.ReadInterruptFlag(),
             AddressMap.DmaRegister => dma.ReadRegister(),
-            AddressMap.VideoRamBankRegister => ppu.ReadRegister(address),
+            AddressMap.VideoRamBankRegister
+            or AddressMap.BackgroundPaletteIndexRegister
+            or AddressMap.BackgroundPaletteDataRegister
+            or AddressMap.ObjectPaletteIndexRegister
+            or AddressMap.ObjectPaletteDataRegister => ppu.ReadRegister(address),
             AddressMap.WorkRamBankRegister => workRam.ReadBankRegister(),
             _ => 0xFF,
         };
@@ -171,6 +175,10 @@ internal sealed class IoRegisters(
                 return;
 
             case AddressMap.VideoRamBankRegister:
+            case AddressMap.BackgroundPaletteIndexRegister:
+            case AddressMap.BackgroundPaletteDataRegister:
+            case AddressMap.ObjectPaletteIndexRegister:
+            case AddressMap.ObjectPaletteDataRegister:
                 if (mode is IoRegisterWriteMode.CpuWrite)
                 {
                     ppu.WriteRegister(address, value);

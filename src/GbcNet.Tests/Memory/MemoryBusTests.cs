@@ -91,6 +91,67 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
+    public void ReadWriteByte_RoutesCgbColorPaletteRegisters()
+    {
+        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+
+        bus.WriteByte(AddressMap.BackgroundPaletteIndexRegister, 0x80);
+        bus.WriteByte(AddressMap.BackgroundPaletteDataRegister, 0x12);
+
+        Assert.Equal(0xC1, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
+
+        bus.WriteByte(AddressMap.BackgroundPaletteIndexRegister, 0x80);
+
+        Assert.Equal(0x12, bus.ReadByte(AddressMap.BackgroundPaletteDataRegister));
+    }
+
+    [Fact]
+    public void ReadWriteByte_IgnoresColorPaletteRegistersInCgbDmgCompatibilityMode()
+    {
+        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+
+        bus.WriteByte(AddressMap.BackgroundPaletteIndexRegister, 0x80);
+        bus.WriteByte(AddressMap.BackgroundPaletteDataRegister, 0x12);
+        bus.WriteByte(AddressMap.ObjectPaletteIndexRegister, 0x81);
+        bus.WriteByte(AddressMap.ObjectPaletteDataRegister, 0x34);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.BackgroundPaletteDataRegister));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPaletteIndexRegister));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPaletteDataRegister));
+    }
+
+    [Fact]
+    public void ReadWriteByte_IgnoresColorPaletteRegistersOnDmg()
+    {
+        MemoryBus bus = CreateBus();
+
+        bus.WriteByte(AddressMap.BackgroundPaletteIndexRegister, 0x80);
+        bus.WriteByte(AddressMap.BackgroundPaletteDataRegister, 0x12);
+        bus.WriteByte(AddressMap.ObjectPaletteIndexRegister, 0x81);
+        bus.WriteByte(AddressMap.ObjectPaletteDataRegister, 0x34);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.BackgroundPaletteDataRegister));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPaletteIndexRegister));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPaletteDataRegister));
+    }
+
+    [Fact]
+    public void ReadWriteByte_StoresDmgPaletteRegisters()
+    {
+        MemoryBus bus = CreateBus();
+
+        bus.WriteByte(AddressMap.BackgroundPaletteRegister, 0xFC);
+        bus.WriteByte(AddressMap.ObjectPalette0Register, 0xA5);
+        bus.WriteByte(AddressMap.ObjectPalette1Register, 0x5A);
+
+        Assert.Equal(0xFC, bus.ReadByte(AddressMap.BackgroundPaletteRegister));
+        Assert.Equal(0xA5, bus.ReadByte(AddressMap.ObjectPalette0Register));
+        Assert.Equal(0x5A, bus.ReadByte(AddressMap.ObjectPalette1Register));
+    }
+
+    [Fact]
     public void ReadWriteByte_StoresWorkRam()
     {
         MemoryBus bus = CreateBus();

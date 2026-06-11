@@ -94,7 +94,8 @@ internal sealed class MemoryBus
         Ppu = new PpuController(
             Interrupts,
             hardwareProfile.CreatePpuEngine(),
-            hardwareProfile.VideoRamBankCount
+            hardwareProfile.VideoRamBankCount,
+            hardwareProfile.IsColorPaletteRamEnabled
         );
         Dma = new DmaController();
         _ioRegisters = new IoRegisters(Interrupts, Clock, Joypad, Serial, Apu, Ppu, _workRam, Dma);

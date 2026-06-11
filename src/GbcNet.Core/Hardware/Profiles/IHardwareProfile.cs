@@ -33,6 +33,11 @@ internal interface IHardwareProfile
     bool IsWorkRamBankRegisterEnabled { get; }
 
     /// <summary>
+    /// Indicates whether the CPU-visible CGB color palette RAM registers are enabled.
+    /// </summary>
+    bool IsColorPaletteRamEnabled { get; }
+
+    /// <summary>
     /// Creates the LCD/PPU engine for this hardware model.
     /// </summary>
     IPpuEngine CreatePpuEngine();
