@@ -89,7 +89,7 @@ internal sealed class MemoryBus
         Joypad = new JoypadController(Interrupts);
         Serial = new SerialController(Interrupts);
         Apu = new ApuController(hardwareProfile.CreateApuHardwareProfile());
-        Clock = new ClockController(Interrupts, Serial, Apu);
+        Clock = new ClockController(Interrupts, Serial, Apu, hardwareProfile.IsKey1RegisterEnabled);
         Timers = Clock.Timers;
         Ppu = new PpuController(
             Interrupts,

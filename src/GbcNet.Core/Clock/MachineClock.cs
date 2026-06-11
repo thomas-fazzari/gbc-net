@@ -10,6 +10,11 @@ internal static class HardwareTiming
     /// Number of T-cycles in one CPU machine cycle.
     /// </summary>
     public const ushort MachineCycleTCycles = 4;
+
+    /// <summary>
+    /// Number of PPU/APU T-cycles elapsed during one CPU machine cycle in CGB double-speed mode.
+    /// </summary>
+    public const ushort DoubleSpeedMachineCycleTCycles = 2;
 }
 
 /// <summary>
@@ -25,9 +30,11 @@ internal sealed class MachineClock(MemoryBus bus)
     public void TickMachineCycle()
     {
         bus.Clock.TickMachineCycle();
-        bus.Apu.Tick(HardwareTiming.MachineCycleTCycles);
 
-        if (bus.Ppu.Tick(HardwareTiming.MachineCycleTCycles) is { } completedFrame)
+        int tCycles = bus.Clock.VideoAndAudioTCyclesPerMachineCycle;
+        bus.Apu.Tick(tCycles);
+
+        if (bus.Ppu.Tick(tCycles) is { } completedFrame)
         {
             _completedFrames.Enqueue(completedFrame);
         }

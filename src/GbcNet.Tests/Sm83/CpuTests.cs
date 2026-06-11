@@ -1,3 +1,6 @@
+using GbcNet.Core.Hardware;
+using GbcNet.Core.Hardware.Profiles;
+using GbcNet.Core.Memory;
 using GbcNet.Core.Sm83;
 
 namespace GbcNet.Tests.Sm83;
@@ -15,6 +18,7 @@ public sealed class CpuTests
     private const byte DeRegisterPair = (byte)RegisterPair.DE;
     private const byte HlRegisterPair = (byte)RegisterPair.HL;
     private const byte SpRegisterPair = (byte)RegisterPair.SP;
+    private const byte StopOpcode = 0x10;
 
     [Fact]
     public void Constructor_InitializesDmgPostBootProgramCounterAndStackPointer()
@@ -34,6 +38,49 @@ public sealed class CpuTests
 
         Assert.Equal(1, machineCycles);
         Assert.Equal(0x0101, cpu.Registers.PC);
+    }
+
+    [Fact]
+    public void Step_StopWithArmedKey1SwitchesSpeedWithoutEnteringStoppedState()
+    {
+        Cpu cpu = CpuTestFactory.CreateCpu(
+            bytes =>
+            {
+                bytes[0x0100] = StopOpcode;
+                bytes[0x0101] = 0x00;
+            },
+            hardwareProfile: new CgbHardwareProfile(CgbOperatingMode.Cgb)
+        );
+        MemoryBus bus = CpuTestFactory.GetBus(cpu);
+        bus.WriteByte(AddressMap.Key1Register, 0x01);
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(2, machineCycles);
+        Assert.False(cpu.Stopped);
+        Assert.True(bus.Clock.CgbDoubleSpeed);
+        Assert.Equal(0xFE, bus.ReadByte(AddressMap.Key1Register));
+    }
+
+    [Fact]
+    public void Step_StopWithoutArmedKey1EntersStoppedState()
+    {
+        Cpu cpu = CpuTestFactory.CreateCpu(
+            bytes =>
+            {
+                bytes[0x0100] = StopOpcode;
+                bytes[0x0101] = 0x00;
+            },
+            hardwareProfile: new CgbHardwareProfile(CgbOperatingMode.Cgb)
+        );
+        MemoryBus bus = CpuTestFactory.GetBus(cpu);
+
+        int machineCycles = cpu.Step();
+
+        Assert.Equal(2, machineCycles);
+        Assert.True(cpu.Stopped);
+        Assert.False(bus.Clock.CgbDoubleSpeed);
+        Assert.Equal(0x7E, bus.ReadByte(AddressMap.Key1Register));
     }
 
     [Fact]

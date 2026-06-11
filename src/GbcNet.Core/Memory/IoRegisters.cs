@@ -50,6 +50,7 @@ internal sealed class IoRegisters(
             AddressMap.TimerModuloRegister => _timers.TimerModulo,
             AddressMap.TimerControlRegister => _timers.ReadTimerControl(),
             AddressMap.InterruptFlagRegister => interrupts.ReadInterruptFlag(),
+            AddressMap.Key1Register => clock.ReadKey1(),
             AddressMap.DmaRegister => dma.ReadRegister(),
             AddressMap.VideoRamBankRegister
             or AddressMap.BackgroundPaletteIndexRegister
@@ -123,6 +124,17 @@ internal sealed class IoRegisters(
                 else
                 {
                     clock.SetDivider(value);
+                }
+                return;
+
+            case AddressMap.Key1Register:
+                if (mode is IoRegisterWriteMode.CpuWrite)
+                {
+                    clock.WriteKey1(value);
+                }
+                else
+                {
+                    clock.SetKey1State(value);
                 }
                 return;
 

@@ -28,6 +28,11 @@ internal interface IHardwareProfile
     int WorkRamBankCount { get; }
 
     /// <summary>
+    /// Indicates whether the CPU-visible CGB speed switch register is enabled.
+    /// </summary>
+    bool IsKey1RegisterEnabled { get; }
+
+    /// <summary>
     /// Indicates whether the CPU-visible CGB WRAM bank register is enabled.
     /// </summary>
     bool IsWorkRamBankRegisterEnabled { get; }

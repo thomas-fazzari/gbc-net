@@ -468,6 +468,63 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
+    public void ReadWriteByte_RoutesKey1RegisterForCgbMode()
+    {
+        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+
+        Assert.Equal(0x7E, bus.ReadByte(AddressMap.Key1Register));
+
+        bus.WriteByte(AddressMap.Key1Register, 0xFF);
+
+        Assert.Equal(0x7F, bus.ReadByte(AddressMap.Key1Register));
+
+        bus.WriteByte(AddressMap.Key1Register, 0xFE);
+
+        Assert.Equal(0x7E, bus.ReadByte(AddressMap.Key1Register));
+    }
+
+    [Fact]
+    public void ReadWriteByte_IgnoresKey1RegisterOnDmg()
+    {
+        MemoryBus bus = CreateBus();
+
+        bus.WriteByte(AddressMap.Key1Register, 0x01);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.Key1Register));
+        Assert.False(bus.Clock.CgbDoubleSpeed);
+    }
+
+    [Fact]
+    public void ReadWriteByte_IgnoresKey1RegisterInCgbDmgCompatibilityMode()
+    {
+        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+
+        bus.WriteByte(AddressMap.Key1Register, 0x01);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.Key1Register));
+        Assert.False(bus.Clock.CgbDoubleSpeed);
+    }
+
+    [Fact]
+    public void TickMachineCycle_TicksPpuAtTwoTCyclesInDoubleSpeed()
+    {
+        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var clock = new MachineClock(bus);
+        bus.WriteByte(AddressMap.LcdControlRegister, 0x80);
+        bus.WriteByte(AddressMap.Key1Register, 0x01);
+
+        Assert.True(bus.Clock.TrySwitchSpeedOnStop());
+
+        TickMachineCycles(clock, 114);
+
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.LcdYCoordinateRegister));
+
+        TickMachineCycles(clock, 114);
+
+        Assert.Equal(0x01, bus.ReadByte(AddressMap.LcdYCoordinateRegister));
+    }
+
+    [Fact]
     public void WriteByte_DividerRegisterTicksApuDivApuOnFallingEdge()
     {
         MemoryBus bus = CreateBus();
@@ -785,6 +842,14 @@ public sealed class MemoryBusTests
         {
             bus.Clock.TickMachineCycle();
             bus.Apu.Tick(HardwareTiming.MachineCycleTCycles);
+        }
+    }
+
+    private static void TickMachineCycles(MachineClock clock, int machineCycles)
+    {
+        for (int cycle = 0; cycle < machineCycles; cycle++)
+        {
+            clock.TickMachineCycle();
         }
     }
 }

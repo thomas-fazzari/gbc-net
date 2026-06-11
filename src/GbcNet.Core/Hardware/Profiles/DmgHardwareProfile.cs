@@ -22,6 +22,8 @@ internal sealed class DmgHardwareProfile : IHardwareProfile
 
     public int WorkRamBankCount => 2;
 
+    public bool IsKey1RegisterEnabled => false;
+
     public bool IsWorkRamBankRegisterEnabled => false;
 
     public bool IsColorPaletteRamEnabled => false;

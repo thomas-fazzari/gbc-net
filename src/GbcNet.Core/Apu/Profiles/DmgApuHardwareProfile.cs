@@ -6,6 +6,7 @@ namespace GbcNet.Core.Apu.Profiles;
 internal sealed class DmgApuHardwareProfile : IApuHardwareProfile
 {
     private const ushort DivApuNormalSpeedFallingEdgeMask = 1 << 12;
+    private const ushort DivApuDoubleSpeedFallingEdgeMask = 1 << 13;
     private const double DmgHighPassChargeFactorPerTCycle = 0.999958;
 
     public int OutputClockHz => 4_194_304;
@@ -31,5 +32,6 @@ internal sealed class DmgApuHardwareProfile : IApuHardwareProfile
             _ => value,
         };
 
-    public ushort GetDivApuFallingEdgeMask(bool cgbDoubleSpeed) => DivApuNormalSpeedFallingEdgeMask;
+    public ushort GetDivApuFallingEdgeMask(bool cgbDoubleSpeed) =>
+        cgbDoubleSpeed ? DivApuDoubleSpeedFallingEdgeMask : DivApuNormalSpeedFallingEdgeMask;
 }

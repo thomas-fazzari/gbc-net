@@ -19,6 +19,7 @@ public sealed class HardwareProfileFactoryTests
         Assert.Same(DmgHardwareProfile.Instance, profile);
         Assert.Equal(HardwareModel.Dmg, profile.Model);
         Assert.Equal(1, profile.VideoRamBankCount);
+        Assert.False(profile.IsKey1RegisterEnabled);
         Assert.False(profile.IsColorPaletteRamEnabled);
         Assert.Equal(2, profile.WorkRamBankCount);
     }
@@ -50,6 +51,7 @@ public sealed class HardwareProfileFactoryTests
         Assert.Equal(HardwareModel.Cgb, cgbProfile.Model);
         Assert.Equal(CgbOperatingMode.Cgb, cgbProfile.OperatingMode);
         Assert.Equal(2, cgbProfile.VideoRamBankCount);
+        Assert.True(cgbProfile.IsKey1RegisterEnabled);
         Assert.True(cgbProfile.IsColorPaletteRamEnabled);
         Assert.Equal(8, cgbProfile.WorkRamBankCount);
     }
@@ -65,6 +67,7 @@ public sealed class HardwareProfileFactoryTests
         Assert.Equal(HardwareModel.Cgb, cgbProfile.Model);
         Assert.Equal(CgbOperatingMode.DmgCompatibility, cgbProfile.OperatingMode);
         Assert.Equal(1, cgbProfile.VideoRamBankCount);
+        Assert.False(cgbProfile.IsKey1RegisterEnabled);
         Assert.False(cgbProfile.IsColorPaletteRamEnabled);
         Assert.Equal(8, cgbProfile.WorkRamBankCount);
     }

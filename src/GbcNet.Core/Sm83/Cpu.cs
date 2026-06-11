@@ -142,12 +142,18 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     }
 
     /// <summary>
-    /// Executes STOP by entering the low-power stopped state and resetting DIV.
+    /// Executes STOP by switching CGB speed when armed, or entering the low-power stopped state.
     /// </summary>
     internal void Stop()
     {
-        bus.Clock.ResetDivider();
         Halted = false;
+
+        if (bus.Clock.TrySwitchSpeedOnStop())
+        {
+            return;
+        }
+
+        bus.Clock.ResetDivider();
         Stopped = true;
     }
 

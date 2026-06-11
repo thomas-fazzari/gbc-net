@@ -206,6 +206,11 @@ internal static class AddressMap
     public const ushort WindowXRegister = 0xFF4B;
 
     /// <summary>
+    /// Address of KEY1, the CGB speed switch preparation register.
+    /// </summary>
+    public const ushort Key1Register = 0xFF4D;
+
+    /// <summary>
     /// Address of VBK, the CGB VRAM bank selection register.
     /// </summary>
     public const ushort VideoRamBankRegister = 0xFF4F;
