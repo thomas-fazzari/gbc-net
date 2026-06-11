@@ -22,6 +22,8 @@ internal sealed class DmgHardwareProfile : IHardwareProfile
 
     public int WorkRamBankCount => 2;
 
+    public bool IsWorkRamBankRegisterEnabled => false;
+
     public IPpuEngine CreatePpuEngine() => new DmgPpuEngine();
 
     public IDmaTransferPolicy CreateDmaTransferPolicy() => new DmgDmaTransferPolicy();

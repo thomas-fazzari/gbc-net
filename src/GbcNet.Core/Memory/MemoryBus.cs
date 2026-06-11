@@ -80,7 +80,10 @@ internal sealed class MemoryBus
     public MemoryBus(Cartridge cartridge, IHardwareProfile hardwareProfile)
     {
         _cartridge = cartridge;
-        _workRam = new WorkRam(hardwareProfile.WorkRamBankCount);
+        _workRam = new WorkRam(
+            hardwareProfile.WorkRamBankCount,
+            hardwareProfile.IsWorkRamBankRegisterEnabled
+        );
         _dmaTransferPolicy = hardwareProfile.CreateDmaTransferPolicy();
         Interrupts = new InterruptController();
         Joypad = new JoypadController(Interrupts);
@@ -94,7 +97,7 @@ internal sealed class MemoryBus
             hardwareProfile.VideoRamBankCount
         );
         Dma = new DmaController();
-        _ioRegisters = new IoRegisters(Interrupts, Clock, Joypad, Serial, Apu, Ppu, Dma);
+        _ioRegisters = new IoRegisters(Interrupts, Clock, Joypad, Serial, Apu, Ppu, _workRam, Dma);
         _readByteForDma = ReadOamDmaSourceByte;
         _writeOamByteForDma = Ppu.ObjectAttributeMemory.Write;
     }

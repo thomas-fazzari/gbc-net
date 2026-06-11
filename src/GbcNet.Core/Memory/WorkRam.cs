@@ -8,16 +8,21 @@ internal sealed class WorkRam
     private const int BankSize = 4 * 1024;
     private const int MinimumBankCount = 2;
     private const int BankSelectMask = 0b111;
+    private const byte BankRegisterReadMask = 0xF8;
+    private const byte DisabledBankRegisterValue = 0xFF;
 
     private readonly byte[] _banks;
     private readonly int _bankCount;
+    private readonly bool _isBankRegisterEnabled;
+    private byte _bankRegister = 1;
     private int _selectedSwitchableBank = 1;
 
-    public WorkRam(int bankCount)
+    public WorkRam(int bankCount, bool isBankRegisterEnabled = false)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(bankCount, MinimumBankCount);
 
         _bankCount = bankCount;
+        _isBankRegisterEnabled = isBankRegisterEnabled;
         _banks = new byte[bankCount * BankSize];
     }
 
@@ -28,10 +33,24 @@ internal sealed class WorkRam
         _banks[GetOffset(address)] = value;
     }
 
+    public byte ReadBankRegister() =>
+        _isBankRegisterEnabled
+            ? (byte)(BankRegisterReadMask | _bankRegister)
+            : DisabledBankRegisterValue;
+
+    public void WriteBankRegister(byte value)
+    {
+        if (_isBankRegisterEnabled)
+        {
+            SelectSwitchableBank(value);
+        }
+    }
+
     internal void SelectSwitchableBank(byte value)
     {
-        int selectedBank = value & BankSelectMask;
+        _bankRegister = (byte)(value & BankSelectMask);
 
+        int selectedBank = _bankRegister;
         if (selectedBank == 0 || selectedBank >= _bankCount)
         {
             selectedBank = 1;

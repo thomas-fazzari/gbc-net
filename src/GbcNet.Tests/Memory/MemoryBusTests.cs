@@ -115,6 +115,124 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
+    public void ReadWriteByte_StoresCgbModeWorkRamBanksSelectedBySvbk()
+    {
+        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+
+        bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x11);
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x02);
+
+        Assert.Equal(0xFA, bus.ReadByte(AddressMap.WorkRamBankRegister));
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+
+        bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x22);
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x01);
+
+        Assert.Equal(0x11, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x02);
+
+        Assert.Equal(0x22, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+    }
+
+    [Fact]
+    public void ReadWriteByte_KeepsFixedWorkRamBankAcrossSvbk()
+    {
+        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+
+        bus.WriteByte(AddressMap.WorkRamStart, 0x44);
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x07);
+
+        Assert.Equal(0x44, bus.ReadByte(AddressMap.WorkRamStart));
+
+        bus.WriteByte(AddressMap.WorkRamStart, 0x55);
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x01);
+
+        Assert.Equal(0x55, bus.ReadByte(AddressMap.WorkRamStart));
+    }
+
+    [Fact]
+    public void ReadWriteByte_SvbkZeroReadsF8AndMapsBankOne()
+    {
+        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+
+        bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x11);
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x02);
+        bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x22);
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x00);
+
+        Assert.Equal(0xF8, bus.ReadByte(AddressMap.WorkRamBankRegister));
+        Assert.Equal(0x11, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+    }
+
+    [Fact]
+    public void ReadWriteByte_SvbkSevenReadsFfAndMapsBankSeven()
+    {
+        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x07);
+        bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x77);
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x01);
+
+        Assert.Equal(0xF9, bus.ReadByte(AddressMap.WorkRamBankRegister));
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x07);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.WorkRamBankRegister));
+        Assert.Equal(0x77, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+    }
+
+    [Fact]
+    public void ReadWriteByte_MirrorsEchoRamThroughSelectedCgbWorkRamBank()
+    {
+        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x03);
+        bus.WriteByte(0xF000, 0x33);
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x01);
+
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x03);
+
+        Assert.Equal(0x33, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+        Assert.Equal(0x33, bus.ReadByte(0xF000));
+    }
+
+    [Fact]
+    public void ReadWriteByte_IgnoresSvbkInCgbDmgCompatibilityMode()
+    {
+        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+
+        bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x12);
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x07);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.WorkRamBankRegister));
+
+        bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x34);
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x01);
+
+        Assert.Equal(0x34, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+    }
+
+    [Fact]
+    public void ReadWriteByte_IgnoresSvbkOnDmg()
+    {
+        MemoryBus bus = CreateBus();
+
+        bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x12);
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x07);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.WorkRamBankRegister));
+
+        bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x34);
+        bus.WriteByte(AddressMap.WorkRamBankRegister, 0x01);
+
+        Assert.Equal(0x34, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+    }
+
+    [Fact]
     public void ReadWriteByte_StoresObjectAttributeMemory()
     {
         MemoryBus bus = CreateBus();

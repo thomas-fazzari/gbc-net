@@ -29,6 +29,8 @@ internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHard
 
     public int WorkRamBankCount => 8;
 
+    public bool IsWorkRamBankRegisterEnabled => OperatingMode is CgbOperatingMode.Cgb;
+
     public IPpuEngine CreatePpuEngine() => new DmgPpuEngine();
 
     public IDmaTransferPolicy CreateDmaTransferPolicy() => new DmgDmaTransferPolicy();

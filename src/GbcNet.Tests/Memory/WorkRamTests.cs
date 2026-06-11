@@ -49,6 +49,51 @@ public sealed class WorkRamTests
     }
 
     [Fact]
+    public void ReadWriteBankRegister_ZeroMapsToBankOneButReadBackPreservesZero()
+    {
+        var workRam = new WorkRam(bankCount: 8, isBankRegisterEnabled: true);
+
+        workRam.Write(AddressMap.WorkRamSwitchableBankStart, 0x11);
+        workRam.WriteBankRegister(2);
+        workRam.Write(AddressMap.WorkRamSwitchableBankStart, 0x22);
+        workRam.WriteBankRegister(0);
+
+        Assert.Equal(0xF8, workRam.ReadBankRegister());
+        Assert.Equal(0x11, workRam.Read(AddressMap.WorkRamSwitchableBankStart));
+    }
+
+    [Fact]
+    public void ReadWriteBankRegister_SevenMapsBankSevenAndReadBackSetsUpperBits()
+    {
+        var workRam = new WorkRam(bankCount: 8, isBankRegisterEnabled: true);
+
+        workRam.WriteBankRegister(7);
+        workRam.Write(AddressMap.WorkRamSwitchableBankStart, 0x77);
+        workRam.WriteBankRegister(1);
+
+        Assert.Equal(0xF9, workRam.ReadBankRegister());
+        Assert.Equal(0x00, workRam.Read(AddressMap.WorkRamSwitchableBankStart));
+
+        workRam.WriteBankRegister(7);
+
+        Assert.Equal(0xFF, workRam.ReadBankRegister());
+        Assert.Equal(0x77, workRam.Read(AddressMap.WorkRamSwitchableBankStart));
+    }
+
+    [Fact]
+    public void ReadWriteBankRegister_IgnoresRegisterWhenDisabled()
+    {
+        var workRam = new WorkRam(bankCount: 8);
+
+        workRam.Write(AddressMap.WorkRamSwitchableBankStart, 0x12);
+        workRam.WriteBankRegister(7);
+        workRam.Write(AddressMap.WorkRamSwitchableBankStart, 0x34);
+
+        Assert.Equal(0xFF, workRam.ReadBankRegister());
+        Assert.Equal(0x34, workRam.Read(AddressMap.WorkRamSwitchableBankStart));
+    }
+
+    [Fact]
     public void SelectSwitchableBank_UnsupportedBankMapsToBankOne()
     {
         var workRam = new WorkRam(bankCount: 2);

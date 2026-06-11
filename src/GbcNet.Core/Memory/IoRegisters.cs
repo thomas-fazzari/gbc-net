@@ -19,6 +19,7 @@ internal sealed class IoRegisters(
     SerialController serial,
     ApuController apu,
     PpuController ppu,
+    WorkRam workRam,
     DmaController dma
 )
 {
@@ -51,6 +52,7 @@ internal sealed class IoRegisters(
             AddressMap.InterruptFlagRegister => interrupts.ReadInterruptFlag(),
             AddressMap.DmaRegister => dma.ReadRegister(),
             AddressMap.VideoRamBankRegister => ppu.ReadRegister(address),
+            AddressMap.WorkRamBankRegister => workRam.ReadBankRegister(),
             _ => 0xFF,
         };
     }
@@ -177,6 +179,10 @@ internal sealed class IoRegisters(
                 {
                     ppu.SetRegisterState(address, value);
                 }
+                return;
+
+            case AddressMap.WorkRamBankRegister:
+                workRam.WriteBankRegister(value);
                 return;
 
             default:

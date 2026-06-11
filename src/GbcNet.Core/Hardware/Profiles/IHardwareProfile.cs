@@ -28,6 +28,11 @@ internal interface IHardwareProfile
     int WorkRamBankCount { get; }
 
     /// <summary>
+    /// Indicates whether the CPU-visible CGB WRAM bank register is enabled.
+    /// </summary>
+    bool IsWorkRamBankRegisterEnabled { get; }
+
+    /// <summary>
     /// Creates the LCD/PPU engine for this hardware model.
     /// </summary>
     IPpuEngine CreatePpuEngine();
