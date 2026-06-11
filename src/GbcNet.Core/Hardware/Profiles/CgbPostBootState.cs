@@ -102,13 +102,14 @@ internal static class CgbPostBootState
         ApplyAudioRegisters(bus);
         PostBootState.SetHardwareRegisterStates(bus, _commonPostAudioRegisters);
 
-        if (operatingMode is not CgbOperatingMode.Cgb)
+        if (operatingMode is CgbOperatingMode.Cgb)
         {
+            PostBootState.SetHardwareRegisterStates(bus, _cgbModePostAudioRegisters);
+            bus.Ppu.SetBackgroundColorPaletteRamToWhite();
             return;
         }
 
-        PostBootState.SetHardwareRegisterStates(bus, _cgbModePostAudioRegisters);
-        bus.Ppu.SetBackgroundColorPaletteRamToWhite();
+        bus.Ppu.SetDmgCompatibilityColorPaletteRam();
     }
 
     private static PostBootCpuRegisterState CreateCpuRegisterState(
@@ -126,7 +127,9 @@ internal static class CgbPostBootState
                 AddressMap.CartridgeEntryPointStart,
                 AddressMap.HighRamEnd
             ),
+
             CgbOperatingMode.DmgCompatibility => CreateDmgCompatibilityCpuRegisterState(cartridge),
+
             _ => throw new ArgumentOutOfRangeException(
                 nameof(operatingMode),
                 operatingMode,

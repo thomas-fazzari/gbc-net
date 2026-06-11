@@ -30,7 +30,6 @@ internal sealed class WaveChannel
     private byte _sampleIndex;
     private byte _sampleBuffer;
     private bool _lengthEnabled;
-    private bool _dacEnabled;
 
     /// <summary>
     /// Whether CH3 generation is currently active and reported through NR52 bit 2.
@@ -40,7 +39,7 @@ internal sealed class WaveChannel
     /// <summary>
     /// Whether the channel DAC is enabled.
     /// </summary>
-    public bool DacEnabled => _dacEnabled;
+    public bool DacEnabled { get; private set; }
 
     /// <summary>
     /// Current 11-bit wave period latched from NR33/NR34.
@@ -93,8 +92,8 @@ internal sealed class WaveChannel
     /// </summary>
     public void WriteDac(byte value)
     {
-        _dacEnabled = (value & DacEnableMask) != 0;
-        if (!_dacEnabled)
+        DacEnabled = (value & DacEnableMask) != 0;
+        if (!DacEnabled)
         {
             IsActive = false;
         }
@@ -145,7 +144,7 @@ internal sealed class WaveChannel
         _periodTimer = PeriodReloadBase - Period;
         _tCycleAccumulator = 0;
         _sampleIndex = 0;
-        IsActive = _dacEnabled;
+        IsActive = DacEnabled;
     }
 
     /// <summary>
@@ -210,7 +209,7 @@ internal sealed class WaveChannel
         _sampleIndex = 0;
         _sampleBuffer = 0;
         _lengthEnabled = false;
-        _dacEnabled = false;
+        DacEnabled = false;
         IsActive = false;
     }
 }

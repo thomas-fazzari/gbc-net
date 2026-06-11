@@ -27,6 +27,10 @@ public sealed class PpuControllerTests
     private const byte ObjectXFlip = 0x20;
     private const byte ObjectYFlip = 0x40;
     private const byte ObjectBehindBackground = 0x80;
+
+    private const ushort CompatibilityDarkGrayRgb555 = 0x294A;
+    private const ushort CompatibilityBlueRgb555 = 0x7C00;
+
     public static TheoryData<ushort, byte> ReadWriteRegisters =>
         new()
         {
@@ -824,22 +828,54 @@ public sealed class PpuControllerTests
     }
 
     [Fact]
-    public void CgbDmgCompatibilityMode_RendersDmgShadeFrame()
+    public void CgbDmgCompatibilityRenderer_CompletesRgb555Frame()
     {
         PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
-        // TODO: Render CGB DMG compatibility mode through CGB palettes once compatibility colorization is implemented.
-        ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
-        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x00);
-        ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x1F);
-        WriteTileRow(ppu, 0x8000, row: 0, lowByte: 0x00, highByte: 0x80);
+        ppu.SetDmgCompatibilityColorPaletteRam();
 
         LcdFrame frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
 
-        Assert.Equal(LcdPixelFormat.DmgShadeIndex8, frame.PixelFormat);
-        Assert.Equal(0x02, frame.Pixels.Span[0]);
+        Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
+        Assert.Equal(PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * 2, frame.Pixels.Length);
+    }
+
+    [Fact]
+    public void CgbDmgCompatibilityRenderer_MapsBackgroundPaletteThroughCgbPalette0()
+    {
+        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+        ppu.SetDmgCompatibilityColorPaletteRam();
+        ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, PaletteColorOneToDarkGray);
+        WriteTileRow(ppu, 0x8000, row: 0, lowByte: 0x80, highByte: 0x00);
+
+        LcdFrame frame = RenderSecondFrame(
+            ppu,
+            LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
+        );
+
+        AssertRgb555Pixel(frame, pixelIndex: 0, expected: CompatibilityDarkGrayRgb555);
+    }
+
+    [Fact]
+    public void CgbDmgCompatibilityRenderer_MapsObjectPalettesThroughCgbObjectPalettes()
+    {
+        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+        ppu.SetDmgCompatibilityColorPaletteRam();
+        ppu.WriteRegister(AddressMap.ObjectPalette0Register, PaletteColorOneToDarkGray);
+        ppu.WriteRegister(AddressMap.ObjectPalette1Register, PaletteColorOneToBlack);
+        WriteTileRow(ppu, 0x8010, row: 0, lowByte: 0xFF, highByte: 0x00);
+        WriteObjectAttributes(ppu, index: 0, y: 16, x: 8, tile: 1, flags: 0);
+        WriteObjectAttributes(ppu, index: 1, y: 16, x: 16, tile: 1, flags: ObjectPalette1);
+
+        LcdFrame frame = RenderSecondFrame(
+            ppu,
+            LcdEnable | ObjectEnable | UnsignedBackgroundTileData
+        );
+
+        AssertRgb555Pixel(frame, pixelIndex: 0, expected: CompatibilityDarkGrayRgb555);
+        AssertRgb555Pixel(frame, pixelIndex: 8, expected: CompatibilityBlueRgb555);
     }
 
     [Fact]

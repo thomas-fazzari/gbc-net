@@ -3,6 +3,7 @@ using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Memory;
+using GbcNet.Core.Ppu;
 using GbcNet.Core.Sm83;
 using GbcNet.Tests.Cartridges;
 
@@ -158,6 +159,28 @@ public sealed class PostBootStateTests
         Assert.Equal(0x7F, bus.ReadByte(AddressMap.BackgroundPaletteDataRegister));
         bus.WriteByte(AddressMap.BackgroundPaletteIndexRegister, 0x04);
         Assert.Equal(0xFF, bus.ReadByte(AddressMap.BackgroundPaletteDataRegister));
+    }
+
+    [Fact]
+    public void Apply_SeedsCgbDmgCompatibilityPaletteRamForRgbRendering()
+    {
+        Cartridge cartridge = LoadCartridge(TestRomFactory.Create());
+        var profile = new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility);
+        var bus = new MemoryBus(cartridge, profile);
+        var cpu = new Cpu(bus);
+
+        PostBootState.Apply(profile, cartridge, cpu, bus);
+
+        bus.WriteByte(AddressMap.BackgroundPaletteRegister, 0x08);
+        bus.Ppu.VideoRam.Write(0x8000, 0x80);
+
+        bus.Ppu.Tick(456 * 154);
+        LcdFrame frame = Assert.IsType<LcdFrame>(bus.Ppu.Tick(456 * 144));
+
+        Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
+        Assert.Equal(0x4A, frame.Pixels.Span[0]);
+        Assert.Equal(0x29, frame.Pixels.Span[1]);
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
     }
 
     private static (Cpu Cpu, MemoryBus Bus) CreateHardware(Cartridge cartridge)

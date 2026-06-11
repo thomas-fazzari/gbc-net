@@ -28,8 +28,6 @@ internal sealed class DmgObjectLayer
     /// </summary>
     private const int FastObjectSessionStartupDots = 4;
 
-    private const byte LowThreeBitsMask = 0x07;
-
     private readonly ScanlineObject[] _scanlineObjects = new ScanlineObject[
         PpuObjectAttributes.MaxObjectsPerScanline
     ];
@@ -162,7 +160,7 @@ internal sealed class DmgObjectLayer
             }
         }
 
-        // DMG priority resolves by X coordinate first, then original OAM index for ties
+        // DMG priority resolves by X coordinate first, then original OAM index for ties.
         _scanlineObjects
             .AsSpan(0, _scanlineObjectCount)
             .Sort(
@@ -194,7 +192,7 @@ internal sealed class DmgObjectLayer
                 continue;
             }
 
-            // Objects that begin in the same tile fetch slot share one fetch session penalty
+            // Objects that begin in the same tile fetch slot share one fetch session penalty.
             int tileIndex = GetObjectTileIndex(firstObject.X, scrollXLowBits);
             int sessionEnd = index + 1;
             while (
@@ -206,7 +204,7 @@ internal sealed class DmgObjectLayer
                 sessionEnd++;
             }
 
-            penaltyDots += (firstObject.X & LowThreeBitsMask) switch
+            penaltyDots += (firstObject.X & PpuObjectTile.LowThreeBitsMask) switch
             {
                 <= 1 => SlowObjectSessionStartupDots,
                 <= 3 => NormalObjectSessionStartupDots,
@@ -221,8 +219,8 @@ internal sealed class DmgObjectLayer
                     continue;
                 }
 
-                // A later visible fetch session pays a gap penalty based on the previous session
-                penaltyDots += (objects[sessionEnd - 1].X & LowThreeBitsMask) switch
+                // A later visible fetch session pays a gap penalty based on the previous session.
+                penaltyDots += (objects[sessionEnd - 1].X & PpuObjectTile.LowThreeBitsMask) switch
                 {
                     0 or 2 or 4 => 3,
                     _ => 2,
@@ -243,16 +241,25 @@ internal sealed class DmgObjectLayer
         PpuEngineInputs inputs
     )
     {
-        int objectLine = ResolveObjectTileLine(scanlineObject, lcdYCoordinate);
-        byte tileId = ResolveObjectTileId(scanlineObject.Tile, objectLine);
-        ushort tileRowAddress = GetObjectTileRowAddress(tileId, objectLine);
+        int objectLine = PpuObjectTile.ResolveTileLine(
+            scanlineObject.Y,
+            scanlineObject.Flags,
+            _scanlineObjectHeight,
+            lcdYCoordinate
+        );
+        byte tileId = PpuObjectTile.ResolveTileId(
+            scanlineObject.Tile,
+            objectLine,
+            _scanlineObjectHeight
+        );
+        ushort tileRowAddress = PpuObjectTile.GetTileRowAddress(tileId, objectLine);
 
         ReadObjectTileRow(inputs, tileRowAddress, out byte lowByte, out byte highByte);
 
         return PpuTileData.DecodeColorId(
             lowByte,
             highByte,
-            ResolveObjectPixelBit(scanlineObject, screenX)
+            PpuObjectTile.ResolvePixelBit(scanlineObject.X, scanlineObject.Flags, screenX)
         );
     }
 
@@ -263,23 +270,6 @@ internal sealed class DmgObjectLayer
             (scanlineObject.Flags & PpuObjectAttributes.BackgroundPriorityMask) != 0
         );
 
-    private int ResolveObjectTileLine(ScanlineObject scanlineObject, byte lcdYCoordinate)
-    {
-        int objectLine = lcdYCoordinate - (scanlineObject.Y - PpuObjectAttributes.YScreenOffset);
-
-        return (scanlineObject.Flags & PpuObjectAttributes.YFlipMask) == 0
-            ? objectLine
-            : _scanlineObjectHeight - 1 - objectLine;
-    }
-
-    private byte ResolveObjectTileId(byte tileId, int objectLine) =>
-        _scanlineObjectHeight == PpuObjectAttributes.Size16
-            ? (byte)((tileId & 0xFE) | (objectLine / PpuTileData.TileSizePixels))
-            : tileId;
-
-    private static ushort GetObjectTileRowAddress(byte tileId, int objectLine) =>
-        PpuTileData.GetUnsignedTileRowAddress(tileId, objectLine & LowThreeBitsMask);
-
     private static void ReadObjectTileRow(
         PpuEngineInputs inputs,
         ushort tileRowAddress,
@@ -289,13 +279,6 @@ internal sealed class DmgObjectLayer
     {
         lowByte = inputs.VideoRam.Read(tileRowAddress);
         highByte = inputs.VideoRam.Read((ushort)(tileRowAddress + 1));
-    }
-
-    private static int ResolveObjectPixelBit(ScanlineObject scanlineObject, int screenX)
-    {
-        int pixel = screenX - (scanlineObject.X - PpuObjectAttributes.XScreenOffset);
-
-        return (scanlineObject.Flags & PpuObjectAttributes.XFlipMask) == 0 ? 7 - pixel : pixel;
     }
 
     private static int GetObjectTileIndex(byte objectX, byte scrollXLowBits)

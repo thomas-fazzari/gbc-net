@@ -11,8 +11,6 @@ internal sealed class CartridgeRamWindow(int sizeBytes, bool hasBattery)
     private const byte RamEnableValue = 0x0A;
     private const byte RamEnableMask = 0x0F;
 
-    private bool _enabled;
-
     /// <summary>
     /// Backing RAM behind the CPU-visible A000-BFFF window.
     /// </summary>
@@ -23,7 +21,7 @@ internal sealed class CartridgeRamWindow(int sizeBytes, bool hasBattery)
     /// </summary>
     public void WriteEnableRegister(byte value)
     {
-        _enabled = (value & RamEnableMask) == RamEnableValue;
+        CanAccess = (value & RamEnableMask) == RamEnableValue;
     }
 
     /// <summary>
@@ -43,7 +41,11 @@ internal sealed class CartridgeRamWindow(int sizeBytes, bool hasBattery)
         }
     }
 
-    private bool CanAccess => _enabled && Ram.Size != 0;
+    private bool CanAccess
+    {
+        get => field && Ram.Size != 0;
+        set;
+    }
 
     private int GetEffectiveOffset(ushort offset, int bank)
     {

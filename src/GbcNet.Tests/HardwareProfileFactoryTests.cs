@@ -86,7 +86,7 @@ public sealed class HardwareProfileFactoryTests
         Assert.Equal(1, cgbProfile.VideoRamBankCount);
         Assert.False(cgbProfile.IsKey1RegisterEnabled);
         Assert.False(cgbProfile.IsColorPaletteRamEnabled);
-        Assert.IsType<DmgPpuEngine>(cgbProfile.CreatePpuEngine());
+        Assert.IsType<CgbDmgCompatibilityPpuEngine>(cgbProfile.CreatePpuEngine());
         Assert.IsType<CgbDmaTransferPolicy>(cgbProfile.CreateDmaTransferPolicy());
         Assert.IsType<CgbApuHardwareProfile>(cgbProfile.CreateApuHardwareProfile());
         Assert.Equal(8, cgbProfile.WorkRamBankCount);

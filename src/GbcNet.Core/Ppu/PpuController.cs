@@ -15,6 +15,12 @@ internal sealed class PpuController(
 )
 {
     private const ushort WhiteRgb555 = 0x7FFF;
+    private const ushort LightGrayRgb555 = 0x56B5;
+    private const ushort DarkGrayRgb555 = 0x294A;
+    private const ushort BlackRgb555 = 0x0000;
+    private const ushort RedRgb555 = 0x001F;
+    private const ushort GreenRgb555 = 0x03E0;
+    private const ushort BlueRgb555 = 0x7C00;
 
     /// <summary>
     /// VRAM at 8000-9FFF, banked by VBK when the active hardware mode exposes it.
@@ -24,7 +30,7 @@ internal sealed class PpuController(
     /// <summary>
     /// CGB background color palette RAM accessed through BGPI/BGPD.
     /// </summary>
-    private CgbPaletteRam BackgroundPaletteRam { get; } = new(isColorPaletteRamEnabled);
+    private CgbPaletteRam BgPaletteRam { get; } = new(isColorPaletteRamEnabled);
 
     /// <summary>
     /// CGB object color palette RAM accessed through OBPI/OBPD.
@@ -75,8 +81,8 @@ internal sealed class PpuController(
             AddressMap.WindowYRegister => _windowY,
             AddressMap.WindowXRegister => _windowX,
             AddressMap.VideoRamBankRegister => VideoRam.ReadBankRegister(),
-            AddressMap.BackgroundPaletteIndexRegister => BackgroundPaletteRam.ReadIndexRegister(),
-            AddressMap.BackgroundPaletteDataRegister => BackgroundPaletteRam.ReadDataRegister(),
+            AddressMap.BackgroundPaletteIndexRegister => BgPaletteRam.ReadIndexRegister(),
+            AddressMap.BackgroundPaletteDataRegister => BgPaletteRam.ReadDataRegister(),
             AddressMap.ObjectPaletteIndexRegister => ObjectPaletteRam.ReadIndexRegister(),
             AddressMap.ObjectPaletteDataRegister => ObjectPaletteRam.ReadDataRegister(),
             _ => throw CreateUnsupportedRegisterException(address),
@@ -127,7 +133,7 @@ internal sealed class PpuController(
             _objectPalette0,
             _objectPalette1,
             VideoRam,
-            BackgroundPaletteRam,
+            BgPaletteRam,
             ObjectPaletteRam,
             ObjectAttributeMemory
         );
@@ -180,7 +186,19 @@ internal sealed class PpuController(
     /// </summary>
     internal void SetBackgroundColorPaletteRamToWhite()
     {
-        BackgroundPaletteRam.SetAllColorsRgb555(WhiteRgb555);
+        BgPaletteRam.SetAllColorsRgb555(WhiteRgb555);
+    }
+
+    /// <summary>
+    /// Seeds simple CGB DMG-compatibility palettes until boot-ROM title/licensee lookup is modeled.
+    /// </summary>
+    internal void SetDmgCompatibilityColorPaletteRam()
+    {
+        SetPalette(BgPaletteRam, 0, WhiteRgb555, LightGrayRgb555, DarkGrayRgb555, BlackRgb555);
+
+        SetPalette(ObjectPaletteRam, 0, WhiteRgb555, LightGrayRgb555, DarkGrayRgb555, BlackRgb555);
+
+        SetPalette(ObjectPaletteRam, 1, WhiteRgb555, RedRgb555, GreenRgb555, BlueRgb555);
     }
 
     /// <summary>
@@ -208,6 +226,21 @@ internal sealed class PpuController(
                 SetReadWriteRegister(address, value);
                 return;
         }
+    }
+
+    private static void SetPalette(
+        CgbPaletteRam paletteRam,
+        int paletteIndex,
+        ushort color0,
+        ushort color1,
+        ushort color2,
+        ushort color3
+    )
+    {
+        paletteRam.SetRgb555Color(paletteIndex, 0, color0);
+        paletteRam.SetRgb555Color(paletteIndex, 1, color1);
+        paletteRam.SetRgb555Color(paletteIndex, 2, color2);
+        paletteRam.SetRgb555Color(paletteIndex, 3, color3);
     }
 
     private byte ReadStatus()
@@ -247,10 +280,10 @@ internal sealed class PpuController(
                 VideoRam.WriteBankRegister(value);
                 return;
             case AddressMap.BackgroundPaletteIndexRegister:
-                BackgroundPaletteRam.WriteIndexRegister(value);
+                BgPaletteRam.WriteIndexRegister(value);
                 return;
             case AddressMap.BackgroundPaletteDataRegister:
-                BackgroundPaletteRam.WriteDataRegister(value);
+                BgPaletteRam.WriteDataRegister(value);
                 return;
             case AddressMap.ObjectPaletteIndexRegister:
                 ObjectPaletteRam.WriteIndexRegister(value);

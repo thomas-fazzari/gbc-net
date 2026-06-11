@@ -8,13 +8,13 @@ namespace GbcNet.Core.Ppu.Engines;
 /// </summary>
 internal sealed class CgbObjectLayer
 {
-    private const byte LowThreeBitsMask = 0x07;
-
     private readonly ScanlineObject[] _scanlineObjects = new ScanlineObject[
         PpuObjectAttributes.MaxObjectsPerScanline
     ];
+
     private int _scanlineObjectCount;
     private int _scanlineObjectHeight = PpuObjectAttributes.Size8;
+
     private bool _scanlineObjectsSelected;
 
     public void Clear()
@@ -127,9 +127,18 @@ internal sealed class CgbObjectLayer
         PpuEngineInputs inputs
     )
     {
-        int objectLine = ResolveObjectTileLine(scanlineObject, lcdYCoordinate);
-        byte tileId = ResolveObjectTileId(scanlineObject.Tile, objectLine);
-        ushort tileRowAddress = GetObjectTileRowAddress(tileId, objectLine);
+        int objectLine = PpuObjectTile.ResolveTileLine(
+            scanlineObject.Y,
+            scanlineObject.Flags,
+            _scanlineObjectHeight,
+            lcdYCoordinate
+        );
+        byte tileId = PpuObjectTile.ResolveTileId(
+            scanlineObject.Tile,
+            objectLine,
+            _scanlineObjectHeight
+        );
+        ushort tileRowAddress = PpuObjectTile.GetTileRowAddress(tileId, objectLine);
 
         ReadObjectTileRow(
             inputs,
@@ -142,7 +151,7 @@ internal sealed class CgbObjectLayer
         return PpuTileData.DecodeColorId(
             lowByte,
             highByte,
-            ResolveObjectPixelBit(scanlineObject, screenX)
+            PpuObjectTile.ResolvePixelBit(scanlineObject.X, scanlineObject.Flags, screenX)
         );
     }
 
@@ -152,23 +161,6 @@ internal sealed class CgbObjectLayer
             (byte)(scanlineObject.Flags & PpuObjectAttributes.CgbPaletteMask),
             (scanlineObject.Flags & PpuObjectAttributes.BackgroundPriorityMask) != 0
         );
-
-    private int ResolveObjectTileLine(ScanlineObject scanlineObject, byte lcdYCoordinate)
-    {
-        int objectLine = lcdYCoordinate - (scanlineObject.Y - PpuObjectAttributes.YScreenOffset);
-
-        return (scanlineObject.Flags & PpuObjectAttributes.YFlipMask) == 0
-            ? objectLine
-            : _scanlineObjectHeight - 1 - objectLine;
-    }
-
-    private byte ResolveObjectTileId(byte tileId, int objectLine) =>
-        _scanlineObjectHeight == PpuObjectAttributes.Size16
-            ? (byte)((tileId & 0xFE) | (objectLine / PpuTileData.TileSizePixels))
-            : tileId;
-
-    private static ushort GetObjectTileRowAddress(byte tileId, int objectLine) =>
-        PpuTileData.GetUnsignedTileRowAddress(tileId, objectLine & LowThreeBitsMask);
 
     private static int ResolveObjectTileBank(ScanlineObject scanlineObject) =>
         (scanlineObject.Flags & PpuObjectAttributes.CgbTileBankMask) == 0 ? 0 : 1;
@@ -183,13 +175,6 @@ internal sealed class CgbObjectLayer
     {
         lowByte = inputs.VideoRam.ReadBank(bank, tileRowAddress);
         highByte = inputs.VideoRam.ReadBank(bank, (ushort)(tileRowAddress + 1));
-    }
-
-    private static int ResolveObjectPixelBit(ScanlineObject scanlineObject, int screenX)
-    {
-        int pixel = screenX - (scanlineObject.X - PpuObjectAttributes.XScreenOffset);
-
-        return (scanlineObject.Flags & PpuObjectAttributes.XFlipMask) == 0 ? 7 - pixel : pixel;
     }
 
     [StructLayout(LayoutKind.Sequential)]

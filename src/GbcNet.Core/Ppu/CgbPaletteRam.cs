@@ -1,9 +1,9 @@
 namespace GbcNet.Core.Ppu;
 
 /// <summary>
-/// Stores one CGB color palette RAM and its index/data register pair.
+/// Stores one CGB color palette RAM; CPU index/data registers can be disabled in non-CGB mode.
 /// </summary>
-internal sealed class CgbPaletteRam(bool isEnabled)
+internal sealed class CgbPaletteRam(bool isCpuRegisterEnabled)
 {
     private const int PaletteRamSize = 64;
     private const byte IndexMask = 0x3F;
@@ -15,38 +15,28 @@ internal sealed class CgbPaletteRam(bool isEnabled)
     private byte _index;
 
     public byte ReadIndexRegister() =>
-        isEnabled ? (byte)(IndexReadMask | _index) : DisabledRegisterValue;
+        isCpuRegisterEnabled ? (byte)(IndexReadMask | _index) : DisabledRegisterValue;
 
     public void WriteIndexRegister(byte value)
     {
-        if (isEnabled)
+        if (isCpuRegisterEnabled)
         {
             _index = (byte)(value & (AutoIncrementMask | IndexMask));
         }
     }
 
     public byte ReadDataRegister() =>
-        isEnabled ? _bytes[_index & IndexMask] : DisabledRegisterValue;
+        isCpuRegisterEnabled ? _bytes[_index & IndexMask] : DisabledRegisterValue;
 
     public ushort ReadRgb555Color(int paletteIndex, byte colorId)
     {
-        if (!isEnabled)
-        {
-            return 0;
-        }
-
-        int offset = (((paletteIndex & 0x07) * 4) + (colorId & 0x03)) * 2;
+        int offset = GetColorOffset(paletteIndex, colorId);
 
         return (ushort)(_bytes[offset] | (_bytes[offset + 1] << 8));
     }
 
     internal void SetAllColorsRgb555(ushort color)
     {
-        if (!isEnabled)
-        {
-            return;
-        }
-
         byte lowByte = (byte)color;
         byte highByte = (byte)(color >> 8);
 
@@ -57,9 +47,19 @@ internal sealed class CgbPaletteRam(bool isEnabled)
         }
     }
 
+    internal void SetRgb555Color(int paletteIndex, byte colorId, ushort color)
+    {
+        int offset = GetColorOffset(paletteIndex, colorId);
+        _bytes[offset] = (byte)color;
+        _bytes[offset + 1] = (byte)(color >> 8);
+    }
+
+    private static int GetColorOffset(int paletteIndex, byte colorId) =>
+        (((paletteIndex & 0x07) * 4) + (colorId & 0x03)) * 2;
+
     public void WriteDataRegister(byte value)
     {
-        if (!isEnabled)
+        if (!isCpuRegisterEnabled)
         {
             return;
         }
