@@ -66,6 +66,16 @@ internal static class PpuObjectAttributes
     public const byte FirstFullyHiddenRightX = 168;
 
     /// <summary>
+    /// OBJ flag bits 0-2 select one of eight CGB object palettes.
+    /// </summary>
+    public const byte CgbPaletteMask = 0x07;
+
+    /// <summary>
+    /// OBJ flag bit 3 selects VRAM bank 1 instead of bank 0 on CGB.
+    /// </summary>
+    public const byte CgbTileBankMask = 0x08;
+
+    /// <summary>
     /// OBJ flag bit 4 selects OBP1 instead of OBP0 on DMG.
     /// </summary>
     public const byte DmgPalette1Mask = 0x10;

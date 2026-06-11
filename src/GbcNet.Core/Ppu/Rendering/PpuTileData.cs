@@ -44,4 +44,16 @@ internal static class PpuTileData
     /// Tile maps are 32 tiles wide.
     /// </summary>
     public const int TilesPerMapRow = 32;
+
+    /// <summary>
+    /// Builds an unsigned $8000-$8FFF tile-row address.
+    /// </summary>
+    public static ushort GetUnsignedTileRowAddress(byte tileId, int tileLine) =>
+        (ushort)(UnsignedTileDataStart + (tileId * TileDataBytes) + (tileLine * TileRowBytes));
+
+    /// <summary>
+    /// Decodes one two-bit tile color ID from low and high tile row bytes.
+    /// </summary>
+    public static byte DecodeColorId(byte lowByte, byte highByte, int bit) =>
+        (byte)((((highByte >> bit) & 0x01) << 1) | ((lowByte >> bit) & 0x01));
 }

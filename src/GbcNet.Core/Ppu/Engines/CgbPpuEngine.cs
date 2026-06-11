@@ -1,7 +1,7 @@
 namespace GbcNet.Core.Ppu.Engines;
 
 /// <summary>
-/// CGB LCD engine for LY, STAT mode, CPU video-memory access, and BG/window RGB555 frames.
+/// CGB LCD engine for LY, STAT mode, CPU video-memory access, and BG/window/OBJ RGB555 frames.
 /// </summary>
 internal sealed class CgbPpuEngine : IPpuEngine
 {
@@ -11,6 +11,7 @@ internal sealed class CgbPpuEngine : IPpuEngine
     private const byte AttributeTileBankMask = 0x08;
     private const byte AttributeXFlipMask = 0x20;
     private const byte AttributeYFlipMask = 0x40;
+    private const byte AttributeBackgroundPriorityMask = 0x80;
     private const int Rgb555BytesPerPixel = 2;
     private const int WindowStartupPenaltyDots = 6;
     private const byte MaxVisibleWindowX = 166;
@@ -22,6 +23,7 @@ internal sealed class CgbPpuEngine : IPpuEngine
     ];
     private readonly byte[] _backgroundColorFifo = new byte[16];
     private readonly byte[] _backgroundAttributeFifo = new byte[16];
+    private readonly CgbObjectLayer _objects = new();
     private byte _latchedScrollX;
     private byte _latchedScrollY;
     private int _windowPenaltyDots;
@@ -124,6 +126,7 @@ internal sealed class CgbPpuEngine : IPpuEngine
         _timing.EnableLcd();
         LatchScroll(inputs);
         RefreshWindowYCondition(inputs);
+        _objects.Clear();
         ResetRenderer();
         _renderCurrentFrame = renderFrame;
         _statInterruptMode = PpuMode.HBlank;
@@ -158,6 +161,7 @@ internal sealed class CgbPpuEngine : IPpuEngine
         _activeWindowLine = 0;
         _windowYCondition = false;
         _renderCurrentFrame = true;
+        _objects.Clear();
         ResetRenderer();
         _statInterruptMode = PpuMode.HBlank;
         _statInterruptLine = false;
@@ -198,10 +202,12 @@ internal sealed class CgbPpuEngine : IPpuEngine
         {
             LatchScroll(inputs);
             RefreshWindowYCondition(inputs);
+            _objects.Clear();
         }
         else
         {
             _windowPenaltyDots = 0;
+            _objects.Clear();
         }
 
         RefreshLycEqualsLy(inputs.LcdYCompare);
@@ -241,10 +247,12 @@ internal sealed class CgbPpuEngine : IPpuEngine
 
                 LatchScroll(inputs);
                 RefreshWindowYCondition(inputs);
+                _objects.Clear();
                 ResetRenderer();
                 break;
             case PpuGeometry.VBlankStartLine:
                 _windowYCondition = false;
+                _objects.Clear();
                 _windowLine = 0;
                 ResetRenderer();
                 requests |= PpuInterruptRequest.VBlank;
@@ -273,6 +281,7 @@ internal sealed class CgbPpuEngine : IPpuEngine
 
     private PpuInterruptRequest RefreshPpuState(PpuEngineInputs inputs, bool requestInterrupt)
     {
+        _objects.EnsureSelected(inputs, LcdYCoordinate, _timing.HasReachedOamScanEnd);
         _statInterruptMode = _timing.RefreshStatusMode(GetCurrentDrawingEndDots());
         RefreshLycEqualsLy(inputs.LcdYCompare);
 
@@ -293,6 +302,8 @@ internal sealed class CgbPpuEngine : IPpuEngine
 
     private void TickVideoTimingOnly(PpuEngineInputs inputs)
     {
+        _objects.EnsureSelected(inputs, LcdYCoordinate, _timing.HasReachedOamScanEnd);
+
         if (_renderingScanline)
         {
             return;
@@ -307,6 +318,8 @@ internal sealed class CgbPpuEngine : IPpuEngine
 
     private void TickRenderer(int dots, PpuEngineInputs inputs)
     {
+        _objects.EnsureSelected(inputs, LcdYCoordinate, _timing.HasReachedOamScanEnd);
+
         if (!_renderingScanline)
         {
             BeginRenderingScanline();
@@ -477,15 +490,66 @@ internal sealed class CgbPpuEngine : IPpuEngine
             return;
         }
 
-        ushort color = inputs.BackgroundPaletteRam.ReadRgb555Color(
-            attributes & AttributePaletteMask,
-            colorId
+        ushort color = MixPixel(colorId, attributes, inputs);
+        WriteRgb555Pixel(color);
+        _renderedPixels++;
+    }
+
+    private ushort MixPixel(
+        byte backgroundColorId,
+        byte backgroundAttributes,
+        PpuEngineInputs inputs
+    )
+    {
+        CgbObjectPixel? objectPixel = _objects.SelectPixel(_renderedPixels, LcdYCoordinate, inputs);
+        if (
+            objectPixel is null
+            || BackgroundCoversObject(
+                backgroundColorId,
+                backgroundAttributes,
+                objectPixel.Value,
+                inputs.LcdControl
+            )
+        )
+        {
+            return ResolveBackgroundColor(backgroundColorId, backgroundAttributes, inputs);
+        }
+
+        return ResolveObjectColor(objectPixel.Value, inputs);
+    }
+
+    private static bool BackgroundCoversObject(
+        byte backgroundColorId,
+        byte backgroundAttributes,
+        CgbObjectPixel objectPixel,
+        byte lcdControl
+    ) =>
+        backgroundColorId != 0
+        && (lcdControl & PpuLcdControlRegister.BackgroundWindowEnableOrPriorityMask) != 0
+        && (
+            (backgroundAttributes & AttributeBackgroundPriorityMask) != 0
+            || objectPixel.HasBackgroundPriority
         );
+
+    private static ushort ResolveBackgroundColor(
+        byte backgroundColorId,
+        byte backgroundAttributes,
+        PpuEngineInputs inputs
+    ) =>
+        inputs.BackgroundPaletteRam.ReadRgb555Color(
+            backgroundAttributes & AttributePaletteMask,
+            backgroundColorId
+        );
+
+    private static ushort ResolveObjectColor(CgbObjectPixel objectPixel, PpuEngineInputs inputs) =>
+        inputs.ObjectPaletteRam.ReadRgb555Color(objectPixel.PaletteIndex, objectPixel.ColorId);
+
+    private void WriteRgb555Pixel(ushort color)
+    {
         int frameOffset =
             ((LcdYCoordinate * PpuGeometry.FrameWidth) + _renderedPixels) * Rgb555BytesPerPixel;
         _frameBuffer[frameOffset] = (byte)color;
         _frameBuffer[frameOffset + 1] = (byte)(color >> 8);
-        _renderedPixels++;
     }
 
     private void TryStartWindow(PpuEngineInputs inputs)

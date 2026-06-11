@@ -548,40 +548,51 @@ internal sealed class DmgPpuEngine : IPpuEngine
             return;
         }
 
-        if ((inputs.LcdControl & PpuLcdControlRegister.BackgroundWindowEnableOrPriorityMask) == 0)
-        {
-            colorId = 0;
-        }
-
-        _frameBuffer[(LcdYCoordinate * PpuGeometry.FrameWidth) + _renderedPixels] = MixPixel(
-            colorId,
-            inputs
-        );
+        byte shade = MixPixel(ApplyBackgroundEnable(colorId, inputs.LcdControl), inputs);
+        WriteShadePixel(shade);
         _renderedPixels++;
     }
 
     private byte MixPixel(byte backgroundColorId, PpuEngineInputs inputs)
     {
         DmgObjectPixel? objectPixel = _objects.SelectPixel(_renderedPixels, LcdYCoordinate, inputs);
-
         if (
             objectPixel is null
-            || (
-                objectPixel.Value.HasBackgroundPriority
-                && backgroundColorId != 0
-                && (inputs.LcdControl & PpuLcdControlRegister.BackgroundWindowEnableOrPriorityMask)
-                    != 0
-            )
+            || BackgroundCoversObject(backgroundColorId, objectPixel.Value, inputs.LcdControl)
         )
         {
-            return ApplyPalette(backgroundColorId, inputs.BackgroundPalette);
+            return ResolveBackgroundShade(backgroundColorId, inputs);
         }
 
-        byte objectPalette = objectPixel.Value.UsesPalette1
-            ? inputs.ObjectPalette1
-            : inputs.ObjectPalette0;
+        return ResolveObjectShade(objectPixel.Value, inputs);
+    }
 
-        return ApplyPalette(objectPixel.Value.ColorId, objectPalette);
+    private static byte ApplyBackgroundEnable(byte backgroundColorId, byte lcdControl) =>
+        (lcdControl & PpuLcdControlRegister.BackgroundWindowEnableOrPriorityMask) == 0
+            ? (byte)0
+            : backgroundColorId;
+
+    private static bool BackgroundCoversObject(
+        byte backgroundColorId,
+        DmgObjectPixel objectPixel,
+        byte lcdControl
+    ) =>
+        objectPixel.HasBackgroundPriority
+        && backgroundColorId != 0
+        && (lcdControl & PpuLcdControlRegister.BackgroundWindowEnableOrPriorityMask) != 0;
+
+    private static byte ResolveBackgroundShade(byte backgroundColorId, PpuEngineInputs inputs) =>
+        ApplyPalette(backgroundColorId, inputs.BackgroundPalette);
+
+    private static byte ResolveObjectShade(DmgObjectPixel objectPixel, PpuEngineInputs inputs) =>
+        ApplyPalette(
+            objectPixel.ColorId,
+            objectPixel.UsesPalette1 ? inputs.ObjectPalette1 : inputs.ObjectPalette0
+        );
+
+    private void WriteShadePixel(byte shade)
+    {
+        _frameBuffer[(LcdYCoordinate * PpuGeometry.FrameWidth) + _renderedPixels] = shade;
     }
 
     private void TryStartWindow(PpuEngineInputs inputs)

@@ -4,30 +4,10 @@ using GbcNet.Core.Memory;
 namespace GbcNet.Core.Ppu.Engines;
 
 /// <summary>
-/// DMG object layer state for one selected scanline.
+/// CGB object layer state for one selected scanline.
 /// </summary>
-internal sealed class DmgObjectLayer
+internal sealed class CgbObjectLayer
 {
-    /// <summary>
-    /// OBJ fetch adds a six-dot minimum Mode 3 penalty.
-    /// </summary>
-    private const int ObjectBasePenaltyDots = 6;
-
-    /// <summary>
-    /// Startup penalty for an object fetch session beginning at X mod 8 equal to 0 or 1.
-    /// </summary>
-    private const int SlowObjectSessionStartupDots = 8;
-
-    /// <summary>
-    /// Startup penalty for an object fetch session beginning at X mod 8 equal to 2 or 3.
-    /// </summary>
-    private const int NormalObjectSessionStartupDots = 6;
-
-    /// <summary>
-    /// Startup penalty for an object fetch session beginning at X mod 8 equal to 4, 5, 6, or 7.
-    /// </summary>
-    private const int FastObjectSessionStartupDots = 4;
-
     private const byte LowThreeBitsMask = 0x07;
 
     private readonly ScanlineObject[] _scanlineObjects = new ScanlineObject[
@@ -37,31 +17,14 @@ internal sealed class DmgObjectLayer
     private int _scanlineObjectHeight = PpuObjectAttributes.Size8;
     private bool _scanlineObjectsSelected;
 
-    /// <summary>
-    /// Additional Mode 3 dots caused by OBJ fetches on the selected scanline.
-    /// </summary>
-    public int PenaltyDots { get; private set; }
-
-    /// <summary>
-    /// Clears scanline-local OBJ selection and fetch penalty state.
-    /// </summary>
     public void Clear()
     {
         _scanlineObjectCount = 0;
         _scanlineObjectHeight = PpuObjectAttributes.Size8;
-        PenaltyDots = 0;
         _scanlineObjectsSelected = false;
     }
 
-    /// <summary>
-    /// Performs the once-per-scanline OAM selection pass after OAM scan has completed.
-    /// </summary>
-    public void EnsureSelected(
-        PpuEngineInputs inputs,
-        byte lcdYCoordinate,
-        bool oamScanComplete,
-        byte scrollXLowBits
-    )
+    public void EnsureSelected(PpuEngineInputs inputs, byte lcdYCoordinate, bool oamScanComplete)
     {
         if (
             _scanlineObjectsSelected
@@ -76,20 +39,15 @@ internal sealed class DmgObjectLayer
         {
             _scanlineObjectCount = 0;
             _scanlineObjectHeight = PpuObjectAttributes.Size8;
-            PenaltyDots = 0;
             _scanlineObjectsSelected = true;
             return;
         }
 
         SelectScanlineObjects(inputs, lcdYCoordinate);
-        PenaltyDots = CalculatePenaltyDots(scrollXLowBits);
         _scanlineObjectsSelected = true;
     }
 
-    /// <summary>
-    /// Selects the frontmost non-transparent DMG OBJ pixel for a screen X position.
-    /// </summary>
-    public DmgObjectPixel? SelectPixel(int screenX, byte lcdYCoordinate, PpuEngineInputs inputs)
+    public CgbObjectPixel? SelectPixel(int screenX, byte lcdYCoordinate, PpuEngineInputs inputs)
     {
         if ((inputs.LcdControl & PpuLcdControlRegister.ObjectEnableMask) == 0)
         {
@@ -141,7 +99,6 @@ internal sealed class DmgObjectLayer
             }
 
             _scanlineObjects[_scanlineObjectCount] = new(
-                objectIndex,
                 inputs.ObjectAttributeMemory.Read(
                     (ushort)(objectAddress + PpuObjectAttributes.XCoordinateOffset)
                 ),
@@ -161,79 +118,6 @@ internal sealed class DmgObjectLayer
                 break;
             }
         }
-
-        // DMG priority resolves by X coordinate first, then original OAM index for ties
-        _scanlineObjects
-            .AsSpan(0, _scanlineObjectCount)
-            .Sort(
-                static (x, y) =>
-                {
-                    int xComparison = x.X.CompareTo(y.X);
-                    return xComparison != 0 ? xComparison : x.Index.CompareTo(y.Index);
-                }
-            );
-    }
-
-    private int CalculatePenaltyDots(byte scrollXLowBits)
-    {
-        if (_scanlineObjectCount == 0)
-        {
-            return 0;
-        }
-
-        ReadOnlySpan<ScanlineObject> objects = _scanlineObjects.AsSpan(0, _scanlineObjectCount);
-        int penaltyDots = 0;
-        int index = 0;
-
-        while (index < objects.Length)
-        {
-            ScanlineObject firstObject = objects[index];
-            if (firstObject.X >= PpuObjectAttributes.FirstFullyHiddenRightX)
-            {
-                index++;
-                continue;
-            }
-
-            // Objects that begin in the same tile fetch slot share one fetch session penalty
-            int tileIndex = GetObjectTileIndex(firstObject.X, scrollXLowBits);
-            int sessionEnd = index + 1;
-            while (
-                sessionEnd < objects.Length
-                && objects[sessionEnd].X < PpuObjectAttributes.FirstFullyHiddenRightX
-                && GetObjectTileIndex(objects[sessionEnd].X, scrollXLowBits) == tileIndex
-            )
-            {
-                sessionEnd++;
-            }
-
-            penaltyDots += (firstObject.X & LowThreeBitsMask) switch
-            {
-                <= 1 => SlowObjectSessionStartupDots,
-                <= 3 => NormalObjectSessionStartupDots,
-                _ => FastObjectSessionStartupDots,
-            };
-            penaltyDots += (sessionEnd - index - 1) * ObjectBasePenaltyDots;
-
-            for (int laterIndex = sessionEnd; laterIndex < objects.Length; laterIndex++)
-            {
-                if (objects[laterIndex].X >= PpuObjectAttributes.FirstFullyHiddenRightX)
-                {
-                    continue;
-                }
-
-                // A later visible fetch session pays a gap penalty based on the previous session
-                penaltyDots += (objects[sessionEnd - 1].X & LowThreeBitsMask) switch
-                {
-                    0 or 2 or 4 => 3,
-                    _ => 2,
-                };
-                break;
-            }
-
-            index = sessionEnd;
-        }
-
-        return penaltyDots;
     }
 
     private byte ReadColorId(
@@ -247,7 +131,13 @@ internal sealed class DmgObjectLayer
         byte tileId = ResolveObjectTileId(scanlineObject.Tile, objectLine);
         ushort tileRowAddress = GetObjectTileRowAddress(tileId, objectLine);
 
-        ReadObjectTileRow(inputs, tileRowAddress, out byte lowByte, out byte highByte);
+        ReadObjectTileRow(
+            inputs,
+            ResolveObjectTileBank(scanlineObject),
+            tileRowAddress,
+            out byte lowByte,
+            out byte highByte
+        );
 
         return PpuTileData.DecodeColorId(
             lowByte,
@@ -256,10 +146,10 @@ internal sealed class DmgObjectLayer
         );
     }
 
-    private static DmgObjectPixel CreateObjectPixel(ScanlineObject scanlineObject, byte colorId) =>
+    private static CgbObjectPixel CreateObjectPixel(ScanlineObject scanlineObject, byte colorId) =>
         new(
             colorId,
-            (scanlineObject.Flags & PpuObjectAttributes.DmgPalette1Mask) != 0,
+            (byte)(scanlineObject.Flags & PpuObjectAttributes.CgbPaletteMask),
             (scanlineObject.Flags & PpuObjectAttributes.BackgroundPriorityMask) != 0
         );
 
@@ -280,15 +170,19 @@ internal sealed class DmgObjectLayer
     private static ushort GetObjectTileRowAddress(byte tileId, int objectLine) =>
         PpuTileData.GetUnsignedTileRowAddress(tileId, objectLine & LowThreeBitsMask);
 
+    private static int ResolveObjectTileBank(ScanlineObject scanlineObject) =>
+        (scanlineObject.Flags & PpuObjectAttributes.CgbTileBankMask) == 0 ? 0 : 1;
+
     private static void ReadObjectTileRow(
         PpuEngineInputs inputs,
+        int bank,
         ushort tileRowAddress,
         out byte lowByte,
         out byte highByte
     )
     {
-        lowByte = inputs.VideoRam.Read(tileRowAddress);
-        highByte = inputs.VideoRam.Read((ushort)(tileRowAddress + 1));
+        lowByte = inputs.VideoRam.ReadBank(bank, tileRowAddress);
+        highByte = inputs.VideoRam.ReadBank(bank, (ushort)(tileRowAddress + 1));
     }
 
     private static int ResolveObjectPixelBit(ScanlineObject scanlineObject, int screenX)
@@ -298,33 +192,15 @@ internal sealed class DmgObjectLayer
         return (scanlineObject.Flags & PpuObjectAttributes.XFlipMask) == 0 ? 7 - pixel : pixel;
     }
 
-    private static int GetObjectTileIndex(byte objectX, byte scrollXLowBits)
-    {
-        int pixel = objectX - PpuObjectAttributes.XScreenOffset + scrollXLowBits;
-        return (pixel >> 3) & (PpuTileData.TilesPerMapRow - 1);
-    }
-
     [StructLayout(LayoutKind.Sequential)]
-    private readonly record struct ScanlineObject(int Index, byte X, byte Y, byte Tile, byte Flags);
+    private readonly record struct ScanlineObject(byte X, byte Y, byte Tile, byte Flags);
 }
 
 /// <summary>
-/// Decoded non-transparent DMG OBJ pixel attributes selected for composition.
+/// Decoded non-transparent CGB OBJ pixel attributes selected for composition.
 /// </summary>
-internal readonly struct DmgObjectPixel(byte colorId, bool usesPalette1, bool hasBackgroundPriority)
-{
-    /// <summary>
-    /// Two-bit OBJ color index; zero is transparent and never returned.
-    /// </summary>
-    public byte ColorId { get; } = colorId;
-
-    /// <summary>
-    /// Selects OBP1 instead of OBP0 for final shade mapping.
-    /// </summary>
-    public bool UsesPalette1 { get; } = usesPalette1;
-
-    /// <summary>
-    /// Indicates that non-zero background/window pixels have priority over this OBJ pixel.
-    /// </summary>
-    public bool HasBackgroundPriority { get; } = hasBackgroundPriority;
-}
+internal readonly record struct CgbObjectPixel(
+    byte ColorId,
+    byte PaletteIndex,
+    bool HasBackgroundPriority
+);

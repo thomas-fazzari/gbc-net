@@ -128,6 +128,7 @@ internal sealed class PpuController(
             _objectPalette1,
             VideoRam,
             BackgroundPaletteRam,
+            ObjectPaletteRam,
             ObjectAttributeMemory
         );
 
