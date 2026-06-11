@@ -14,13 +14,28 @@ internal static class HardwareProfileFactory
     {
         ArgumentNullException.ThrowIfNull(cartridgeHeader);
 
-        return hardwareModel switch
+        return (hardwareModel, cartridgeHeader.CgbSupport) switch
         {
-            HardwareModel.Dmg => DmgHardwareProfile.Instance,
+            (HardwareModel.Dmg, CgbSupport.None or CgbSupport.Enhanced) =>
+                DmgHardwareProfile.Instance,
+            (HardwareModel.Dmg, CgbSupport.Required) => throw new NotSupportedException(
+                "CGB-required cartridges cannot run on DMG hardware."
+            ),
+            (HardwareModel.Cgb, CgbSupport.None) => new CgbHardwareProfile(
+                CgbOperatingMode.DmgCompatibility
+            ),
+            (HardwareModel.Cgb, CgbSupport.Enhanced or CgbSupport.Required) =>
+                new CgbHardwareProfile(CgbOperatingMode.Cgb),
+            (_, CgbSupport.None or CgbSupport.Enhanced or CgbSupport.Required) =>
+                throw new ArgumentOutOfRangeException(
+                    nameof(hardwareModel),
+                    hardwareModel,
+                    "Unsupported hardware model."
+                ),
             _ => throw new ArgumentOutOfRangeException(
-                nameof(hardwareModel),
-                hardwareModel,
-                "Unsupported hardware model."
+                nameof(cartridgeHeader),
+                cartridgeHeader.CgbSupport,
+                "Unsupported cartridge CGB support value."
             ),
         };
     }

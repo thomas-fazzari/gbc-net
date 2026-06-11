@@ -6,7 +6,12 @@ namespace GbcNet.Core.Hardware;
 public enum HardwareModel
 {
     /// <summary>
-    /// Original monochrome Game Boy.
+    /// Original monochrome Game Boy hardware.
     /// </summary>
     Dmg = 0,
+
+    /// <summary>
+    /// Game Boy Color hardware.
+    /// </summary>
+    Cgb = 1,
 }
