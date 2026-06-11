@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -16,10 +15,9 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
     private const double Dpi = 96;
 
     private readonly WriteableBitmap?[] _bitmaps = new WriteableBitmap?[2];
-    private byte[] _bgraPixels = [];
     private int _nextBitmapIndex;
 
-    public WriteableBitmap Render(LcdFrame frame)
+    public unsafe WriteableBitmap Render(LcdFrame frame)
     {
         ArgumentNullException.ThrowIfNull(frame);
 
@@ -32,14 +30,11 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
 
         using ILockedFramebuffer framebuffer = bitmap.Lock();
         int bgraLength = checked(framebuffer.RowBytes * frame.Height);
-
-        if (_bgraPixels.Length != bgraLength)
-        {
-            _bgraPixels = new byte[bgraLength];
-        }
-
-        WritePixels(frame, framebuffer.RowBytes);
-        Marshal.Copy(_bgraPixels, 0, framebuffer.Address, _bgraPixels.Length);
+        WritePixels(
+            frame,
+            destination: new Span<byte>(framebuffer.Address.ToPointer(), bgraLength),
+            rowBytes: framebuffer.RowBytes
+        );
         return bitmap;
     }
 
@@ -50,8 +45,6 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
             _bitmaps[index]?.Dispose();
             _bitmaps[index] = null;
         }
-
-        _bgraPixels = [];
     }
 
     private WriteableBitmap GetNextBitmap(int width, int height)
@@ -75,13 +68,23 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
             AlphaFormat.Opaque
         );
         _bitmaps[index] = bitmap;
-        _bgraPixels = [];
         return bitmap;
     }
 
-    private void WritePixels(LcdFrame frame, int rowBytes)
+    internal static void WritePixels(LcdFrame frame, Span<byte> destination, int rowBytes)
     {
+        ArgumentNullException.ThrowIfNull(frame);
+        ArgumentOutOfRangeException.ThrowIfLessThan(rowBytes, frame.Width * BytesPerPixel);
+
+        int requiredLength = checked(rowBytes * frame.Height);
+
+        if (destination.Length < requiredLength)
+        {
+            throw new ArgumentException("Destination buffer is too small.", nameof(destination));
+        }
+
         ReadOnlySpan<byte> shades = frame.Pixels.Span;
+        ReadOnlySpan<byte> colors = DmgLcdPalette.Bgra;
 
         for (int y = 0; y < frame.Height; y++)
         {
@@ -94,9 +97,10 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
                 int colorOffset =
                     (shades[sourceRowOffset + x] > 3 ? 3 : shades[sourceRowOffset + x])
                     * BytesPerPixel;
-                DmgLcdPalette
-                    .Bgra[colorOffset..(colorOffset + BytesPerPixel)]
-                    .CopyTo(_bgraPixels.AsSpan(targetOffset, BytesPerPixel));
+                destination[targetOffset] = colors[colorOffset];
+                destination[targetOffset + 1] = colors[colorOffset + 1];
+                destination[targetOffset + 2] = colors[colorOffset + 2];
+                destination[targetOffset + 3] = colors[colorOffset + 3];
             }
         }
     }

@@ -131,13 +131,13 @@ internal sealed class EmulationSession
 
     private async Task RunAsync()
     {
-        var stopwatch = Stopwatch.StartNew();
+        long pacingBaseTimestamp = Stopwatch.GetTimestamp();
         long elapsedMachineCycles = 0;
-        long nextThrottleMachineCycles = GetThrottleMachineCycles();
+        double speedMultiplier = GetSpeedMultiplier();
+        long nextThrottleMachineCycles = GetThrottleMachineCycles(speedMultiplier);
         long nextSaveMachineCycles = MachineCyclesPerSaveFlush;
         long pacingBaseMachineCycles = 0;
-        TimeSpan pacingBaseElapsed = TimeSpan.Zero;
-        long metricsTimestamp = Stopwatch.GetTimestamp();
+        long metricsTimestamp = pacingBaseTimestamp;
         int metricsFrameCount = 0;
         int pacingRevision = Volatile.Read(ref _pacingRevision);
 
@@ -194,32 +194,60 @@ internal sealed class EmulationSession
                 int currentPacingRevision = Volatile.Read(ref _pacingRevision);
                 if (currentPacingRevision != pacingRevision)
                 {
-                    // Timing baseline restarted when speed changes to avoid a catch-up delay
+                    // Timing baseline restarted when speed changes to avoid a catch-up delay.
                     pacingRevision = currentPacingRevision;
+                    speedMultiplier = GetSpeedMultiplier();
                     pacingBaseMachineCycles = elapsedMachineCycles;
-                    pacingBaseElapsed = stopwatch.Elapsed;
+                    pacingBaseTimestamp = Stopwatch.GetTimestamp();
+                    nextThrottleMachineCycles =
+                        elapsedMachineCycles + GetThrottleMachineCycles(speedMultiplier);
+                    RequestFastForwardFrameIfDue(pacingBaseTimestamp);
+                    PublishMetricsIfDue(
+                        pacingBaseTimestamp,
+                        speedMultiplier,
+                        ref metricsTimestamp,
+                        ref metricsFrameCount
+                    );
+                    continue;
                 }
 
-                // Throttle against total emulated time instead of per-chunk delay to avoid drift.
-                TimeSpan expectedElapsed =
-                    pacingBaseElapsed
-                    + TimeSpan.FromSeconds(
-                        (elapsedMachineCycles - pacingBaseMachineCycles)
-                            / (MachineCyclesPerSecond * GetSpeedMultiplier())
-                    );
-                TimeSpan delay = expectedElapsed - stopwatch.Elapsed;
+                long timestamp = Stopwatch.GetTimestamp();
+                long expectedTimestamp =
+                    pacingBaseTimestamp
+                    + (long)
+                        Math.Round(
+                            (elapsedMachineCycles - pacingBaseMachineCycles)
+                                * (
+                                    Stopwatch.Frequency / (MachineCyclesPerSecond * speedMultiplier)
+                                ),
+                            MidpointRounding.ToEven
+                        );
+                long delayTimestamp = expectedTimestamp - timestamp;
 
-                if (delay > TimeSpan.Zero)
+                if (delayTimestamp > 0)
                 {
                     await Task.WhenAny(
-                            Task.Delay(delay, CancellationToken.None),
+                            Task.Delay(
+                                TimeSpan.FromTicks(
+                                    delayTimestamp * TimeSpan.TicksPerSecond / Stopwatch.Frequency
+                                ),
+                                CancellationToken.None
+                            ),
                             _stopRequested.Task
                         )
                         .ConfigureAwait(false);
+                    timestamp = expectedTimestamp;
                 }
 
-                PublishMetricsIfDue(ref metricsTimestamp, ref metricsFrameCount);
-                nextThrottleMachineCycles = elapsedMachineCycles + GetThrottleMachineCycles();
+                RequestFastForwardFrameIfDue(timestamp);
+                PublishMetricsIfDue(
+                    timestamp,
+                    speedMultiplier,
+                    ref metricsTimestamp,
+                    ref metricsFrameCount
+                );
+                nextThrottleMachineCycles =
+                    elapsedMachineCycles + GetThrottleMachineCycles(speedMultiplier);
             }
         }
         catch (Exception exception)
@@ -239,12 +267,12 @@ internal sealed class EmulationSession
             ? Volatile.Read(ref _fastForwardSpeed) / (double)(int)EmulationSpeed.Normal
             : 1.0;
 
-    private long GetThrottleMachineCycles() =>
+    private static long GetThrottleMachineCycles(double speedMultiplier) =>
         Math.Max(
             1,
             (long)
                 Math.Round(
-                    MachineCyclesPerSecond * GetSpeedMultiplier() * ThrottleIntervalSeconds,
+                    MachineCyclesPerSecond * speedMultiplier * ThrottleIntervalSeconds,
                     MidpointRounding.ToEven
                 )
         );
@@ -256,9 +284,13 @@ internal sealed class EmulationSession
             && Volatile.Read(ref _fastForwardSpeed) > (int)EmulationSpeed.Normal;
     }
 
-    private void PublishMetricsIfDue(ref long metricsTimestamp, ref int metricsFrameCount)
+    private void PublishMetricsIfDue(
+        long timestamp,
+        double speedMultiplier,
+        ref long metricsTimestamp,
+        ref int metricsFrameCount
+    )
     {
-        long timestamp = Stopwatch.GetTimestamp();
         double elapsedSeconds = (timestamp - metricsTimestamp) / (double)Stopwatch.Frequency;
 
         if (elapsedSeconds < 1)
@@ -269,7 +301,7 @@ internal sealed class EmulationSession
         int completedFrameCount = _completedFrameCount;
         double displayFramesPerSecond = (completedFrameCount - metricsFrameCount) / elapsedSeconds;
 
-        _handleMetrics(new EmulationMetrics(GetSpeedMultiplier(), displayFramesPerSecond));
+        _handleMetrics(new EmulationMetrics(speedMultiplier, displayFramesPerSecond));
 
         metricsTimestamp = timestamp;
         metricsFrameCount = completedFrameCount;
@@ -319,27 +351,25 @@ internal sealed class EmulationSession
         _handleFrame(e);
     }
 
-    private bool ShouldRenderVideoFrame()
+    private void RequestFastForwardFrameIfDue(long timestamp)
     {
         if (
             Volatile.Read(ref _isFastForwardEnabled) == 0
             || Volatile.Read(ref _fastForwardSpeed) <= (int)EmulationSpeed.Normal
+            || Volatile.Read(ref _videoFrameRenderRequested) != 0
         )
         {
-            return true;
+            return;
         }
 
-        if (Volatile.Read(ref _videoFrameRenderRequested) != 0)
+        if (timestamp >= Volatile.Read(ref _nextFastForwardFrameTimestamp))
         {
-            return true;
+            Volatile.Write(ref _videoFrameRenderRequested, 1);
         }
-
-        if (Stopwatch.GetTimestamp() < Volatile.Read(ref _nextFastForwardFrameTimestamp))
-        {
-            return false;
-        }
-
-        Volatile.Write(ref _videoFrameRenderRequested, 1);
-        return true;
     }
+
+    private bool ShouldRenderVideoFrame() =>
+        Volatile.Read(ref _isFastForwardEnabled) == 0
+        || Volatile.Read(ref _fastForwardSpeed) <= (int)EmulationSpeed.Normal
+        || Volatile.Read(ref _videoFrameRenderRequested) != 0;
 }
