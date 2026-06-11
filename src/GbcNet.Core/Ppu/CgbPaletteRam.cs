@@ -28,6 +28,35 @@ internal sealed class CgbPaletteRam(bool isEnabled)
     public byte ReadDataRegister() =>
         isEnabled ? _bytes[_index & IndexMask] : DisabledRegisterValue;
 
+    public ushort ReadRgb555Color(int paletteIndex, byte colorId)
+    {
+        if (!isEnabled)
+        {
+            return 0;
+        }
+
+        int offset = (((paletteIndex & 0x07) * 4) + (colorId & 0x03)) * 2;
+
+        return (ushort)(_bytes[offset] | (_bytes[offset + 1] << 8));
+    }
+
+    internal void SetAllColorsRgb555(ushort color)
+    {
+        if (!isEnabled)
+        {
+            return;
+        }
+
+        byte lowByte = (byte)color;
+        byte highByte = (byte)(color >> 8);
+
+        for (int offset = 0; offset < _bytes.Length; offset += 2)
+        {
+            _bytes[offset] = lowByte;
+            _bytes[offset + 1] = highByte;
+        }
+    }
+
     public void WriteDataRegister(byte value)
     {
         if (!isEnabled)

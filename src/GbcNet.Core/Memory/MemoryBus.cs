@@ -60,7 +60,7 @@ internal sealed class MemoryBus
     public ApuController Apu { get; }
 
     /// <summary>
-    /// LCD/PPU registers routed through FF40-FF45 and FF47-FF4B.
+    /// LCD/PPU registers routed through the PPU controller.
     /// </summary>
     public PpuController Ppu { get; }
 
@@ -113,9 +113,11 @@ internal sealed class MemoryBus
             case >= AddressMap.IoRegistersStart and <= AddressMap.IoRegistersEnd:
                 _ioRegisters.SetState(address, value);
                 return;
+
             case AddressMap.InterruptEnableRegister:
                 Interrupts.InterruptEnable = value;
                 return;
+
             default:
                 throw new ArgumentOutOfRangeException(
                     nameof(address),

@@ -1,6 +1,9 @@
+using GbcNet.Core.Apu.Profiles;
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Dma.Policies;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
+using GbcNet.Core.Ppu.Engines;
 using GbcNet.Tests.Cartridges;
 
 namespace GbcNet.Tests;
@@ -21,6 +24,14 @@ public sealed class HardwareProfileFactoryTests
         Assert.Equal(1, profile.VideoRamBankCount);
         Assert.False(profile.IsKey1RegisterEnabled);
         Assert.False(profile.IsColorPaletteRamEnabled);
+        Assert.IsType<DmgPpuEngine>(profile.CreatePpuEngine());
+        Assert.IsType<DmgDmaTransferPolicy>(profile.CreateDmaTransferPolicy());
+
+        DmgApuHardwareProfile apuProfile = Assert.IsType<DmgApuHardwareProfile>(
+            profile.CreateApuHardwareProfile()
+        );
+
+        Assert.Equal(0.999958, apuProfile.GetOutputHighPassChargeFactor(apuProfile.OutputClockHz));
         Assert.Equal(2, profile.WorkRamBankCount);
     }
 
@@ -53,6 +64,12 @@ public sealed class HardwareProfileFactoryTests
         Assert.Equal(2, cgbProfile.VideoRamBankCount);
         Assert.True(cgbProfile.IsKey1RegisterEnabled);
         Assert.True(cgbProfile.IsColorPaletteRamEnabled);
+        Assert.IsType<CgbPpuEngine>(cgbProfile.CreatePpuEngine());
+        Assert.IsType<CgbDmaTransferPolicy>(cgbProfile.CreateDmaTransferPolicy());
+        CgbApuHardwareProfile apuProfile = Assert.IsType<CgbApuHardwareProfile>(
+            cgbProfile.CreateApuHardwareProfile()
+        );
+        Assert.Equal(0.998943, apuProfile.GetOutputHighPassChargeFactor(apuProfile.OutputClockHz));
         Assert.Equal(8, cgbProfile.WorkRamBankCount);
     }
 
@@ -69,6 +86,9 @@ public sealed class HardwareProfileFactoryTests
         Assert.Equal(1, cgbProfile.VideoRamBankCount);
         Assert.False(cgbProfile.IsKey1RegisterEnabled);
         Assert.False(cgbProfile.IsColorPaletteRamEnabled);
+        Assert.IsType<DmgPpuEngine>(cgbProfile.CreatePpuEngine());
+        Assert.IsType<CgbDmaTransferPolicy>(cgbProfile.CreateDmaTransferPolicy());
+        Assert.IsType<CgbApuHardwareProfile>(cgbProfile.CreateApuHardwareProfile());
         Assert.Equal(8, cgbProfile.WorkRamBankCount);
     }
 

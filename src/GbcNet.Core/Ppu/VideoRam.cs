@@ -15,7 +15,6 @@ internal sealed class VideoRam
 
     private readonly byte[] _banks;
     private readonly int _bankCount;
-    private int _selectedBank;
 
     public VideoRam(int bankCount)
     {
@@ -26,23 +25,25 @@ internal sealed class VideoRam
         _banks = new byte[bankCount * BankSize];
     }
 
-    public int SelectedBank => _selectedBank;
+    public int SelectedBank { get; private set; }
 
-    public byte Read(ushort address) => _banks[GetOffset(_selectedBank, address)];
+    public byte Read(ushort address) => _banks[GetOffset(SelectedBank, address)];
 
     public void Write(ushort address, byte value)
     {
-        _banks[GetOffset(_selectedBank, address)] = value;
+        _banks[GetOffset(SelectedBank, address)] = value;
     }
 
+    public byte ReadBank(int bank, ushort address) => _banks[GetOffset(bank, address)];
+
     public byte ReadBankRegister() =>
-        _bankCount > MinimumBankCount ? (byte)(BankRegisterReadMask | _selectedBank) : (byte)0xFF;
+        _bankCount > MinimumBankCount ? (byte)(BankRegisterReadMask | SelectedBank) : (byte)0xFF;
 
     public void WriteBankRegister(byte value)
     {
         if (_bankCount > MinimumBankCount)
         {
-            _selectedBank = value & BankSelectMask;
+            SelectedBank = value & BankSelectMask;
         }
     }
 

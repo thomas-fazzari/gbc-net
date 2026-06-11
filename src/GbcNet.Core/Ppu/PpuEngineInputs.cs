@@ -19,5 +19,6 @@ internal readonly record struct PpuEngineInputs(
     byte ObjectPalette0,
     byte ObjectPalette1,
     VideoRam VideoRam,
+    CgbPaletteRam BackgroundPaletteRam,
     MappedMemory ObjectAttributeMemory
 );

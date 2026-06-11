@@ -1,12 +1,13 @@
 namespace GbcNet.Core.Apu.Profiles;
 
 /// <summary>
-/// DMG APU register masks and analog high-pass filter behavior.
+/// CGB APU register masks, double-speed DIV-APU edge selection, and analog high-pass filter behavior.
 /// </summary>
-internal sealed class DmgApuHardwareProfile : IApuHardwareProfile
+internal sealed class CgbApuHardwareProfile : IApuHardwareProfile
 {
     private const ushort DivApuNormalSpeedFallingEdgeMask = 1 << 12;
-    private const double HighPassChargeFactorPerTCycle = 0.999958;
+    private const ushort DivApuDoubleSpeedFallingEdgeMask = 1 << 13;
+    private const double HighPassChargeFactorPerTCycle = 0.998943;
 
     public int OutputClockHz => 4_194_304;
 
@@ -31,5 +32,6 @@ internal sealed class DmgApuHardwareProfile : IApuHardwareProfile
             _ => value,
         };
 
-    public ushort GetDivApuFallingEdgeMask(bool cgbDoubleSpeed) => DivApuNormalSpeedFallingEdgeMask;
+    public ushort GetDivApuFallingEdgeMask(bool cgbDoubleSpeed) =>
+        cgbDoubleSpeed ? DivApuDoubleSpeedFallingEdgeMask : DivApuNormalSpeedFallingEdgeMask;
 }

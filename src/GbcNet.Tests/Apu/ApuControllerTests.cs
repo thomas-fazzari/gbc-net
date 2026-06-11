@@ -1152,7 +1152,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_AdvancesDivApuStepOnDoubleSpeedDivBit5FallingEdge()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(new CgbApuHardwareProfile());
 
         ApuFrameSequencerEvents events = apu.TickSystemCounter(
             new ApuTickInputs(1 << 13, CgbDoubleSpeed: true)
@@ -1167,7 +1167,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_IgnoresNormalSpeedDivBit4FallingEdgeInDoubleSpeed()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(new CgbApuHardwareProfile());
 
         ApuFrameSequencerEvents events = apu.TickSystemCounter(
             new ApuTickInputs(1 << 12, CgbDoubleSpeed: true)

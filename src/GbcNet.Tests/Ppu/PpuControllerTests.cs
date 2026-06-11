@@ -1,3 +1,5 @@
+using GbcNet.Core.Hardware;
+using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu;
@@ -642,6 +644,106 @@ public sealed class PpuControllerTests
     }
 
     [Fact]
+    public void CgbRenderer_CompletesRgb555Frame()
+    {
+        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+
+        LcdFrame frame = RenderSecondFrame(
+            ppu,
+            LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
+        );
+
+        Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
+        Assert.Equal(PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * 2, frame.Pixels.Length);
+    }
+
+    [Fact]
+    public void CgbRenderer_UsesBackgroundPaletteSelectedByTileAttribute()
+    {
+        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        WriteBackgroundColor(ppu, paletteIndex: 5, colorId: 2, rgb555: 0x1234);
+        WriteVideoRamBank(ppu, bank: 1, PpuTileData.TileMap0Start, value: 0x05);
+        WriteBankedTileRow(ppu, bank: 0, 0x8000, row: 0, lowByte: 0x00, highByte: 0x80);
+
+        LcdFrame frame = RenderSecondFrame(
+            ppu,
+            LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
+        );
+
+        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x1234);
+    }
+
+    [Fact]
+    public void CgbRenderer_UsesTileDataBankSelectedByTileAttribute()
+    {
+        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        WriteBackgroundColor(ppu, paletteIndex: 0, colorId: 1, rgb555: 0x001F);
+        WriteBackgroundColor(ppu, paletteIndex: 0, colorId: 3, rgb555: 0x03E0);
+        WriteVideoRamBank(ppu, bank: 0, PpuTileData.TileMap0Start, value: 0x01);
+        WriteVideoRamBank(ppu, bank: 1, PpuTileData.TileMap0Start, value: 0x08);
+        WriteBankedTileRow(ppu, bank: 0, 0x8010, row: 0, lowByte: 0x80, highByte: 0x00);
+        WriteBankedTileRow(ppu, bank: 1, 0x8010, row: 0, lowByte: 0x80, highByte: 0x80);
+
+        LcdFrame frame = RenderSecondFrame(
+            ppu,
+            LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
+        );
+
+        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x03E0);
+    }
+
+    [Fact]
+    public void CgbRenderer_AppliesTileAttributeXFlip()
+    {
+        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        WriteBackgroundColor(ppu, paletteIndex: 0, colorId: 1, rgb555: 0x001F);
+        WriteVideoRamBank(ppu, bank: 1, PpuTileData.TileMap0Start, value: 0x20);
+        WriteBankedTileRow(ppu, bank: 0, 0x8000, row: 0, lowByte: 0x01, highByte: 0x00);
+
+        LcdFrame frame = RenderSecondFrame(
+            ppu,
+            LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
+        );
+
+        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x001F);
+    }
+
+    [Fact]
+    public void CgbRenderer_AppliesTileAttributeYFlip()
+    {
+        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        WriteBackgroundColor(ppu, paletteIndex: 0, colorId: 2, rgb555: 0x7C00);
+        WriteVideoRamBank(ppu, bank: 1, PpuTileData.TileMap0Start, value: 0x40);
+        WriteBankedTileRow(ppu, bank: 0, 0x8000, row: 7, lowByte: 0x00, highByte: 0x80);
+
+        LcdFrame frame = RenderSecondFrame(
+            ppu,
+            LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
+        );
+
+        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x7C00);
+    }
+
+    [Fact]
+    public void CgbDmgCompatibilityMode_RendersDmgShadeFrame()
+    {
+        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+        // TODO: Render CGB DMG compatibility mode through CGB palettes once compatibility colorization is implemented.
+        ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
+        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x00);
+        ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x1F);
+        WriteTileRow(ppu, 0x8000, row: 0, lowByte: 0x00, highByte: 0x80);
+
+        LcdFrame frame = RenderSecondFrame(
+            ppu,
+            LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
+        );
+
+        Assert.Equal(LcdPixelFormat.DmgShadeIndex8, frame.PixelFormat);
+        Assert.Equal(0x02, frame.Pixels.Span[0]);
+    }
+
+    [Fact]
     public void Tick_WindowStartupExtendsDrawingMode()
     {
         PpuController ppu = CreatePpu();
@@ -837,6 +939,14 @@ public sealed class PpuControllerTests
             isColorPaletteRamEnabled
         );
 
+    private static PpuController CreatePpu(CgbHardwareProfile profile) =>
+        new(
+            new InterruptController(),
+            profile.CreatePpuEngine(),
+            profile.VideoRamBankCount,
+            profile.IsColorPaletteRamEnabled
+        );
+
     private static LcdFrame RenderSecondFrame(PpuController ppu, byte lcdControl)
     {
         ppu.WriteRegister(AddressMap.LcdControlRegister, lcdControl);
@@ -855,6 +965,50 @@ public sealed class PpuControllerTests
         ushort rowAddress = (ushort)(tileAddress + (row * 2));
         ppu.VideoRam.Write(rowAddress, lowByte);
         ppu.VideoRam.Write((ushort)(rowAddress + 1), highByte);
+    }
+
+    private static void WriteBankedTileRow(
+        PpuController ppu,
+        int bank,
+        ushort tileAddress,
+        int row,
+        byte lowByte,
+        byte highByte
+    )
+    {
+        ushort rowAddress = (ushort)(tileAddress + (row * 2));
+        WriteVideoRamBank(ppu, bank, rowAddress, lowByte);
+        WriteVideoRamBank(ppu, bank, (ushort)(rowAddress + 1), highByte);
+    }
+
+    private static void WriteVideoRamBank(PpuController ppu, int bank, ushort address, byte value)
+    {
+        ppu.WriteRegister(AddressMap.VideoRamBankRegister, (byte)bank);
+        ppu.VideoRam.Write(address, value);
+        ppu.WriteRegister(AddressMap.VideoRamBankRegister, 0);
+    }
+
+    private static void WriteBackgroundColor(
+        PpuController ppu,
+        int paletteIndex,
+        byte colorId,
+        ushort rgb555
+    )
+    {
+        byte offset = (byte)((((paletteIndex & 0x07) * 4) + (colorId & 0x03)) * 2);
+        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, offset);
+        ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, (byte)rgb555);
+        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, (byte)(offset + 1));
+        ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, (byte)(rgb555 >> 8));
+    }
+
+    private static void AssertRgb555Pixel(LcdFrame frame, int pixelIndex, ushort expected)
+    {
+        Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
+        ReadOnlySpan<byte> pixels = frame.Pixels.Span;
+        int offset = pixelIndex * 2;
+        Assert.Equal((byte)expected, pixels[offset]);
+        Assert.Equal((byte)(expected >> 8), pixels[offset + 1]);
     }
 
     private static void WriteObjectAttributes(

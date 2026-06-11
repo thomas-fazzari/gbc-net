@@ -1,12 +1,12 @@
 namespace GbcNet.Core.Ppu.Engines;
 
 /// <summary>
-/// Owns DMG scanline dot timing, LY progression, and CPU-visible STAT mode timing.
+/// Owns currently shared LCD scanline dot timing, LY progression, and CPU-visible STAT mode timing.
 /// </summary>
-internal sealed class DmgPpuTiming
+internal sealed class PpuTiming
 {
     /// <summary>
-    /// The first scanline after enabling DMG LCD is four dots shorter.
+    /// The first scanline after enabling the LCD is four dots shorter in the current timing model.
     /// </summary>
     private const int FirstScanlineAfterLcdEnableDots = 452;
 
@@ -16,12 +16,12 @@ internal sealed class DmgPpuTiming
     private const int OamScanDots = 80;
 
     /// <summary>
-    /// First DMG scanline after LCD enable enters HBlank after the minimum Mode 3 duration.
+    /// First scanline after LCD enable enters HBlank after the minimum Mode 3 duration.
     /// </summary>
     private const int FirstScanlineAfterLcdEnableDrawingEndDots = OamScanDots + 172;
 
     /// <summary>
-    /// STAT mode changes lag the start of normal visible scanlines by four dots on DMG.
+    /// STAT mode changes lag the start of normal visible scanlines by four dots in the current timing model.
     /// </summary>
     private const int NormalScanlineStatusModeDelayDots = 4;
 
@@ -32,7 +32,7 @@ internal sealed class DmgPpuTiming
         OamScanDots + NormalScanlineStatusModeDelayDots;
 
     /// <summary>
-    /// Minimal DMG Mode 3 end point for normal visible scanlines.
+    /// Minimal Mode 3 end point for normal visible scanlines.
     /// </summary>
     private const int NormalScanlineDrawingEndDots = OamScanDots + 176;
 
@@ -42,12 +42,12 @@ internal sealed class DmgPpuTiming
     public int LineDots { get; private set; }
 
     /// <summary>
-    /// DMG LY register value advanced by the scanline sequencer.
+    /// LY register value advanced by the scanline sequencer.
     /// </summary>
     public byte LcdYCoordinate { get; private set; }
 
     /// <summary>
-    /// CPU-visible DMG STAT mode, including the four-dot visible-line startup delay.
+    /// CPU-visible STAT mode, including the four-dot visible-line startup delay.
     /// </summary>
     public PpuMode StatusMode { get; private set; }
 

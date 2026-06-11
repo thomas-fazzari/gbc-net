@@ -14,6 +14,8 @@ internal sealed class PpuController(
     bool isColorPaletteRamEnabled
 )
 {
+    private const ushort WhiteRgb555 = 0x7FFF;
+
     /// <summary>
     /// VRAM at 8000-9FFF, banked by VBK when the active hardware mode exposes it.
     /// </summary>
@@ -125,6 +127,7 @@ internal sealed class PpuController(
             _objectPalette0,
             _objectPalette1,
             VideoRam,
+            BackgroundPaletteRam,
             ObjectAttributeMemory
         );
 
@@ -169,6 +172,14 @@ internal sealed class PpuController(
         PpuEngineTickResult result = engine.Tick(tCycles, EngineInputs, VideoRenderingEnabled);
         RequestInterrupts(result.Interrupts);
         return result.CompletedFrame;
+    }
+
+    /// <summary>
+    /// Seeds CGB background color palette RAM to boot-ROM white without changing palette index registers.
+    /// </summary>
+    internal void SetBackgroundColorPaletteRamToWhite()
+    {
+        BackgroundPaletteRam.SetAllColorsRgb555(WhiteRgb555);
     }
 
     /// <summary>

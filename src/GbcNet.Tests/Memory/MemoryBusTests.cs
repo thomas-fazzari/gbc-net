@@ -700,6 +700,57 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
+    public void ReadByte_AppliesCgbDmaBusConflictsFromWorkRam()
+    {
+        byte[] rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0000] = 0x11;
+            bytes[0x0147] = (byte)CartridgeType.Mbc1Ram;
+            bytes[0x0149] = 0x02;
+        });
+        MemoryBus bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        bus.WriteByte(0x0000, 0x0A);
+        bus.WriteByte(AddressMap.ExternalRamStart, 0x55);
+        bus.WriteByte(AddressMap.WorkRamStart, 0x22);
+        bus.WriteByte(AddressMap.WorkRamStart + 1, 0x33);
+        bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0x44);
+
+        bus.WriteByte(AddressMap.DmaRegister, 0xC0);
+        bus.TickDma(2);
+        bus.TickDma(1);
+
+        Assert.Equal(0x11, bus.ReadByte(AddressMap.RomStart));
+        Assert.Equal(0x55, bus.ReadByte(AddressMap.ExternalRamStart));
+        Assert.Equal(0x22, bus.ReadByte(AddressMap.WorkRamStart + 1));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+    }
+
+    [Fact]
+    public void ReadByte_AppliesCgbDmaBusConflictsFromCartridge()
+    {
+        byte[] rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x1200] = 0x66;
+            bytes[0x0147] = (byte)CartridgeType.Mbc1Ram;
+            bytes[0x0149] = 0x02;
+        });
+        MemoryBus bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        bus.WriteByte(0x0000, 0x0A);
+        bus.WriteByte(AddressMap.ExternalRamStart, 0x55);
+        bus.WriteByte(AddressMap.WorkRamStart, 0x33);
+        bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0x44);
+
+        bus.WriteByte(AddressMap.DmaRegister, 0x12);
+        bus.TickDma(2);
+        bus.TickDma(1);
+
+        Assert.Equal(0x66, bus.ReadByte(AddressMap.RomStart));
+        Assert.Equal(0x66, bus.ReadByte(AddressMap.ExternalRamStart));
+        Assert.Equal(0x33, bus.ReadByte(AddressMap.WorkRamStart));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+    }
+
+    [Fact]
     public void WriteByte_BlocksCpuMemoryDuringDma()
     {
         MemoryBus bus = CreateBus();

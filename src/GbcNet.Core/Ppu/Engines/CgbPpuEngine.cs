@@ -1,37 +1,27 @@
 namespace GbcNet.Core.Ppu.Engines;
 
 /// <summary>
-/// DMG LCD engine for LY, STAT mode, STAT interrupt line, CPU video-memory access, and frames.
+/// CGB LCD engine for LY, STAT mode, CPU video-memory access, and BG/window RGB555 frames.
 /// </summary>
-internal sealed class DmgPpuEngine : IPpuEngine
+internal sealed class CgbPpuEngine : IPpuEngine
 {
-    /// <summary>
-    /// SCX low bits are latched at visible scanline start for the initial pixel shift.
-    /// </summary>
     private const byte ScrollXLowBitsMask = 0x07;
     private const int TileLineMask = PpuTileData.TileSizePixels - 1;
-
-    /// <summary>
-    /// Window startup resets the BG fetcher and adds six dots to Mode 3.
-    /// </summary>
+    private const byte AttributePaletteMask = 0x07;
+    private const byte AttributeTileBankMask = 0x08;
+    private const byte AttributeXFlipMask = 0x20;
+    private const byte AttributeYFlipMask = 0x40;
+    private const int Rgb555BytesPerPixel = 2;
     private const int WindowStartupPenaltyDots = 6;
-
-    /// <summary>
-    /// WX values up to 166 can make the Window visible.
-    /// </summary>
     private const byte MaxVisibleWindowX = 166;
-
-    /// <summary>
-    /// WX stores the Window X coordinate plus seven.
-    /// </summary>
     private const int WindowXScreenOffset = 7;
 
     private readonly PpuTiming _timing = new();
     private readonly byte[] _frameBuffer = new byte[
-        PpuGeometry.FrameWidth * PpuGeometry.FrameHeight
+        PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * Rgb555BytesPerPixel
     ];
-    private readonly byte[] _backgroundFifo = new byte[16];
-    private readonly DmgObjectLayer _objects = new();
+    private readonly byte[] _backgroundColorFifo = new byte[16];
+    private readonly byte[] _backgroundAttributeFifo = new byte[16];
     private byte _latchedScrollX;
     private byte _latchedScrollY;
     private int _windowPenaltyDots;
@@ -44,6 +34,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
     private int _discardedPixels;
     private int _renderedPixels;
     private byte _fetcherTileId;
+    private byte _fetcherTileAttributes;
     private byte _fetcherTileDataLow;
     private byte _fetcherTileDataHigh;
     private bool _statInterruptLine;
@@ -53,57 +44,32 @@ internal sealed class DmgPpuEngine : IPpuEngine
     private bool _renderCurrentFrame = true;
     private BackgroundFetcherStep _fetcherStep;
     private PixelFetcherSource _fetcherSource;
-
-    /// <summary>
-    /// DMG LY register value advanced by the scanline sequencer.
-    /// </summary>
-    public byte LcdYCoordinate => _timing.LcdYCoordinate;
-
-    /// <summary>
-    /// DMG STAT coincidence flag derived from LY and LYC.
-    /// </summary>
-    public bool LycEqualsLy { get; private set; } = true;
-
-    /// <summary>
-    /// CPU-visible DMG STAT mode, including the four-dot visible-line startup delay.
-    /// </summary>
-    public PpuMode StatusMode => _timing.StatusMode;
-
     private PpuMode _statInterruptMode;
 
-    /// <summary>
-    /// Indicates that DMG VRAM reads are blocked by Mode 3 drawing ownership.
-    /// </summary>
+    public byte LcdYCoordinate => _timing.LcdYCoordinate;
+
+    public bool LycEqualsLy { get; private set; } = true;
+
+    public PpuMode StatusMode => _timing.StatusMode;
+
     public bool IsCpuVideoRamReadBlocked =>
         _timing.IsCpuVideoRamReadBlocked(GetCurrentDrawingEndDots());
 
-    /// <summary>
-    /// Indicates that DMG VRAM writes are blocked by Mode 3 drawing ownership.
-    /// </summary>
     public bool IsCpuVideoRamWriteBlocked =>
         _timing.IsCpuVideoRamWriteBlocked(
             _timing.GetCurrentDrawingStartDots(),
             GetCurrentDrawingEndDots()
         );
 
-    /// <summary>
-    /// Indicates that DMG OAM reads are blocked by OAM scan or drawing ownership.
-    /// </summary>
     public bool IsCpuObjectAttributeMemoryReadBlocked =>
         _timing.IsCpuObjectAttributeMemoryReadBlocked(GetCurrentDrawingEndDots());
 
-    /// <summary>
-    /// Indicates that DMG OAM writes are blocked by OAM scan or drawing ownership.
-    /// </summary>
     public bool IsCpuObjectAttributeMemoryWriteBlocked =>
         _timing.IsCpuObjectAttributeMemoryWriteBlocked(
             _timing.GetCurrentDrawingStartDots(),
             GetCurrentDrawingEndDots()
         );
 
-    /// <summary>
-    /// Advances DMG LCD timing, renderer FIFO state, STAT interrupts, and VBlank frame completion.
-    /// </summary>
     public PpuEngineTickResult Tick(int tCycles, PpuEngineInputs inputs, bool renderFrame)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(tCycles);
@@ -153,15 +119,11 @@ internal sealed class DmgPpuEngine : IPpuEngine
         return new PpuEngineTickResult(requests, completedFrame);
     }
 
-    /// <summary>
-    /// Starts DMG LCD timing at the shortened first scanline after LCD enable.
-    /// </summary>
     public PpuInterruptRequest EnableLcd(PpuEngineInputs inputs, bool renderFrame)
     {
         _timing.EnableLcd();
         LatchScroll(inputs);
         RefreshWindowYCondition(inputs);
-        _objects.Clear();
         ResetRenderer();
         _renderCurrentFrame = renderFrame;
         _statInterruptMode = PpuMode.HBlank;
@@ -183,12 +145,10 @@ internal sealed class DmgPpuEngine : IPpuEngine
             lcdEnabled: true,
             requestInterrupt: false
         );
+
         return PpuInterruptRequest.None;
     }
 
-    /// <summary>
-    /// Stops DMG LCD timing and resets LY, STAT mode, renderer, and STAT interrupt line state.
-    /// </summary>
     public void DisableLcd()
     {
         _timing.DisableLcd();
@@ -198,23 +158,16 @@ internal sealed class DmgPpuEngine : IPpuEngine
         _activeWindowLine = 0;
         _windowYCondition = false;
         _renderCurrentFrame = true;
-        _objects.Clear();
         ResetRenderer();
         _statInterruptMode = PpuMode.HBlank;
         _statInterruptLine = false;
     }
 
-    /// <summary>
-    /// Applies DMG STAT interrupt line edge behavior after STAT interrupt select bits change.
-    /// </summary>
     public PpuInterruptRequest WriteStatusInterruptSelect(
         PpuEngineInputs inputs,
         bool lcdEnabled
     ) => RefreshStatInterruptLine(inputs.StatusInterruptSelect, lcdEnabled, requestInterrupt: true);
 
-    /// <summary>
-    /// Applies DMG LYC write comparison and STAT interrupt line edge behavior.
-    /// </summary>
     public PpuInterruptRequest WriteLycCompare(PpuEngineInputs inputs, bool lcdEnabled)
     {
         if (!lcdEnabled)
@@ -223,7 +176,6 @@ internal sealed class DmgPpuEngine : IPpuEngine
         }
 
         RefreshLycEqualsLy(inputs.LcdYCompare);
-
         return RefreshStatInterruptLine(
             inputs.StatusInterruptSelect,
             lcdEnabled: true,
@@ -231,9 +183,6 @@ internal sealed class DmgPpuEngine : IPpuEngine
         );
     }
 
-    /// <summary>
-    /// Seeds DMG STAT state when constructing post-boot or saved hardware state.
-    /// </summary>
     public void SetStatusState(byte value, PpuEngineInputs inputs, bool lcdEnabled)
     {
         LycEqualsLy = (value & PpuStatusRegister.LycEqualsLyMask) != 0;
@@ -242,9 +191,6 @@ internal sealed class DmgPpuEngine : IPpuEngine
         RefreshStatInterruptLine(inputs.StatusInterruptSelect, lcdEnabled, requestInterrupt: false);
     }
 
-    /// <summary>
-    /// Seeds DMG LY state and refreshes scanline-local rendering selectors.
-    /// </summary>
     public void SetLcdYCoordinateState(byte value, PpuEngineInputs inputs, bool lcdEnabled)
     {
         _timing.SetLcdYCoordinateState(value);
@@ -252,11 +198,9 @@ internal sealed class DmgPpuEngine : IPpuEngine
         {
             LatchScroll(inputs);
             RefreshWindowYCondition(inputs);
-            _objects.Clear();
         }
         else
         {
-            _objects.Clear();
             _windowPenaltyDots = 0;
         }
 
@@ -264,9 +208,6 @@ internal sealed class DmgPpuEngine : IPpuEngine
         RefreshStatInterruptLine(inputs.StatusInterruptSelect, lcdEnabled, requestInterrupt: false);
     }
 
-    /// <summary>
-    /// Seeds DMG LYC comparison state without requesting a CPU-visible STAT edge.
-    /// </summary>
     public void SetLycCompareState(PpuEngineInputs inputs, bool lcdEnabled)
     {
         RefreshLycEqualsLy(inputs.LcdYCompare);
@@ -277,7 +218,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
         _timing.GetCurrentDrawingEndDots(
             LatchedScrollXLowBits,
             _windowPenaltyDots,
-            _objects.PenaltyDots
+            objectPenaltyDots: 0
         );
 
     private PpuEngineTickResult AdvanceScanline(PpuEngineInputs inputs, bool renderFrame)
@@ -300,12 +241,9 @@ internal sealed class DmgPpuEngine : IPpuEngine
 
                 LatchScroll(inputs);
                 RefreshWindowYCondition(inputs);
-                _objects.Clear();
                 ResetRenderer();
                 break;
-
             case PpuGeometry.VBlankStartLine:
-                _objects.Clear();
                 _windowYCondition = false;
                 _windowLine = 0;
                 ResetRenderer();
@@ -315,10 +253,11 @@ internal sealed class DmgPpuEngine : IPpuEngine
                     completedFrame = new LcdFrame(
                         PpuGeometry.FrameWidth,
                         PpuGeometry.FrameHeight,
-                        LcdPixelFormat.DmgShadeIndex8,
+                        LcdPixelFormat.Rgb555Le,
                         _frameBuffer
                     );
                 }
+
                 break;
         }
 
@@ -334,15 +273,9 @@ internal sealed class DmgPpuEngine : IPpuEngine
 
     private PpuInterruptRequest RefreshPpuState(PpuEngineInputs inputs, bool requestInterrupt)
     {
-        _objects.EnsureSelected(
-            inputs,
-            LcdYCoordinate,
-            _timing.HasReachedOamScanEnd,
-            LatchedScrollXLowBits
-        );
         _statInterruptMode = _timing.RefreshStatusMode(GetCurrentDrawingEndDots());
-
         RefreshLycEqualsLy(inputs.LcdYCompare);
+
         return RefreshStatInterruptLine(
             inputs.StatusInterruptSelect,
             lcdEnabled: true,
@@ -360,13 +293,6 @@ internal sealed class DmgPpuEngine : IPpuEngine
 
     private void TickVideoTimingOnly(PpuEngineInputs inputs)
     {
-        _objects.EnsureSelected(
-            inputs,
-            LcdYCoordinate,
-            _timing.HasReachedOamScanEnd,
-            LatchedScrollXLowBits
-        );
-
         if (_renderingScanline)
         {
             return;
@@ -381,13 +307,6 @@ internal sealed class DmgPpuEngine : IPpuEngine
 
     private void TickRenderer(int dots, PpuEngineInputs inputs)
     {
-        _objects.EnsureSelected(
-            inputs,
-            LcdYCoordinate,
-            _timing.HasReachedOamScanEnd,
-            LatchedScrollXLowBits
-        );
-
         if (!_renderingScanline)
         {
             BeginRenderingScanline();
@@ -449,7 +368,9 @@ internal sealed class DmgPpuEngine : IPpuEngine
             return;
         }
 
-        _fetcherTileId = inputs.VideoRam.Read(GetTileMapAddress(inputs));
+        ushort tileMapAddress = GetTileMapAddress(inputs);
+        _fetcherTileId = inputs.VideoRam.ReadBank(bank: 0, tileMapAddress);
+        _fetcherTileAttributes = inputs.VideoRam.ReadBank(bank: 1, tileMapAddress);
         MoveToFetcherStep(BackgroundFetcherStep.GetTileDataLow);
     }
 
@@ -461,7 +382,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
             return;
         }
 
-        _fetcherTileDataLow = inputs.VideoRam.Read(GetTileDataAddress(inputs, highByte: false));
+        _fetcherTileDataLow = ReadTileDataByte(inputs, highByte: false);
         MoveToFetcherStep(BackgroundFetcherStep.GetTileDataHigh);
     }
 
@@ -473,7 +394,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
             return;
         }
 
-        _fetcherTileDataHigh = inputs.VideoRam.Read(GetTileDataAddress(inputs, highByte: true));
+        _fetcherTileDataHigh = ReadTileDataByte(inputs, highByte: true);
         if (TryPushFetchedTileRow())
         {
             CompleteFetchedTileRow();
@@ -481,6 +402,12 @@ internal sealed class DmgPpuEngine : IPpuEngine
         }
 
         MoveToFetcherStep(BackgroundFetcherStep.Sleep);
+    }
+
+    private byte ReadTileDataByte(PpuEngineInputs inputs, bool highByte)
+    {
+        int tileBank = (_fetcherTileAttributes & AttributeTileBankMask) == 0 ? 0 : 1;
+        return inputs.VideoRam.ReadBank(tileBank, GetTileDataAddress(inputs, highByte));
     }
 
     private void TickSleep()
@@ -521,14 +448,15 @@ internal sealed class DmgPpuEngine : IPpuEngine
             return false;
         }
 
+        bool xFlip = (_fetcherTileAttributes & AttributeXFlipMask) != 0;
         for (int pixel = 0; pixel < PpuTileData.TileSizePixels; pixel++)
         {
-            int bit = 7 - pixel;
+            int bit = xFlip ? pixel : 7 - pixel;
             byte colorId = (byte)(
                 (((_fetcherTileDataHigh >> bit) & 0x01) << 1)
                 | ((_fetcherTileDataLow >> bit) & 0x01)
             );
-            PushBackgroundPixel(colorId);
+            PushBackgroundPixel(colorId, _fetcherTileAttributes);
         }
 
         return true;
@@ -541,47 +469,23 @@ internal sealed class DmgPpuEngine : IPpuEngine
             return;
         }
 
-        byte colorId = PopBackgroundPixel();
+        byte colorId = PopBackgroundColorId();
+        byte attributes = PopBackgroundAttributes();
         if (_discardedPixels < LatchedScrollXLowBits)
         {
             _discardedPixels++;
             return;
         }
 
-        if ((inputs.LcdControl & PpuLcdControlRegister.BackgroundWindowEnableOrPriorityMask) == 0)
-        {
-            colorId = 0;
-        }
-
-        _frameBuffer[(LcdYCoordinate * PpuGeometry.FrameWidth) + _renderedPixels] = MixPixel(
-            colorId,
-            inputs
+        ushort color = inputs.BackgroundPaletteRam.ReadRgb555Color(
+            attributes & AttributePaletteMask,
+            colorId
         );
+        int frameOffset =
+            ((LcdYCoordinate * PpuGeometry.FrameWidth) + _renderedPixels) * Rgb555BytesPerPixel;
+        _frameBuffer[frameOffset] = (byte)color;
+        _frameBuffer[frameOffset + 1] = (byte)(color >> 8);
         _renderedPixels++;
-    }
-
-    private byte MixPixel(byte backgroundColorId, PpuEngineInputs inputs)
-    {
-        DmgObjectPixel? objectPixel = _objects.SelectPixel(_renderedPixels, LcdYCoordinate, inputs);
-
-        if (
-            objectPixel is null
-            || (
-                objectPixel.Value.HasBackgroundPriority
-                && backgroundColorId != 0
-                && (inputs.LcdControl & PpuLcdControlRegister.BackgroundWindowEnableOrPriorityMask)
-                    != 0
-            )
-        )
-        {
-            return ApplyPalette(backgroundColorId, inputs.BackgroundPalette);
-        }
-
-        byte objectPalette = objectPixel.Value.UsesPalette1
-            ? inputs.ObjectPalette1
-            : inputs.ObjectPalette0;
-
-        return ApplyPalette(objectPixel.Value.ColorId, objectPalette);
     }
 
     private void TryStartWindow(PpuEngineInputs inputs)
@@ -602,17 +506,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
         !_windowActiveThisLine
         && _windowYCondition
         && inputs.WindowX <= MaxVisibleWindowX
-        && (
-            inputs.LcdControl
-            & (
-                PpuLcdControlRegister.BackgroundWindowEnableOrPriorityMask
-                | PpuLcdControlRegister.WindowEnableMask
-            )
-        )
-            == (
-                PpuLcdControlRegister.BackgroundWindowEnableOrPriorityMask
-                | PpuLcdControlRegister.WindowEnableMask
-            );
+        && (inputs.LcdControl & PpuLcdControlRegister.WindowEnableMask) != 0;
 
     private void StartWindow()
     {
@@ -640,6 +534,7 @@ internal sealed class DmgPpuEngine : IPpuEngine
         _fetcherStepDots = 0;
         _fetcherTileX = 0;
         _fetcherTileId = 0;
+        _fetcherTileAttributes = 0;
         _fetcherTileDataLow = 0;
         _fetcherTileDataHigh = 0;
         _fetcherStep = BackgroundFetcherStep.GetTile;
@@ -668,6 +563,10 @@ internal sealed class DmgPpuEngine : IPpuEngine
     private ushort GetTileDataAddress(PpuEngineInputs inputs, bool highByte)
     {
         int tileLine = GetFetcherY() & TileLineMask;
+        if ((_fetcherTileAttributes & AttributeYFlipMask) != 0)
+        {
+            tileLine = PpuTileData.TileSizePixels - 1 - tileLine;
+        }
 
         int byteOffset = (tileLine * PpuTileData.TileRowBytes) + (highByte ? 1 : 0);
 
@@ -691,25 +590,24 @@ internal sealed class DmgPpuEngine : IPpuEngine
             : ((_latchedScrollX / PpuTileData.TileSizePixels) + _fetcherTileX)
                 & (PpuTileData.TilesPerMapRow - 1);
 
-    private void PushBackgroundPixel(byte colorId)
+    private void PushBackgroundPixel(byte colorId, byte attributes)
     {
-        int writeIndex = (_backgroundFifoStart + _backgroundFifoCount) % _backgroundFifo.Length;
-        _backgroundFifo[writeIndex] = colorId;
+        int writeIndex =
+            (_backgroundFifoStart + _backgroundFifoCount) % _backgroundColorFifo.Length;
+        _backgroundColorFifo[writeIndex] = colorId;
+        _backgroundAttributeFifo[writeIndex] = attributes;
         _backgroundFifoCount++;
     }
 
-    private byte PopBackgroundPixel()
+    private byte PopBackgroundColorId() => _backgroundColorFifo[_backgroundFifoStart];
+
+    private byte PopBackgroundAttributes()
     {
-        byte colorId = _backgroundFifo[_backgroundFifoStart];
-
-        _backgroundFifoStart = (_backgroundFifoStart + 1) % _backgroundFifo.Length;
+        byte attributes = _backgroundAttributeFifo[_backgroundFifoStart];
+        _backgroundFifoStart = (_backgroundFifoStart + 1) % _backgroundColorFifo.Length;
         _backgroundFifoCount--;
-
-        return colorId;
+        return attributes;
     }
-
-    private static byte ApplyPalette(byte colorId, byte palette) =>
-        (byte)((palette >> (colorId * 2)) & 0x03);
 
     private void MoveToFetcherStep(BackgroundFetcherStep fetcherStep)
     {

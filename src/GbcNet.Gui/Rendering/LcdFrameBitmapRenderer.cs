@@ -21,11 +21,6 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
     {
         ArgumentNullException.ThrowIfNull(frame);
 
-        if (frame.PixelFormat is not LcdPixelFormat.DmgShadeIndex8)
-        {
-            throw new NotSupportedException("Only DMG shade index frames are supported.");
-        }
-
         WriteableBitmap bitmap = GetNextBitmap(frame.Width, frame.Height);
 
         using ILockedFramebuffer framebuffer = bitmap.Lock();
@@ -83,6 +78,25 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
             throw new ArgumentException("Destination buffer is too small.", nameof(destination));
         }
 
+        switch (frame.PixelFormat)
+        {
+            case LcdPixelFormat.DmgShadeIndex8:
+                WriteDmgShadePixels(frame, destination, rowBytes);
+                return;
+
+            case LcdPixelFormat.Rgb555Le:
+                WriteRgb555Pixels(frame, destination, rowBytes);
+                return;
+
+            default:
+                throw new NotSupportedException(
+                    $"Unsupported LCD pixel format: {frame.PixelFormat}."
+                );
+        }
+    }
+
+    private static void WriteDmgShadePixels(LcdFrame frame, Span<byte> destination, int rowBytes)
+    {
         ReadOnlySpan<byte> shades = frame.Pixels.Span;
         ReadOnlySpan<byte> colors = DmgLcdPalette.Bgra;
 
@@ -104,4 +118,29 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
             }
         }
     }
+
+    private static void WriteRgb555Pixels(LcdFrame frame, Span<byte> destination, int rowBytes)
+    {
+        ReadOnlySpan<byte> pixels = frame.Pixels.Span;
+
+        for (int y = 0; y < frame.Height; y++)
+        {
+            int sourceRowOffset = y * frame.Width * 2;
+            int targetRowOffset = y * rowBytes;
+
+            for (int x = 0; x < frame.Width; x++)
+            {
+                int sourceOffset = sourceRowOffset + (x * 2);
+                int color = pixels[sourceOffset] | (pixels[sourceOffset + 1] << 8);
+                int targetOffset = targetRowOffset + (x * BytesPerPixel);
+
+                destination[targetOffset] = ExpandRgb555Channel((color >> 10) & 0x1F);
+                destination[targetOffset + 1] = ExpandRgb555Channel((color >> 5) & 0x1F);
+                destination[targetOffset + 2] = ExpandRgb555Channel(color & 0x1F);
+                destination[targetOffset + 3] = 0xFF;
+            }
+        }
+    }
+
+    private static byte ExpandRgb555Channel(int value) => (byte)((value << 3) | (value >> 2));
 }

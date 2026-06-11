@@ -67,6 +67,25 @@ public sealed class LcdFrameBitmapRendererTests
         );
     }
 
+    [Fact]
+    public void WritePixels_ConvertsRgb555LittleEndianToBgra()
+    {
+        LcdFrame frame = new(
+            width: 3,
+            height: 1,
+            LcdPixelFormat.Rgb555Le,
+            [0x1F, 0x00, 0xE0, 0x03, 0x00, 0x7C]
+        );
+        byte[] destination = new byte[12];
+
+        LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 12);
+
+        Assert.Equal(
+            [0x00, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF],
+            destination
+        );
+    }
+
     private static LcdFrame CreateFrame(int width, int height, params byte[] pixels) =>
         new(width, height, LcdPixelFormat.DmgShadeIndex8, pixels);
 }
