@@ -88,7 +88,11 @@ internal sealed class MemoryBus
         Apu = new ApuController(hardwareProfile.CreateApuHardwareProfile());
         Clock = new ClockController(Interrupts, Serial, Apu);
         Timers = Clock.Timers;
-        Ppu = new PpuController(Interrupts, hardwareProfile.CreatePpuEngine());
+        Ppu = new PpuController(
+            Interrupts,
+            hardwareProfile.CreatePpuEngine(),
+            hardwareProfile.VideoRamBankCount
+        );
         Dma = new DmaController();
         _ioRegisters = new IoRegisters(Interrupts, Clock, Joypad, Serial, Apu, Ppu, Dma);
         _readByteForDma = ReadOamDmaSourceByte;

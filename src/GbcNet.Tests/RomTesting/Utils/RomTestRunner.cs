@@ -11,13 +11,14 @@ internal static class RomTestRunner
     public static RomTestResult Run(
         byte[] rom,
         int maxMachineCycles,
-        RomTestProtocol protocol = RomTestProtocol.Blargg
+        RomTestProtocol protocol = RomTestProtocol.Blargg,
+        HardwareModel hardwareModel = HardwareModel.Dmg
     )
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxMachineCycles);
 
         Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
-        var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
+        var gameBoy = new GameBoy(cartridge, hardwareModel);
         IRomResultObserver[] observers = protocol switch
         {
             RomTestProtocol.Blargg =>

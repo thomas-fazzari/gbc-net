@@ -25,6 +25,8 @@ internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHard
 
     public HardwareModel Model => HardwareModel.Cgb;
 
+    public int VideoRamBankCount => OperatingMode is CgbOperatingMode.Cgb ? 2 : 1;
+
     public int WorkRamBankCount => 8;
 
     public IPpuEngine CreatePpuEngine() => new DmgPpuEngine();

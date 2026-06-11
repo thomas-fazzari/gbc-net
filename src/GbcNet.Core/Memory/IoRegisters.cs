@@ -50,21 +50,10 @@ internal sealed class IoRegisters(
             AddressMap.TimerControlRegister => _timers.ReadTimerControl(),
             AddressMap.InterruptFlagRegister => interrupts.ReadInterruptFlag(),
             AddressMap.DmaRegister => dma.ReadRegister(),
+            AddressMap.VideoRamBankRegister => ppu.ReadRegister(address),
             _ => 0xFF,
         };
     }
-
-    /// <summary>
-    /// Writes an I/O register as a CPU write, including side effects.
-    /// </summary>
-    public void WriteCpu(ushort address, byte value) =>
-        Write(address, value, IoRegisterWriteMode.CpuWrite);
-
-    /// <summary>
-    /// Seeds an I/O register without CPU write side effects.
-    /// </summary>
-    public void SetState(ushort address, byte value) =>
-        Write(address, value, IoRegisterWriteMode.SeedState);
 
     private void Write(ushort address, byte value, IoRegisterWriteMode mode)
     {
@@ -104,9 +93,11 @@ internal sealed class IoRegisters(
                     requestInterruptOnTransition: mode is IoRegisterWriteMode.CpuWrite
                 );
                 return;
+
             case AddressMap.SerialTransferDataRegister:
                 serial.TransferData = value;
                 return;
+
             case AddressMap.SerialTransferControlRegister:
                 if (mode is IoRegisterWriteMode.CpuWrite)
                 {
@@ -116,8 +107,8 @@ internal sealed class IoRegisters(
                 {
                     serial.SetControlState(value);
                 }
-
                 return;
+
             case AddressMap.DividerRegister:
                 if (mode is IoRegisterWriteMode.CpuWrite)
                 {
@@ -127,8 +118,8 @@ internal sealed class IoRegisters(
                 {
                     clock.SetDivider(value);
                 }
-
                 return;
+
             case AddressMap.TimerCounterRegister:
                 if (mode is IoRegisterWriteMode.CpuWrite)
                 {
@@ -138,8 +129,8 @@ internal sealed class IoRegisters(
                 {
                     _timers.TimerCounter = value;
                 }
-
                 return;
+
             case AddressMap.TimerModuloRegister:
                 if (mode is IoRegisterWriteMode.CpuWrite)
                 {
@@ -149,8 +140,8 @@ internal sealed class IoRegisters(
                 {
                     _timers.TimerModulo = value;
                 }
-
                 return;
+
             case AddressMap.TimerControlRegister:
                 if (mode is IoRegisterWriteMode.CpuWrite)
                 {
@@ -160,11 +151,12 @@ internal sealed class IoRegisters(
                 {
                     _timers.SetTimerControlState(value);
                 }
-
                 return;
+
             case AddressMap.InterruptFlagRegister:
                 interrupts.SetInterruptFlag(value);
                 return;
+
             case AddressMap.DmaRegister:
                 if (mode is IoRegisterWriteMode.CpuWrite)
                 {
@@ -174,12 +166,35 @@ internal sealed class IoRegisters(
                 {
                     dma.SetRegisterState(value);
                 }
-
                 return;
+
+            case AddressMap.VideoRamBankRegister:
+                if (mode is IoRegisterWriteMode.CpuWrite)
+                {
+                    ppu.WriteRegister(address, value);
+                }
+                else
+                {
+                    ppu.SetRegisterState(address, value);
+                }
+                return;
+
             default:
                 return;
         }
     }
+
+    /// <summary>
+    /// Writes an I/O register as a CPU write, including side effects.
+    /// </summary>
+    public void WriteCpu(ushort address, byte value) =>
+        Write(address, value, IoRegisterWriteMode.CpuWrite);
+
+    /// <summary>
+    /// Seeds an I/O register without CPU write side effects.
+    /// </summary>
+    public void SetState(ushort address, byte value) =>
+        Write(address, value, IoRegisterWriteMode.SeedState);
 
     private enum IoRegisterWriteMode
     {

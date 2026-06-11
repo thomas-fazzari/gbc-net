@@ -1,3 +1,4 @@
+using GbcNet.Core.Hardware;
 using GbcNet.Tests.RomTesting.Utils;
 
 namespace GbcNet.Tests.RomTesting.Blargg;
@@ -13,7 +14,11 @@ public sealed class BlarggInterruptTimingRomTests
     {
         byte[] rom = File.ReadAllBytes(RomPath);
 
-        RomTestResult result = RomTestRunner.Run(rom, MaxMachineCycles);
+        RomTestResult result = RomTestRunner.Run(
+            rom,
+            MaxMachineCycles,
+            hardwareModel: HardwareModel.Cgb
+        );
 
         RomTestAssertions.AssertPassed(result);
     }

@@ -7,12 +7,16 @@ namespace GbcNet.Core.Ppu;
 /// <summary>
 /// Stores CPU-visible Liquid Crystal Display/Pixel Processing Unit registers and delegates model-specific behavior.
 /// </summary>
-internal sealed class PpuController(InterruptController interrupts, IPpuEngine engine)
+internal sealed class PpuController(
+    InterruptController interrupts,
+    IPpuEngine engine,
+    int videoRamBankCount
+)
 {
     /// <summary>
-    /// DMG VRAM bank 0 at 8000-9FFF.
+    /// VRAM at 8000-9FFF, banked by VBK when the active hardware mode exposes it.
     /// </summary>
-    internal MappedMemory VideoRam { get; } = new(AddressMap.VideoRamStart, AddressMap.VideoRamEnd);
+    internal VideoRam VideoRam { get; } = new(videoRamBankCount);
 
     /// <summary>
     /// Sprite attribute table at FE00-FE9F.
@@ -41,7 +45,7 @@ internal sealed class PpuController(InterruptController interrupts, IPpuEngine e
                 and not AddressMap.DmaRegister;
 
     /// <summary>
-    /// Reads an LCD/PPU register at FF40-FF45 or FF47-FF4B.
+    /// Reads an LCD/PPU register at FF40-FF45, FF47-FF4B, or FF4F.
     /// </summary>
     public byte ReadRegister(ushort address) =>
         address switch
@@ -57,6 +61,7 @@ internal sealed class PpuController(InterruptController interrupts, IPpuEngine e
             AddressMap.ObjectPalette1Register => _objectPalette1,
             AddressMap.WindowYRegister => _windowY,
             AddressMap.WindowXRegister => _windowX,
+            AddressMap.VideoRamBankRegister => VideoRam.ReadBankRegister(),
             _ => throw CreateUnsupportedRegisterException(address),
         };
 
@@ -210,6 +215,9 @@ internal sealed class PpuController(InterruptController interrupts, IPpuEngine e
                 return;
             case AddressMap.WindowXRegister:
                 _windowX = value;
+                return;
+            case AddressMap.VideoRamBankRegister:
+                VideoRam.WriteBankRegister(value);
                 return;
             default:
                 throw CreateUnsupportedRegisterException(address);

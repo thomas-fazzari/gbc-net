@@ -18,6 +18,7 @@ public sealed class HardwareProfileFactoryTests
 
         Assert.Same(DmgHardwareProfile.Instance, profile);
         Assert.Equal(HardwareModel.Dmg, profile.Model);
+        Assert.Equal(1, profile.VideoRamBankCount);
         Assert.Equal(2, profile.WorkRamBankCount);
     }
 
@@ -47,6 +48,7 @@ public sealed class HardwareProfileFactoryTests
         CgbHardwareProfile cgbProfile = Assert.IsType<CgbHardwareProfile>(profile);
         Assert.Equal(HardwareModel.Cgb, cgbProfile.Model);
         Assert.Equal(CgbOperatingMode.Cgb, cgbProfile.OperatingMode);
+        Assert.Equal(2, cgbProfile.VideoRamBankCount);
         Assert.Equal(8, cgbProfile.WorkRamBankCount);
     }
 
@@ -60,6 +62,7 @@ public sealed class HardwareProfileFactoryTests
         CgbHardwareProfile cgbProfile = Assert.IsType<CgbHardwareProfile>(profile);
         Assert.Equal(HardwareModel.Cgb, cgbProfile.Model);
         Assert.Equal(CgbOperatingMode.DmgCompatibility, cgbProfile.OperatingMode);
+        Assert.Equal(1, cgbProfile.VideoRamBankCount);
         Assert.Equal(8, cgbProfile.WorkRamBankCount);
     }
 

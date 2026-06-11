@@ -51,6 +51,35 @@ public sealed class PpuControllerTests
     }
 
     [Fact]
+    public void ReadWriteRegister_SelectsVramBankWhenBanked()
+    {
+        PpuController ppu = CreatePpu(videoRamBankCount: 2);
+
+        Assert.Equal(0xFE, ppu.ReadRegister(AddressMap.VideoRamBankRegister));
+
+        ppu.WriteRegister(AddressMap.VideoRamBankRegister, 0xFF);
+
+        Assert.Equal(1, ppu.VideoRam.SelectedBank);
+        Assert.Equal(0xFF, ppu.ReadRegister(AddressMap.VideoRamBankRegister));
+
+        ppu.WriteRegister(AddressMap.VideoRamBankRegister, 0xFE);
+
+        Assert.Equal(0, ppu.VideoRam.SelectedBank);
+        Assert.Equal(0xFE, ppu.ReadRegister(AddressMap.VideoRamBankRegister));
+    }
+
+    [Fact]
+    public void ReadWriteRegister_IgnoresVramBankRegisterWhenUnbanked()
+    {
+        PpuController ppu = CreatePpu();
+
+        ppu.WriteRegister(AddressMap.VideoRamBankRegister, 0x01);
+
+        Assert.Equal(0, ppu.VideoRam.SelectedBank);
+        Assert.Equal(0xFF, ppu.ReadRegister(AddressMap.VideoRamBankRegister));
+    }
+
+    [Fact]
     public void ReadRegister_ReturnsStatusReadMaskAndPpuState()
     {
         PpuController ppu = CreatePpu();
@@ -694,8 +723,10 @@ public sealed class PpuControllerTests
         Assert.Equal(0x00, frame.Pixels.Span[0]);
     }
 
-    private static PpuController CreatePpu(InterruptController? interrupts = null) =>
-        new(interrupts ?? new InterruptController(), new DmgPpuEngine());
+    private static PpuController CreatePpu(
+        InterruptController? interrupts = null,
+        int videoRamBankCount = 1
+    ) => new(interrupts ?? new InterruptController(), new DmgPpuEngine(), videoRamBankCount);
 
     private static LcdFrame RenderSecondFrame(PpuController ppu, byte lcdControl)
     {

@@ -18,6 +18,11 @@ internal interface IHardwareProfile
     HardwareModel Model { get; }
 
     /// <summary>
+    /// Number of physical 8 KiB VRAM banks available through the CPU-visible VRAM window.
+    /// </summary>
+    int VideoRamBankCount { get; }
+
+    /// <summary>
     /// Number of physical 4 KiB WRAM banks available to the model.
     /// </summary>
     int WorkRamBankCount { get; }

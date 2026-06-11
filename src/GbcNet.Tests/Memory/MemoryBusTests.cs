@@ -1,5 +1,6 @@
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Clock;
+using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
@@ -47,6 +48,46 @@ public sealed class MemoryBusTests
 
         Assert.Equal(0x12, bus.ReadByte(0x8000));
         Assert.Equal(0x34, bus.ReadByte(0x9FFF));
+    }
+
+    [Fact]
+    public void ReadWriteByte_StoresCgbModeVideoRamBanksSelectedByVbk()
+    {
+        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+
+        bus.WriteByte(AddressMap.VideoRamStart, 0x12);
+
+        Assert.Equal(0xFE, bus.ReadByte(AddressMap.VideoRamBankRegister));
+
+        bus.WriteByte(AddressMap.VideoRamBankRegister, 0x01);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamBankRegister));
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamStart));
+
+        bus.WriteByte(AddressMap.VideoRamStart, 0x34);
+        bus.WriteByte(AddressMap.VideoRamBankRegister, 0xFE);
+
+        Assert.Equal(0x12, bus.ReadByte(AddressMap.VideoRamStart));
+
+        bus.WriteByte(AddressMap.VideoRamBankRegister, 0x01);
+
+        Assert.Equal(0x34, bus.ReadByte(AddressMap.VideoRamStart));
+    }
+
+    [Fact]
+    public void ReadWriteByte_IgnoresVbkInCgbDmgCompatibilityMode()
+    {
+        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+
+        bus.WriteByte(AddressMap.VideoRamStart, 0x12);
+        bus.WriteByte(AddressMap.VideoRamBankRegister, 0x01);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamBankRegister));
+
+        bus.WriteByte(AddressMap.VideoRamStart, 0x34);
+        bus.WriteByte(AddressMap.VideoRamBankRegister, 0x00);
+
+        Assert.Equal(0x34, bus.ReadByte(AddressMap.VideoRamStart));
     }
 
     [Fact]
@@ -548,10 +589,15 @@ public sealed class MemoryBusTests
 
     private static MemoryBus CreateBus() => CreateBus(TestRomFactory.Create());
 
-    private static MemoryBus CreateBus(byte[] rom)
+    private static MemoryBus CreateBus(IHardwareProfile hardwareProfile) =>
+        CreateBus(TestRomFactory.Create(), hardwareProfile);
+
+    private static MemoryBus CreateBus(byte[] rom) => CreateBus(rom, DmgHardwareProfile.Instance);
+
+    private static MemoryBus CreateBus(byte[] rom, IHardwareProfile hardwareProfile)
     {
         Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
-        return new MemoryBus(cartridge, DmgHardwareProfile.Instance);
+        return new MemoryBus(cartridge, hardwareProfile);
     }
 
     private static void TickMachineCycles(MemoryBus bus, int machineCycles)

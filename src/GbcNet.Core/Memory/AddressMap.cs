@@ -206,6 +206,11 @@ internal static class AddressMap
     public const ushort WindowXRegister = 0xFF4B;
 
     /// <summary>
+    /// Address of VBK, the CGB VRAM bank selection register.
+    /// </summary>
+    public const ushort VideoRamBankRegister = 0xFF4F;
+
+    /// <summary>
     /// First address of high RAM.
     /// </summary>
     public const ushort HighRamStart = 0xFF80;
