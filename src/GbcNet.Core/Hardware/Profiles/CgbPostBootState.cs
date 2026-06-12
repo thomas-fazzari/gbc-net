@@ -9,14 +9,6 @@ namespace GbcNet.Core.Hardware.Profiles;
 /// </summary>
 internal static class CgbPostBootState
 {
-    private const int TitleStartAddress = 0x0134;
-    private const int TitleEndAddress = 0x0143;
-    private const int NewLicenseeCodeStartAddress = 0x0144;
-    private const int OldLicenseeCodeAddress = 0x014B;
-    private const byte OldNintendoLicenseeCode = 0x01;
-    private const byte NewLicenseeMarker = 0x33;
-    private const byte NewNintendoLicenseeCode0 = 0x30;
-    private const byte NewNintendoLicenseeCode1 = 0x31;
     private const byte Accumulator = 0x11;
     private const byte Flags = (byte)CpuFlag.Zero;
     private const ushort CgbRegisterBc = 0x0000;
@@ -107,14 +99,33 @@ internal static class CgbPostBootState
         MemoryBus bus
     )
     {
-        PostBootState.SetCpuRegisters(
-            cpu.Registers,
-            CreateCpuRegisterState(operatingMode, cartridge)
-        );
+        CgbCompatibilityPaletteSelection compatibilityPaletteSelection = default;
+
+        switch (operatingMode)
+        {
+            case CgbOperatingMode.Cgb:
+                PostBootState.SetCpuRegisters(cpu.Registers, CreateCgbModeCpuRegisterState());
+                break;
+
+            case CgbOperatingMode.DmgCompatibility:
+                compatibilityPaletteSelection = CgbCompatibilityPaletteSelector.Select(cartridge);
+                PostBootState.SetCpuRegisters(
+                    cpu.Registers,
+                    CreateDmgCompatibilityCpuRegisterState(compatibilityPaletteSelection)
+                );
+                break;
+
+            default:
+                throw new ArgumentOutOfRangeException(
+                    nameof(operatingMode),
+                    operatingMode,
+                    "Unsupported CGB operating mode."
+                );
+        }
+
         PostBootState.SetHardwareRegisterStates(bus, _preAudioRegisters);
         ApplyAudioRegisters(bus);
         PostBootState.SetHardwareRegisterStates(bus, _commonPostAudioRegisters);
-
         bus.Clock.SetCounter(RetailCgbAbcdeDividerCounter);
 
         if (operatingMode is CgbOperatingMode.Cgb)
@@ -125,79 +136,37 @@ internal static class CgbPostBootState
         }
 
         PostBootState.SetHardwareRegisterStates(bus, _dmgCompatibilityPostAudioRegisters);
-        bus.Ppu.SetDmgCompatibilityColorPaletteRam();
+        bus.Ppu.SetDmgCompatibilityColorPaletteRam(compatibilityPaletteSelection.Palettes);
     }
 
-    private static PostBootCpuRegisterState CreateCpuRegisterState(
-        CgbOperatingMode operatingMode,
-        Cartridge cartridge
-    ) =>
-        operatingMode switch
-        {
-            CgbOperatingMode.Cgb => new PostBootCpuRegisterState(
-                Accumulator,
-                Flags,
-                CgbRegisterBc,
-                CgbRegisterDe,
-                CgbRegisterHl,
-                AddressMap.CartridgeEntryPointStart,
-                AddressMap.HighRamEnd
-            ),
-
-            CgbOperatingMode.DmgCompatibility => CreateDmgCompatibilityCpuRegisterState(cartridge),
-
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(operatingMode),
-                operatingMode,
-                "Unsupported CGB operating mode."
-            ),
-        };
+    private static PostBootCpuRegisterState CreateCgbModeCpuRegisterState() =>
+        new(
+            Accumulator,
+            Flags,
+            CgbRegisterBc,
+            CgbRegisterDe,
+            CgbRegisterHl,
+            AddressMap.CartridgeEntryPointStart,
+            AddressMap.HighRamEnd
+        );
 
     private static PostBootCpuRegisterState CreateDmgCompatibilityCpuRegisterState(
-        Cartridge cartridge
+        CgbCompatibilityPaletteSelection compatibilityPaletteSelection
     )
     {
-        var registerB = CalculateDmgCompatibilityRegisterB(cartridge);
-        var registerHl = registerB is 0x43 or 0x58
+        var registerHl = compatibilityPaletteSelection.UsesCompatibilityLogoTilemap
             ? DmgCompatibilityLogoRegisterHl
             : DmgCompatibilityDefaultRegisterHl;
 
         return new PostBootCpuRegisterState(
             Accumulator,
             Flags,
-            (ushort)(registerB << 8),
+            (ushort)(compatibilityPaletteSelection.TitleChecksum << 8),
             DmgCompatibilityRegisterDe,
             registerHl,
             AddressMap.CartridgeEntryPointStart,
             AddressMap.HighRamEnd
         );
-    }
-
-    private static byte CalculateDmgCompatibilityRegisterB(Cartridge cartridge)
-    {
-        if (!IsNintendoLicensee(cartridge))
-        {
-            return 0;
-        }
-
-        byte titleChecksum = 0;
-        for (ushort address = TitleStartAddress; address <= TitleEndAddress; address++)
-        {
-            titleChecksum = unchecked((byte)(titleChecksum + cartridge.ReadRom(address)));
-        }
-
-        return titleChecksum;
-    }
-
-    private static bool IsNintendoLicensee(Cartridge cartridge)
-    {
-        var oldLicenseeCode = cartridge.ReadRom(OldLicenseeCodeAddress);
-        return oldLicenseeCode == OldNintendoLicenseeCode
-            || (
-                oldLicenseeCode == NewLicenseeMarker
-                && cartridge.ReadRom(NewLicenseeCodeStartAddress) == NewNintendoLicenseeCode0
-                && cartridge.ReadRom(NewLicenseeCodeStartAddress + 1) == NewNintendoLicenseeCode1
-            );
     }
 
     private static void ApplyAudioRegisters(MemoryBus bus)

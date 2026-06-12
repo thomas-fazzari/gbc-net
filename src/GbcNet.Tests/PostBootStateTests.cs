@@ -109,6 +109,27 @@ public sealed class PostBootStateTests
     }
 
     [Fact]
+    public void Apply_SetsCgbDmgCompatibilityLogoTilemapRegistersForMatchingPaletteTitle()
+    {
+        var cartridge = LoadCartridge(
+            TestRomFactory.Create(bytes =>
+            {
+                bytes.AsSpan(0x0134, 16).Clear();
+                bytes[0x0134] = (byte)'X';
+                bytes[0x014B] = 0x01;
+            })
+        );
+        var profile = new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility);
+        var bus = new MemoryBus(cartridge, profile);
+        var cpu = new Cpu(bus);
+
+        PostBootState.Apply(profile, cartridge, cpu, bus);
+
+        Assert.Equal(0x5800, cpu.Registers.BC);
+        Assert.Equal(0x991A, cpu.Registers.HL);
+    }
+
+    [Fact]
     public void Apply_SetsCgbModeIoRegistersAfterBootHandoff()
     {
         var cartridge = LoadCartridge(

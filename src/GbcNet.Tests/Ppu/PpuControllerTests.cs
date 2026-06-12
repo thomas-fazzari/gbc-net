@@ -868,7 +868,7 @@ public sealed class PpuControllerTests
     public void CgbDmgCompatibilityRenderer_CompletesRgb555Frame()
     {
         var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
-        ppu.SetDmgCompatibilityColorPaletteRam();
+        ppu.SetDmgCompatibilityColorPaletteRam(CgbCompatibilityPaletteSelector.Default.Palettes);
 
         var frame = RenderSecondFrame(
             ppu,
@@ -883,7 +883,7 @@ public sealed class PpuControllerTests
     public void CgbDmgCompatibilityRenderer_MapsBackgroundPaletteThroughCgbPalette0()
     {
         var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
-        ppu.SetDmgCompatibilityColorPaletteRam();
+        ppu.SetDmgCompatibilityColorPaletteRam(CgbCompatibilityPaletteSelector.Default.Palettes);
         ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, PaletteColorOneToDarkGray);
         WriteTileRow(ppu, 0x8000, row: 0, lowByte: 0x80, highByte: 0x00);
 
@@ -899,7 +899,7 @@ public sealed class PpuControllerTests
     public void CgbDmgCompatibilityRenderer_MapsObjectPalettesThroughCgbObjectPalettes()
     {
         var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
-        ppu.SetDmgCompatibilityColorPaletteRam();
+        ppu.SetDmgCompatibilityColorPaletteRam(CgbCompatibilityPaletteSelector.Default.Palettes);
         ppu.WriteRegister(AddressMap.ObjectPalette0Register, PaletteColorOneToDarkGray);
         ppu.WriteRegister(AddressMap.ObjectPalette1Register, PaletteColorOneToBlack);
         WriteTileRow(ppu, 0x8010, row: 0, lowByte: 0xFF, highByte: 0x00);

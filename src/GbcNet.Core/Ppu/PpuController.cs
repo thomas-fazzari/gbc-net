@@ -1,3 +1,4 @@
+using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu.Engines;
@@ -19,11 +20,6 @@ internal sealed class PpuController(
     private const byte ObjectPriorityModeReadMask = 0xFE;
 
     private const ushort WhiteRgb555 = 0x7FFF;
-    private const ushort BlackRgb555 = 0x0000;
-    private const ushort DefaultCompatibilityObjectLightRgb555 = 0x421F;
-    private const ushort DefaultCompatibilityObjectDarkRgb555 = 0x1CF2;
-    private const ushort DefaultCompatibilityBackgroundLightRgb555 = 0x1BEF;
-    private const ushort DefaultCompatibilityBackgroundDarkRgb555 = 0x6180;
 
     /// <summary>
     /// VRAM at 8000-9FFF, banked by VBK when the active hardware mode exposes it.
@@ -196,35 +192,38 @@ internal sealed class PpuController(
     }
 
     /// <summary>
-    /// Seeds the retail CGB default DMG-compatibility palette set used when the boot ROM falls back to palette ID 0.
+    /// Seeds the CGB color palettes used to render DMG software in compatibility mode.
     /// </summary>
-    internal void SetDmgCompatibilityColorPaletteRam()
+    internal void SetDmgCompatibilityColorPaletteRam(CgbCompatibilityPalettes palettes)
     {
+        var background = palettes.Background;
         SetPalette(
             BgPaletteRam,
             0,
-            WhiteRgb555,
-            DefaultCompatibilityBackgroundLightRgb555,
-            DefaultCompatibilityBackgroundDarkRgb555,
-            BlackRgb555
+            background.Color0,
+            background.Color1,
+            background.Color2,
+            background.Color3
         );
 
+        var objectPalette0 = palettes.ObjectPalette0;
         SetPalette(
             ObjectPaletteRam,
             0,
-            WhiteRgb555,
-            DefaultCompatibilityObjectLightRgb555,
-            DefaultCompatibilityObjectDarkRgb555,
-            BlackRgb555
+            objectPalette0.Color0,
+            objectPalette0.Color1,
+            objectPalette0.Color2,
+            objectPalette0.Color3
         );
 
+        var objectPalette1 = palettes.ObjectPalette1;
         SetPalette(
             ObjectPaletteRam,
             1,
-            WhiteRgb555,
-            DefaultCompatibilityObjectLightRgb555,
-            DefaultCompatibilityObjectDarkRgb555,
-            BlackRgb555
+            objectPalette1.Color0,
+            objectPalette1.Color1,
+            objectPalette1.Color2,
+            objectPalette1.Color3
         );
     }
 
