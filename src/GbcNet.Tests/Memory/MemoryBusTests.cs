@@ -175,6 +175,63 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
+    public void ReadWriteByte_RoutesCgbMiscRegistersInDmgCompatibilityMode()
+    {
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf72, 0x12);
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf73, 0x34);
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf75, 0x00);
+
+        Assert.Equal(0x12, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72));
+        Assert.Equal(0x34, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73));
+        Assert.Equal(0x8F, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
+
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf75, 0xFF);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74));
+    }
+
+    [Fact]
+    public void ReadWriteByte_IgnoresCgbMiscRegistersOnDmg()
+    {
+        var bus = CreateBus();
+
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf72, 0x12);
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf73, 0x34);
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf75, 0x70);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
+    }
+
+    [Fact]
+    public void ReadWriteByte_RoutesCgbPcmOutputRegistersInDmgCompatibilityMode()
+    {
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+
+        bus.WriteByte(AddressMap.AudioPcm12Register, 0xFF);
+        bus.WriteByte(AddressMap.AudioPcm34Register, 0xFF);
+
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.AudioPcm12Register));
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.AudioPcm34Register));
+    }
+
+    [Fact]
+    public void ReadWriteByte_IgnoresCgbPcmOutputRegistersOnDmg()
+    {
+        var bus = CreateBus();
+
+        bus.WriteByte(AddressMap.AudioPcm12Register, 0x00);
+        bus.WriteByte(AddressMap.AudioPcm34Register, 0x00);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.AudioPcm12Register));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.AudioPcm34Register));
+    }
+
+    [Fact]
     public void ReadWriteByte_RoutesCgbVramDmaRegistersWithAddressMasks()
     {
         var rom = TestRomFactory.Create(bytes =>

@@ -11,6 +11,8 @@ internal sealed class CgbApuHardwareProfile : IApuHardwareProfile
 
     public int OutputClockHz => 4_194_304;
 
+    public bool IsPcmOutputRegisterEnabled => true;
+
     public double GetOutputHighPassChargeFactor(int sampleRate)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sampleRate);

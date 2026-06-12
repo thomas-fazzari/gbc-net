@@ -20,6 +20,7 @@ internal sealed class IoRegisters(
     ApuController apu,
     PpuController ppu,
     WorkRam workRam,
+    CgbMiscRegisters cgbMiscRegisters,
     OamDmaController oamDma,
     CgbVramDmaController vramDma
 )
@@ -44,27 +45,45 @@ internal sealed class IoRegisters(
         return address switch
         {
             AddressMap.JoypadRegister => joypad.Read(),
+
             AddressMap.SerialTransferDataRegister => serial.TransferData,
+
             AddressMap.SerialTransferControlRegister => serial.ReadControl(),
+
             AddressMap.DividerRegister => clock.ReadDivider(),
+
             AddressMap.TimerCounterRegister => _timers.TimerCounter,
+
             AddressMap.TimerModuloRegister => _timers.TimerModulo,
+
             AddressMap.TimerControlRegister => _timers.ReadTimerControl(),
+
             AddressMap.InterruptFlagRegister => interrupts.ReadInterruptFlag(),
+
+            AddressMap.CgbUndocumentedRegisterFf72
+            or AddressMap.CgbUndocumentedRegisterFf73
+            or AddressMap.CgbUndocumentedRegisterFf74
+            or AddressMap.CgbUndocumentedRegisterFf75 => cgbMiscRegisters.ReadRegister(address),
+
             AddressMap.Key1Register => clock.ReadKey1(),
+
             AddressMap.DmaRegister => oamDma.ReadRegister(),
+
             AddressMap.VideoRamDmaSourceHighRegister
             or AddressMap.VideoRamDmaSourceLowRegister
             or AddressMap.VideoRamDmaDestinationHighRegister
             or AddressMap.VideoRamDmaDestinationLowRegister
             or AddressMap.VideoRamDmaLengthModeStartRegister => vramDma.ReadRegister(address),
+
             AddressMap.VideoRamBankRegister
             or AddressMap.BackgroundPaletteIndexRegister
             or AddressMap.BackgroundPaletteDataRegister
             or AddressMap.ObjectPaletteIndexRegister
             or AddressMap.ObjectPaletteDataRegister
             or AddressMap.ObjectPriorityModeRegister => ppu.ReadRegister(address),
+
             AddressMap.WorkRamBankRegister => workRam.ReadBankRegister(),
+
             _ => 0xFF,
         };
     }
@@ -226,6 +245,13 @@ internal sealed class IoRegisters(
 
             case AddressMap.WorkRamBankRegister:
                 workRam.WriteBankRegister(value);
+                return;
+
+            case AddressMap.CgbUndocumentedRegisterFf72:
+            case AddressMap.CgbUndocumentedRegisterFf73:
+            case AddressMap.CgbUndocumentedRegisterFf74:
+            case AddressMap.CgbUndocumentedRegisterFf75:
+                cgbMiscRegisters.WriteRegister(address, value);
                 return;
 
             default:

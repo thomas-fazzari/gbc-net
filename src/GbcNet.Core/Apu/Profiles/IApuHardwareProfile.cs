@@ -6,6 +6,11 @@ namespace GbcNet.Core.Apu.Profiles;
 internal interface IApuHardwareProfile
 {
     /// <summary>
+    /// Indicates whether CGB PCM output registers FF76-FF77 are enabled.
+    /// </summary>
+    bool IsPcmOutputRegisterEnabled { get; }
+
+    /// <summary>
     /// Applies model-specific read masks for CPU-visible APU registers.
     /// </summary>
     byte ApplyRegisterReadMask(ushort address, byte value);

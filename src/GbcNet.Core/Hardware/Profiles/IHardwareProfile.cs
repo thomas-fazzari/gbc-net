@@ -43,6 +43,11 @@ internal interface IHardwareProfile
     bool IsColorPaletteRamEnabled { get; }
 
     /// <summary>
+    /// Indicates whether CGB-only undocumented I/O registers at FF72-FF75 are enabled.
+    /// </summary>
+    bool IsCgbMiscRegisterEnabled { get; }
+
+    /// <summary>
     /// Indicates whether the CPU-visible CGB object priority mode register is enabled.
     /// </summary>
     bool IsObjectPriorityModeRegisterEnabled { get; }

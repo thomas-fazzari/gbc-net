@@ -10,6 +10,8 @@ internal sealed class DmgApuHardwareProfile : IApuHardwareProfile
 
     public int OutputClockHz => 4_194_304;
 
+    public bool IsPcmOutputRegisterEnabled => false;
+
     public double GetOutputHighPassChargeFactor(int sampleRate)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sampleRate);

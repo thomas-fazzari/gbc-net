@@ -16,6 +16,9 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     private const ushort UnmappedAudioAddressFf15 = 0xFF15;
     private const ushort UnmappedAudioAddressFf1F = 0xFF1F;
 
+    private const ushort Pcm12Register = 0xFF76;
+    private const ushort Pcm34Register = 0xFF77;
+
     private const ushort Channel1SweepRegister = 0xFF10;
     private const ushort Channel1LengthRegister = 0xFF11;
     private const ushort Channel1EnvelopeRegister = 0xFF12;
@@ -105,7 +108,9 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
                     and not UnmappedAudioAddressFf15
                     and not UnmappedAudioAddressFf1F
                 )
-                or (>= WaveChannel.WaveRamStart and <= WaveChannel.WaveRamEnd);
+                or (>= WaveChannel.WaveRamStart and <= WaveChannel.WaveRamEnd)
+                or Pcm12Register
+                or Pcm34Register;
 
     /// <summary>
     /// Applies system-counter falling edges that clock DIV-APU timing.
@@ -285,9 +290,22 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     /// Reads an APU register with hardware-specific unused and write-only bits applied.
     /// </summary>
     public byte ReadRegister(ushort address) =>
-        address is >= WaveChannel.WaveRamStart and <= WaveChannel.WaveRamEnd
-            ? _channel3.ReadWaveRam(address)
-            : hardwareProfile.ApplyRegisterReadMask(address, _registers[address - RegisterStart]);
+        address switch
+        {
+            >= WaveChannel.WaveRamStart and <= WaveChannel.WaveRamEnd => _channel3.ReadWaveRam(
+                address
+            ),
+            Pcm12Register => hardwareProfile.IsPcmOutputRegisterEnabled
+                ? (byte)((_channel2.DigitalOutput << 4) | _channel1.DigitalOutput)
+                : (byte)0xFF,
+            Pcm34Register => hardwareProfile.IsPcmOutputRegisterEnabled
+                ? (byte)((_channel4.DigitalOutput << 4) | _channel3.DigitalOutput)
+                : (byte)0xFF,
+            _ => hardwareProfile.ApplyRegisterReadMask(
+                address,
+                _registers[address - RegisterStart]
+            ),
+        };
 
     /// <summary>
     /// Writes an APU register, respecting NR52 power state and read-only channel status bits.
@@ -299,6 +317,9 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
         {
             case >= WaveChannel.WaveRamStart and <= WaveChannel.WaveRamEnd:
                 _channel3.WriteWaveRam(address, value);
+                return;
+            case Pcm12Register:
+            case Pcm34Register:
                 return;
             case AudioMasterControlRegister when (value & AudioMasterWritableMask) == 0:
                 // NR52 power-off clears APU registers and silences active channels, but not Wave RAM

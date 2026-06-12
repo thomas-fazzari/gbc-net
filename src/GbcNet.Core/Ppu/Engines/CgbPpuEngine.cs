@@ -20,6 +20,8 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
 
     protected override int ObjectPenaltyDots => 0;
 
+    protected override bool RequestsMode2InterruptBeforeVBlank => true;
+
     protected override void EnsureObjectsSelected(PpuEngineInputs inputs)
     {
         _objects.EnsureSelected(inputs, LcdYCoordinate, Timing.HasReachedOamScanEnd);

@@ -266,6 +266,36 @@ internal static class AddressMap
     public const ushort ObjectPriorityModeRegister = 0xFF6C;
 
     /// <summary>
+    /// Address of the first CGB undocumented read/write register.
+    /// </summary>
+    public const ushort CgbUndocumentedRegisterFf72 = 0xFF72;
+
+    /// <summary>
+    /// Address of the second CGB undocumented read/write register.
+    /// </summary>
+    public const ushort CgbUndocumentedRegisterFf73 = 0xFF73;
+
+    /// <summary>
+    /// Address of the CGB register that stays unmapped after boot on tested CGB hardware.
+    /// </summary>
+    public const ushort CgbUndocumentedRegisterFf74 = 0xFF74;
+
+    /// <summary>
+    /// Address of the CGB undocumented register with writable bits 4-6.
+    /// </summary>
+    public const ushort CgbUndocumentedRegisterFf75 = 0xFF75;
+
+    /// <summary>
+    /// Address of PCM12, the CGB read-only digital output register for audio channels 1 and 2.
+    /// </summary>
+    public const ushort AudioPcm12Register = 0xFF76;
+
+    /// <summary>
+    /// Address of PCM34, the CGB read-only digital output register for audio channels 3 and 4.
+    /// </summary>
+    public const ushort AudioPcm34Register = 0xFF77;
+
+    /// <summary>
     /// Address of SVBK, the CGB WRAM bank selection register.
     /// </summary>
     public const ushort WorkRamBankRegister = 0xFF70;

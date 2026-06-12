@@ -89,7 +89,11 @@ internal sealed class MemoryBus
             hardwareProfile.WorkRamBankCount,
             hardwareProfile.IsWorkRamBankRegisterEnabled
         );
+
+        var cgbMiscRegisters = new CgbMiscRegisters(hardwareProfile.IsCgbMiscRegisterEnabled);
+
         _oamDmaTransferPolicy = hardwareProfile.CreateOamDmaTransferPolicy();
+
         Interrupts = new InterruptController();
         Joypad = new JoypadController(Interrupts);
         Serial = new SerialController(Interrupts);
@@ -109,6 +113,7 @@ internal sealed class MemoryBus
             ReadVramDmaSourceByte,
             Ppu.VideoRam.Write
         );
+
         _ioRegisters = new IoRegisters(
             Interrupts,
             Clock,
@@ -117,9 +122,11 @@ internal sealed class MemoryBus
             Apu,
             Ppu,
             _workRam,
+            cgbMiscRegisters,
             OamDma,
             VramDma
         );
+
         _readByteForOamDma = ReadOamDmaSourceByte;
         _writeOamByteForDma = Ppu.ObjectAttributeMemory.Write;
     }

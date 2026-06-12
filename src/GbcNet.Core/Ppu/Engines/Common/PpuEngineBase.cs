@@ -25,6 +25,11 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
     /// </summary>
     private const int WindowXScreenOffset = 7;
 
+    /// <summary>
+    /// CGB raises the LY=144 Mode 2 STAT interrupt one M-cycle before VBlank.
+    /// </summary>
+    private const int CgbMode2VBlankInterruptLeadDots = 4;
+
     private byte _latchedScrollX;
     private byte _latchedScrollY;
     private int _windowPenaltyDots;
@@ -88,6 +93,8 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
 
     protected abstract int ObjectPenaltyDots { get; }
 
+    protected virtual bool RequestsMode2InterruptBeforeVBlank => false;
+
     public PpuEngineTickResult Tick(int tCycles, PpuEngineInputs inputs, bool renderFrame)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(tCycles);
@@ -111,6 +118,19 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
             var drawingStartDots = Timing.GetCurrentDrawingStartDots();
             var drawingEndDots = GetCurrentDrawingEndDots();
             var nextBoundary = Timing.GetNextTimingBoundary(drawingEndDots);
+            var cgbMode2VBlankInterruptDots = scanlineDots - CgbMode2VBlankInterruptLeadDots;
+            if (
+                RequestsMode2InterruptBeforeVBlank
+                && LcdYCoordinate == PpuGeometry.VBlankStartLine - 1
+                && (inputs.StatusInterruptSelect & PpuStatusRegister.Mode2InterruptSelectMask) != 0
+                && !_statInterruptLine
+                && Timing.LineDots < cgbMode2VBlankInterruptDots
+                && nextBoundary > cgbMode2VBlankInterruptDots
+            )
+            {
+                nextBoundary = cgbMode2VBlankInterruptDots;
+            }
+
             var elapsedCycles = Math.Min(remainingCycles, nextBoundary - Timing.LineDots);
             if (Timing.IsRenderingInterval(drawingStartDots, drawingEndDots))
             {
@@ -139,6 +159,17 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
             var previousMode = StatusMode;
             var previousLcdYCoordinate = LcdYCoordinate;
             requests |= RefreshPpuState(inputs, requestInterrupt: true);
+            if (
+                RequestsMode2InterruptBeforeVBlank
+                && LcdYCoordinate == PpuGeometry.VBlankStartLine - 1
+                && Timing.LineDots == cgbMode2VBlankInterruptDots
+                && (inputs.StatusInterruptSelect & PpuStatusRegister.Mode2InterruptSelectMask) != 0
+                && !_statInterruptLine
+            )
+            {
+                requests |= PpuInterruptRequest.Lcd;
+            }
+
             enteredVisibleHBlank |=
                 previousLcdYCoordinate < PpuGeometry.VBlankStartLine
                 && previousMode is PpuMode.Drawing
