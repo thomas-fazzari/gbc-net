@@ -27,6 +27,11 @@ internal static class CgbPostBootState
     private const ushort DmgCompatibilityLogoRegisterHl = 0x991A;
     private const ushort AudioRegistersStart = 0xFF10;
 
+    /// <summary>
+    /// Retail CGB ABC/DE boot ROM hand-off divider phase at PC=$0100, validated against Mooneye boot_div-cgbABCDE.
+    /// </summary>
+    private const ushort RetailCgbAbcdeDividerCounter = 0x2678;
+
     private static readonly PostBootHardwareRegisterState[] _preAudioRegisters =
     [
         new(AddressMap.SerialTransferDataRegister, 0x00),
@@ -110,12 +115,15 @@ internal static class CgbPostBootState
         ApplyAudioRegisters(bus);
         PostBootState.SetHardwareRegisterStates(bus, _commonPostAudioRegisters);
 
+        bus.Clock.SetCounter(RetailCgbAbcdeDividerCounter);
+
         if (operatingMode is CgbOperatingMode.Cgb)
         {
             PostBootState.SetHardwareRegisterStates(bus, _cgbModePostAudioRegisters);
             bus.Ppu.SetBackgroundColorPaletteRamToWhite();
             return;
         }
+
         PostBootState.SetHardwareRegisterStates(bus, _dmgCompatibilityPostAudioRegisters);
         bus.Ppu.SetDmgCompatibilityColorPaletteRam();
     }

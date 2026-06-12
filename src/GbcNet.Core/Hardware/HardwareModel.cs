@@ -11,7 +11,10 @@ public enum HardwareModel
     Dmg = 0,
 
     /// <summary>
-    /// Game Boy Color hardware.
+    /// Game Boy Color hardware using the common retail CGB ABC/DE timing and boot behavior.
     /// </summary>
+    /// <remarks>
+    /// Early CGB0 differences are modeled separately only when explicit revision support exists.
+    /// </remarks>
     Cgb = 1,
 }

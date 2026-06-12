@@ -12,9 +12,9 @@ public sealed class MooneyeCgbRomTests
     private static readonly string[] _romRelativePaths =
     [
         "misc/bits/unused_hwio-C.gb",
+        "misc/boot_div-cgbABCDE.gb",
         "misc/boot_hwio-C.gb",
         "misc/boot_regs-cgb.gb",
-        "misc/ppu/vblank_stat_intr-C.gb",
         "acceptance/ppu/stat_lyc_onoff.gb",
         "acceptance/ppu/intr_2_0_timing.gb",
         "acceptance/ppu/intr_2_mode0_timing.gb",
