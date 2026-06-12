@@ -7,13 +7,18 @@ namespace GbcNet.Tests.RomTesting.Utils;
 
 internal static class VisualRomTestRunner
 {
-    public static VisualRomTestResult RunToFrame(byte[] rom, int targetFrame, int maxMachineCycles)
+    public static VisualRomTestResult RunToFrame(
+        byte[] rom,
+        int targetFrame,
+        int maxMachineCycles,
+        HardwareModel hardwareModel = HardwareModel.Dmg
+    )
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(targetFrame);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxMachineCycles);
 
         var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
-        var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
+        var gameBoy = new GameBoy(cartridge, hardwareModel);
         LcdFrame? frame = null;
         var frameCount = 0;
         gameBoy.FrameCompleted += (_, args) =>

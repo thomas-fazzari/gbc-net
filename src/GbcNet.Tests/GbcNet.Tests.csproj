@@ -22,8 +22,13 @@
 
   <ItemGroup>
     <Content Include="RomTesting\Resources\**\*.gb" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="RomTesting\Resources\**\*.gbc" CopyToOutputDirectory="PreserveNewest" />
     <Content
       Include="RomTesting\Resources\**\*.dmgshade.bin"
+      CopyToOutputDirectory="PreserveNewest"
+    />
+    <Content
+      Include="RomTesting\Resources\**\*.rgb555le.bin"
       CopyToOutputDirectory="PreserveNewest"
     />
   </ItemGroup>
