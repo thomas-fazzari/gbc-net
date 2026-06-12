@@ -6,13 +6,20 @@ namespace GbcNet.Tests.RomTesting.Mooneye;
 [Collection<RomTestingGroup>]
 public sealed class MooneyeCgbRomTests
 {
-    private const string RomDirectory = "RomTesting/Resources/Mooneye/misc";
+    private const string RomDirectory = "RomTesting/Resources/Mooneye";
     private const int MaxMachineCycles = 20_000_000;
 
     private static readonly string[] _romRelativePaths =
     [
-        "bits/unused_hwio-C.gb",
-        "ppu/vblank_stat_intr-C.gb",
+        "misc/bits/unused_hwio-C.gb",
+        "misc/ppu/vblank_stat_intr-C.gb",
+        "acceptance/ppu/stat_lyc_onoff.gb",
+        "acceptance/ppu/intr_2_0_timing.gb",
+        "acceptance/ppu/intr_2_mode0_timing.gb",
+        "acceptance/ppu/intr_2_mode0_timing_sprites.gb",
+        "acceptance/ppu/intr_2_mode3_timing.gb",
+        "acceptance/ppu/intr_2_oam_ok_timing.gb",
+        "acceptance/ppu/stat_irq_blocking.gb",
     ];
 
     public static TheoryData<string> RomRelativePathRows =>
