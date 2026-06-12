@@ -1,9 +1,9 @@
 namespace GbcNet.Core.Ppu;
 
 /// <summary>
-/// Stores one CGB color palette RAM; CPU index/data registers can be disabled in non-CGB mode.
+/// Stores one CGB color palette RAM, DMG compatibility may expose only the index register.
 /// </summary>
-internal sealed class CgbPaletteRam(bool isCpuRegisterEnabled)
+internal sealed class CgbPaletteRam(bool isIndexRegisterEnabled, bool isDataRegisterEnabled)
 {
     private const int PaletteRamSize = 64;
     private const byte IndexMask = 0x3F;
@@ -15,18 +15,18 @@ internal sealed class CgbPaletteRam(bool isCpuRegisterEnabled)
     private byte _index;
 
     public byte ReadIndexRegister() =>
-        isCpuRegisterEnabled ? (byte)(IndexReadMask | _index) : DisabledRegisterValue;
+        isIndexRegisterEnabled ? (byte)(IndexReadMask | _index) : DisabledRegisterValue;
 
     public void WriteIndexRegister(byte value)
     {
-        if (isCpuRegisterEnabled)
+        if (isIndexRegisterEnabled)
         {
             _index = (byte)(value & (AutoIncrementMask | IndexMask));
         }
     }
 
     public byte ReadDataRegister() =>
-        isCpuRegisterEnabled ? _bytes[_index & IndexMask] : DisabledRegisterValue;
+        isDataRegisterEnabled ? _bytes[_index & IndexMask] : DisabledRegisterValue;
 
     public ushort ReadRgb555Color(int paletteIndex, byte colorId)
     {
@@ -59,7 +59,7 @@ internal sealed class CgbPaletteRam(bool isCpuRegisterEnabled)
 
     public void WriteDataRegister(byte value)
     {
-        if (!isCpuRegisterEnabled)
+        if (!isDataRegisterEnabled)
         {
             return;
         }

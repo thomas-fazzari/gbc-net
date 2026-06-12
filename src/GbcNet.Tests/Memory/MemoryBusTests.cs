@@ -76,14 +76,14 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
-    public void ReadWriteByte_IgnoresVbkInCgbDmgCompatibilityMode()
+    public void ReadWriteByte_ExposesReadOnlyVbkInCgbDmgCompatibilityMode()
     {
         var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
 
         bus.WriteByte(AddressMap.VideoRamStart, 0x12);
         bus.WriteByte(AddressMap.VideoRamBankRegister, 0x01);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamBankRegister));
+        Assert.Equal(0xFE, bus.ReadByte(AddressMap.VideoRamBankRegister));
 
         bus.WriteByte(AddressMap.VideoRamStart, 0x34);
         bus.WriteByte(AddressMap.VideoRamBankRegister, 0x00);
@@ -107,7 +107,7 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
-    public void ReadWriteByte_IgnoresColorPaletteRegistersInCgbDmgCompatibilityMode()
+    public void ReadWriteByte_ExposesPaletteIndexButNotDataRegistersInCgbDmgCompatibilityMode()
     {
         var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
 
@@ -116,9 +116,9 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.ObjectPaletteIndexRegister, 0x81);
         bus.WriteByte(AddressMap.ObjectPaletteDataRegister, 0x34);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
+        Assert.Equal(0xC0, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
         Assert.Equal(0xFF, bus.ReadByte(AddressMap.BackgroundPaletteDataRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPaletteIndexRegister));
+        Assert.Equal(0xC1, bus.ReadByte(AddressMap.ObjectPaletteIndexRegister));
         Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPaletteDataRegister));
     }
 

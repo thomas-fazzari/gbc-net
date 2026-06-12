@@ -30,7 +30,7 @@ internal static class CgbPostBootState
     private static readonly PostBootHardwareRegisterState[] _preAudioRegisters =
     [
         new(AddressMap.SerialTransferDataRegister, 0x00),
-        new(AddressMap.SerialTransferControlRegister, 0x7F),
+        new(AddressMap.SerialTransferControlRegister, 0x7E),
         new(AddressMap.TimerCounterRegister, 0x00),
         new(AddressMap.TimerModuloRegister, 0x00),
         new(AddressMap.TimerControlRegister, 0x00),
@@ -56,6 +56,13 @@ internal static class CgbPostBootState
         new(AddressMap.ObjectPriorityModeRegister, 0xFE),
         new(AddressMap.VideoRamBankRegister, 0xFE),
         new(AddressMap.WorkRamBankRegister, 0xF8),
+    ];
+
+    private static readonly PostBootHardwareRegisterState[] _dmgCompatibilityPostAudioRegisters =
+    [
+        new(AddressMap.VideoRamBankRegister, 0xFE),
+        new(AddressMap.BackgroundPaletteIndexRegister, 0xC8),
+        new(AddressMap.ObjectPaletteIndexRegister, 0xD0),
     ];
 
     /// <summary>
@@ -109,7 +116,7 @@ internal static class CgbPostBootState
             bus.Ppu.SetBackgroundColorPaletteRamToWhite();
             return;
         }
-
+        PostBootState.SetHardwareRegisterStates(bus, _dmgCompatibilityPostAudioRegisters);
         bus.Ppu.SetDmgCompatibilityColorPaletteRam();
     }
 

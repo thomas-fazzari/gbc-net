@@ -15,13 +15,15 @@ internal sealed class VideoRam
 
     private readonly byte[] _banks;
     private readonly int _bankCount;
+    private readonly bool _isBankRegisterEnabled;
 
-    public VideoRam(int bankCount)
+    public VideoRam(int bankCount, bool isBankRegisterEnabled)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(bankCount, MinimumBankCount);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(bankCount, MaximumBankCount);
 
         _bankCount = bankCount;
+        _isBankRegisterEnabled = isBankRegisterEnabled;
         _banks = new byte[bankCount * BankSize];
     }
 
@@ -37,11 +39,11 @@ internal sealed class VideoRam
     public byte ReadBank(int bank, ushort address) => _banks[GetOffset(bank, address)];
 
     public byte ReadBankRegister() =>
-        _bankCount > MinimumBankCount ? (byte)(BankRegisterReadMask | SelectedBank) : (byte)0xFF;
+        _isBankRegisterEnabled ? (byte)(BankRegisterReadMask | SelectedBank) : (byte)0xFF;
 
     public void WriteBankRegister(byte value)
     {
-        if (_bankCount > MinimumBankCount)
+        if (_isBankRegisterEnabled && _bankCount > MinimumBankCount)
         {
             SelectedBank = value & BankSelectMask;
         }

@@ -121,7 +121,7 @@ public sealed class PostBootStateTests
         PostBootState.Apply(profile, cartridge, cpu, bus);
 
         Assert.Equal(0x00, bus.ReadByte(AddressMap.SerialTransferDataRegister));
-        Assert.Equal(0x7F, bus.ReadByte(AddressMap.SerialTransferControlRegister));
+        Assert.Equal(0x7E, bus.ReadByte(AddressMap.SerialTransferControlRegister));
         Assert.Equal(0x00, bus.ReadByte(AddressMap.TimerCounterRegister));
         Assert.Equal(0x00, bus.ReadByte(AddressMap.TimerModuloRegister));
         Assert.Equal(0xF8, bus.ReadByte(AddressMap.TimerControlRegister));
@@ -180,7 +180,28 @@ public sealed class PostBootStateTests
         Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
         Assert.Equal(0x4A, frame.Pixels.Span[0]);
         Assert.Equal(0x29, frame.Pixels.Span[1]);
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
+        Assert.Equal(0xC8, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
+    }
+
+    [Fact]
+    public void Apply_SetsCgbDmgCompatibilityHardwareRegistersObservedByBootHwioC()
+    {
+        var cartridge = LoadCartridge(TestRomFactory.Create());
+        var profile = new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility);
+        var bus = new MemoryBus(cartridge, profile);
+        var cpu = new Cpu(bus);
+
+        PostBootState.Apply(profile, cartridge, cpu, bus);
+
+        Assert.Equal(0x7E, bus.ReadByte(AddressMap.SerialTransferControlRegister));
+        Assert.Equal(0xFE, bus.ReadByte(AddressMap.VideoRamBankRegister));
+        Assert.Equal(0xC8, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.BackgroundPaletteDataRegister));
+        Assert.Equal(0xD0, bus.ReadByte(AddressMap.ObjectPaletteIndexRegister));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPaletteDataRegister));
+        Assert.Equal(0x8F, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.AudioPcm12Register));
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.AudioPcm34Register));
     }
 
     private static (Cpu Cpu, MemoryBus Bus) CreateHardware(Cartridge cartridge)

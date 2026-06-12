@@ -1105,6 +1105,7 @@ public sealed class PpuControllerTests
             interrupts ?? new InterruptController(),
             new DmgPpuEngine(),
             videoRamBankCount,
+            isCgbHardware: videoRamBankCount > 1 || isColorPaletteRamEnabled,
             isColorPaletteRamEnabled,
             isObjectPriorityModeRegisterEnabled: false
         );
@@ -1114,6 +1115,7 @@ public sealed class PpuControllerTests
             new InterruptController(),
             profile.CreatePpuEngine(),
             profile.VideoRamBankCount,
+            profile.Model is HardwareModel.Cgb,
             profile.IsColorPaletteRamEnabled,
             profile.IsObjectPriorityModeRegisterEnabled
         );

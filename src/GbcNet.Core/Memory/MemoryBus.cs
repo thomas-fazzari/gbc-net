@@ -104,6 +104,7 @@ internal sealed class MemoryBus
             Interrupts,
             hardwareProfile.CreatePpuEngine(),
             hardwareProfile.VideoRamBankCount,
+            hardwareProfile.Model is HardwareModel.Cgb,
             hardwareProfile.IsColorPaletteRamEnabled,
             hardwareProfile.IsObjectPriorityModeRegisterEnabled
         );
