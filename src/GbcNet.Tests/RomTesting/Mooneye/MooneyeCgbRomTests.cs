@@ -22,6 +22,19 @@ public sealed class MooneyeCgbRomTests
         "acceptance/ppu/intr_2_mode3_timing.gb",
         "acceptance/ppu/intr_2_oam_ok_timing.gb",
         "acceptance/ppu/stat_irq_blocking.gb",
+        "acceptance/timer/div_write.gb",
+        "acceptance/timer/rapid_toggle.gb",
+        "acceptance/timer/tim00.gb",
+        "acceptance/timer/tim00_div_trigger.gb",
+        "acceptance/timer/tim01.gb",
+        "acceptance/timer/tim01_div_trigger.gb",
+        "acceptance/timer/tim10.gb",
+        "acceptance/timer/tim10_div_trigger.gb",
+        "acceptance/timer/tim11.gb",
+        "acceptance/timer/tim11_div_trigger.gb",
+        "acceptance/timer/tima_reload.gb",
+        "acceptance/timer/tima_write_reloading.gb",
+        "acceptance/timer/tma_write_reloading.gb",
     ];
 
     public static TheoryData<string> RomRelativePathRows =>
