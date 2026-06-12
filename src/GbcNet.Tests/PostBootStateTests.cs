@@ -178,8 +178,8 @@ public sealed class PostBootStateTests
         var frame = Assert.IsType<LcdFrame>(bus.Ppu.Tick(456 * 144).CompletedFrame);
 
         Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        Assert.Equal(0x4A, frame.Pixels.Span[0]);
-        Assert.Equal(0x29, frame.Pixels.Span[1]);
+        Assert.Equal(0x80, frame.Pixels.Span[0]);
+        Assert.Equal(0x61, frame.Pixels.Span[1]);
         Assert.Equal(0xC8, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
     }
 

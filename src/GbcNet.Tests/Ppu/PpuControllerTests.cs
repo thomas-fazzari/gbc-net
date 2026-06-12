@@ -28,8 +28,8 @@ public sealed class PpuControllerTests
     private const byte ObjectYFlip = 0x40;
     private const byte ObjectBehindBackground = 0x80;
 
-    private const ushort CompatibilityDarkGrayRgb555 = 0x294A;
-    private const ushort CompatibilityBlueRgb555 = 0x7C00;
+    private const ushort CompatibilityBackgroundDarkRgb555 = 0x6180;
+    private const ushort CompatibilityObjectDarkRgb555 = 0x1CF2;
 
     public static TheoryData<ushort, byte> ReadWriteRegisters =>
         new()
@@ -892,7 +892,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
 
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: CompatibilityDarkGrayRgb555);
+        AssertRgb555Pixel(frame, pixelIndex: 0, expected: CompatibilityBackgroundDarkRgb555);
     }
 
     [Fact]
@@ -908,8 +908,8 @@ public sealed class PpuControllerTests
 
         var frame = RenderSecondFrame(ppu, LcdEnable | ObjectEnable | UnsignedBackgroundTileData);
 
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: CompatibilityDarkGrayRgb555);
-        AssertRgb555Pixel(frame, pixelIndex: 8, expected: CompatibilityBlueRgb555);
+        AssertRgb555Pixel(frame, pixelIndex: 0, expected: CompatibilityObjectDarkRgb555);
+        AssertRgb555Pixel(frame, pixelIndex: 8, expected: 0x0000);
     }
 
     [Fact]

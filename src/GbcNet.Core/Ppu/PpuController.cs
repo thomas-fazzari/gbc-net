@@ -19,12 +19,11 @@ internal sealed class PpuController(
     private const byte ObjectPriorityModeReadMask = 0xFE;
 
     private const ushort WhiteRgb555 = 0x7FFF;
-    private const ushort LightGrayRgb555 = 0x56B5;
-    private const ushort DarkGrayRgb555 = 0x294A;
     private const ushort BlackRgb555 = 0x0000;
-    private const ushort RedRgb555 = 0x001F;
-    private const ushort GreenRgb555 = 0x03E0;
-    private const ushort BlueRgb555 = 0x7C00;
+    private const ushort DefaultCompatibilityObjectLightRgb555 = 0x421F;
+    private const ushort DefaultCompatibilityObjectDarkRgb555 = 0x1CF2;
+    private const ushort DefaultCompatibilityBackgroundLightRgb555 = 0x1BEF;
+    private const ushort DefaultCompatibilityBackgroundDarkRgb555 = 0x6180;
 
     /// <summary>
     /// VRAM at 8000-9FFF, banked by VBK when the active hardware mode exposes it.
@@ -197,15 +196,36 @@ internal sealed class PpuController(
     }
 
     /// <summary>
-    /// Seeds simple CGB DMG-compatibility palettes until boot-ROM title/licensee lookup is modeled.
+    /// Seeds the retail CGB default DMG-compatibility palette set used when the boot ROM falls back to palette ID 0.
     /// </summary>
     internal void SetDmgCompatibilityColorPaletteRam()
     {
-        SetPalette(BgPaletteRam, 0, WhiteRgb555, LightGrayRgb555, DarkGrayRgb555, BlackRgb555);
+        SetPalette(
+            BgPaletteRam,
+            0,
+            WhiteRgb555,
+            DefaultCompatibilityBackgroundLightRgb555,
+            DefaultCompatibilityBackgroundDarkRgb555,
+            BlackRgb555
+        );
 
-        SetPalette(ObjectPaletteRam, 0, WhiteRgb555, LightGrayRgb555, DarkGrayRgb555, BlackRgb555);
+        SetPalette(
+            ObjectPaletteRam,
+            0,
+            WhiteRgb555,
+            DefaultCompatibilityObjectLightRgb555,
+            DefaultCompatibilityObjectDarkRgb555,
+            BlackRgb555
+        );
 
-        SetPalette(ObjectPaletteRam, 1, WhiteRgb555, RedRgb555, GreenRgb555, BlueRgb555);
+        SetPalette(
+            ObjectPaletteRam,
+            1,
+            WhiteRgb555,
+            DefaultCompatibilityObjectLightRgb555,
+            DefaultCompatibilityObjectDarkRgb555,
+            BlackRgb555
+        );
     }
 
     /// <summary>
