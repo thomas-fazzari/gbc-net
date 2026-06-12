@@ -98,7 +98,8 @@ internal sealed class CgbObjectLayer
                 continue;
             }
 
-            _scanlineObjects[_scanlineObjectCount] = new(
+            _scanlineObjects[_scanlineObjectCount] = new ScanlineObject(
+                objectIndex,
                 inputs.ObjectAttributeMemory.Read(
                     (ushort)(objectAddress + PpuObjectAttributes.XCoordinateOffset)
                 ),
@@ -117,6 +118,19 @@ internal sealed class CgbObjectLayer
             {
                 break;
             }
+        }
+
+        if (inputs.ObjectPriorityMode is ObjectPriorityMode.XCoordinate)
+        {
+            _scanlineObjects
+                .AsSpan(0, _scanlineObjectCount)
+                .Sort(
+                    static (x, y) =>
+                    {
+                        var xComparison = x.X.CompareTo(y.X);
+                        return xComparison != 0 ? xComparison : x.Index.CompareTo(y.Index);
+                    }
+                );
         }
     }
 
@@ -178,7 +192,7 @@ internal sealed class CgbObjectLayer
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    private readonly record struct ScanlineObject(byte X, byte Y, byte Tile, byte Flags);
+    private readonly record struct ScanlineObject(int Index, byte X, byte Y, byte Tile, byte Flags);
 }
 
 /// <summary>

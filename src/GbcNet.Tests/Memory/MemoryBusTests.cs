@@ -139,6 +139,42 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
+    public void ReadWriteByte_RoutesCgbObjectPriorityModeRegister()
+    {
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+
+        Assert.Equal(0xFE, bus.ReadByte(AddressMap.ObjectPriorityModeRegister));
+
+        bus.WriteByte(AddressMap.ObjectPriorityModeRegister, 0xFF);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPriorityModeRegister));
+
+        bus.WriteByte(AddressMap.ObjectPriorityModeRegister, 0xFE);
+
+        Assert.Equal(0xFE, bus.ReadByte(AddressMap.ObjectPriorityModeRegister));
+    }
+
+    [Fact]
+    public void ReadWriteByte_IgnoresObjectPriorityModeRegisterInCgbDmgCompatibilityMode()
+    {
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+
+        bus.WriteByte(AddressMap.ObjectPriorityModeRegister, 0x01);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPriorityModeRegister));
+    }
+
+    [Fact]
+    public void ReadWriteByte_IgnoresObjectPriorityModeRegisterOnDmg()
+    {
+        var bus = CreateBus();
+
+        bus.WriteByte(AddressMap.ObjectPriorityModeRegister, 0x01);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPriorityModeRegister));
+    }
+
+    [Fact]
     public void ReadWriteByte_RoutesCgbVramDmaRegistersWithAddressMasks()
     {
         var rom = TestRomFactory.Create(bytes =>

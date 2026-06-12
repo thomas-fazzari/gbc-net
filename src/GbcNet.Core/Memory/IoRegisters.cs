@@ -62,7 +62,8 @@ internal sealed class IoRegisters(
             or AddressMap.BackgroundPaletteIndexRegister
             or AddressMap.BackgroundPaletteDataRegister
             or AddressMap.ObjectPaletteIndexRegister
-            or AddressMap.ObjectPaletteDataRegister => ppu.ReadRegister(address),
+            or AddressMap.ObjectPaletteDataRegister
+            or AddressMap.ObjectPriorityModeRegister => ppu.ReadRegister(address),
             AddressMap.WorkRamBankRegister => workRam.ReadBankRegister(),
             _ => 0xFF,
         };
@@ -212,6 +213,7 @@ internal sealed class IoRegisters(
             case AddressMap.BackgroundPaletteDataRegister:
             case AddressMap.ObjectPaletteIndexRegister:
             case AddressMap.ObjectPaletteDataRegister:
+            case AddressMap.ObjectPriorityModeRegister:
                 if (mode is IoRegisterWriteMode.CpuWrite)
                 {
                     ppu.WriteRegister(address, value);

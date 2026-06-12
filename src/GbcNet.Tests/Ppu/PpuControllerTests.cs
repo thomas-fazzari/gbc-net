@@ -828,6 +828,43 @@ public sealed class PpuControllerTests
     }
 
     [Fact]
+    public void CgbRenderer_UsesOamObjectPriorityByDefault()
+    {
+        var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        WriteObjectColor(ppu, paletteIndex: 0, colorId: 1, rgb555: 0x001F);
+        WriteObjectColor(ppu, paletteIndex: 1, colorId: 1, rgb555: 0x03E0);
+        WriteBankedTileRow(ppu, bank: 0, 0x8010, row: 0, lowByte: 0xFF, highByte: 0x00);
+        WriteObjectAttributes(ppu, index: 0, y: 16, x: 14, tile: 1, flags: 0);
+        WriteObjectAttributes(ppu, index: 1, y: 16, x: 8, tile: 1, flags: 1);
+
+        var frame = RenderSecondFrame(
+            ppu,
+            LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
+        );
+
+        AssertRgb555Pixel(frame, pixelIndex: 6, expected: 0x001F);
+    }
+
+    [Fact]
+    public void CgbRenderer_UsesXCoordinateObjectPriorityWhenOpriSelectsDmgMode()
+    {
+        var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        ppu.WriteRegister(AddressMap.ObjectPriorityModeRegister, 0x01);
+        WriteObjectColor(ppu, paletteIndex: 0, colorId: 1, rgb555: 0x001F);
+        WriteObjectColor(ppu, paletteIndex: 1, colorId: 1, rgb555: 0x03E0);
+        WriteBankedTileRow(ppu, bank: 0, 0x8010, row: 0, lowByte: 0xFF, highByte: 0x00);
+        WriteObjectAttributes(ppu, index: 0, y: 16, x: 14, tile: 1, flags: 0);
+        WriteObjectAttributes(ppu, index: 1, y: 16, x: 8, tile: 1, flags: 1);
+
+        var frame = RenderSecondFrame(
+            ppu,
+            LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
+        );
+
+        AssertRgb555Pixel(frame, pixelIndex: 6, expected: 0x03E0);
+    }
+
+    [Fact]
     public void CgbDmgCompatibilityRenderer_CompletesRgb555Frame()
     {
         var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
@@ -1068,7 +1105,8 @@ public sealed class PpuControllerTests
             interrupts ?? new InterruptController(),
             new DmgPpuEngine(),
             videoRamBankCount,
-            isColorPaletteRamEnabled
+            isColorPaletteRamEnabled,
+            isObjectPriorityModeRegisterEnabled: false
         );
 
     private static PpuController CreatePpu(CgbHardwareProfile profile) =>
@@ -1076,7 +1114,8 @@ public sealed class PpuControllerTests
             new InterruptController(),
             profile.CreatePpuEngine(),
             profile.VideoRamBankCount,
-            profile.IsColorPaletteRamEnabled
+            profile.IsColorPaletteRamEnabled,
+            profile.IsObjectPriorityModeRegisterEnabled
         );
 
     private static LcdFrame RenderSecondFrame(PpuController ppu, byte lcdControl)

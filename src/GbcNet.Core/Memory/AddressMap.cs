@@ -261,6 +261,11 @@ internal static class AddressMap
     public const ushort ObjectPaletteDataRegister = 0xFF6B;
 
     /// <summary>
+    /// Address of OPRI, the CGB object priority mode register.
+    /// </summary>
+    public const ushort ObjectPriorityModeRegister = 0xFF6C;
+
+    /// <summary>
     /// Address of SVBK, the CGB WRAM bank selection register.
     /// </summary>
     public const ushort WorkRamBankRegister = 0xFF70;

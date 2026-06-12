@@ -100,7 +100,8 @@ internal sealed class MemoryBus
             Interrupts,
             hardwareProfile.CreatePpuEngine(),
             hardwareProfile.VideoRamBankCount,
-            hardwareProfile.IsColorPaletteRamEnabled
+            hardwareProfile.IsColorPaletteRamEnabled,
+            hardwareProfile.IsObjectPriorityModeRegisterEnabled
         );
         OamDma = new OamDmaController();
         VramDma = new CgbVramDmaController(

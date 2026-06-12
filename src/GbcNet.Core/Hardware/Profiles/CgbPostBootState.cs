@@ -53,6 +53,7 @@ internal static class CgbPostBootState
     private static readonly PostBootHardwareRegisterState[] _cgbModePostAudioRegisters =
     [
         new(AddressMap.Key1Register, 0x7E),
+        new(AddressMap.ObjectPriorityModeRegister, 0xFE),
         new(AddressMap.VideoRamBankRegister, 0xFE),
         new(AddressMap.WorkRamBankRegister, 0xF8),
     ];

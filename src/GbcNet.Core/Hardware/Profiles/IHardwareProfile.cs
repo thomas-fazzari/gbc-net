@@ -43,6 +43,11 @@ internal interface IHardwareProfile
     bool IsColorPaletteRamEnabled { get; }
 
     /// <summary>
+    /// Indicates whether the CPU-visible CGB object priority mode register is enabled.
+    /// </summary>
+    bool IsObjectPriorityModeRegisterEnabled { get; }
+
+    /// <summary>
     /// Indicates whether the CPU-visible CGB VRAM DMA registers are enabled.
     /// </summary>
     bool IsVideoRamDmaRegisterEnabled { get; }

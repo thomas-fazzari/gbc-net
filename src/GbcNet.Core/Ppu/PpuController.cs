@@ -11,9 +11,12 @@ internal sealed class PpuController(
     InterruptController interrupts,
     IPpuEngine engine,
     int videoRamBankCount,
-    bool isColorPaletteRamEnabled
+    bool isColorPaletteRamEnabled,
+    bool isObjectPriorityModeRegisterEnabled
 )
 {
+    private const byte ObjectPriorityModeReadMask = 0xFE;
+
     private const ushort WhiteRgb555 = 0x7FFF;
     private const ushort LightGrayRgb555 = 0x56B5;
     private const ushort DarkGrayRgb555 = 0x294A;
@@ -53,6 +56,7 @@ internal sealed class PpuController(
     private byte _objectPalette1;
     private byte _windowY;
     private byte _windowX;
+    private ObjectPriorityMode _objectPriorityMode;
 
     /// <summary>
     /// Returns whether an address is owned by the LCD/PPU register block.
@@ -64,7 +68,7 @@ internal sealed class PpuController(
                 and not AddressMap.DmaRegister;
 
     /// <summary>
-    /// Reads an LCD/PPU register at FF40-FF45, FF47-FF4B, FF4F, or FF68-FF6B.
+    /// Reads an LCD/PPU register at FF40-FF45, FF47-FF4B, FF4F, FF68-FF6C.
     /// </summary>
     public byte ReadRegister(ushort address) =>
         address switch
@@ -85,6 +89,7 @@ internal sealed class PpuController(
             AddressMap.BackgroundPaletteDataRegister => BgPaletteRam.ReadDataRegister(),
             AddressMap.ObjectPaletteIndexRegister => ObjectPaletteRam.ReadIndexRegister(),
             AddressMap.ObjectPaletteDataRegister => ObjectPaletteRam.ReadDataRegister(),
+            AddressMap.ObjectPriorityModeRegister => ReadObjectPriorityModeRegister(),
             _ => throw CreateUnsupportedRegisterException(address),
         };
 
@@ -132,6 +137,7 @@ internal sealed class PpuController(
             _backgroundPalette,
             _objectPalette0,
             _objectPalette1,
+            _objectPriorityMode,
             VideoRam,
             BgPaletteRam,
             ObjectPaletteRam,
@@ -243,6 +249,11 @@ internal sealed class PpuController(
         paletteRam.SetRgb555Color(paletteIndex, 3, color3);
     }
 
+    private byte ReadObjectPriorityModeRegister() =>
+        isObjectPriorityModeRegisterEnabled
+            ? (byte)(ObjectPriorityModeReadMask | (byte)_objectPriorityMode)
+            : (byte)0xFF;
+
     private byte ReadStatus()
     {
         var lycEqualsLy = engine.LycEqualsLy ? PpuStatusRegister.LycEqualsLyMask : (byte)0;
@@ -290,6 +301,16 @@ internal sealed class PpuController(
                 return;
             case AddressMap.ObjectPaletteDataRegister:
                 ObjectPaletteRam.WriteDataRegister(value);
+                return;
+            case AddressMap.ObjectPriorityModeRegister:
+                if (isObjectPriorityModeRegisterEnabled)
+                {
+                    _objectPriorityMode =
+                        (value & 0x01) == 0
+                            ? ObjectPriorityMode.OamOrder
+                            : ObjectPriorityMode.XCoordinate;
+                }
+
                 return;
             default:
                 throw CreateUnsupportedRegisterException(address);
