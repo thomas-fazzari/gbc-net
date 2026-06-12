@@ -216,6 +216,31 @@ internal static class AddressMap
     public const ushort VideoRamBankRegister = 0xFF4F;
 
     /// <summary>
+    /// Address of HDMA1, the CGB VRAM DMA source high register.
+    /// </summary>
+    public const ushort VideoRamDmaSourceHighRegister = 0xFF51;
+
+    /// <summary>
+    /// Address of HDMA2, the CGB VRAM DMA source low register.
+    /// </summary>
+    public const ushort VideoRamDmaSourceLowRegister = 0xFF52;
+
+    /// <summary>
+    /// Address of HDMA3, the CGB VRAM DMA destination high register.
+    /// </summary>
+    public const ushort VideoRamDmaDestinationHighRegister = 0xFF53;
+
+    /// <summary>
+    /// Address of HDMA4, the CGB VRAM DMA destination low register.
+    /// </summary>
+    public const ushort VideoRamDmaDestinationLowRegister = 0xFF54;
+
+    /// <summary>
+    /// Address of HDMA5, the CGB VRAM DMA length, mode, and start register.
+    /// </summary>
+    public const ushort VideoRamDmaLengthModeStartRegister = 0xFF55;
+
+    /// <summary>
     /// Address of BCPS/BGPI, the CGB background palette index register.
     /// </summary>
     public const ushort BackgroundPaletteIndexRegister = 0xFF68;

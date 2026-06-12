@@ -138,6 +138,131 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
+    public void ReadWriteByte_RoutesCgbVramDmaRegistersWithAddressMasks()
+    {
+        byte[] rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x1230] = 0xA1;
+            bytes[0x123F] = 0xAF;
+        });
+        MemoryBus bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+
+        bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x12);
+        bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x3F);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0xE1);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x2F);
+        bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaSourceHighRegister));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaSourceLowRegister));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaDestinationHighRegister));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaDestinationLowRegister));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
+        Assert.Equal(0xA1, bus.ReadByte(0x8120));
+        Assert.Equal(0xAF, bus.ReadByte(0x812F));
+    }
+
+    [Fact]
+    public void ReadWriteByte_StartsCgbHBlankVramDmaWithoutImmediateCopy()
+    {
+        byte[] rom = TestRomFactory.Create(bytes => bytes[0x1230] = 0xA1);
+        MemoryBus bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+
+        bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x12);
+        bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x30);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x80);
+
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamStart));
+    }
+
+    [Fact]
+    public void ReadWriteByte_CopiesCgbVramDmaMultipleBlocksIntoSelectedVramBank()
+    {
+        byte[] rom = TestRomFactory.Create(bytes =>
+        {
+            for (int offset = 0; offset < 0x20; offset++)
+            {
+                bytes[0x2000 + offset] = (byte)(0x40 + offset);
+            }
+        });
+        MemoryBus bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+
+        bus.WriteByte(AddressMap.VideoRamBankRegister, 0x01);
+        bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x20);
+        bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x01);
+
+        Assert.Equal(0x40, bus.ReadByte(AddressMap.VideoRamStart));
+        Assert.Equal(0x5F, bus.ReadByte(AddressMap.VideoRamStart + 0x1F));
+
+        bus.WriteByte(AddressMap.VideoRamBankRegister, 0x00);
+
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamStart));
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamStart + 0x1F));
+
+        bus.WriteByte(AddressMap.VideoRamBankRegister, 0x01);
+
+        Assert.Equal(0x40, bus.ReadByte(AddressMap.VideoRamStart));
+        Assert.Equal(0x5F, bus.ReadByte(AddressMap.VideoRamStart + 0x1F));
+    }
+
+    [Fact]
+    public void ReadWriteByte_CopiesCgbVramDmaFromWorkRam()
+    {
+        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        bus.WriteByte(AddressMap.WorkRamStart, 0x55);
+        bus.WriteByte(AddressMap.WorkRamStart + 0x0F, 0x66);
+
+        bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0xC0);
+        bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x10);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
+
+        Assert.Equal(0x55, bus.ReadByte(0x9000));
+        Assert.Equal(0x66, bus.ReadByte(0x900F));
+    }
+
+    [Fact]
+    public void ReadWriteByte_IgnoresCgbVramDmaRegistersOnDmg()
+    {
+        byte[] rom = TestRomFactory.Create(bytes => bytes[0x1200] = 0x77);
+        MemoryBus bus = CreateBus(rom);
+
+        bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x12);
+        bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaSourceHighRegister));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamStart));
+    }
+
+    [Fact]
+    public void ReadWriteByte_IgnoresCgbVramDmaRegistersInDmgCompatibilityMode()
+    {
+        byte[] rom = TestRomFactory.Create(bytes => bytes[0x1200] = 0x77);
+        MemoryBus bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+
+        bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x12);
+        bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaSourceHighRegister));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamStart));
+    }
+
+    [Fact]
     public void ReadWriteByte_StoresDmgPaletteRegisters()
     {
         MemoryBus bus = CreateBus();

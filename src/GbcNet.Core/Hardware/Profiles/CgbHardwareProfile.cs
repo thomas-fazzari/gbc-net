@@ -35,12 +35,14 @@ internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHard
 
     public bool IsColorPaletteRamEnabled => OperatingMode is CgbOperatingMode.Cgb;
 
+    public bool IsVideoRamDmaRegisterEnabled => OperatingMode is CgbOperatingMode.Cgb;
+
     public IPpuEngine CreatePpuEngine() =>
         OperatingMode is CgbOperatingMode.Cgb
             ? new CgbPpuEngine()
             : new CgbDmgCompatibilityPpuEngine();
 
-    public IDmaTransferPolicy CreateDmaTransferPolicy() => new CgbDmaTransferPolicy();
+    public ITransferPolicy CreateOamDmaTransferPolicy() => new CgbOamDmaTransferPolicy();
 
     public IApuHardwareProfile CreateApuHardwareProfile() => new CgbApuHardwareProfile();
 

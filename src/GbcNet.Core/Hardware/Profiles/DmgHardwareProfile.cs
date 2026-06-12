@@ -28,9 +28,11 @@ internal sealed class DmgHardwareProfile : IHardwareProfile
 
     public bool IsColorPaletteRamEnabled => false;
 
+    public bool IsVideoRamDmaRegisterEnabled => false;
+
     public IPpuEngine CreatePpuEngine() => new DmgPpuEngine();
 
-    public IDmaTransferPolicy CreateDmaTransferPolicy() => new DmgDmaTransferPolicy();
+    public ITransferPolicy CreateOamDmaTransferPolicy() => new DmgOamDmaTransferPolicy();
 
     public IApuHardwareProfile CreateApuHardwareProfile() => new DmgApuHardwareProfile();
 

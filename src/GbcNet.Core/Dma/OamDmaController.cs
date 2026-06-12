@@ -5,7 +5,7 @@ namespace GbcNet.Core.Dma;
 /// <summary>
 /// Copies bytes from the FF46-selected source page into OAM over machine cycles.
 /// </summary>
-internal sealed class DmaController
+internal sealed class OamDmaController
 {
     private const int SourceAddressShift = 8;
     private const int TransferLength = 0xA0;

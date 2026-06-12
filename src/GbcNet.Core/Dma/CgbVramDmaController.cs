@@ -1,0 +1,167 @@
+using GbcNet.Core.Memory;
+
+namespace GbcNet.Core.Dma;
+
+/// <summary>
+/// Stores CGB VRAM DMA registers and performs General Purpose DMA into the selected VRAM bank.
+/// </summary>
+internal sealed class CgbVramDmaController(
+    bool isRegisterEnabled,
+    Func<ushort, byte> readSourceByte,
+    Action<ushort, byte> writeDestinationByte
+)
+{
+    private const byte HBlankModeMask = 0x80;
+    private const byte LengthMask = 0x7F;
+    private const byte SourceLowMask = 0xF0;
+    private const byte DestinationHighMask = 0x1F;
+    private const byte DestinationLowMask = 0xF0;
+    private const byte CompletedReadValue = 0xFF;
+    private const byte InactiveHBlankReadMask = 0x80;
+    private const int BlockSize = 0x10;
+
+    private byte _sourceHigh;
+    private byte _sourceLow;
+    private byte _destinationHigh;
+    private byte _destinationLow;
+    private byte _lengthModeReadValue = CompletedReadValue;
+    private int _hblankBlocksRemaining;
+    private bool _isHblankDmaActive;
+
+    /// <summary>
+    /// Reads CPU-visible HDMA registers. HDMA1-HDMA4 are write-only.
+    /// </summary>
+    public byte ReadRegister(ushort address) =>
+        isRegisterEnabled && address is AddressMap.VideoRamDmaLengthModeStartRegister
+            ? _lengthModeReadValue
+            : CompletedReadValue;
+
+    /// <summary>
+    /// Writes a CPU-visible HDMA register and starts General Purpose DMA through HDMA5.
+    /// </summary>
+    public void WriteRegister(ushort address, byte value)
+    {
+        if (!isRegisterEnabled)
+        {
+            return;
+        }
+
+        WriteRegisterState(address, value, startTransfer: true);
+    }
+
+    /// <summary>
+    /// Seeds an HDMA register without starting a transfer.
+    /// </summary>
+    public void SetRegisterState(ushort address, byte value)
+    {
+        if (!isRegisterEnabled)
+        {
+            return;
+        }
+
+        WriteRegisterState(address, value, startTransfer: false);
+    }
+
+    private void WriteRegisterState(ushort address, byte value, bool startTransfer)
+    {
+        switch (address)
+        {
+            case AddressMap.VideoRamDmaSourceHighRegister:
+                _sourceHigh = value;
+                return;
+
+            case AddressMap.VideoRamDmaSourceLowRegister:
+                _sourceLow = (byte)(value & SourceLowMask);
+                return;
+
+            case AddressMap.VideoRamDmaDestinationHighRegister:
+                _destinationHigh = (byte)(value & DestinationHighMask);
+                return;
+
+            case AddressMap.VideoRamDmaDestinationLowRegister:
+                _destinationLow = (byte)(value & DestinationLowMask);
+                return;
+
+            case AddressMap.VideoRamDmaLengthModeStartRegister:
+                if (startTransfer)
+                {
+                    WriteLengthMode(value);
+                }
+                else
+                {
+                    SetLengthModeState(value);
+                }
+
+                return;
+        }
+    }
+
+    private void WriteLengthMode(byte value)
+    {
+        if ((value & HBlankModeMask) != 0)
+        {
+            StartHBlankDma(value);
+            return;
+        }
+
+        if (_isHblankDmaActive)
+        {
+            StopHBlankDma();
+            return;
+        }
+
+        RunGeneralPurposeDma(value);
+    }
+
+    private void RunGeneralPurposeDma(byte value)
+    {
+        ushort sourceAddress = GetSourceAddress();
+        ushort destinationAddress = GetDestinationAddress();
+        int byteCount = ((value & LengthMask) + 1) * BlockSize;
+
+        for (int offset = 0; offset < byteCount; offset++)
+        {
+            int currentDestinationAddress = destinationAddress + offset;
+
+            if (currentDestinationAddress > AddressMap.VideoRamEnd)
+            {
+                break;
+            }
+
+            writeDestinationByte(
+                (ushort)currentDestinationAddress,
+                readSourceByte((ushort)(sourceAddress + offset))
+            );
+        }
+
+        _isHblankDmaActive = false;
+        _hblankBlocksRemaining = 0;
+        _lengthModeReadValue = CompletedReadValue;
+    }
+
+    private void StartHBlankDma(byte value)
+    {
+        _hblankBlocksRemaining = (value & LengthMask) + 1;
+        _isHblankDmaActive = true;
+        _lengthModeReadValue = (byte)(value & LengthMask);
+        // TODO: Transfer one 0x10-byte block during each CGB PPU HBlank.
+    }
+
+    private void StopHBlankDma()
+    {
+        _isHblankDmaActive = false;
+        _lengthModeReadValue = (byte)(InactiveHBlankReadMask | (_hblankBlocksRemaining - 1));
+    }
+
+    private void SetLengthModeState(byte value)
+    {
+        _lengthModeReadValue = value;
+        _isHblankDmaActive = (value & HBlankModeMask) == 0 && value != CompletedReadValue;
+        _hblankBlocksRemaining = _isHblankDmaActive ? (value & LengthMask) + 1 : 0;
+    }
+
+    private ushort GetSourceAddress() => (ushort)((_sourceHigh << 8) | _sourceLow);
+
+    private ushort GetDestinationAddress() =>
+        (ushort)(AddressMap.VideoRamStart | (_destinationHigh << 8) | _destinationLow);
+}

@@ -43,6 +43,11 @@ internal interface IHardwareProfile
     bool IsColorPaletteRamEnabled { get; }
 
     /// <summary>
+    /// Indicates whether the CPU-visible CGB VRAM DMA registers are enabled.
+    /// </summary>
+    bool IsVideoRamDmaRegisterEnabled { get; }
+
+    /// <summary>
     /// Creates the LCD/PPU engine for this hardware model.
     /// </summary>
     IPpuEngine CreatePpuEngine();
@@ -50,7 +55,7 @@ internal interface IHardwareProfile
     /// <summary>
     /// Creates the OAM DMA transfer policy for this hardware model.
     /// </summary>
-    IDmaTransferPolicy CreateDmaTransferPolicy();
+    ITransferPolicy CreateOamDmaTransferPolicy();
 
     /// <summary>
     /// Creates the APU profile for this hardware model.

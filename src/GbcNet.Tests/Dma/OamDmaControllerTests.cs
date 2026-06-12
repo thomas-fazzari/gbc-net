@@ -3,12 +3,12 @@ using GbcNet.Core.Memory;
 
 namespace GbcNet.Tests.Dma;
 
-public sealed class DmaControllerTests
+public sealed class OamDmaControllerTests
 {
     [Fact]
     public void StartOamTransfer_StoresSourceHighByteAndMarksActive()
     {
-        var dma = new DmaController();
+        var dma = new OamDmaController();
 
         dma.StartOamTransfer(0xC0);
 
@@ -20,7 +20,7 @@ public sealed class DmaControllerTests
     [Fact]
     public void SetRegisterState_SeedsRegisterWithoutStartingTransfer()
     {
-        var dma = new DmaController();
+        var dma = new OamDmaController();
         var writes = new List<(ushort Address, byte Value)>();
 
         dma.SetRegisterState(0xFF);
@@ -38,7 +38,7 @@ public sealed class DmaControllerTests
     [Fact]
     public void Tick_WaitsStartupDelayAfterTransferStart()
     {
-        var dma = new DmaController();
+        var dma = new OamDmaController();
         var writes = new List<(ushort Address, byte Value)>();
 
         dma.StartOamTransfer(0xC0);
@@ -61,7 +61,7 @@ public sealed class DmaControllerTests
     [Fact]
     public void Tick_CopiesOneBytePerMachineCycleAfterStartupDelay()
     {
-        var dma = new DmaController();
+        var dma = new OamDmaController();
         var writes = new List<(ushort Address, byte Value)>();
 
         dma.StartOamTransfer(0xC0);
@@ -77,7 +77,7 @@ public sealed class DmaControllerTests
     [Fact]
     public void Tick_CopiesPartialTransfer()
     {
-        var dma = new DmaController();
+        var dma = new OamDmaController();
         var writes = new List<(ushort Address, byte Value)>();
 
         dma.StartOamTransfer(0xC0);
@@ -104,7 +104,7 @@ public sealed class DmaControllerTests
     [Fact]
     public void Tick_CompletesTransferAfterOneHundredSixtyCopiedBytes()
     {
-        var dma = new DmaController();
+        var dma = new OamDmaController();
         var writes = new List<(ushort Address, byte Value)>();
 
         dma.StartOamTransfer(0xC0);
@@ -138,7 +138,7 @@ public sealed class DmaControllerTests
     [Fact]
     public void StartOamTransfer_DelaysRestartWhilePreviousTransferKeepsRunning()
     {
-        var dma = new DmaController();
+        var dma = new OamDmaController();
         var writes = new List<(ushort Address, byte Value)>();
 
         dma.StartOamTransfer(0xC0);
@@ -183,7 +183,7 @@ public sealed class DmaControllerTests
     [Fact]
     public void StartOamTransfer_PendingRestartStartsAfterCurrentTransferCompletesNearEnd()
     {
-        var dma = new DmaController();
+        var dma = new OamDmaController();
         var writes = new List<(ushort Address, byte Value)>();
 
         dma.StartOamTransfer(0xC0);

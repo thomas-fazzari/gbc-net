@@ -20,7 +20,8 @@ internal sealed class IoRegisters(
     ApuController apu,
     PpuController ppu,
     WorkRam workRam,
-    DmaController dma
+    OamDmaController oamDma,
+    CgbVramDmaController vramDma
 )
 {
     private readonly TimerController _timers = clock.Timers;
@@ -51,7 +52,12 @@ internal sealed class IoRegisters(
             AddressMap.TimerControlRegister => _timers.ReadTimerControl(),
             AddressMap.InterruptFlagRegister => interrupts.ReadInterruptFlag(),
             AddressMap.Key1Register => clock.ReadKey1(),
-            AddressMap.DmaRegister => dma.ReadRegister(),
+            AddressMap.DmaRegister => oamDma.ReadRegister(),
+            AddressMap.VideoRamDmaSourceHighRegister
+            or AddressMap.VideoRamDmaSourceLowRegister
+            or AddressMap.VideoRamDmaDestinationHighRegister
+            or AddressMap.VideoRamDmaDestinationLowRegister
+            or AddressMap.VideoRamDmaLengthModeStartRegister => vramDma.ReadRegister(address),
             AddressMap.VideoRamBankRegister
             or AddressMap.BackgroundPaletteIndexRegister
             or AddressMap.BackgroundPaletteDataRegister
@@ -178,11 +184,26 @@ internal sealed class IoRegisters(
             case AddressMap.DmaRegister:
                 if (mode is IoRegisterWriteMode.CpuWrite)
                 {
-                    dma.StartOamTransfer(value);
+                    oamDma.StartOamTransfer(value);
                 }
                 else
                 {
-                    dma.SetRegisterState(value);
+                    oamDma.SetRegisterState(value);
+                }
+                return;
+
+            case AddressMap.VideoRamDmaSourceHighRegister:
+            case AddressMap.VideoRamDmaSourceLowRegister:
+            case AddressMap.VideoRamDmaDestinationHighRegister:
+            case AddressMap.VideoRamDmaDestinationLowRegister:
+            case AddressMap.VideoRamDmaLengthModeStartRegister:
+                if (mode is IoRegisterWriteMode.CpuWrite)
+                {
+                    vramDma.WriteRegister(address, value);
+                }
+                else
+                {
+                    vramDma.SetRegisterState(address, value);
                 }
                 return;
 

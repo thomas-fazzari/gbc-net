@@ -5,7 +5,7 @@ namespace GbcNet.Core.Dma.Policies;
 /// <summary>
 /// CGB OAM DMA source decoding with cartridge, VRAM, and WRAM CPU bus conflict splitting.
 /// </summary>
-internal sealed class CgbDmaTransferPolicy : IDmaTransferPolicy
+internal sealed class CgbOamDmaTransferPolicy : ITransferPolicy
 {
     /// <summary>
     /// Clears address bit 13 for E000-FFFF OAM DMA source pages.

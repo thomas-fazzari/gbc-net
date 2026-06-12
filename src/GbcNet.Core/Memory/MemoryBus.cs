@@ -24,8 +24,8 @@ internal sealed class MemoryBus
 
     private readonly WorkRam _workRam;
     private readonly Cartridge _cartridge;
-    private readonly IDmaTransferPolicy _dmaTransferPolicy;
-    private readonly Func<ushort, byte> _readByteForDma;
+    private readonly ITransferPolicy _oamDmaTransferPolicy;
+    private readonly Func<ushort, byte> _readByteForOamDma;
     private readonly Action<ushort, byte> _writeOamByteForDma;
     private readonly IoRegisters _ioRegisters;
 
@@ -67,7 +67,12 @@ internal sealed class MemoryBus
     /// <summary>
     /// OAM DMA register routed through FF46.
     /// </summary>
-    public DmaController Dma { get; }
+    public OamDmaController OamDma { get; }
+
+    /// <summary>
+    /// CGB VRAM DMA registers routed through FF51-FF55.
+    /// </summary>
+    public CgbVramDmaController VramDma { get; }
 
     /// <summary>
     /// Optional instrumentation sink for debugger/watchpoint tooling.
@@ -84,7 +89,7 @@ internal sealed class MemoryBus
             hardwareProfile.WorkRamBankCount,
             hardwareProfile.IsWorkRamBankRegisterEnabled
         );
-        _dmaTransferPolicy = hardwareProfile.CreateDmaTransferPolicy();
+        _oamDmaTransferPolicy = hardwareProfile.CreateOamDmaTransferPolicy();
         Interrupts = new InterruptController();
         Joypad = new JoypadController(Interrupts);
         Serial = new SerialController(Interrupts);
@@ -97,9 +102,24 @@ internal sealed class MemoryBus
             hardwareProfile.VideoRamBankCount,
             hardwareProfile.IsColorPaletteRamEnabled
         );
-        Dma = new DmaController();
-        _ioRegisters = new IoRegisters(Interrupts, Clock, Joypad, Serial, Apu, Ppu, _workRam, Dma);
-        _readByteForDma = ReadOamDmaSourceByte;
+        OamDma = new OamDmaController();
+        VramDma = new CgbVramDmaController(
+            hardwareProfile.IsVideoRamDmaRegisterEnabled,
+            ReadVramDmaSourceByte,
+            Ppu.VideoRam.Write
+        );
+        _ioRegisters = new IoRegisters(
+            Interrupts,
+            Clock,
+            Joypad,
+            Serial,
+            Apu,
+            Ppu,
+            _workRam,
+            OamDma,
+            VramDma
+        );
+        _readByteForOamDma = ReadOamDmaSourceByte;
         _writeOamByteForDma = Ppu.ObjectAttributeMemory.Write;
     }
 
@@ -159,34 +179,34 @@ internal sealed class MemoryBus
     /// </summary>
     public void TickDma(int machineCycles)
     {
-        Dma.Tick(machineCycles, _readByteForDma, _writeOamByteForDma);
+        OamDma.Tick(machineCycles, _readByteForOamDma, _writeOamByteForDma);
     }
 
     private bool IsCpuWriteBlocked(ushort address) =>
         IsCpuWriteBlockedByDma(address) || IsCpuVideoMemoryWriteBlockedByPpu(address);
 
     private bool IsCpuWriteBlockedByDma(ushort address) =>
-        (IsObjectAttributeMemory(address) && Dma.IsCpuOamBlocked)
+        (IsObjectAttributeMemory(address) && OamDma.IsCpuOamBlocked)
         || (
-            Dma.TryGetCpuConflictSourceAddress(out ushort sourceAddress)
-            && _dmaTransferPolicy.IsCpuAddressBlocked(address, sourceAddress)
+            OamDma.TryGetCpuConflictSourceAddress(out ushort sourceAddress)
+            && _oamDmaTransferPolicy.IsCpuAddressBlocked(address, sourceAddress)
         );
 
     private bool TryReadDmaConflictedByte(ushort address, out byte value)
     {
-        if (IsObjectAttributeMemory(address) && Dma.IsCpuOamBlocked)
+        if (IsObjectAttributeMemory(address) && OamDma.IsCpuOamBlocked)
         {
             value = 0xFF;
             return true;
         }
 
-        if (!Dma.TryGetCpuConflictSourceAddress(out ushort sourceAddress))
+        if (!OamDma.TryGetCpuConflictSourceAddress(out ushort sourceAddress))
         {
             value = 0;
             return false;
         }
 
-        if (_dmaTransferPolicy.IsCpuAddressBlocked(address, sourceAddress))
+        if (_oamDmaTransferPolicy.IsCpuAddressBlocked(address, sourceAddress))
         {
             // During a DMA bus conflict, the CPU sees the byte currently driven by DMA source reads
             value = ReadOamDmaSourceByte(sourceAddress);
@@ -239,7 +259,7 @@ internal sealed class MemoryBus
 
     private byte ReadOamDmaSourceByte(ushort address)
     {
-        if (!_dmaTransferPolicy.TryMapSourceAddress(address, out ushort mappedAddress))
+        if (!_oamDmaTransferPolicy.TryMapSourceAddress(address, out ushort mappedAddress))
         {
             return 0xFF;
         }
@@ -253,6 +273,17 @@ internal sealed class MemoryBus
             _ => 0xFF,
         };
     }
+
+    private byte ReadVramDmaSourceByte(ushort address) =>
+        address switch
+        {
+            <= AddressMap.RomEnd => _cartridge.ReadRom(address),
+            >= AddressMap.ExternalRamStart and <= AddressMap.ExternalRamEnd => _cartridge.ReadRam(
+                address
+            ),
+            >= AddressMap.WorkRamStart and <= AddressMap.WorkRamEnd => _workRam.Read(address),
+            _ => 0xFF,
+        };
 
     private void WriteMappedByte(ushort address, byte value)
     {
