@@ -136,7 +136,6 @@ internal static class CgbCompatibilityPaletteSelector
     ];
 
     // Raw RGB555 colors packed as boot-ROM palettes * 4 colors.
-// Raw RGB555 colors packed as boot-ROM palettes * 4 colors.
     private static readonly ushort[] _paletteColors =
     [
         0x7FFF, 0x32BF, 0x00D0, 0x0000, 0x639F, 0x4279, 0x15B0, 0x04CB,
