@@ -30,8 +30,6 @@ internal sealed class DmgHardwareProfile : IHardwareProfile
 
     public bool IsObjectPriorityModeRegisterEnabled => false;
 
-    public bool IsCgbMiscRegisterEnabled => false;
-
     public bool IsVideoRamDmaRegisterEnabled => false;
 
     public IPpuEngine CreatePpuEngine() => new DmgPpuEngine();
