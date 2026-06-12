@@ -167,18 +167,18 @@ internal sealed class PpuController(
     /// <summary>
     /// Advances the LCD/PPU engine by elapsed dots.
     /// </summary>
-    public LcdFrame? Tick(int tCycles)
+    public PpuTickResult Tick(int tCycles)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(tCycles);
 
         if (!IsLcdEnabled || tCycles == 0)
         {
-            return null;
+            return new PpuTickResult(CompletedFrame: null, EnteredVisibleHBlank: false);
         }
 
         PpuEngineTickResult result = engine.Tick(tCycles, EngineInputs, VideoRenderingEnabled);
         RequestInterrupts(result.Interrupts);
-        return result.CompletedFrame;
+        return new PpuTickResult(result.CompletedFrame, result.EnteredVisibleHBlank);
     }
 
     /// <summary>

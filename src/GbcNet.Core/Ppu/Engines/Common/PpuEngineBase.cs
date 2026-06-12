@@ -94,13 +94,17 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
 
         if (tCycles == 0)
         {
-            return new PpuEngineTickResult(PpuInterruptRequest.None, CompletedFrame: null);
+            return new PpuEngineTickResult(
+                PpuInterruptRequest.None,
+                CompletedFrame: null,
+                EnteredVisibleHBlank: false
+            );
         }
 
         PpuInterruptRequest requests = RefreshPpuState(inputs, requestInterrupt: true);
         LcdFrame? completedFrame = null;
-
-        int remainingCycles = tCycles;
+        var enteredVisibleHBlank = false;
+        var remainingCycles = tCycles;
         while (remainingCycles > 0)
         {
             int scanlineDots = Timing.GetCurrentScanlineDots();
@@ -128,13 +132,20 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
                 PpuEngineTickResult result = AdvanceScanline(inputs, renderFrame);
                 requests |= result.Interrupts;
                 completedFrame ??= result.CompletedFrame;
+                enteredVisibleHBlank |= result.EnteredVisibleHBlank;
                 continue;
             }
 
+            PpuMode previousMode = StatusMode;
+            byte previousLcdYCoordinate = LcdYCoordinate;
             requests |= RefreshPpuState(inputs, requestInterrupt: true);
+            enteredVisibleHBlank |=
+                previousLcdYCoordinate < PpuGeometry.VBlankStartLine
+                && previousMode is PpuMode.Drawing
+                && StatusMode is PpuMode.HBlank;
         }
 
-        return new PpuEngineTickResult(requests, completedFrame);
+        return new PpuEngineTickResult(requests, completedFrame, enteredVisibleHBlank);
     }
 
     public PpuInterruptRequest EnableLcd(PpuEngineInputs inputs, bool renderFrame)
@@ -374,7 +385,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
 
         requests |= RefreshPpuState(inputs, requestInterrupt: true);
 
-        return new PpuEngineTickResult(requests, completedFrame);
+        return new PpuEngineTickResult(requests, completedFrame, EnteredVisibleHBlank: false);
     }
 
     private PpuInterruptRequest RefreshPpuState(PpuEngineInputs inputs, bool requestInterrupt)

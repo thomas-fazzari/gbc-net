@@ -3,7 +3,7 @@ using GbcNet.Core.Memory;
 namespace GbcNet.Core.Dma;
 
 /// <summary>
-/// Stores CGB VRAM DMA registers and performs General Purpose DMA into the selected VRAM bank.
+/// Stores CGB VRAM DMA registers and transfers GP/visible-HBlank blocks into the selected VRAM bank.
 /// </summary>
 internal sealed class CgbVramDmaController(
     bool isRegisterEnabled,
@@ -60,6 +60,37 @@ internal sealed class CgbVramDmaController(
         }
 
         WriteRegisterState(address, value, startTransfer: false);
+    }
+
+    /// <summary>
+    /// Transfers one active HBlank DMA block on a visible scanline Mode 0 entry.
+    /// </summary>
+    public void TransferHBlankBlock()
+    {
+        if (!isRegisterEnabled || !_isHblankDmaActive)
+        {
+            return;
+        }
+
+        ushort destinationAddress = GetDestinationAddress();
+        if (destinationAddress > AddressMap.VideoRamEnd)
+        {
+            CompleteTransfer();
+            return;
+        }
+
+        CopyBlock(GetSourceAddress(), destinationAddress);
+        AdvanceSourceAddress();
+        bool destinationWithinVram = TryAdvanceDestinationAddress();
+        _hblankBlocksRemaining--;
+
+        if (_hblankBlocksRemaining == 0 || !destinationWithinVram)
+        {
+            CompleteTransfer();
+            return;
+        }
+
+        _lengthModeReadValue = (byte)(_hblankBlocksRemaining - 1);
     }
 
     private void WriteRegisterState(ushort address, byte value, bool startTransfer)
@@ -119,24 +150,19 @@ internal sealed class CgbVramDmaController(
         ushort destinationAddress = GetDestinationAddress();
         int byteCount = ((value & LengthMask) + 1) * BlockSize;
 
-        for (int offset = 0; offset < byteCount; offset++)
+        for (int blockOffset = 0; blockOffset < byteCount; blockOffset += BlockSize)
         {
-            int currentDestinationAddress = destinationAddress + offset;
+            int currentDestinationAddress = destinationAddress + blockOffset;
 
             if (currentDestinationAddress > AddressMap.VideoRamEnd)
             {
                 break;
             }
 
-            writeDestinationByte(
-                (ushort)currentDestinationAddress,
-                readSourceByte((ushort)(sourceAddress + offset))
-            );
+            CopyBlock((ushort)(sourceAddress + blockOffset), (ushort)currentDestinationAddress);
         }
 
-        _isHblankDmaActive = false;
-        _hblankBlocksRemaining = 0;
-        _lengthModeReadValue = CompletedReadValue;
+        CompleteTransfer();
     }
 
     private void StartHBlankDma(byte value)
@@ -144,7 +170,31 @@ internal sealed class CgbVramDmaController(
         _hblankBlocksRemaining = (value & LengthMask) + 1;
         _isHblankDmaActive = true;
         _lengthModeReadValue = (byte)(value & LengthMask);
-        // TODO: Transfer one 0x10-byte block during each CGB PPU HBlank.
+    }
+
+    private void CopyBlock(ushort sourceAddress, ushort destinationAddress)
+    {
+        for (int offset = 0; offset < BlockSize; offset++)
+        {
+            int currentDestinationAddress = destinationAddress + offset;
+
+            if (currentDestinationAddress > AddressMap.VideoRamEnd)
+            {
+                return;
+            }
+
+            writeDestinationByte(
+                (ushort)currentDestinationAddress,
+                readSourceByte((ushort)(sourceAddress + offset))
+            );
+        }
+    }
+
+    private void CompleteTransfer()
+    {
+        _isHblankDmaActive = false;
+        _hblankBlocksRemaining = 0;
+        _lengthModeReadValue = CompletedReadValue;
     }
 
     private void StopHBlankDma()
@@ -162,6 +212,27 @@ internal sealed class CgbVramDmaController(
 
     private ushort GetSourceAddress() => (ushort)((_sourceHigh << 8) | _sourceLow);
 
+    private void AdvanceSourceAddress()
+    {
+        ushort address = (ushort)(GetSourceAddress() + BlockSize);
+        _sourceHigh = (byte)(address >> 8);
+        _sourceLow = (byte)(address & SourceLowMask);
+    }
+
     private ushort GetDestinationAddress() =>
         (ushort)(AddressMap.VideoRamStart | (_destinationHigh << 8) | _destinationLow);
+
+    private bool TryAdvanceDestinationAddress()
+    {
+        int address = GetDestinationAddress() + BlockSize;
+        if (address > AddressMap.VideoRamEnd)
+        {
+            return false;
+        }
+
+        int offset = address - AddressMap.VideoRamStart;
+        _destinationHigh = (byte)((offset >> 8) & DestinationHighMask);
+        _destinationLow = (byte)(offset & DestinationLowMask);
+        return true;
+    }
 }

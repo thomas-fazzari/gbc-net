@@ -273,7 +273,7 @@ public sealed class PpuControllerTests
         PpuController ppu = CreatePpu(interrupts);
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
-        LcdFrame? frame = ppu.Tick(456 * 144);
+        LcdFrame? frame = ppu.Tick(456 * 144).CompletedFrame;
 
         Assert.Equal(144, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
         Assert.Equal(0x01, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
@@ -293,7 +293,7 @@ public sealed class PpuControllerTests
         ppu.VideoRenderingEnabled = false;
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
-        LcdFrame? frame = ppu.Tick(456 * 144);
+        LcdFrame? frame = ppu.Tick(456 * 144).CompletedFrame;
 
         Assert.Null(frame);
         Assert.Equal(144, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
@@ -307,12 +307,12 @@ public sealed class PpuControllerTests
         ppu.VideoRenderingEnabled = false;
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
-        Assert.Null(ppu.Tick(456 * 144));
+        Assert.Null(ppu.Tick(456 * 144).CompletedFrame);
 
         ppu.VideoRenderingEnabled = true;
         ppu.Tick(456 * 10);
 
-        LcdFrame? frame = ppu.Tick(456 * 144);
+        LcdFrame? frame = ppu.Tick(456 * 144).CompletedFrame;
 
         Assert.NotNull(frame);
         Assert.Equal(PpuGeometry.FrameWidth, frame.Width);
@@ -366,7 +366,7 @@ public sealed class PpuControllerTests
     {
         PpuController ppu = CreatePpu();
 
-        LcdFrame? frame = ppu.Tick(456 * 154);
+        LcdFrame? frame = ppu.Tick(456 * 154).CompletedFrame;
 
         Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
         Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
@@ -1086,7 +1086,7 @@ public sealed class PpuControllerTests
     {
         ppu.WriteRegister(AddressMap.LcdControlRegister, lcdControl);
         ppu.Tick(456 * 154);
-        return Assert.IsType<LcdFrame>(ppu.Tick(456 * 144));
+        return Assert.IsType<LcdFrame>(ppu.Tick(456 * 144).CompletedFrame);
     }
 
     private static void WriteTileRow(

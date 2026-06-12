@@ -34,7 +34,13 @@ internal sealed class MachineClock(MemoryBus bus)
         int tCycles = bus.Clock.VideoAndAudioTCyclesPerMachineCycle;
         bus.Apu.Tick(tCycles);
 
-        if (bus.Ppu.Tick(tCycles) is { } completedFrame)
+        PpuTickResult ppuResult = bus.Ppu.Tick(tCycles);
+        if (ppuResult.EnteredVisibleHBlank)
+        {
+            bus.VramDma.TransferHBlankBlock();
+        }
+
+        if (ppuResult.CompletedFrame is { } completedFrame)
         {
             _completedFrames.Enqueue(completedFrame);
         }

@@ -175,7 +175,7 @@ public sealed class PostBootStateTests
         bus.Ppu.VideoRam.Write(0x8000, 0x80);
 
         bus.Ppu.Tick(456 * 154);
-        LcdFrame frame = Assert.IsType<LcdFrame>(bus.Ppu.Tick(456 * 144));
+        LcdFrame frame = Assert.IsType<LcdFrame>(bus.Ppu.Tick(456 * 144).CompletedFrame);
 
         Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
         Assert.Equal(0x4A, frame.Pixels.Span[0]);

@@ -5,5 +5,6 @@ namespace GbcNet.Core.Ppu;
 /// </summary>
 internal readonly record struct PpuEngineTickResult(
     PpuInterruptRequest Interrupts,
-    LcdFrame? CompletedFrame
+    LcdFrame? CompletedFrame,
+    bool EnteredVisibleHBlank
 );
