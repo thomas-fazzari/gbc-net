@@ -10,7 +10,7 @@ internal static class KdlNodeReader
 {
     public static Result<int> ReadRequiredInt32Property(KdlNode node, string propertyName)
     {
-        Result<KdlValue> value = ReadRequiredProperty(node, propertyName);
+        var value = ReadRequiredProperty(node, propertyName);
 
         if (value.IsFailed)
         {
@@ -22,7 +22,7 @@ internal static class KdlNodeReader
             return Result.Fail($"Node '{node.Name}' property '{propertyName}' must be a number.");
         }
 
-        int? intValue = value.Value.AsInt32();
+        var intValue = value.Value.AsInt32();
 
         return intValue.HasValue
             ? Result.Ok(intValue.Value)
@@ -31,7 +31,7 @@ internal static class KdlNodeReader
 
     public static Result<string> ReadRequiredStringProperty(KdlNode node, string propertyName)
     {
-        Result<KdlValue> value = ReadRequiredProperty(node, propertyName);
+        var value = ReadRequiredProperty(node, propertyName);
 
         return value.IsSuccess
             ? ReadStringValue(
@@ -47,7 +47,7 @@ internal static class KdlNodeReader
         string defaultValue
     )
     {
-        KdlValue? value = node.GetProperty(propertyName);
+        var value = node.GetProperty(propertyName);
 
         return value is null
             ? defaultValue
@@ -69,7 +69,7 @@ internal static class KdlNodeReader
 
     private static Result<KdlValue> ReadRequiredProperty(KdlNode node, string propertyName)
     {
-        KdlValue? value = node.GetProperty(propertyName);
+        var value = node.GetProperty(propertyName);
 
         return value is not null
             ? Result.Ok(value)
@@ -83,7 +83,7 @@ internal static class KdlNodeReader
             return Result.Fail(errorMessage);
         }
 
-        string? stringValue = value.AsString();
+        var stringValue = value.AsString();
 
         return stringValue is not null ? Result.Ok(stringValue) : Result.Fail(errorMessage);
     }

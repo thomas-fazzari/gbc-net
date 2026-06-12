@@ -12,13 +12,9 @@ public sealed class BlarggInterruptTimingRomTests
     [Fact]
     public void InterruptTimingRomPasses()
     {
-        byte[] rom = File.ReadAllBytes(RomPath);
+        var rom = File.ReadAllBytes(RomPath);
 
-        RomTestResult result = RomTestRunner.Run(
-            rom,
-            MaxMachineCycles,
-            hardwareModel: HardwareModel.Cgb
-        );
+        var result = RomTestRunner.Run(rom, MaxMachineCycles, hardwareModel: HardwareModel.Cgb);
 
         RomTestAssertions.AssertPassed(result);
     }

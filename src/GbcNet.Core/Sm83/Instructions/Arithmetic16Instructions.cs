@@ -88,9 +88,9 @@ internal static class Arithmetic16Instructions
     /// </summary>
     private static void AddHlRegisterPair(Cpu cpu, RegisterPair registerPair)
     {
-        ushort left = cpu.Registers.HL;
-        ushort right = cpu.Registers.GetRegisterPair(registerPair);
-        int result = left + right;
+        var left = cpu.Registers.HL;
+        var right = cpu.Registers.GetRegisterPair(registerPair);
+        var result = left + right;
 
         cpu.Registers.HL = unchecked((ushort)result);
         cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: false);
@@ -104,7 +104,7 @@ internal static class Arithmetic16Instructions
     /// </summary>
     private static void IncrementRegisterPair(Cpu cpu, RegisterPair registerPair)
     {
-        ushort value = cpu.Registers.GetRegisterPair(registerPair);
+        var value = cpu.Registers.GetRegisterPair(registerPair);
         cpu.Registers.SetRegisterPair(registerPair, unchecked((ushort)(value + 1)));
         cpu.IdleCycle();
     }
@@ -114,7 +114,7 @@ internal static class Arithmetic16Instructions
     /// </summary>
     private static void DecrementRegisterPair(Cpu cpu, RegisterPair registerPair)
     {
-        ushort value = cpu.Registers.GetRegisterPair(registerPair);
+        var value = cpu.Registers.GetRegisterPair(registerPair);
         cpu.Registers.SetRegisterPair(registerPair, unchecked((ushort)(value - 1)));
         cpu.IdleCycle();
     }
@@ -124,7 +124,7 @@ internal static class Arithmetic16Instructions
     /// </summary>
     private static void ExecuteAddStackPointerImmediate8(Cpu cpu, byte offset)
     {
-        (ushort value, byte flags) = InstructionOperands.AddSignedImmediate8WithFlags(
+        var (value, flags) = InstructionOperands.AddSignedImmediate8WithFlags(
             cpu.Registers.SP,
             offset
         );

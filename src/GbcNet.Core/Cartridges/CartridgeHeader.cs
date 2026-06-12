@@ -66,25 +66,25 @@ public sealed record CartridgeHeader(
     /// </returns>
     public static Result<CartridgeHeader> Parse(ReadOnlySpan<byte> rom)
     {
-        Result headerValidation = ValidateHeaderRangeAndChecksum(rom);
+        var headerValidation = ValidateHeaderRangeAndChecksum(rom);
         if (headerValidation.IsFailed)
             return Result.Fail<CartridgeHeader>(headerValidation.Errors);
 
-        Result<(int SizeBytes, int BankCount)> romSizeResult = DecodeRomSize(rom[RomSizeAddress]);
+        var romSizeResult = DecodeRomSize(rom[RomSizeAddress]);
         if (romSizeResult.IsFailed)
         {
             return Result.Fail<CartridgeHeader>(romSizeResult.Errors);
         }
 
-        Result<(int SizeBytes, int BankCount)> ramSizeResult = DecodeRamSize(rom[RamSizeAddress]);
+        var ramSizeResult = DecodeRamSize(rom[RamSizeAddress]);
         if (ramSizeResult.IsFailed)
         {
             return Result.Fail<CartridgeHeader>(ramSizeResult.Errors);
         }
 
-        (int romSizeBytes, int romBankCount) = romSizeResult.Value;
-        (int ramSizeBytes, int ramBankCount) = ramSizeResult.Value;
-        CgbSupport cgbSupport = DecodeCgbSupport(rom[CgbFlagAddress]);
+        (var romSizeBytes, var romBankCount) = romSizeResult.Value;
+        (var ramSizeBytes, var ramBankCount) = ramSizeResult.Value;
+        var cgbSupport = DecodeCgbSupport(rom[CgbFlagAddress]);
 
         return Result.Ok(
             Create(rom, cgbSupport, romSizeBytes, romBankCount, ramSizeBytes, ramBankCount)
@@ -107,8 +107,8 @@ public sealed record CartridgeHeader(
             );
         }
 
-        byte expectedChecksum = CalculateHeaderChecksum(rom);
-        byte actualChecksum = rom[HeaderChecksumAddress];
+        var expectedChecksum = CalculateHeaderChecksum(rom);
+        var actualChecksum = rom[HeaderChecksumAddress];
         if (actualChecksum == expectedChecksum)
             return Result.Ok();
 
@@ -161,7 +161,7 @@ public sealed record CartridgeHeader(
         }
 
         byte checksum = 0;
-        for (int offset = TitleStartAddress; offset < HeaderChecksumAddress; offset++)
+        for (var offset = TitleStartAddress; offset < HeaderChecksumAddress; offset++)
         {
             checksum = unchecked((byte)(checksum - rom[offset] - 1));
         }
@@ -171,9 +171,9 @@ public sealed record CartridgeHeader(
 
     private static string ReadTitle(ReadOnlySpan<byte> rom, CgbSupport cgbSupport)
     {
-        int titleEndAddress = GetTitleEndAddress(rom, cgbSupport);
-        ReadOnlySpan<byte> titleBytes = rom[TitleStartAddress..(titleEndAddress + 1)];
-        int terminatorIndex = titleBytes.IndexOf((byte)0);
+        var titleEndAddress = GetTitleEndAddress(rom, cgbSupport);
+        var titleBytes = rom[TitleStartAddress..(titleEndAddress + 1)];
+        var terminatorIndex = titleBytes.IndexOf((byte)0);
         if (terminatorIndex >= 0)
         {
             titleBytes = titleBytes[..terminatorIndex];

@@ -122,7 +122,7 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
     {
         UpdateToNow();
 
-        byte[] data = new byte[SaveStateSize];
+        var data = new byte[SaveStateSize];
 
         WriteRegisters(
             data.AsSpan(RealRtcStateOffset, RtcTimeStateSize),
@@ -199,7 +199,7 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
 
     private void UpdateToNow()
     {
-        long now = getUnixTimeSeconds();
+        var now = getUnixTimeSeconds();
         if (now <= _lastUnixTimeSeconds)
         {
             if (now < _lastUnixTimeSeconds)
@@ -210,7 +210,7 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
             return;
         }
 
-        long elapsedSeconds = now - _lastUnixTimeSeconds;
+        var elapsedSeconds = now - _lastUnixTimeSeconds;
         _lastUnixTimeSeconds = now;
 
         if (_halted)
@@ -224,13 +224,13 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
 
     private void Advance(long elapsedSeconds)
     {
-        long totalSeconds = _seconds + elapsedSeconds;
+        var totalSeconds = _seconds + elapsedSeconds;
         _seconds = (int)(totalSeconds % 60);
 
-        long totalMinutes = _minutes + (totalSeconds / 60);
+        var totalMinutes = _minutes + (totalSeconds / 60);
         _minutes = (int)(totalMinutes % 60);
 
-        long totalHours = _hours + (totalMinutes / 60);
+        var totalHours = _hours + (totalMinutes / 60);
         _hours = (int)(totalHours % 24);
 
         AddDays(totalHours / 24);
@@ -243,7 +243,7 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
             return;
         }
 
-        long totalDays = _day + days;
+        var totalDays = _day + days;
         if (totalDays > MaxDay)
         {
             _carry = true;

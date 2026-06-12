@@ -15,9 +15,9 @@ public sealed class ApuOutputFilterTests
             )
         );
 
-        int first = filter.Filter(new ApuAnalogStereoSample(1, 1), anyDacEnabled: true).Left;
-        int later = 0;
-        for (int sample = 0; sample < 1_000; sample++)
+        var first = filter.Filter(new ApuAnalogStereoSample(1, 1), anyDacEnabled: true).Left;
+        var later = 0;
+        for (var sample = 0; sample < 1_000; sample++)
         {
             later = filter.Filter(new ApuAnalogStereoSample(1, 1), anyDacEnabled: true).Left;
         }
@@ -34,12 +34,9 @@ public sealed class ApuOutputFilterTests
             )
         );
 
-        ApuStereoSample first = filter.Filter(new ApuAnalogStereoSample(1, 1), anyDacEnabled: true);
-        ApuStereoSample off = filter.Filter(new ApuAnalogStereoSample(1, 1), anyDacEnabled: false);
-        ApuStereoSample afterReset = filter.Filter(
-            new ApuAnalogStereoSample(1, 1),
-            anyDacEnabled: true
-        );
+        var first = filter.Filter(new ApuAnalogStereoSample(1, 1), anyDacEnabled: true);
+        var off = filter.Filter(new ApuAnalogStereoSample(1, 1), anyDacEnabled: false);
+        var afterReset = filter.Filter(new ApuAnalogStereoSample(1, 1), anyDacEnabled: true);
 
         Assert.Equal(default, off);
         Assert.Equal(first, afterReset);
@@ -54,14 +51,8 @@ public sealed class ApuOutputFilterTests
             )
         );
 
-        ApuStereoSample leftOnly = filter.Filter(
-            new ApuAnalogStereoSample(1, 0),
-            anyDacEnabled: true
-        );
-        ApuStereoSample rightOnly = filter.Filter(
-            new ApuAnalogStereoSample(0, 1),
-            anyDacEnabled: true
-        );
+        var leftOnly = filter.Filter(new ApuAnalogStereoSample(1, 0), anyDacEnabled: true);
+        var rightOnly = filter.Filter(new ApuAnalogStereoSample(0, 1), anyDacEnabled: true);
 
         Assert.NotEqual(0, leftOnly.Left);
         Assert.Equal(0, leftOnly.Right);
@@ -79,7 +70,7 @@ public sealed class ApuOutputFilterTests
             )
         );
 
-        ApuStereoSample sample = filter.Filter(
+        var sample = filter.Filter(
             new ApuAnalogStereoSample(analogSample, analogSample),
             anyDacEnabled: true
         );

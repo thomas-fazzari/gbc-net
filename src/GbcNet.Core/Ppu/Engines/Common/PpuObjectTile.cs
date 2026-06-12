@@ -11,7 +11,7 @@ internal static class PpuObjectTile
         byte lcdYCoordinate
     )
     {
-        int objectLine = lcdYCoordinate - (objectY - PpuObjectAttributes.YScreenOffset);
+        var objectLine = lcdYCoordinate - (objectY - PpuObjectAttributes.YScreenOffset);
 
         return (flags & PpuObjectAttributes.YFlipMask) == 0
             ? objectLine
@@ -28,7 +28,7 @@ internal static class PpuObjectTile
 
     public static int ResolvePixelBit(byte objectX, byte flags, int screenX)
     {
-        int pixel = screenX - (objectX - PpuObjectAttributes.XScreenOffset);
+        var pixel = screenX - (objectX - PpuObjectAttributes.XScreenOffset);
 
         return (flags & PpuObjectAttributes.XFlipMask) == 0 ? 7 - pixel : pixel;
     }

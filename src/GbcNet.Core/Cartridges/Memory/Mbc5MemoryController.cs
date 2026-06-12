@@ -33,7 +33,7 @@ internal sealed class Mbc5MemoryController(
             return rom[address];
         }
 
-        int bank = ((_romBankHigh << 8) | _romBankLow) % header.RomBankCount;
+        var bank = ((_romBankHigh << 8) | _romBankLow) % header.RomBankCount;
         return rom[(bank * RomBankSize) + (address - RomBankNStart)];
     }
 

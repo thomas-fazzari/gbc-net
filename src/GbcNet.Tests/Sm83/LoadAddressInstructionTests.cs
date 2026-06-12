@@ -1,5 +1,4 @@
 using GbcNet.Core.Memory;
-using GbcNet.Core.Sm83;
 
 namespace GbcNet.Tests.Sm83;
 
@@ -12,7 +11,7 @@ public sealed class LoadAddressInstructionTests
     [Fact]
     public void Step_LoadsAccumulatorIntoImmediate16Address()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0xEA;
             bytes[0x0101] = WorkRamAddressLowByte;
@@ -21,7 +20,7 @@ public sealed class LoadAddressInstructionTests
         cpu.Registers.A = 0x42;
         cpu.Registers.F = 0xF0;
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(4, machineCycles);
         Assert.Equal(0x42, CpuTestFactory.GetBus(cpu).ReadByte(WorkRamAddress));
@@ -32,7 +31,7 @@ public sealed class LoadAddressInstructionTests
     [Fact]
     public void Step_LoadsAccumulatorFromImmediate16Address()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0xFA;
             bytes[0x0101] = WorkRamAddressLowByte;
@@ -41,7 +40,7 @@ public sealed class LoadAddressInstructionTests
         CpuTestFactory.GetBus(cpu).WriteByte(WorkRamAddress, 0xA5);
         cpu.Registers.F = 0xF0;
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(4, machineCycles);
         Assert.Equal(0xA5, cpu.Registers.A);

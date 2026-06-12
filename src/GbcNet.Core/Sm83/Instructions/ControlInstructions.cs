@@ -35,7 +35,7 @@ internal static class ControlInstructions
     /// </summary>
     private static void ExecuteCbPrefix(Cpu cpu, byte prefixedOpcode, byte _)
     {
-        Instruction instruction =
+        var instruction =
             CbInstructionSet.Find(prefixedOpcode)
             ?? throw new NotSupportedException(
                 string.Format(

@@ -1,5 +1,4 @@
 using GbcNet.Core.Memory;
-using GbcNet.Core.Sm83;
 
 namespace GbcNet.Tests.Sm83;
 
@@ -11,7 +10,7 @@ public sealed class CallReturnInstructionTests
     [Fact]
     public void Step_CallsImmediate16AndPushesReturnAddress()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0xCD;
             bytes[0x0101] = 0x34;
@@ -20,7 +19,7 @@ public sealed class CallReturnInstructionTests
         cpu.Registers.SP = 0xC100;
         cpu.Registers.F = 0xF0;
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(6, machineCycles);
         Assert.Equal(0x1234, cpu.Registers.PC);
@@ -41,7 +40,7 @@ public sealed class CallReturnInstructionTests
     [InlineData(0xDC, 0x00, false)]
     public void Step_ConditionallyCallsImmediate16(byte opcode, byte flags, bool isTaken)
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = opcode;
             bytes[0x0101] = 0x78;
@@ -50,30 +49,32 @@ public sealed class CallReturnInstructionTests
         cpu.Registers.SP = 0xC100;
         cpu.Registers.F = flags;
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(isTaken ? 6 : 3, machineCycles);
         Assert.Equal(isTaken ? 0x5678 : 0x0103, cpu.Registers.PC);
         Assert.Equal(isTaken ? 0xC0FE : 0xC100, cpu.Registers.SP);
         Assert.Equal(flags, cpu.Registers.F);
 
-        if (isTaken)
+        if (!isTaken)
         {
-            Assert.Equal(0x03, CpuTestFactory.GetBus(cpu).ReadByte(0xC0FE));
-            Assert.Equal(0x01, CpuTestFactory.GetBus(cpu).ReadByte(0xC0FF));
+            return;
         }
+
+        Assert.Equal(0x03, CpuTestFactory.GetBus(cpu).ReadByte(0xC0FE));
+        Assert.Equal(0x01, CpuTestFactory.GetBus(cpu).ReadByte(0xC0FF));
     }
 
     [Fact]
     public void Step_ReturnsToStackAddress()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0xC9);
+        var cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0xC9);
         cpu.Registers.SP = 0xC100;
         cpu.Registers.F = 0xF0;
         CpuTestFactory.GetBus(cpu).WriteByte(0xC100, 0x78);
         CpuTestFactory.GetBus(cpu).WriteByte(0xC101, 0x56);
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(4, machineCycles);
         Assert.Equal(0x5678, cpu.Registers.PC);
@@ -84,7 +85,7 @@ public sealed class CallReturnInstructionTests
     [Fact]
     public void Step_ReturnsFromInterruptAndEnablesInterruptMasterEnableImmediately()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0xFB;
             bytes[0x0101] = 0xD9;
@@ -97,7 +98,7 @@ public sealed class CallReturnInstructionTests
         Assert.Equal(1, cpu.Step());
         Assert.True(cpu.ImeEnablePending);
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(4, machineCycles);
         Assert.Equal(0x5678, cpu.Registers.PC);
@@ -110,7 +111,7 @@ public sealed class CallReturnInstructionTests
     [Fact]
     public void Step_ServicesPendingInterruptOnStepAfterReturnFromInterrupt()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0xD9;
             bytes[0x5678] = 0x00;
@@ -143,13 +144,13 @@ public sealed class CallReturnInstructionTests
     [InlineData(0xD8, 0x00, false)]
     public void Step_ConditionallyReturns(byte opcode, byte flags, bool isTaken)
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
+        var cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
         cpu.Registers.SP = 0xC100;
         cpu.Registers.F = flags;
         CpuTestFactory.GetBus(cpu).WriteByte(0xC100, 0x78);
         CpuTestFactory.GetBus(cpu).WriteByte(0xC101, 0x56);
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(isTaken ? 5 : 2, machineCycles);
         Assert.Equal(isTaken ? 0x5678 : 0x0101, cpu.Registers.PC);
@@ -168,11 +169,11 @@ public sealed class CallReturnInstructionTests
     [InlineData(0xFF, 0x0038)]
     public void Step_RestartsAtEncodedVector(byte opcode, ushort targetAddress)
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
+        var cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
         cpu.Registers.SP = 0xC100;
         cpu.Registers.F = 0xF0;
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(4, machineCycles);
         Assert.Equal(targetAddress, cpu.Registers.PC);

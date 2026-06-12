@@ -11,7 +11,7 @@ public sealed class ClockControllerTests
     [Fact]
     public void ReadWriteKey1_StoresOnlyArmedBitAndReadsUnusedBitsHigh()
     {
-        ClockController clock = CreateClock(isKey1RegisterEnabled: true);
+        var clock = CreateClock(isKey1RegisterEnabled: true);
 
         Assert.Equal(0x7E, clock.ReadKey1());
 
@@ -27,7 +27,7 @@ public sealed class ClockControllerTests
     [Fact]
     public void TrySwitchSpeedOnStop_TogglesSpeedResetsDividerAndClearsArmedBit()
     {
-        ClockController clock = CreateClock(isKey1RegisterEnabled: true);
+        var clock = CreateClock(isKey1RegisterEnabled: true);
         clock.SetDivider(0x12);
         clock.WriteKey1(0x01);
 
@@ -45,7 +45,7 @@ public sealed class ClockControllerTests
     [Fact]
     public void TrySwitchSpeedOnStop_ReturnsFalseWhenKey1IsNotArmed()
     {
-        ClockController clock = CreateClock(isKey1RegisterEnabled: true);
+        var clock = CreateClock(isKey1RegisterEnabled: true);
 
         Assert.False(clock.TrySwitchSpeedOnStop());
 
@@ -56,7 +56,7 @@ public sealed class ClockControllerTests
     [Fact]
     public void ReadWriteKey1_IgnoresDisabledRegister()
     {
-        ClockController clock = CreateClock(isKey1RegisterEnabled: false);
+        var clock = CreateClock(isKey1RegisterEnabled: false);
 
         clock.WriteKey1(0x01);
 

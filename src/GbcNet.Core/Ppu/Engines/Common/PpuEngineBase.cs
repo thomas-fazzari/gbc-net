@@ -24,7 +24,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
     /// WX stores the Window X coordinate plus seven.
     /// </summary>
     private const int WindowXScreenOffset = 7;
-    private readonly LcdPixelFormat _framePixelFormat = framePixelFormat;
+
     private byte _latchedScrollX;
     private byte _latchedScrollY;
     private int _windowPenaltyDots;
@@ -101,17 +101,17 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
             );
         }
 
-        PpuInterruptRequest requests = RefreshPpuState(inputs, requestInterrupt: true);
+        var requests = RefreshPpuState(inputs, requestInterrupt: true);
         LcdFrame? completedFrame = null;
         var enteredVisibleHBlank = false;
         var remainingCycles = tCycles;
         while (remainingCycles > 0)
         {
-            int scanlineDots = Timing.GetCurrentScanlineDots();
-            int drawingStartDots = Timing.GetCurrentDrawingStartDots();
-            int drawingEndDots = GetCurrentDrawingEndDots();
-            int nextBoundary = Timing.GetNextTimingBoundary(drawingEndDots);
-            int elapsedCycles = Math.Min(remainingCycles, nextBoundary - Timing.LineDots);
+            var scanlineDots = Timing.GetCurrentScanlineDots();
+            var drawingStartDots = Timing.GetCurrentDrawingStartDots();
+            var drawingEndDots = GetCurrentDrawingEndDots();
+            var nextBoundary = Timing.GetNextTimingBoundary(drawingEndDots);
+            var elapsedCycles = Math.Min(remainingCycles, nextBoundary - Timing.LineDots);
             if (Timing.IsRenderingInterval(drawingStartDots, drawingEndDots))
             {
                 if (_renderCurrentFrame)
@@ -129,15 +129,15 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
 
             if (Timing.LineDots == scanlineDots)
             {
-                PpuEngineTickResult result = AdvanceScanline(inputs, renderFrame);
+                var result = AdvanceScanline(inputs, renderFrame);
                 requests |= result.Interrupts;
                 completedFrame ??= result.CompletedFrame;
                 enteredVisibleHBlank |= result.EnteredVisibleHBlank;
                 continue;
             }
 
-            PpuMode previousMode = StatusMode;
-            byte previousLcdYCoordinate = LcdYCoordinate;
+            var previousMode = StatusMode;
+            var previousLcdYCoordinate = LcdYCoordinate;
             requests |= RefreshPpuState(inputs, requestInterrupt: true);
             enteredVisibleHBlank |=
                 previousLcdYCoordinate < PpuGeometry.VBlankStartLine
@@ -158,7 +158,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
         _renderCurrentFrame = renderFrame;
         _statInterruptMode = PpuMode.HBlank;
 
-        bool oldLycEqualsLy = LycEqualsLy;
+        var oldLycEqualsLy = LycEqualsLy;
         RefreshLycEqualsLy(inputs.LcdYCompare);
 
         if (!ShouldSuppressStableLycInterrupt(oldLycEqualsLy, inputs.StatusInterruptSelect))
@@ -265,19 +265,19 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
 
     protected ushort GetTileMapAddress(PpuEngineInputs inputs)
     {
-        bool isWindow = _fetcherSource == PixelFetcherSource.Window;
+        var isWindow = _fetcherSource == PixelFetcherSource.Window;
 
-        byte tileMapSelectMask = isWindow
+        var tileMapSelectMask = isWindow
             ? PpuLcdControlRegister.WindowTileMapSelectMask
             : PpuLcdControlRegister.BackgroundTileMapSelectMask;
 
-        ushort tileMapStart =
+        var tileMapStart =
             (inputs.LcdControl & tileMapSelectMask) == 0
                 ? PpuTileData.TileMap0Start
                 : PpuTileData.TileMap1Start;
 
-        int tileY = GetFetcherY() / PpuTileData.TileSizePixels;
-        int tileX = GetFetcherTileX();
+        var tileY = GetFetcherY() / PpuTileData.TileSizePixels;
+        var tileX = GetFetcherTileX();
 
         return (ushort)(tileMapStart + (tileY * PpuTileData.TilesPerMapRow) + tileX);
     }
@@ -289,9 +289,9 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
         bool highByte
     )
     {
-        int byteOffset = (tileLine * PpuTileData.TileRowBytes) + (highByte ? 1 : 0);
+        var byteOffset = (tileLine * PpuTileData.TileRowBytes) + (highByte ? 1 : 0);
 
-        int tileAddress =
+        var tileAddress =
             (inputs.LcdControl & PpuLcdControlRegister.BackgroundWindowTileDataSelectMask) == 0
                 ? PpuTileData.SignedTileDataBase + ((sbyte)tileId * PpuTileData.TileDataBytes)
                 : PpuTileData.UnsignedTileDataStart + (tileId * PpuTileData.TileDataBytes);
@@ -332,7 +332,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
     }
 
     private LcdFrame CreateCompletedFrame() =>
-        new(PpuGeometry.FrameWidth, PpuGeometry.FrameHeight, _framePixelFormat, FrameBuffer);
+        new(PpuGeometry.FrameWidth, PpuGeometry.FrameHeight, framePixelFormat, FrameBuffer);
 
     private int GetCurrentDrawingEndDots() =>
         Timing.GetCurrentDrawingEndDots(
@@ -344,10 +344,10 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
     private PpuEngineTickResult AdvanceScanline(PpuEngineInputs inputs, bool renderFrame)
     {
         Timing.AdvanceScanline();
-        PpuInterruptRequest requests = PpuInterruptRequest.None;
+        var requests = PpuInterruptRequest.None;
         LcdFrame? completedFrame = null;
 
-        bool shouldRequestMode2Interrupt =
+        var shouldRequestMode2Interrupt =
             !_statInterruptLine
             && (inputs.StatusInterruptSelect & PpuStatusRegister.Mode2InterruptSelectMask) != 0;
 
@@ -432,7 +432,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
             BeginRenderingScanline();
         }
 
-        for (int dot = 0; dot < dots && RenderedPixels < PpuGeometry.FrameWidth; dot++)
+        for (var dot = 0; dot < dots && RenderedPixels < PpuGeometry.FrameWidth; dot++)
         {
             TryStartWindow(inputs);
             AdvanceBackgroundFetcher(inputs);
@@ -628,9 +628,9 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
         bool requestInterrupt
     )
     {
-        bool statInterruptLine = IsStatInterruptLineAsserted(statusInterruptSelect, lcdEnabled);
+        var statInterruptLine = IsStatInterruptLineAsserted(statusInterruptSelect, lcdEnabled);
 
-        bool requestLcdInterrupt = requestInterrupt && !_statInterruptLine && statInterruptLine;
+        var requestLcdInterrupt = requestInterrupt && !_statInterruptLine && statInterruptLine;
 
         _statInterruptLine = statInterruptLine;
 

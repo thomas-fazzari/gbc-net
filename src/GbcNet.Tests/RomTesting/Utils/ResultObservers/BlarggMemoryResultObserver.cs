@@ -35,8 +35,8 @@ internal sealed class BlarggMemoryResultObserver : IRomResultObserver, ICpuMemor
             return null;
         }
 
-        byte statusCode = ReadObservedByte(StatusAddress);
-        string output = ReadOutput();
+        var statusCode = ReadObservedByte(StatusAddress);
+        var output = ReadOutput();
         RomTestStatus? status = statusCode switch
         {
             RunningStatus => null,
@@ -64,9 +64,9 @@ internal sealed class BlarggMemoryResultObserver : IRomResultObserver, ICpuMemor
     private string ReadOutput()
     {
         var output = new StringBuilder();
-        for (int offset = 0; offset < TextMaxLength; offset++)
+        for (var offset = 0; offset < TextMaxLength; offset++)
         {
-            byte value = ReadObservedByte(TextAddress + offset);
+            var value = ReadObservedByte(TextAddress + offset);
             if (value == 0)
             {
                 break;

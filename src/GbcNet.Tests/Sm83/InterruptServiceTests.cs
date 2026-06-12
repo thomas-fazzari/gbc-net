@@ -1,5 +1,4 @@
 using GbcNet.Core.Memory;
-using GbcNet.Core.Sm83;
 
 namespace GbcNet.Tests.Sm83;
 
@@ -20,12 +19,12 @@ public sealed class InterruptServiceTests
     [Fact]
     public void Step_ServicesVBlankInterruptBeforeFetchingOpcode()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0x00);
+        var cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0x00);
         cpu.Ime = true;
         CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
         CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(5, machineCycles);
         Assert.False(cpu.Ime);
@@ -45,7 +44,7 @@ public sealed class InterruptServiceTests
     [Fact]
     public void Step_ServicesHighestPriorityRequestedAndEnabledInterrupt()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu();
+        var cpu = CpuTestFactory.CreateCpu();
         cpu.Ime = true;
         CpuTestFactory
             .GetBus(cpu)
@@ -60,7 +59,7 @@ public sealed class InterruptServiceTests
                 VBlankInterrupt | TimerInterrupt | JoypadInterrupt
             );
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(5, machineCycles);
         Assert.Equal(VBlankVector, cpu.Registers.PC);
@@ -70,11 +69,11 @@ public sealed class InterruptServiceTests
     [Fact]
     public void Step_DoesNotServiceInterruptWhenInterruptMasterEnableIsDisabled()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0x00);
+        var cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0x00);
         CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
         CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(1, machineCycles);
         Assert.False(cpu.Ime);
@@ -86,12 +85,12 @@ public sealed class InterruptServiceTests
     [Fact]
     public void Step_DoesNotServiceInterruptWhenNoRequestIsEnabled()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0x00);
+        var cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0x00);
         cpu.Ime = true;
         CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
         CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptFlagRegister, TimerInterrupt);
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(1, machineCycles);
         Assert.True(cpu.Ime);
@@ -103,7 +102,7 @@ public sealed class InterruptServiceTests
     [Fact]
     public void Step_ServicesPendingInterruptOneStepAfterDelayedEiCompletes()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0xFB;
             bytes[0x0101] = 0x00;
@@ -131,15 +130,15 @@ public sealed class InterruptServiceTests
     [Fact]
     public void Step_CancelsInterruptDispatchWhenHighBytePushDisablesAllPendingInterrupts()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu();
-        MemoryBus bus = CpuTestFactory.GetBus(cpu);
+        var cpu = CpuTestFactory.CreateCpu();
+        var bus = CpuTestFactory.GetBus(cpu);
         cpu.Ime = true;
         cpu.Registers.PC = 0x0200;
         cpu.Registers.SP = 0x0000;
         bus.WriteByte(AddressMap.InterruptEnableRegister, TimerInterrupt);
         bus.WriteByte(AddressMap.InterruptFlagRegister, TimerInterrupt);
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(5, machineCycles);
         Assert.False(cpu.Ime);
@@ -153,15 +152,15 @@ public sealed class InterruptServiceTests
     [Fact]
     public void Step_DispatchesRemainingInterruptWhenHighBytePushChangesEnabledMask()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu();
-        MemoryBus bus = CpuTestFactory.GetBus(cpu);
+        var cpu = CpuTestFactory.CreateCpu();
+        var bus = CpuTestFactory.GetBus(cpu);
         cpu.Ime = true;
         cpu.Registers.PC = 0x0200;
         cpu.Registers.SP = 0x0000;
         bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt | LcdInterrupt);
         bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt | LcdInterrupt);
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(5, machineCycles);
         Assert.False(cpu.Ime);
@@ -175,15 +174,15 @@ public sealed class InterruptServiceTests
     [Fact]
     public void Step_DoesNotCancelInterruptDispatchWhenLowBytePushDisablesSelectedInterrupt()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu();
-        MemoryBus bus = CpuTestFactory.GetBus(cpu);
+        var cpu = CpuTestFactory.CreateCpu();
+        var bus = CpuTestFactory.GetBus(cpu);
         cpu.Ime = true;
         cpu.Registers.PC = 0x1235;
         cpu.Registers.SP = 0x0001;
         bus.WriteByte(AddressMap.InterruptEnableRegister, SerialInterrupt);
         bus.WriteByte(AddressMap.InterruptFlagRegister, SerialInterrupt);
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(5, machineCycles);
         Assert.False(cpu.Ime);
@@ -196,15 +195,15 @@ public sealed class InterruptServiceTests
     [Fact]
     public void Step_SelectsInterruptUsingOldInterruptFlagWhenLowBytePushWritesInterruptFlag()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu();
-        MemoryBus bus = CpuTestFactory.GetBus(cpu);
+        var cpu = CpuTestFactory.CreateCpu();
+        var bus = CpuTestFactory.GetBus(cpu);
         cpu.Ime = true;
         cpu.Registers.PC = 0x1200;
         cpu.Registers.SP = 0xFF11;
         bus.WriteByte(AddressMap.InterruptEnableRegister, SerialInterrupt);
         bus.WriteByte(AddressMap.InterruptFlagRegister, SerialInterrupt);
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(5, machineCycles);
         Assert.False(cpu.Ime);

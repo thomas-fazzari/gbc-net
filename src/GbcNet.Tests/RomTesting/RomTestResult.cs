@@ -33,7 +33,7 @@ internal sealed record RomTestResult(
 
         AppendSection(message, "Diagnostic", Diagnostic);
 
-        foreach (RomTestObservation observation in Observations)
+        foreach (var observation in Observations)
         {
             AppendObservation(message, observation);
         }

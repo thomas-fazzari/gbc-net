@@ -12,16 +12,16 @@ public sealed class GuiConfigurationIntegrationTests
     [Fact]
     public void Load_CreatesDefaultConfigFileAndBuildsInputConfiguration()
     {
-        string tempDirectory = Path.Combine(
+        var tempDirectory = Path.Combine(
             Path.GetTempPath(),
             "gbc-net-tests",
             Guid.NewGuid().ToString("N")
         );
-        string configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
+        var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
 
         try
         {
-            StartupConfiguration startupConfiguration = StartupConfigurationLoader.Load(
+            var startupConfiguration = StartupConfigurationLoader.Load(
                 new InputOptionsValidator(),
                 configPath
             );
@@ -68,10 +68,7 @@ public sealed class GuiConfigurationIntegrationTests
 
     private static void AssertInputOptionsAreValid(InputOptions options)
     {
-        ValidateOptionsResult validation = new InputOptionsValidator().Validate(
-            Options.DefaultName,
-            options
-        );
+        var validation = new InputOptionsValidator().Validate(Options.DefaultName, options);
 
         Assert.False(
             validation.Failed,

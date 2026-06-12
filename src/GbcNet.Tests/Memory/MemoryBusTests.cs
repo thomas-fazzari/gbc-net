@@ -16,11 +16,11 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadByte_RoutesRomWindowToCartridge()
     {
-        byte[] rom = TestRomFactory.Create();
+        var rom = TestRomFactory.Create();
         rom[0x0000] = 0x11;
         rom[0x4000] = 0x22;
         rom[0x7FFF] = 0x33;
-        MemoryBus bus = CreateBus(rom);
+        var bus = CreateBus(rom);
 
         Assert.Equal(0x11, bus.ReadByte(0x0000));
         Assert.Equal(0x22, bus.ReadByte(0x4000));
@@ -30,9 +30,9 @@ public sealed class MemoryBusTests
     [Fact]
     public void WriteByte_IgnoresRomWindowForRomOnlyCartridge()
     {
-        byte[] rom = TestRomFactory.Create();
+        var rom = TestRomFactory.Create();
         rom[0x0000] = 0x11;
-        MemoryBus bus = CreateBus(rom);
+        var bus = CreateBus(rom);
 
         bus.WriteByte(0x0000, 0xAA);
 
@@ -42,7 +42,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_StoresVideoRam()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(0x8000, 0x12);
         bus.WriteByte(0x9FFF, 0x34);
@@ -54,7 +54,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_StoresCgbModeVideoRamBanksSelectedByVbk()
     {
-        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
         bus.WriteByte(AddressMap.VideoRamStart, 0x12);
 
@@ -78,7 +78,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_IgnoresVbkInCgbDmgCompatibilityMode()
     {
-        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
 
         bus.WriteByte(AddressMap.VideoRamStart, 0x12);
         bus.WriteByte(AddressMap.VideoRamBankRegister, 0x01);
@@ -94,7 +94,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_RoutesCgbColorPaletteRegisters()
     {
-        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
         bus.WriteByte(AddressMap.BackgroundPaletteIndexRegister, 0x80);
         bus.WriteByte(AddressMap.BackgroundPaletteDataRegister, 0x12);
@@ -109,7 +109,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_IgnoresColorPaletteRegistersInCgbDmgCompatibilityMode()
     {
-        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
 
         bus.WriteByte(AddressMap.BackgroundPaletteIndexRegister, 0x80);
         bus.WriteByte(AddressMap.BackgroundPaletteDataRegister, 0x12);
@@ -125,7 +125,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_IgnoresColorPaletteRegistersOnDmg()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(AddressMap.BackgroundPaletteIndexRegister, 0x80);
         bus.WriteByte(AddressMap.BackgroundPaletteDataRegister, 0x12);
@@ -141,12 +141,12 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_RoutesCgbVramDmaRegistersWithAddressMasks()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x1230] = 0xA1;
             bytes[0x123F] = 0xAF;
         });
-        MemoryBus bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
         bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x12);
         bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x3F);
@@ -166,8 +166,8 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_DoesNotCopyCgbHBlankVramDmaBeforeVisibleHBlank()
     {
-        byte[] rom = TestRomFactory.Create(bytes => bytes[0x1230] = 0xA1);
-        MemoryBus bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var rom = TestRomFactory.Create(bytes => bytes[0x1230] = 0xA1);
+        var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
         var clock = new MachineClock(bus);
 
         bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x12);
@@ -186,12 +186,12 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_CopiesCgbHBlankVramDmaBlockOnFirstVisibleHBlank()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x1230] = 0xA1;
             bytes[0x123F] = 0xAF;
         });
-        MemoryBus bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
         var clock = new MachineClock(bus);
 
         bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x12);
@@ -211,14 +211,14 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_CopiesCgbHBlankVramDmaBlocksAcrossVisibleHBlanks()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
-            for (int offset = 0; offset < 0x20; offset++)
+            for (var offset = 0; offset < 0x20; offset++)
             {
                 bytes[0x2000 + offset] = (byte)(0x40 + offset);
             }
         });
-        MemoryBus bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
         var clock = new MachineClock(bus);
 
         bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x20);
@@ -245,8 +245,8 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_DoesNotCopyCgbHBlankVramDmaDuringVBlank()
     {
-        byte[] rom = TestRomFactory.Create(bytes => bytes[0x1230] = 0xA1);
-        MemoryBus bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var rom = TestRomFactory.Create(bytes => bytes[0x1230] = 0xA1);
+        var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
         var clock = new MachineClock(bus);
 
         bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
@@ -273,8 +273,8 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_CancelsActiveCgbHBlankVramDmaWithRemainingCount()
     {
-        byte[] rom = TestRomFactory.Create(bytes => bytes[0x1230] = 0xA1);
-        MemoryBus bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var rom = TestRomFactory.Create(bytes => bytes[0x1230] = 0xA1);
+        var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
         bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x12);
         bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x30);
@@ -291,14 +291,14 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_CopiesCgbVramDmaMultipleBlocksIntoSelectedVramBank()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
-            for (int offset = 0; offset < 0x20; offset++)
+            for (var offset = 0; offset < 0x20; offset++)
             {
                 bytes[0x2000 + offset] = (byte)(0x40 + offset);
             }
         });
-        MemoryBus bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
         bus.WriteByte(AddressMap.VideoRamBankRegister, 0x01);
         bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x20);
@@ -324,7 +324,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_CopiesCgbVramDmaFromWorkRam()
     {
-        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
         bus.WriteByte(AddressMap.WorkRamStart, 0x55);
         bus.WriteByte(AddressMap.WorkRamStart + 0x0F, 0x66);
 
@@ -341,8 +341,8 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_IgnoresCgbVramDmaRegistersOnDmg()
     {
-        byte[] rom = TestRomFactory.Create(bytes => bytes[0x1200] = 0x77);
-        MemoryBus bus = CreateBus(rom);
+        var rom = TestRomFactory.Create(bytes => bytes[0x1200] = 0x77);
+        var bus = CreateBus(rom);
 
         bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x12);
         bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x00);
@@ -358,8 +358,8 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_IgnoresCgbVramDmaRegistersInDmgCompatibilityMode()
     {
-        byte[] rom = TestRomFactory.Create(bytes => bytes[0x1200] = 0x77);
-        MemoryBus bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+        var rom = TestRomFactory.Create(bytes => bytes[0x1200] = 0x77);
+        var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
 
         bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x12);
         bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x00);
@@ -375,7 +375,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_StoresDmgPaletteRegisters()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(AddressMap.BackgroundPaletteRegister, 0xFC);
         bus.WriteByte(AddressMap.ObjectPalette0Register, 0xA5);
@@ -389,7 +389,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_StoresWorkRam()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(0xC000, 0x56);
         bus.WriteByte(0xDFFF, 0x78);
@@ -401,7 +401,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_MirrorsEchoRamToWorkRam()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(0xC000, 0x9A);
         bus.WriteByte(0xFDFF, 0xBC);
@@ -413,7 +413,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_StoresCgbModeWorkRamBanksSelectedBySvbk()
     {
-        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
         bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x11);
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x02);
@@ -434,7 +434,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_KeepsFixedWorkRamBankAcrossSvbk()
     {
-        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
         bus.WriteByte(AddressMap.WorkRamStart, 0x44);
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x07);
@@ -450,7 +450,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_SvbkZeroReadsF8AndMapsBankOne()
     {
-        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
         bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x11);
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x02);
@@ -464,7 +464,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_SvbkSevenReadsFfAndMapsBankSeven()
     {
-        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x07);
         bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x77);
@@ -482,7 +482,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_MirrorsEchoRamThroughSelectedCgbWorkRamBank()
     {
-        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x03);
         bus.WriteByte(0xF000, 0x33);
@@ -499,7 +499,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_IgnoresSvbkInCgbDmgCompatibilityMode()
     {
-        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
 
         bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x12);
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x07);
@@ -515,7 +515,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_IgnoresSvbkOnDmg()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x12);
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x07);
@@ -531,7 +531,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_StoresObjectAttributeMemory()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(0xFE00, 0xDE);
         bus.WriteByte(0xFE9F, 0xF0);
@@ -543,7 +543,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_BlocksVideoRamDuringPpuDrawingMode()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
         bus.WriteByte(AddressMap.VideoRamStart, 0x12);
         bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
         bus.Ppu.Tick(80);
@@ -559,7 +559,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_BlocksObjectAttributeMemoryDuringPpuOamScanAndDrawingModes()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
         bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0x12);
         bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
 
@@ -587,7 +587,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_IgnoresNotUsableRange()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(0xFEA0, 0x12);
         bus.WriteByte(0xFEFF, 0x34);
@@ -599,7 +599,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_KeepsNotUsableRangeBehaviorDuringPpuOamBlock()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
         bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
 
         bus.WriteByte(AddressMap.NotUsableStart, 0x42);
@@ -610,7 +610,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_ReadsUnmappedIoRegistersHigh()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(0xFF03, 0x12);
         bus.WriteByte(0xFF7F, 0x34);
@@ -622,7 +622,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_RoutesJoypadRegister()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
         bus.WriteByte(AddressMap.JoypadRegister, 0x20);
 
         bus.Joypad.SetButtonState(JoypadButton.Right, pressed: true);
@@ -634,7 +634,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_RoutesSerialRegisters()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(AddressMap.SerialTransferDataRegister, 0x12);
         bus.WriteByte(AddressMap.SerialTransferControlRegister, 0x81);
@@ -652,7 +652,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_StoresHighRam()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(0xFF80, 0x56);
         bus.WriteByte(0xFFFE, 0x78);
@@ -664,7 +664,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_StoresInterruptEnableRegister()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(0xFFFF, 0xF1);
 
@@ -675,7 +675,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_RoutesInterruptFlagRegister()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(0xFF0F, 0xFF);
 
@@ -686,7 +686,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_RoutesTimerRegisters()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
         TickMachineCycles(bus, 64);
 
         Assert.Equal(0x01, bus.ReadByte(AddressMap.DividerRegister));
@@ -705,7 +705,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_RoutesKey1RegisterForCgbMode()
     {
-        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
         Assert.Equal(0x7E, bus.ReadByte(AddressMap.Key1Register));
 
@@ -721,7 +721,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_IgnoresKey1RegisterOnDmg()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(AddressMap.Key1Register, 0x01);
 
@@ -732,7 +732,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_IgnoresKey1RegisterInCgbDmgCompatibilityMode()
     {
-        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
 
         bus.WriteByte(AddressMap.Key1Register, 0x01);
 
@@ -743,7 +743,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void TickMachineCycle_TicksPpuAtTwoTCyclesInDoubleSpeed()
     {
-        MemoryBus bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
         var clock = new MachineClock(bus);
         bus.WriteByte(AddressMap.LcdControlRegister, 0x80);
         bus.WriteByte(AddressMap.Key1Register, 0x01);
@@ -762,7 +762,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void WriteByte_DividerRegisterTicksApuDivApuOnFallingEdge()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
         bus.Clock.SetCounter(1 << 12);
 
         bus.WriteByte(AddressMap.DividerRegister, 0x00);
@@ -773,7 +773,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_RoutesPpuRegisters()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
         bus.SetHardwareRegisterState(AddressMap.LcdStatusRegister, 0x85);
         bus.SetHardwareRegisterState(AddressMap.LcdYCoordinateRegister, 0x42);
 
@@ -795,8 +795,8 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_RoutesDmaRegisterAndDefersOamCopy()
     {
-        byte[] rom = TestRomFactory.Create(bytes => bytes[0x1200] = 0x42);
-        MemoryBus bus = CreateBus(rom);
+        var rom = TestRomFactory.Create(bytes => bytes[0x1200] = 0x42);
+        var bus = CreateBus(rom);
 
         bus.WriteByte(AddressMap.DmaRegister, 0x12);
         bus.TickDma(2);
@@ -808,8 +808,8 @@ public sealed class MemoryBusTests
     [Fact]
     public void TickDma_CopiesFromRomWindow()
     {
-        byte[] rom = TestRomFactory.Create(bytes => bytes[0x1200] = 0x66);
-        MemoryBus bus = CreateBus(rom);
+        var rom = TestRomFactory.Create(bytes => bytes[0x1200] = 0x66);
+        var bus = CreateBus(rom);
 
         bus.WriteByte(AddressMap.DmaRegister, 0x12);
         bus.TickDma(2);
@@ -821,7 +821,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void TickDma_CopiesFromVideoRam()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
         bus.WriteByte(AddressMap.VideoRamStart, 0x99);
 
         bus.WriteByte(AddressMap.DmaRegister, 0x80);
@@ -834,12 +834,12 @@ public sealed class MemoryBusTests
     [Fact]
     public void TickDma_CopiesFromExternalRam()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.Mbc1Ram;
             bytes[0x0149] = 0x02;
         });
-        MemoryBus bus = CreateBus(rom);
+        var bus = CreateBus(rom);
         bus.WriteByte(0x0000, 0x0A);
         bus.WriteByte(AddressMap.ExternalRamStart, 0x42);
 
@@ -853,7 +853,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void TickDma_CopiesFromWorkRam()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
         bus.WriteByte(AddressMap.WorkRamStart, 0x42);
 
         bus.WriteByte(AddressMap.DmaRegister, 0xC0);
@@ -866,7 +866,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void TickDma_MirrorsHighSourcePagesToWorkRam()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
         bus.WriteByte(0xDF00, 0x42);
         bus.WriteByte(AddressMap.JoypadRegister, 0x20);
         bus.Joypad.SetButtonState(JoypadButton.Right, pressed: true);
@@ -881,7 +881,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void TickDma_WritesObjectAttributeMemoryWhileCpuAccessIsPpuBlocked()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
         bus.WriteByte(AddressMap.VideoRamStart, 0x42);
         bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
         bus.Ppu.Tick(80);
@@ -900,7 +900,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadByte_AllowsObjectAttributeMemoryDuringDmaStartupDelay()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
         bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0x44);
 
         bus.WriteByte(AddressMap.DmaRegister, 0x80);
@@ -917,8 +917,8 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadByte_AppliesDmgDmaBusConflicts()
     {
-        byte[] rom = TestRomFactory.Create(bytes => bytes[0x0000] = 0x11);
-        MemoryBus bus = CreateBus(rom);
+        var rom = TestRomFactory.Create(bytes => bytes[0x0000] = 0x11);
+        var bus = CreateBus(rom);
         bus.WriteByte(AddressMap.VideoRamStart, 0x22);
         bus.WriteByte(AddressMap.VideoRamStart + 1, 0x77);
         bus.WriteByte(AddressMap.WorkRamStart, 0x33);
@@ -937,13 +937,13 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadByte_AppliesCgbDmaBusConflictsFromWorkRam()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0000] = 0x11;
             bytes[0x0147] = (byte)CartridgeType.Mbc1Ram;
             bytes[0x0149] = 0x02;
         });
-        MemoryBus bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
         bus.WriteByte(0x0000, 0x0A);
         bus.WriteByte(AddressMap.ExternalRamStart, 0x55);
         bus.WriteByte(AddressMap.WorkRamStart, 0x22);
@@ -963,13 +963,13 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadByte_AppliesCgbDmaBusConflictsFromCartridge()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x1200] = 0x66;
             bytes[0x0147] = (byte)CartridgeType.Mbc1Ram;
             bytes[0x0149] = 0x02;
         });
-        MemoryBus bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
         bus.WriteByte(0x0000, 0x0A);
         bus.WriteByte(AddressMap.ExternalRamStart, 0x55);
         bus.WriteByte(AddressMap.WorkRamStart, 0x33);
@@ -988,7 +988,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void WriteByte_BlocksCpuMemoryDuringDma()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
         bus.WriteByte(AddressMap.VideoRamStart, 0x22);
         bus.WriteByte(AddressMap.WorkRamStart, 0x42);
         bus.WriteByte(AddressMap.WorkRamStart + 1, 0x33);
@@ -1013,7 +1013,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_KeepsNotUsableRangeBehaviorDuringDma()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(AddressMap.DmaRegister, 0xC0);
         bus.WriteByte(AddressMap.NotUsableStart, 0x42);
@@ -1024,7 +1024,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_AllowsIoHighRamAndInterruptEnableDuringDma()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(AddressMap.DmaRegister, 0xC0);
         bus.WriteByte(0xFF03, 0x12);
@@ -1040,7 +1040,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void WriteByte_AllowsDmaRestartDuringDma()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
         bus.WriteByte(AddressMap.VideoRamStart, 0xC0);
         bus.WriteByte(0x9000, 0xD0);
 
@@ -1058,7 +1058,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void SetHardwareRegisterState_DmaRegisterDoesNotStartTransfer()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
         bus.WriteByte(AddressMap.VideoRamStart, 0x42);
 
         bus.SetHardwareRegisterState(AddressMap.DmaRegister, 0x80);
@@ -1071,7 +1071,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void SetHardwareRegisterState_SerialControlDoesNotStartTransfer()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.SetHardwareRegisterState(AddressMap.SerialTransferDataRegister, 0x00);
         bus.SetHardwareRegisterState(AddressMap.SerialTransferControlRegister, 0x81);
@@ -1085,7 +1085,7 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_ExternalRamIsUnmappedForRomOnlyCartridge()
     {
-        MemoryBus bus = CreateBus();
+        var bus = CreateBus();
 
         bus.WriteByte(0xA000, 0x42);
 
@@ -1096,12 +1096,12 @@ public sealed class MemoryBusTests
     [Fact]
     public void ReadWriteByte_RoutesExternalRamToMbcCartridge()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.Mbc1Ram;
             bytes[0x0149] = 0x02;
         });
-        MemoryBus bus = CreateBus(rom);
+        var bus = CreateBus(rom);
 
         bus.WriteByte(0x0000, 0x0A);
         bus.WriteByte(AddressMap.ExternalRamStart, 0x42);
@@ -1118,13 +1118,13 @@ public sealed class MemoryBusTests
 
     private static MemoryBus CreateBus(byte[] rom, IHardwareProfile hardwareProfile)
     {
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
         return new MemoryBus(cartridge, hardwareProfile);
     }
 
     private static void TickMachineCycles(MemoryBus bus, int machineCycles)
     {
-        for (int cycle = 0; cycle < machineCycles; cycle++)
+        for (var cycle = 0; cycle < machineCycles; cycle++)
         {
             bus.Clock.TickMachineCycle();
             bus.Apu.Tick(HardwareTiming.MachineCycleTCycles);
@@ -1133,7 +1133,7 @@ public sealed class MemoryBusTests
 
     private static void TickMachineCycles(MachineClock clock, int machineCycles)
     {
-        for (int cycle = 0; cycle < machineCycles; cycle++)
+        for (var cycle = 0; cycle < machineCycles; cycle++)
         {
             clock.TickMachineCycle();
         }

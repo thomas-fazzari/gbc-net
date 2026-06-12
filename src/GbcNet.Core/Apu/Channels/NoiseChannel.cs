@@ -162,7 +162,7 @@ internal sealed class NoiseChannel
     private void ClockLfsr()
     {
         // Hardware feeds back bit0 XNOR bit1 into the top of the shift register
-        int feedback = ~(_lfsr ^ (_lfsr >> 1)) & 1;
+        var feedback = ~(_lfsr ^ (_lfsr >> 1)) & 1;
         _lfsr = (_lfsr >> 1) | (feedback << 14);
 
         if (_widthMode)

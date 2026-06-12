@@ -17,22 +17,19 @@ internal static class StartupConfigurationLoader
         string configPath
     )
     {
-        Result<KdlDocument> document = KdlConfigurationFile.LoadOrCreate(configPath);
-        Result<InputOptions> loadedOptions = document.IsSuccess
+        var document = KdlConfigurationFile.LoadOrCreate(configPath);
+        var loadedOptions = document.IsSuccess
             ? KdlInputOptionsReader.Read(document.Value)
             : document.ToResult<InputOptions>();
 
-        InputOptions inputOptions = loadedOptions.IsSuccess
+        var inputOptions = loadedOptions.IsSuccess
             ? loadedOptions.Value
             : LoadTemplateInputOptions();
-        string? startupMessage = loadedOptions.IsFailed
+        var startupMessage = loadedOptions.IsFailed
             ? string.Join(Environment.NewLine, loadedOptions.Errors.Select(error => error.Message))
             : null;
 
-        ValidateOptionsResult validation = inputOptionsValidator.Validate(
-            Options.DefaultName,
-            inputOptions
-        );
+        var validation = inputOptionsValidator.Validate(Options.DefaultName, inputOptions);
 
         if (!validation.Failed)
         {
@@ -51,7 +48,7 @@ internal static class StartupConfigurationLoader
         InputOptions inputOptions
     )
     {
-        ValidateOptionsResult validation = validator.Validate(Options.DefaultName, inputOptions);
+        var validation = validator.Validate(Options.DefaultName, inputOptions);
 
         if (validation.Failed)
         {
@@ -63,7 +60,7 @@ internal static class StartupConfigurationLoader
 
     private static InputOptions LoadTemplateInputOptions()
     {
-        Result<KdlDocument> template = KdlConfigurationFile.LoadTemplate();
+        var template = KdlConfigurationFile.LoadTemplate();
 
         if (template.IsFailed)
         {
@@ -72,7 +69,7 @@ internal static class StartupConfigurationLoader
             );
         }
 
-        Result<InputOptions> inputOptions = KdlInputOptionsReader.Read(template.Value);
+        var inputOptions = KdlInputOptionsReader.Read(template.Value);
 
         return inputOptions.IsSuccess
             ? inputOptions.Value

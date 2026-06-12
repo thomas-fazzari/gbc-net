@@ -25,7 +25,7 @@ internal static class KdlInputOptionsReader
     {
         KdlNode? inputNode = null;
 
-        foreach (KdlNode node in document.Nodes)
+        foreach (var node in document.Nodes)
         {
             if (!string.Equals(node.Name, InputNodeName, StringComparison.Ordinal))
             {
@@ -47,10 +47,7 @@ internal static class KdlInputOptionsReader
 
     private static Result<InputOptions> ReadInputNode(KdlNode inputNode)
     {
-        Result<int> version = KdlNodeReader.ReadRequiredInt32Property(
-            inputNode,
-            VersionPropertyName
-        );
+        var version = KdlNodeReader.ReadRequiredInt32Property(inputNode, VersionPropertyName);
 
         if (version.IsFailed)
         {
@@ -64,7 +61,7 @@ internal static class KdlInputOptionsReader
             );
         }
 
-        Result<string> activeProfile = KdlNodeReader.ReadOptionalStringProperty(
+        var activeProfile = KdlNodeReader.ReadOptionalStringProperty(
             inputNode,
             ActiveProfilePropertyName,
             "default"
@@ -75,7 +72,7 @@ internal static class KdlInputOptionsReader
             return activeProfile.ToResult<InputOptions>();
         }
 
-        Result<Dictionary<string, InputProfileOptions>> profiles = ReadProfiles(inputNode);
+        var profiles = ReadProfiles(inputNode);
 
         if (profiles.IsFailed)
         {
@@ -94,7 +91,7 @@ internal static class KdlInputOptionsReader
     {
         var profiles = new Dictionary<string, InputProfileOptions>(StringComparer.Ordinal);
 
-        foreach (KdlNode node in inputNode.Children)
+        foreach (var node in inputNode.Children)
         {
             if (!string.Equals(node.Name, ProfileNodeName, StringComparison.Ordinal))
             {
@@ -103,14 +100,14 @@ internal static class KdlInputOptionsReader
                 );
             }
 
-            Result<string> profileName = KdlNodeReader.ReadRequiredStringArgument(node);
+            var profileName = KdlNodeReader.ReadRequiredStringArgument(node);
 
             if (profileName.IsFailed)
             {
                 return profileName.ToResult<Dictionary<string, InputProfileOptions>>();
             }
 
-            Result<InputProfileOptions> profile = ReadProfile(node);
+            var profile = ReadProfile(node);
 
             if (profile.IsFailed)
             {
@@ -132,14 +129,14 @@ internal static class KdlInputOptionsReader
     {
         var keyboardBindings = new List<KeyboardInputBindingOptions>();
 
-        foreach (KdlNode node in profileNode.Children)
+        foreach (var node in profileNode.Children)
         {
             if (!string.Equals(node.Name, KeyboardNodeName, StringComparison.Ordinal))
             {
                 return Result.Fail($"Input profile does not allow child '{node.Name}'.");
             }
 
-            Result<IReadOnlyList<KeyboardInputBindingOptions>> keyboard = ReadKeyboard(node);
+            var keyboard = ReadKeyboard(node);
 
             if (keyboard.IsFailed)
             {
@@ -158,14 +155,14 @@ internal static class KdlInputOptionsReader
     {
         var bindings = new List<KeyboardInputBindingOptions>();
 
-        foreach (KdlNode node in keyboardNode.Children)
+        foreach (var node in keyboardNode.Children)
         {
             if (!string.Equals(node.Name, BindNodeName, StringComparison.Ordinal))
             {
                 return Result.Fail($"Keyboard config does not allow child '{node.Name}'.");
             }
 
-            Result<KeyboardInputBindingOptions> binding = ReadKeyboardBinding(node);
+            var binding = ReadKeyboardBinding(node);
 
             if (binding.IsFailed)
             {
@@ -180,8 +177,8 @@ internal static class KdlInputOptionsReader
 
     private static Result<KeyboardInputBindingOptions> ReadKeyboardBinding(KdlNode bindNode)
     {
-        Result<string> button = KdlNodeReader.ReadRequiredStringArgument(bindNode);
-        Result<string> key = KdlNodeReader.ReadRequiredStringProperty(bindNode, KeyPropertyName);
+        var button = KdlNodeReader.ReadRequiredStringArgument(bindNode);
+        var key = KdlNodeReader.ReadRequiredStringProperty(bindNode, KeyPropertyName);
 
         var validation = Result.Merge(button.ToResult(), key.ToResult());
 

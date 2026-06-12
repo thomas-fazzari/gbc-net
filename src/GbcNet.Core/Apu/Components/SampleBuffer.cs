@@ -38,7 +38,7 @@ internal sealed class SampleBuffer<TSample>
         ArgumentOutOfRangeException.ThrowIfNegative(tCycles);
 
         _accumulator += (long)tCycles * _sampleRate;
-        int samplesDue = 0;
+        var samplesDue = 0;
 
         while (_accumulator >= _sourceClockHz)
         {
@@ -70,9 +70,9 @@ internal sealed class SampleBuffer<TSample>
     /// </summary>
     public int Drain(Span<TSample> destination)
     {
-        int drained = Math.Min(destination.Length, Count);
+        var drained = Math.Min(destination.Length, Count);
 
-        for (int index = 0; index < drained; index++)
+        for (var index = 0; index < drained; index++)
         {
             destination[index] = _samples[(_start + index) % _samples.Length];
         }

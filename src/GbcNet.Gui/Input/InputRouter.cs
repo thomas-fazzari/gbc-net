@@ -19,20 +19,20 @@ internal sealed class InputRouter(
 
     public bool Apply(PhysicalInput input, bool pressed)
     {
-        if (!_buttonByInput.TryGetValue(input, out JoypadButton button))
+        if (!_buttonByInput.TryGetValue(input, out var button))
         {
             return false;
         }
 
-        bool stateChanged = pressed ? _activeInputs.Add(input) : _activeInputs.Remove(input);
+        var stateChanged = pressed ? _activeInputs.Add(input) : _activeInputs.Remove(input);
 
         if (!stateChanged)
         {
             return true;
         }
 
-        int activeInputCount = _activeInputCountByButton[button];
-        int nextActiveInputCount = pressed ? activeInputCount + 1 : activeInputCount - 1;
+        var activeInputCount = _activeInputCountByButton[button];
+        var nextActiveInputCount = pressed ? activeInputCount + 1 : activeInputCount - 1;
         _activeInputCountByButton[button] = nextActiveInputCount;
 
         if (activeInputCount == 0 || nextActiveInputCount == 0)
@@ -47,7 +47,7 @@ internal sealed class InputRouter(
     {
         _activeInputs.Clear();
 
-        foreach (JoypadButton button in Enum.GetValues<JoypadButton>())
+        foreach (var button in Enum.GetValues<JoypadButton>())
         {
             _activeInputCountByButton[button] = 0;
         }

@@ -42,7 +42,7 @@ internal static class PostBootState
         ReadOnlySpan<PostBootHardwareRegisterState> registerStates
     )
     {
-        foreach (PostBootHardwareRegisterState registerState in registerStates)
+        foreach (var registerState in registerStates)
         {
             bus.SetHardwareRegisterState(registerState.Address, registerState.Value);
         }

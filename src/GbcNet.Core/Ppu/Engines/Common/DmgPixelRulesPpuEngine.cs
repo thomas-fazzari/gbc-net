@@ -56,7 +56,7 @@ internal abstract class DmgPixelRulesPpuEngine<TPixelOutput>()
             return false;
         }
 
-        for (int pixel = 0; pixel < PpuTileData.TileSizePixels; pixel++)
+        for (var pixel = 0; pixel < PpuTileData.TileSizePixels; pixel++)
         {
             PushBackgroundPixel(
                 PpuTileData.DecodeColorId(FetchedTileDataLow, FetchedTileDataHigh, 7 - pixel)
@@ -73,7 +73,7 @@ internal abstract class DmgPixelRulesPpuEngine<TPixelOutput>()
             return;
         }
 
-        byte colorId = PopBackgroundPixel();
+        var colorId = PopBackgroundPixel();
         if (ShouldDiscardPixel())
         {
             return;
@@ -110,7 +110,7 @@ internal abstract class DmgPixelRulesPpuEngine<TPixelOutput>()
 
     private byte PopBackgroundPixel()
     {
-        byte colorId = _backgroundFifo[BackgroundFifoReadIndex];
+        var colorId = _backgroundFifo[BackgroundFifoReadIndex];
         CommitBackgroundFifoPop();
         return colorId;
     }
@@ -169,12 +169,12 @@ internal readonly record struct CgbDmgCompatibilityPixelOutput : IDmgPixelOutput
         PpuEngineInputs inputs
     )
     {
-        ushort color = DmgPixelRules.ResolveCgbDmgCompatibilityColor(
+        var color = DmgPixelRules.ResolveCgbDmgCompatibilityColor(
             backgroundColorId,
             objectPixel,
             inputs
         );
-        int frameOffset = pixelIndex * Rgb555BytesPerPixel;
+        var frameOffset = pixelIndex * Rgb555BytesPerPixel;
         frameBuffer[frameOffset] = (byte)color;
         frameBuffer[frameOffset + 1] = (byte)(color >> 8);
     }
@@ -224,7 +224,7 @@ internal static class DmgPixelRules
             );
         }
 
-        bool usesPalette1 = objectPixel.Value.UsesPalette1;
+        var usesPalette1 = objectPixel.Value.UsesPalette1;
         return inputs.ObjectPaletteRam.ReadRgb555Color(
             usesPalette1 ? 1 : 0,
             ApplyPalette(

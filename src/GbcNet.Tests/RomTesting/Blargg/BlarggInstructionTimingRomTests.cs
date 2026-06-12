@@ -11,9 +11,9 @@ public sealed class BlarggInstructionTimingRomTests
     [Fact]
     public void InstructionTimingRomPasses()
     {
-        byte[] rom = File.ReadAllBytes(RomPath);
+        var rom = File.ReadAllBytes(RomPath);
 
-        RomTestResult result = RomTestRunner.Run(rom, MaxMachineCycles);
+        var result = RomTestRunner.Run(rom, MaxMachineCycles);
 
         RomTestAssertions.AssertPassed(result);
     }

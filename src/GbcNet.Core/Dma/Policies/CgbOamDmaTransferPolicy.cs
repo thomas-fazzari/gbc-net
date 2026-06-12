@@ -51,7 +51,7 @@ internal sealed class CgbOamDmaTransferPolicy : ITransferPolicy
             return address <= AddressMap.ObjectAttributeMemoryEnd;
         }
 
-        DmaBus sourceBus = GetBus(MapHighSourceAddress(sourceAddress));
+        var sourceBus = GetBus(MapHighSourceAddress(sourceAddress));
         return sourceBus is not DmaBus.None && GetBus(address) == sourceBus;
     }
 

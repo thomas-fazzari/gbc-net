@@ -1,6 +1,5 @@
 using FluentResults;
 using KdlSharp;
-using KdlSharp.Exceptions;
 
 namespace GbcNet.Gui.Configuration;
 
@@ -19,7 +18,7 @@ internal static class KdlConfigurationFile
     {
         if (!File.Exists(path))
         {
-            Result created = CreateDefaultFile(path);
+            var created = CreateDefaultFile(path);
 
             if (created.IsFailed)
             {
@@ -56,15 +55,15 @@ internal static class KdlConfigurationFile
     {
         try
         {
-            string? directoryPath = Path.GetDirectoryName(path);
+            var directoryPath = Path.GetDirectoryName(path);
 
             if (!string.IsNullOrEmpty(directoryPath))
             {
                 Directory.CreateDirectory(directoryPath);
             }
 
-            string temporaryDirectoryPath = directoryPath ?? Environment.CurrentDirectory;
-            string temporaryPath = Path.Combine(
+            var temporaryDirectoryPath = directoryPath ?? Environment.CurrentDirectory;
+            var temporaryPath = Path.Combine(
                 temporaryDirectoryPath,
                 $"{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp"
             );
@@ -89,7 +88,7 @@ internal static class KdlConfigurationFile
 
     private static Result<KdlDocument> Parse(string text)
     {
-        if (KdlDocument.TryParse(text, out KdlDocument? document, out KdlParseException? exception))
+        if (KdlDocument.TryParse(text, out var document, out var exception))
         {
             return Result.Ok(document);
         }

@@ -22,7 +22,7 @@ internal sealed class SystemCounter
     /// </summary>
     public ushort AdvanceMachineCycle()
     {
-        ushort previousValue = Value;
+        var previousValue = Value;
         Value = unchecked((ushort)(Value + HardwareTiming.MachineCycleTCycles));
         return GetFallingEdges(previousValue, Value);
     }
@@ -32,7 +32,7 @@ internal sealed class SystemCounter
     /// </summary>
     public ushort Reset()
     {
-        ushort previousValue = Value;
+        var previousValue = Value;
         Value = 0;
         return GetFallingEdges(previousValue, Value);
     }

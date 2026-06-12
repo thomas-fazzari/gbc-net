@@ -87,7 +87,7 @@ internal sealed class OamDmaController
             return;
         }
 
-        for (int cycle = 0; cycle < machineCycles; cycle++)
+        for (var cycle = 0; cycle < machineCycles; cycle++)
         {
             TickActiveTransfer(readSourceByte, writeOamByte);
             TickPendingRestart();
@@ -138,10 +138,8 @@ internal sealed class OamDmaController
 
     private void CopyByte(Func<ushort, byte> readSourceByte, Action<ushort, byte> writeOamByte)
     {
-        ushort sourceAddress = (ushort)(
-            (_activeSourceHighByte << SourceAddressShift) + _nextOffset
-        );
-        ushort destinationAddress = (ushort)(AddressMap.ObjectAttributeMemoryStart + _nextOffset);
+        var sourceAddress = (ushort)((_activeSourceHighByte << SourceAddressShift) + _nextOffset);
+        var destinationAddress = (ushort)(AddressMap.ObjectAttributeMemoryStart + _nextOffset);
 
         writeOamByte(destinationAddress, readSourceByte(sourceAddress));
         _nextOffset++;

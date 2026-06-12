@@ -50,10 +50,10 @@ public sealed class InterruptControllerTests
     [Fact]
     public void TryGetHighestPriority_ReturnsLowestPendingBitAndVector()
     {
-        bool found = InterruptController.TryGetHighestPriority(
+        var found = InterruptController.TryGetHighestPriority(
             0b0001_0101,
-            out InterruptSource source,
-            out ushort vector
+            out var source,
+            out var vector
         );
 
         Assert.True(found);
@@ -64,11 +64,7 @@ public sealed class InterruptControllerTests
     [Fact]
     public void TryGetHighestPriority_ReturnsFalseWhenNoInterruptIsRequestedAndEnabled()
     {
-        bool found = InterruptController.TryGetHighestPriority(
-            0,
-            out InterruptSource source,
-            out ushort vector
-        );
+        var found = InterruptController.TryGetHighestPriority(0, out var source, out var vector);
 
         Assert.False(found);
         Assert.Equal(default, source);
@@ -88,10 +84,10 @@ public sealed class InterruptControllerTests
     {
         var interruptSource = (InterruptSource)expectedSource;
 
-        bool found = InterruptController.TryGetHighestPriority(
+        var found = InterruptController.TryGetHighestPriority(
             (byte)(1 << expectedSource),
-            out InterruptSource source,
-            out ushort vector
+            out var source,
+            out var vector
         );
 
         Assert.True(found);

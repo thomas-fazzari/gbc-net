@@ -43,7 +43,7 @@ internal sealed class MooneyeBreakpointResultObserver : IRomResultObserver, ICpu
             registers.H,
             registers.L,
         ];
-        RomTestStatus? status = GetStatus(report);
+        var status = GetStatus(report);
         if (status is { } resultStatus)
         {
             Snapshot = new RomTestObservation(
@@ -61,7 +61,7 @@ internal sealed class MooneyeBreakpointResultObserver : IRomResultObserver, ICpu
             return RomTestStatus.Passed;
         }
 
-        foreach (byte value in report)
+        foreach (var value in report)
         {
             if (value is not FailureByte)
             {
@@ -74,7 +74,7 @@ internal sealed class MooneyeBreakpointResultObserver : IRomResultObserver, ICpu
 
     private string FormatReport(ReadOnlySpan<byte> report, RomTestStatus status)
     {
-        string output = FormatBytes(report);
+        var output = FormatBytes(report);
         if (status is not RomTestStatus.Failed)
         {
             return output;
@@ -90,7 +90,7 @@ internal sealed class MooneyeBreakpointResultObserver : IRomResultObserver, ICpu
     private string FormatDiagnosticHram()
     {
         Span<byte> bytes = stackalloc byte[DiagnosticHramLength];
-        for (int index = 0; index < bytes.Length; index++)
+        for (var index = 0; index < bytes.Length; index++)
         {
             bytes[index] = _gameBoy.Bus.ReadByte((ushort)(DiagnosticHramStart + index));
         }
@@ -101,7 +101,7 @@ internal sealed class MooneyeBreakpointResultObserver : IRomResultObserver, ICpu
     private static string FormatBytes(ReadOnlySpan<byte> bytes)
     {
         var output = new StringBuilder();
-        for (int index = 0; index < bytes.Length; index++)
+        for (var index = 0; index < bytes.Length; index++)
         {
             if (index > 0)
             {

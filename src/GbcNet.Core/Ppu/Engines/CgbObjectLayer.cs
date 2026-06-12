@@ -54,15 +54,15 @@ internal sealed class CgbObjectLayer
             return null;
         }
 
-        foreach (ScanlineObject scanlineObject in _scanlineObjects.AsSpan(0, _scanlineObjectCount))
+        foreach (var scanlineObject in _scanlineObjects.AsSpan(0, _scanlineObjectCount))
         {
-            int objectLeft = scanlineObject.X - PpuObjectAttributes.XScreenOffset;
+            var objectLeft = scanlineObject.X - PpuObjectAttributes.XScreenOffset;
             if (screenX < objectLeft || screenX >= objectLeft + PpuTileData.TileSizePixels)
             {
                 continue;
             }
 
-            byte colorId = ReadColorId(scanlineObject, screenX, lcdYCoordinate, inputs);
+            var colorId = ReadColorId(scanlineObject, screenX, lcdYCoordinate, inputs);
             if (colorId == 0)
             {
                 continue;
@@ -82,16 +82,16 @@ internal sealed class CgbObjectLayer
                 : PpuObjectAttributes.Size16;
         _scanlineObjectCount = 0;
 
-        for (int objectIndex = 0; objectIndex < PpuObjectAttributes.ObjectCount; objectIndex++)
+        for (var objectIndex = 0; objectIndex < PpuObjectAttributes.ObjectCount; objectIndex++)
         {
-            ushort objectAddress = (ushort)(
+            var objectAddress = (ushort)(
                 AddressMap.ObjectAttributeMemoryStart
                 + (objectIndex * PpuObjectAttributes.AttributeSize)
             );
-            byte objectY = inputs.ObjectAttributeMemory.Read(
+            var objectY = inputs.ObjectAttributeMemory.Read(
                 (ushort)(objectAddress + PpuObjectAttributes.YCoordinateOffset)
             );
-            int objectTop = objectY - PpuObjectAttributes.YScreenOffset;
+            var objectTop = objectY - PpuObjectAttributes.YScreenOffset;
 
             if (objectTop > lcdYCoordinate || objectTop + _scanlineObjectHeight <= lcdYCoordinate)
             {
@@ -127,25 +127,25 @@ internal sealed class CgbObjectLayer
         PpuEngineInputs inputs
     )
     {
-        int objectLine = PpuObjectTile.ResolveTileLine(
+        var objectLine = PpuObjectTile.ResolveTileLine(
             scanlineObject.Y,
             scanlineObject.Flags,
             _scanlineObjectHeight,
             lcdYCoordinate
         );
-        byte tileId = PpuObjectTile.ResolveTileId(
+        var tileId = PpuObjectTile.ResolveTileId(
             scanlineObject.Tile,
             objectLine,
             _scanlineObjectHeight
         );
-        ushort tileRowAddress = PpuObjectTile.GetTileRowAddress(tileId, objectLine);
+        var tileRowAddress = PpuObjectTile.GetTileRowAddress(tileId, objectLine);
 
         ReadObjectTileRow(
             inputs,
             ResolveObjectTileBank(scanlineObject),
             tileRowAddress,
-            out byte lowByte,
-            out byte highByte
+            out var lowByte,
+            out var highByte
         );
 
         return PpuTileData.DecodeColorId(

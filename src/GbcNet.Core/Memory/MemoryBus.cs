@@ -152,7 +152,7 @@ internal sealed class MemoryBus
     /// </summary>
     public byte ReadByte(ushort address)
     {
-        if (TryReadDmaConflictedByte(address, out byte value))
+        if (TryReadDmaConflictedByte(address, out var value))
         {
             return value;
         }
@@ -188,7 +188,7 @@ internal sealed class MemoryBus
     private bool IsCpuWriteBlockedByDma(ushort address) =>
         (IsObjectAttributeMemory(address) && OamDma.IsCpuOamBlocked)
         || (
-            OamDma.TryGetCpuConflictSourceAddress(out ushort sourceAddress)
+            OamDma.TryGetCpuConflictSourceAddress(out var sourceAddress)
             && _oamDmaTransferPolicy.IsCpuAddressBlocked(address, sourceAddress)
         );
 
@@ -200,7 +200,7 @@ internal sealed class MemoryBus
             return true;
         }
 
-        if (!OamDma.TryGetCpuConflictSourceAddress(out ushort sourceAddress))
+        if (!OamDma.TryGetCpuConflictSourceAddress(out var sourceAddress))
         {
             value = 0;
             return false;
@@ -259,7 +259,7 @@ internal sealed class MemoryBus
 
     private byte ReadOamDmaSourceByte(ushort address)
     {
-        if (!_oamDmaTransferPolicy.TryMapSourceAddress(address, out ushort mappedAddress))
+        if (!_oamDmaTransferPolicy.TryMapSourceAddress(address, out var mappedAddress))
         {
             return 0xFF;
         }

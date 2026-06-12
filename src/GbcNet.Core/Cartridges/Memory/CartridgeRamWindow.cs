@@ -49,7 +49,7 @@ internal sealed class CartridgeRamWindow(int sizeBytes, bool hasBattery)
 
     private int GetEffectiveOffset(ushort offset, int bank)
     {
-        int effectiveOffset = (bank * RamBankSize) + offset;
+        var effectiveOffset = (bank * RamBankSize) + offset;
         return effectiveOffset % Ram.Size;
     }
 }

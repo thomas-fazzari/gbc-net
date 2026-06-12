@@ -24,8 +24,8 @@ internal sealed class Mbc3SaveData(CartridgeRam ram, Mbc3RealTimeClock realTimeC
 
     public byte[] ExportBatterySave()
     {
-        byte[] data = new byte[BatterySaveSize];
-        byte[] ramData = ram.ExportBatterySave();
+        var data = new byte[BatterySaveSize];
+        var ramData = ram.ExportBatterySave();
         ramData.CopyTo(data.AsSpan(0, ramData.Length));
         realTimeClock.ExportState().CopyTo(data.AsSpan(ramData.Length));
         return data;
@@ -43,8 +43,8 @@ internal sealed class Mbc3SaveData(CartridgeRam ram, Mbc3RealTimeClock realTimeC
             );
         }
 
-        int ramSize = ram.BatterySaveSize;
-        Result ramImport = ram.ImportBatterySave(data[..ramSize]);
+        var ramSize = ram.BatterySaveSize;
+        var ramImport = ram.ImportBatterySave(data[..ramSize]);
         if (ramImport.IsFailed)
         {
             return ramImport;

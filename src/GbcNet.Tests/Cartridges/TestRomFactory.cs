@@ -66,7 +66,7 @@ internal static class TestRomFactory
 
     public static byte[] Create(byte romSizeCode, Action<byte[]>? configure = null)
     {
-        byte[] rom = new byte[DecodeRomSizeBytes(romSizeCode)];
+        var rom = new byte[DecodeRomSizeBytes(romSizeCode)];
         _nintendoLogo.CopyTo(rom, 0x0104);
         "TEST ROM"u8.CopyTo(rom.AsSpan(0x0134));
         rom[0x0147] = (byte)CartridgeType.RomOnly;

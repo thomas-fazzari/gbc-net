@@ -1,5 +1,4 @@
 using GbcNet.Core.Memory;
-using GbcNet.Core.Sm83;
 
 namespace GbcNet.Tests.Sm83;
 
@@ -19,7 +18,7 @@ public sealed class HaltInstructionTests
     [Fact]
     public void Step_HaltsUntilAnInterruptBecomesPending()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = HaltOpcode;
             bytes[0x0101] = NopOpcode;
@@ -38,7 +37,7 @@ public sealed class HaltInstructionTests
     [Fact]
     public void Step_WakesHaltedCpuWithoutServicingInterruptWhenInterruptMasterEnableIsDisabled()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = HaltOpcode;
             bytes[0x0101] = NopOpcode;
@@ -63,7 +62,7 @@ public sealed class HaltInstructionTests
     [Fact]
     public void Step_TriggersHaltBugWhenInterruptMasterEnableIsDisabledAndInterruptIsPending()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = HaltOpcode;
             bytes[0x0101] = IncrementBOpcode;
@@ -89,7 +88,7 @@ public sealed class HaltInstructionTests
     [Fact]
     public void Step_HaltBugMakesRestartReturnToRestartOpcode()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = HaltOpcode;
             bytes[0x0101] = Restart0Opcode;
@@ -112,7 +111,7 @@ public sealed class HaltInstructionTests
     [Fact]
     public void Step_ServicesPendingInterruptAfterHaltWhenInterruptMasterEnableIsEnabled()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = HaltOpcode);
+        var cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = HaltOpcode);
         cpu.Ime = true;
 
         Assert.Equal(1, cpu.Step());
@@ -135,7 +134,7 @@ public sealed class HaltInstructionTests
     [Fact]
     public void Step_EiThenHaltWithPendingInterruptReturnsToHalt()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = EnableInterruptsOpcode;
             bytes[0x0101] = HaltOpcode;

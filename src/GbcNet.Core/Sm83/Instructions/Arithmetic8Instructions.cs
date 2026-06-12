@@ -229,7 +229,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void IncrementRegister(Cpu cpu, Register8 register)
     {
-        byte value = cpu.Registers.GetRegister(register);
+        var value = cpu.Registers.GetRegister(register);
         cpu.Registers.SetRegister(register, IncrementByte(cpu, value));
     }
 
@@ -238,7 +238,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void DecrementRegister(Cpu cpu, Register8 register)
     {
-        byte value = cpu.Registers.GetRegister(register);
+        var value = cpu.Registers.GetRegister(register);
         cpu.Registers.SetRegister(register, DecrementByte(cpu, value));
     }
 
@@ -247,8 +247,8 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void IncrementAddressHl(Cpu cpu)
     {
-        ushort address = cpu.Registers.HL;
-        byte value = cpu.ReadBus(address);
+        var address = cpu.Registers.HL;
+        var value = cpu.ReadBus(address);
         cpu.WriteBus(address, IncrementByte(cpu, value));
     }
 
@@ -257,8 +257,8 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void DecrementAddressHl(Cpu cpu)
     {
-        ushort address = cpu.Registers.HL;
-        byte value = cpu.ReadBus(address);
+        var address = cpu.Registers.HL;
+        var value = cpu.ReadBus(address);
         cpu.WriteBus(address, DecrementByte(cpu, value));
     }
 
@@ -267,7 +267,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void AddAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
-        byte value = Register8Operands.Read(cpu, source);
+        var value = Register8Operands.Read(cpu, source);
         AddAccumulator(cpu, value, carry: 0);
     }
 
@@ -276,7 +276,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void AddWithCarryAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
-        byte value = Register8Operands.Read(cpu, source);
+        var value = Register8Operands.Read(cpu, source);
         AddWithCarryAccumulator(cpu, value);
     }
 
@@ -285,7 +285,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void SubtractAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
-        byte value = Register8Operands.Read(cpu, source);
+        var value = Register8Operands.Read(cpu, source);
         SubtractAccumulator(cpu, value, borrow: 0);
     }
 
@@ -297,7 +297,7 @@ internal static class Arithmetic8Instructions
         Register8Operand source
     )
     {
-        byte value = Register8Operands.Read(cpu, source);
+        var value = Register8Operands.Read(cpu, source);
         SubtractWithCarryAccumulator(cpu, value);
     }
 
@@ -306,7 +306,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void AndAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
-        byte value = Register8Operands.Read(cpu, source);
+        var value = Register8Operands.Read(cpu, source);
         AndAccumulator(cpu, value);
     }
 
@@ -315,7 +315,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void XorAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
-        byte value = Register8Operands.Read(cpu, source);
+        var value = Register8Operands.Read(cpu, source);
         XorAccumulator(cpu, value);
     }
 
@@ -324,7 +324,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void OrAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
-        byte value = Register8Operands.Read(cpu, source);
+        var value = Register8Operands.Read(cpu, source);
         OrAccumulator(cpu, value);
     }
 
@@ -333,7 +333,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void CompareAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
-        byte value = Register8Operands.Read(cpu, source);
+        var value = Register8Operands.Read(cpu, source);
         CompareAccumulator(cpu, value);
     }
 
@@ -342,7 +342,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static byte IncrementByte(Cpu cpu, byte value)
     {
-        byte result = unchecked((byte)(value + 1));
+        var result = unchecked((byte)(value + 1));
 
         cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
         cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: false);
@@ -355,7 +355,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static byte DecrementByte(Cpu cpu, byte value)
     {
-        byte result = unchecked((byte)(value - 1));
+        var result = unchecked((byte)(value - 1));
 
         cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
         cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: true);
@@ -368,8 +368,8 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void AddAccumulator(Cpu cpu, byte value, int carry)
     {
-        byte accumulator = cpu.Registers.A;
-        int result = accumulator + value + carry;
+        var accumulator = cpu.Registers.A;
+        var result = accumulator + value + carry;
 
         cpu.Registers.A = unchecked((byte)result);
         cpu.Registers.SetFlag(CpuFlag.Zero, cpu.Registers.A == 0);
@@ -397,8 +397,8 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void SubtractAccumulator(Cpu cpu, byte value, int borrow)
     {
-        byte accumulator = cpu.Registers.A;
-        int result = accumulator - value - borrow;
+        var accumulator = cpu.Registers.A;
+        var result = accumulator - value - borrow;
 
         cpu.Registers.A = unchecked((byte)result);
         cpu.Registers.SetFlag(CpuFlag.Zero, cpu.Registers.A == 0);
@@ -429,7 +429,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void AndAccumulator(Cpu cpu, byte value)
     {
-        byte result = (byte)(cpu.Registers.A & value);
+        var result = (byte)(cpu.Registers.A & value);
 
         cpu.Registers.A = result;
         cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
@@ -443,7 +443,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void XorAccumulator(Cpu cpu, byte value)
     {
-        byte result = (byte)(cpu.Registers.A ^ value);
+        var result = (byte)(cpu.Registers.A ^ value);
 
         cpu.Registers.A = result;
         cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
@@ -457,7 +457,7 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void OrAccumulator(Cpu cpu, byte value)
     {
-        byte result = (byte)(cpu.Registers.A | value);
+        var result = (byte)(cpu.Registers.A | value);
 
         cpu.Registers.A = result;
         cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
@@ -471,8 +471,8 @@ internal static class Arithmetic8Instructions
     /// </summary>
     private static void CompareAccumulator(Cpu cpu, byte value)
     {
-        byte accumulator = cpu.Registers.A;
-        int result = accumulator - value;
+        var accumulator = cpu.Registers.A;
+        var result = accumulator - value;
 
         cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
         cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: true);
@@ -495,8 +495,8 @@ internal static class Arithmetic8Instructions
     {
         for (int opcode = startOpcode; opcode <= endOpcode; opcode++)
         {
-            byte opcodeByte = (byte)opcode;
-            Register8Operand source = Register8Operands.DecodeSource(opcodeByte);
+            var opcodeByte = (byte)opcode;
+            var source = Register8Operands.DecodeSource(opcodeByte);
             builder.MapNoOperand(opcodeByte, cpu => execute(cpu, source));
         }
     }
@@ -519,9 +519,9 @@ internal static class Arithmetic8Instructions
     private static void DecimalAdjustAccumulator(Cpu cpu)
     {
         int value = cpu.Registers.A;
-        bool subtract = cpu.Registers.IsFlagSet(CpuFlag.Subtract);
-        bool carry = cpu.Registers.IsFlagSet(CpuFlag.Carry);
-        bool halfCarry = cpu.Registers.IsFlagSet(CpuFlag.HalfCarry);
+        var subtract = cpu.Registers.IsFlagSet(CpuFlag.Subtract);
+        var carry = cpu.Registers.IsFlagSet(CpuFlag.Carry);
+        var halfCarry = cpu.Registers.IsFlagSet(CpuFlag.HalfCarry);
 
         if (subtract)
         {
@@ -549,7 +549,7 @@ internal static class Arithmetic8Instructions
             }
         }
 
-        byte result = unchecked((byte)value);
+        var result = unchecked((byte)value);
         cpu.Registers.A = result;
         cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);
         cpu.Registers.SetFlag(CpuFlag.HalfCarry, isSet: false);

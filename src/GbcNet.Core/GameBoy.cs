@@ -25,10 +25,7 @@ public sealed class GameBoy
     {
         ArgumentNullException.ThrowIfNull(cartridge);
 
-        IHardwareProfile hardwareProfile = HardwareProfileFactory.Create(
-            hardwareModel,
-            cartridge.Header
-        );
+        var hardwareProfile = HardwareProfileFactory.Create(hardwareModel, cartridge.Header);
 
         Bus = new MemoryBus(cartridge, hardwareProfile);
         Bus.Serial.ByteTransferred += OnSerialByteTransferred;
@@ -65,9 +62,9 @@ public sealed class GameBoy
     /// </returns>
     public int Step()
     {
-        int machineCycles = Cpu.Step();
+        var machineCycles = Cpu.Step();
 
-        while (_clock.TryDequeueCompletedFrame(out LcdFrame? frame))
+        while (_clock.TryDequeueCompletedFrame(out var frame))
         {
             FrameCompleted?.Invoke(this, new FrameCompletedEventArgs(frame));
         }

@@ -94,15 +94,15 @@ internal sealed class DmgObjectLayer
             return null;
         }
 
-        foreach (ScanlineObject scanlineObject in _scanlineObjects.AsSpan(0, _scanlineObjectCount))
+        foreach (var scanlineObject in _scanlineObjects.AsSpan(0, _scanlineObjectCount))
         {
-            int objectLeft = scanlineObject.X - PpuObjectAttributes.XScreenOffset;
+            var objectLeft = scanlineObject.X - PpuObjectAttributes.XScreenOffset;
             if (screenX < objectLeft || screenX >= objectLeft + PpuTileData.TileSizePixels)
             {
                 continue;
             }
 
-            byte colorId = ReadColorId(scanlineObject, screenX, lcdYCoordinate, inputs);
+            var colorId = ReadColorId(scanlineObject, screenX, lcdYCoordinate, inputs);
             if (colorId == 0)
             {
                 continue;
@@ -122,16 +122,16 @@ internal sealed class DmgObjectLayer
                 : PpuObjectAttributes.Size16;
         _scanlineObjectCount = 0;
 
-        for (int objectIndex = 0; objectIndex < PpuObjectAttributes.ObjectCount; objectIndex++)
+        for (var objectIndex = 0; objectIndex < PpuObjectAttributes.ObjectCount; objectIndex++)
         {
-            ushort objectAddress = (ushort)(
+            var objectAddress = (ushort)(
                 AddressMap.ObjectAttributeMemoryStart
                 + (objectIndex * PpuObjectAttributes.AttributeSize)
             );
-            byte objectY = inputs.ObjectAttributeMemory.Read(
+            var objectY = inputs.ObjectAttributeMemory.Read(
                 (ushort)(objectAddress + PpuObjectAttributes.YCoordinateOffset)
             );
-            int objectTop = objectY - PpuObjectAttributes.YScreenOffset;
+            var objectTop = objectY - PpuObjectAttributes.YScreenOffset;
 
             if (objectTop > lcdYCoordinate || objectTop + _scanlineObjectHeight <= lcdYCoordinate)
             {
@@ -166,7 +166,7 @@ internal sealed class DmgObjectLayer
             .Sort(
                 static (x, y) =>
                 {
-                    int xComparison = x.X.CompareTo(y.X);
+                    var xComparison = x.X.CompareTo(y.X);
                     return xComparison != 0 ? xComparison : x.Index.CompareTo(y.Index);
                 }
             );
@@ -180,12 +180,12 @@ internal sealed class DmgObjectLayer
         }
 
         ReadOnlySpan<ScanlineObject> objects = _scanlineObjects.AsSpan(0, _scanlineObjectCount);
-        int penaltyDots = 0;
-        int index = 0;
+        var penaltyDots = 0;
+        var index = 0;
 
         while (index < objects.Length)
         {
-            ScanlineObject firstObject = objects[index];
+            var firstObject = objects[index];
             if (firstObject.X >= PpuObjectAttributes.FirstFullyHiddenRightX)
             {
                 index++;
@@ -193,8 +193,8 @@ internal sealed class DmgObjectLayer
             }
 
             // Objects that begin in the same tile fetch slot share one fetch session penalty.
-            int tileIndex = GetObjectTileIndex(firstObject.X, scrollXLowBits);
-            int sessionEnd = index + 1;
+            var tileIndex = GetObjectTileIndex(firstObject.X, scrollXLowBits);
+            var sessionEnd = index + 1;
             while (
                 sessionEnd < objects.Length
                 && objects[sessionEnd].X < PpuObjectAttributes.FirstFullyHiddenRightX
@@ -212,7 +212,7 @@ internal sealed class DmgObjectLayer
             };
             penaltyDots += (sessionEnd - index - 1) * ObjectBasePenaltyDots;
 
-            for (int laterIndex = sessionEnd; laterIndex < objects.Length; laterIndex++)
+            for (var laterIndex = sessionEnd; laterIndex < objects.Length; laterIndex++)
             {
                 if (objects[laterIndex].X >= PpuObjectAttributes.FirstFullyHiddenRightX)
                 {
@@ -241,20 +241,20 @@ internal sealed class DmgObjectLayer
         PpuEngineInputs inputs
     )
     {
-        int objectLine = PpuObjectTile.ResolveTileLine(
+        var objectLine = PpuObjectTile.ResolveTileLine(
             scanlineObject.Y,
             scanlineObject.Flags,
             _scanlineObjectHeight,
             lcdYCoordinate
         );
-        byte tileId = PpuObjectTile.ResolveTileId(
+        var tileId = PpuObjectTile.ResolveTileId(
             scanlineObject.Tile,
             objectLine,
             _scanlineObjectHeight
         );
-        ushort tileRowAddress = PpuObjectTile.GetTileRowAddress(tileId, objectLine);
+        var tileRowAddress = PpuObjectTile.GetTileRowAddress(tileId, objectLine);
 
-        ReadObjectTileRow(inputs, tileRowAddress, out byte lowByte, out byte highByte);
+        ReadObjectTileRow(inputs, tileRowAddress, out var lowByte, out var highByte);
 
         return PpuTileData.DecodeColorId(
             lowByte,
@@ -283,7 +283,7 @@ internal sealed class DmgObjectLayer
 
     private static int GetObjectTileIndex(byte objectX, byte scrollXLowBits)
     {
-        int pixel = objectX - PpuObjectAttributes.XScreenOffset + scrollXLowBits;
+        var pixel = objectX - PpuObjectAttributes.XScreenOffset + scrollXLowBits;
         return (pixel >> 3) & (PpuTileData.TilesPerMapRow - 1);
     }
 

@@ -58,13 +58,13 @@ public sealed class Cartridge
 
     internal static Result<Cartridge> Load(ReadOnlySpan<byte> rom, Func<long> getUnixTimeSeconds)
     {
-        Result<CartridgeHeader> headerResult = CartridgeHeader.Parse(rom);
+        var headerResult = CartridgeHeader.Parse(rom);
         if (headerResult.IsFailed)
         {
             return Result.Fail<Cartridge>(headerResult.Errors);
         }
 
-        CartridgeHeader header = headerResult.Value;
+        var header = headerResult.Value;
         if (rom.Length != header.RomSizeBytes)
         {
             return Result.Fail<Cartridge>(
@@ -80,9 +80,12 @@ public sealed class Cartridge
             );
         }
 
-        byte[] romBytes = rom.ToArray();
-        Result<ICartridgeMemoryController> memoryControllerResult =
-            CartridgeMemoryControllerFactory.Create(romBytes, header, getUnixTimeSeconds);
+        var romBytes = rom.ToArray();
+        var memoryControllerResult = CartridgeMemoryControllerFactory.Create(
+            romBytes,
+            header,
+            getUnixTimeSeconds
+        );
 
         return memoryControllerResult.IsFailed
             ? Result.Fail<Cartridge>(memoryControllerResult.Errors)

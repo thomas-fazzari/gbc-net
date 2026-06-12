@@ -173,7 +173,7 @@ internal sealed class WaveChannel
 
             _periodTimer = PeriodReloadBase - Period;
             _sampleIndex = (byte)((_sampleIndex + 1) & SampleIndexMask);
-            byte sampleByte = _waveRam[_sampleIndex >> 1];
+            var sampleByte = _waveRam[_sampleIndex >> 1];
             _sampleBuffer =
                 (_sampleIndex & 1) == 0 ? (byte)(sampleByte >> 4) : (byte)(sampleByte & 0x0F);
         }

@@ -72,7 +72,7 @@ internal sealed class CgbVramDmaController(
             return;
         }
 
-        ushort destinationAddress = GetDestinationAddress();
+        var destinationAddress = GetDestinationAddress();
         if (destinationAddress > AddressMap.VideoRamEnd)
         {
             CompleteTransfer();
@@ -81,7 +81,7 @@ internal sealed class CgbVramDmaController(
 
         CopyBlock(GetSourceAddress(), destinationAddress);
         AdvanceSourceAddress();
-        bool destinationWithinVram = TryAdvanceDestinationAddress();
+        var destinationWithinVram = TryAdvanceDestinationAddress();
         _hblankBlocksRemaining--;
 
         if (_hblankBlocksRemaining == 0 || !destinationWithinVram)
@@ -146,13 +146,13 @@ internal sealed class CgbVramDmaController(
 
     private void RunGeneralPurposeDma(byte value)
     {
-        ushort sourceAddress = GetSourceAddress();
-        ushort destinationAddress = GetDestinationAddress();
-        int byteCount = ((value & LengthMask) + 1) * BlockSize;
+        var sourceAddress = GetSourceAddress();
+        var destinationAddress = GetDestinationAddress();
+        var byteCount = ((value & LengthMask) + 1) * BlockSize;
 
-        for (int blockOffset = 0; blockOffset < byteCount; blockOffset += BlockSize)
+        for (var blockOffset = 0; blockOffset < byteCount; blockOffset += BlockSize)
         {
-            int currentDestinationAddress = destinationAddress + blockOffset;
+            var currentDestinationAddress = destinationAddress + blockOffset;
 
             if (currentDestinationAddress > AddressMap.VideoRamEnd)
             {
@@ -174,9 +174,9 @@ internal sealed class CgbVramDmaController(
 
     private void CopyBlock(ushort sourceAddress, ushort destinationAddress)
     {
-        for (int offset = 0; offset < BlockSize; offset++)
+        for (var offset = 0; offset < BlockSize; offset++)
         {
-            int currentDestinationAddress = destinationAddress + offset;
+            var currentDestinationAddress = destinationAddress + offset;
 
             if (currentDestinationAddress > AddressMap.VideoRamEnd)
             {
@@ -214,7 +214,7 @@ internal sealed class CgbVramDmaController(
 
     private void AdvanceSourceAddress()
     {
-        ushort address = (ushort)(GetSourceAddress() + BlockSize);
+        var address = (ushort)(GetSourceAddress() + BlockSize);
         _sourceHigh = (byte)(address >> 8);
         _sourceLow = (byte)(address & SourceLowMask);
     }
@@ -224,13 +224,13 @@ internal sealed class CgbVramDmaController(
 
     private bool TryAdvanceDestinationAddress()
     {
-        int address = GetDestinationAddress() + BlockSize;
+        var address = GetDestinationAddress() + BlockSize;
         if (address > AddressMap.VideoRamEnd)
         {
             return false;
         }
 
-        int offset = address - AddressMap.VideoRamStart;
+        var offset = address - AddressMap.VideoRamStart;
         _destinationHigh = (byte)((offset >> 8) & DestinationHighMask);
         _destinationLow = (byte)(offset & DestinationLowMask);
         return true;

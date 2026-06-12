@@ -31,10 +31,10 @@ internal sealed class MachineClock(MemoryBus bus)
     {
         bus.Clock.TickMachineCycle();
 
-        int tCycles = bus.Clock.VideoAndAudioTCyclesPerMachineCycle;
+        var tCycles = bus.Clock.VideoAndAudioTCyclesPerMachineCycle;
         bus.Apu.Tick(tCycles);
 
-        PpuTickResult ppuResult = bus.Ppu.Tick(tCycles);
+        var ppuResult = bus.Ppu.Tick(tCycles);
         if (ppuResult.EnteredVisibleHBlank)
         {
             bus.VramDma.TransferHBlankBlock();

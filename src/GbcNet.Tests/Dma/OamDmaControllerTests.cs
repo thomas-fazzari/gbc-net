@@ -69,7 +69,7 @@ public sealed class OamDmaControllerTests
         dma.Tick(1, ReadLowByte, (address, value) => writes.Add((address, value)));
         dma.Tick(1, ReadLowByte, (address, value) => writes.Add((address, value)));
 
-        (ushort destinationAddress, byte copiedValue) = Assert.Single(writes);
+        var (destinationAddress, copiedValue) = Assert.Single(writes);
         Assert.Equal(AddressMap.ObjectAttributeMemoryStart, destinationAddress);
         Assert.Equal(0x00, copiedValue);
     }

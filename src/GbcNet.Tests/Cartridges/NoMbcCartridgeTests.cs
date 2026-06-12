@@ -1,4 +1,3 @@
-using FluentResults;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Memory;
 
@@ -11,13 +10,13 @@ public sealed class NoMbcCartridgeTests
     [InlineData(CartridgeType.RomRamBattery)]
     public void Load_AcceptsRomRamCartridge(CartridgeType cartridgeType)
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)cartridgeType;
             bytes[0x0149] = 0x02;
         });
 
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         Assert.Equal(cartridgeType, cartridge.Header.CartridgeType);
         Assert.Equal(8 * 1024, cartridge.Header.RamSizeBytes);
@@ -26,12 +25,12 @@ public sealed class NoMbcCartridgeTests
     [Fact]
     public void ReadWriteRam_UsesFixedRomRamBankWithoutEnableRegister()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.RomRam;
             bytes[0x0149] = 0x02;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
 
@@ -41,8 +40,8 @@ public sealed class NoMbcCartridgeTests
     [Fact]
     public void ReadWriteRam_ReturnsFFWhenNoRomRamIsConnected()
     {
-        byte[] rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)CartridgeType.RomRam);
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)CartridgeType.RomRam);
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
 
@@ -52,12 +51,12 @@ public sealed class NoMbcCartridgeTests
     [Fact]
     public void BatterySave_IsUnavailableForRomRamWithoutBattery()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.RomRam;
             bytes[0x0149] = 0x02;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
 
@@ -70,17 +69,17 @@ public sealed class NoMbcCartridgeTests
     [Fact]
     public void BatterySave_ExportsAndImportsRomRamBattery()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.RomRamBattery;
             bytes[0x0149] = 0x02;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x11);
         cartridge.WriteRam(AddressMap.ExternalRamStart + 0x0100, 0x22);
 
-        byte[] save = cartridge.ExportBatterySave();
+        var save = cartridge.ExportBatterySave();
 
         Assert.True(cartridge.HasBatteryBackedSave);
         Assert.Equal(8 * 1024, cartridge.BatterySaveSize);
@@ -88,8 +87,8 @@ public sealed class NoMbcCartridgeTests
         Assert.Equal(0x11, save[0]);
         Assert.Equal(0x22, save[0x0100]);
 
-        Cartridge reloaded = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
-        Result import = reloaded.ImportBatterySave(save);
+        var reloaded = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var import = reloaded.ImportBatterySave(save);
 
         Assert.True(
             import.IsSuccess,
@@ -109,14 +108,14 @@ public sealed class NoMbcCartridgeTests
     [Fact]
     public void BatterySave_RejectsInvalidRomRamBatterySaveSize()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.RomRamBattery;
             bytes[0x0149] = 0x02;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
-        Result result = cartridge.ImportBatterySave(new byte[1]);
+        var result = cartridge.ImportBatterySave(new byte[1]);
 
         Assert.True(result.IsFailed);
     }

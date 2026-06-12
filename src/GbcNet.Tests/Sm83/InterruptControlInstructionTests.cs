@@ -1,5 +1,3 @@
-using GbcNet.Core.Sm83;
-
 namespace GbcNet.Tests.Sm83;
 
 public sealed class InterruptControlInstructionTests
@@ -7,10 +5,10 @@ public sealed class InterruptControlInstructionTests
     [Fact]
     public void Step_DisablesInterruptMasterEnableImmediately()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0xF3);
+        var cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0xF3);
         cpu.Ime = true;
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(1, machineCycles);
         Assert.False(cpu.Ime);
@@ -21,7 +19,7 @@ public sealed class InterruptControlInstructionTests
     [Fact]
     public void Step_EnablesInterruptMasterEnableAfterFollowingInstruction()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0xFB;
             bytes[0x0101] = 0x00;
@@ -41,7 +39,7 @@ public sealed class InterruptControlInstructionTests
     [Fact]
     public void Step_EnableThenDisableInterruptMasterEnableKeepsInterruptsDisabled()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0xFB;
             bytes[0x0101] = 0xF3;
@@ -67,10 +65,10 @@ public sealed class InterruptControlInstructionTests
     [Fact]
     public void Step_EnableInterruptMasterEnableWhenAlreadyEnabledDoesNotDelay()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0xFB);
+        var cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0xFB);
         cpu.Ime = true;
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(1, machineCycles);
         Assert.True(cpu.Ime);

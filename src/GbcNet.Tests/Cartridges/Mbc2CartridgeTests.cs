@@ -1,4 +1,3 @@
-using FluentResults;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Memory;
 
@@ -13,9 +12,9 @@ public sealed class Mbc2CartridgeTests
     [InlineData(CartridgeType.Mbc2Battery)]
     public void Load_AcceptsMbc2Cartridge(CartridgeType cartridgeType)
     {
-        byte[] rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)cartridgeType);
+        var rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)cartridgeType);
 
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         Assert.Equal(cartridgeType, cartridge.Header.CartridgeType);
     }
@@ -23,8 +22,8 @@ public sealed class Mbc2CartridgeTests
     [Fact]
     public void WriteRom_UsesAddressBit8ClearForMbc2RamEnable()
     {
-        byte[] rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)CartridgeType.Mbc2);
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)CartridgeType.Mbc2);
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRom(0x0100, 0x0A);
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x02);
@@ -44,7 +43,7 @@ public sealed class Mbc2CartridgeTests
     [Fact]
     public void WriteRom_UsesAddressBit8SetForMbc2RomBank()
     {
-        byte[] rom = TestRomFactory.Create(
+        var rom = TestRomFactory.Create(
             romSizeCode: 0x03,
             bytes =>
             {
@@ -53,7 +52,7 @@ public sealed class Mbc2CartridgeTests
                 bytes[2 * RomBankSize] = 0x22;
             }
         );
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRom(0x2000, 0x02);
 
@@ -67,13 +66,13 @@ public sealed class Mbc2CartridgeTests
     [Fact]
     public void WriteRom_TreatsMbc2RomBankZeroAsOne()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.Mbc2;
             bytes[0 * RomBankSize] = 0x00;
             bytes[1 * RomBankSize] = 0x11;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRom(0x2100, 0x00);
 
@@ -83,7 +82,7 @@ public sealed class Mbc2CartridgeTests
     [Fact]
     public void ReadRam_ReturnsMbc2StoredNibbleWithHighNibbleSet()
     {
-        Cartridge cartridge = LoadMbc2WithEnabledRam(CartridgeType.Mbc2);
+        var cartridge = LoadMbc2WithEnabledRam(CartridgeType.Mbc2);
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x05);
 
@@ -93,7 +92,7 @@ public sealed class Mbc2CartridgeTests
     [Fact]
     public void WriteRam_StoresOnlyMbc2LowNibble()
     {
-        Cartridge cartridge = LoadMbc2WithEnabledRam(CartridgeType.Mbc2);
+        var cartridge = LoadMbc2WithEnabledRam(CartridgeType.Mbc2);
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0xAB);
 
@@ -103,7 +102,7 @@ public sealed class Mbc2CartridgeTests
     [Fact]
     public void ReadWriteRam_MirrorsMbc2RamByLowNineAddressBits()
     {
-        Cartridge cartridge = LoadMbc2WithEnabledRam(CartridgeType.Mbc2);
+        var cartridge = LoadMbc2WithEnabledRam(CartridgeType.Mbc2);
 
         cartridge.WriteRam(AddressMap.ExternalRamStart + 0x0201, 0x07);
 
@@ -113,12 +112,12 @@ public sealed class Mbc2CartridgeTests
     [Fact]
     public void BatterySave_ExportsAndImportsMbc2Ram()
     {
-        Cartridge cartridge = LoadMbc2WithEnabledRam(CartridgeType.Mbc2Battery);
+        var cartridge = LoadMbc2WithEnabledRam(CartridgeType.Mbc2Battery);
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0xAB);
         cartridge.WriteRam(AddressMap.ExternalRamStart + 1, 0x0C);
 
-        byte[] save = cartridge.ExportBatterySave();
+        var save = cartridge.ExportBatterySave();
 
         Assert.True(cartridge.HasBatteryBackedSave);
         Assert.Equal(512, cartridge.BatterySaveSize);
@@ -128,8 +127,8 @@ public sealed class Mbc2CartridgeTests
         Assert.Equal(0x0C, save[1]);
 
         save[1] = 0xBC;
-        Cartridge reloaded = LoadMbc2WithEnabledRam(CartridgeType.Mbc2Battery);
-        Result import = reloaded.ImportBatterySave(save);
+        var reloaded = LoadMbc2WithEnabledRam(CartridgeType.Mbc2Battery);
+        var import = reloaded.ImportBatterySave(save);
 
         Assert.True(
             import.IsSuccess,
@@ -143,7 +142,7 @@ public sealed class Mbc2CartridgeTests
     [Fact]
     public void BatterySave_IsUnavailableForMbc2WithoutBattery()
     {
-        Cartridge cartridge = LoadMbc2WithEnabledRam(CartridgeType.Mbc2);
+        var cartridge = LoadMbc2WithEnabledRam(CartridgeType.Mbc2);
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x0B);
 
@@ -156,17 +155,17 @@ public sealed class Mbc2CartridgeTests
     [Fact]
     public void BatterySave_RejectsInvalidMbc2SaveSize()
     {
-        Cartridge cartridge = LoadMbc2WithEnabledRam(CartridgeType.Mbc2Battery);
+        var cartridge = LoadMbc2WithEnabledRam(CartridgeType.Mbc2Battery);
 
-        Result result = cartridge.ImportBatterySave(new byte[1]);
+        var result = cartridge.ImportBatterySave(new byte[1]);
 
         Assert.True(result.IsFailed);
     }
 
     private static Cartridge LoadMbc2WithEnabledRam(CartridgeType cartridgeType)
     {
-        byte[] rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)cartridgeType);
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)cartridgeType);
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
         cartridge.WriteRom(0x0000, 0x0A);
         return cartridge;
     }

@@ -11,7 +11,7 @@ public sealed class TimerControllerTests
     [Fact]
     public void TickMachineCycle_AdvancesDividerVisibleByteEvery64MachineCycles()
     {
-        (SystemCounter counter, TimerController timers) = CreateTimers();
+        var (counter, timers) = CreateTimers();
 
         TickMachineCycles(counter, timers, 63);
         Assert.Equal(0x00, counter.ReadDivider());
@@ -24,7 +24,7 @@ public sealed class TimerControllerTests
     [Fact]
     public void ResetDivider_ClearsSystemCounter()
     {
-        (SystemCounter counter, TimerController timers) = CreateTimers();
+        var (counter, timers) = CreateTimers();
         TickMachineCycles(counter, timers, 128);
 
         ResetSystemCounter(counter, timers);
@@ -35,7 +35,7 @@ public sealed class TimerControllerTests
     [Fact]
     public void TickMachineCycle_DoesNotIncrementTimerCounterWhenTimerIsDisabled()
     {
-        (SystemCounter counter, TimerController timers) = CreateTimers();
+        var (counter, timers) = CreateTimers();
         timers.WriteTimerControl(0b0000_0001);
 
         TickMachineCycles(counter, timers, 256);
@@ -46,7 +46,7 @@ public sealed class TimerControllerTests
     [Fact]
     public void TickMachineCycle_AdvancesDividerWhenTimerIsDisabled()
     {
-        (SystemCounter counter, TimerController timers) = CreateTimers();
+        var (counter, timers) = CreateTimers();
         timers.WriteTimerControl(0b0000_0001);
 
         TickMachineCycles(counter, timers, 128);
@@ -64,7 +64,7 @@ public sealed class TimerControllerTests
         int machineCycles
     )
     {
-        (SystemCounter counter, TimerController timers) = CreateTimers();
+        var (counter, timers) = CreateTimers();
         timers.WriteTimerControl(timerControl);
 
         TickMachineCycles(counter, timers, machineCycles - 1);
@@ -78,7 +78,7 @@ public sealed class TimerControllerTests
     [Fact]
     public void WriteTimerControl_UsesUpdatedClockSelectForSubsequentTicks()
     {
-        (SystemCounter counter, TimerController timers) = CreateTimers();
+        var (counter, timers) = CreateTimers();
         timers.WriteTimerControl(0b0000_0101);
         TickMachineCycles(counter, timers, 4);
         Assert.Equal(0x01, timers.TimerCounter);
@@ -96,7 +96,7 @@ public sealed class TimerControllerTests
     [Fact]
     public void ResetDivider_IncrementsTimerCounterWhenSelectedBitFalls()
     {
-        (SystemCounter counter, TimerController timers) = CreateTimers();
+        var (counter, timers) = CreateTimers();
         timers.WriteTimerControl(0b0000_0101);
         TickMachineCycles(counter, timers, 2);
 
@@ -108,7 +108,7 @@ public sealed class TimerControllerTests
     [Fact]
     public void WriteTimerControl_IncrementsTimerCounterWhenSelectedBitFalls()
     {
-        (SystemCounter counter, TimerController timers) = CreateTimers();
+        var (counter, timers) = CreateTimers();
         timers.WriteTimerControl(0b0000_0101);
         TickMachineCycles(counter, timers, 2);
 
@@ -120,7 +120,7 @@ public sealed class TimerControllerTests
     [Fact]
     public void WriteTimerControl_IncrementsTimerCounterWhenDisablingHighSelectedBit()
     {
-        (SystemCounter counter, TimerController timers) = CreateTimers();
+        var (counter, timers) = CreateTimers();
         timers.WriteTimerControl(0b0000_0101);
         TickMachineCycles(counter, timers, 2);
 
@@ -133,7 +133,7 @@ public sealed class TimerControllerTests
     public void TickMachineCycle_ReloadsTimerModuloAndRequestsTimerInterruptOneMachineCycleAfterOverflow()
     {
         var interrupts = new InterruptController();
-        (SystemCounter counter, TimerController timers) = CreateTimers(interrupts);
+        var (counter, timers) = CreateTimers(interrupts);
         timers.TimerCounter = 0xFF;
         timers.TimerModulo = 0x42;
         timers.WriteTimerControl(0b0000_0101);
@@ -153,7 +153,7 @@ public sealed class TimerControllerTests
     public void WriteTimerCounter_CancelsPendingOverflowReload()
     {
         var interrupts = new InterruptController();
-        (SystemCounter counter, TimerController timers) = CreateTimers(interrupts);
+        var (counter, timers) = CreateTimers(interrupts);
         timers.TimerCounter = 0xFF;
         timers.TimerModulo = 0x42;
         timers.WriteTimerControl(0b0000_0101);
@@ -169,7 +169,7 @@ public sealed class TimerControllerTests
     [Fact]
     public void WriteTimerCounter_DuringReloadMachineCycleIsIgnored()
     {
-        (SystemCounter counter, TimerController timers) = CreateTimers();
+        var (counter, timers) = CreateTimers();
         timers.TimerCounter = 0xFF;
         timers.TimerModulo = 0x42;
         timers.WriteTimerControl(0b0000_0101);
@@ -184,7 +184,7 @@ public sealed class TimerControllerTests
     public void WriteTimerModulo_DuringPendingReloadUpdatesReloadedCounter()
     {
         var interrupts = new InterruptController();
-        (SystemCounter counter, TimerController timers) = CreateTimers(interrupts);
+        var (counter, timers) = CreateTimers(interrupts);
         timers.TimerCounter = 0xFF;
         timers.TimerModulo = 0x42;
         timers.WriteTimerControl(0b0000_0101);
@@ -200,7 +200,7 @@ public sealed class TimerControllerTests
     [Fact]
     public void ReadTimerControl_ReturnsUnusedBitsSet()
     {
-        (SystemCounter _, TimerController timers) = CreateTimers();
+        var (_, timers) = CreateTimers();
 
         timers.WriteTimerControl(0b0000_0101);
 
@@ -226,7 +226,7 @@ public sealed class TimerControllerTests
         int machineCycles
     )
     {
-        for (int cycle = 0; cycle < machineCycles; cycle++)
+        for (var cycle = 0; cycle < machineCycles; cycle++)
         {
             timers.AdvanceReloadPipeline();
             timers.TickSystemCounter(counter.AdvanceMachineCycle());

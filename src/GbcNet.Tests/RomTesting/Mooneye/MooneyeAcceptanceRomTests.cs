@@ -86,7 +86,7 @@ public sealed class MooneyeAcceptanceRomTests
             _romRelativePaths,
             relativePath =>
             {
-                byte[] rom = File.ReadAllBytes(Path.Combine(RomDirectory, relativePath));
+                var rom = File.ReadAllBytes(Path.Combine(RomDirectory, relativePath));
                 return RomTestRunner.Run(rom, MaxMachineCycles, RomTestProtocol.Mooneye);
             }
         )

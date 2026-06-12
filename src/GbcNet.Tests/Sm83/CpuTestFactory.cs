@@ -17,7 +17,7 @@ internal static class CpuTestFactory
         IHardwareProfile? hardwareProfile = null
     )
     {
-        Cartridge cartridge = ResultAssertions.AssertSuccess(
+        var cartridge = ResultAssertions.AssertSuccess(
             Cartridge.Load(TestRomFactory.Create(configure))
         );
         var bus = new MemoryBus(cartridge, hardwareProfile ?? DmgHardwareProfile.Instance);
@@ -28,7 +28,7 @@ internal static class CpuTestFactory
 
     public static MemoryBus GetBus(Cpu cpu)
     {
-        return Buses.TryGetValue(cpu, out MemoryBus? bus)
+        return Buses.TryGetValue(cpu, out var bus)
             ? bus
             : throw new InvalidOperationException("CPU was not created by the CPU test factory.");
     }

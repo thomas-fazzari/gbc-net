@@ -51,7 +51,7 @@ internal sealed class Mbc3MemoryController : ICartridgeMemoryController
             return _rom[address];
         }
 
-        int bank = (_romBank == 0 ? 1 : _romBank) % _header.RomBankCount;
+        var bank = (_romBank == 0 ? 1 : _romBank) % _header.RomBankCount;
         return _rom[(bank * RomBankSize) + (address - RomBankNStart)];
     }
 

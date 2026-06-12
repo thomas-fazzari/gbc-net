@@ -1,6 +1,5 @@
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
-using GbcNet.Core.Sm83;
 
 namespace GbcNet.Tests.Sm83;
 
@@ -15,14 +14,14 @@ public sealed class StopInstructionTests
     [Fact]
     public void Step_StopConsumesIgnoredSecondByteAndEntersStoppedState()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(rom =>
+        var cpu = CpuTestFactory.CreateCpu(rom =>
         {
             rom[EntryPoint] = StopOpcode;
             rom[EntryPoint + 1] = IncBOpcode;
             rom[EntryPoint + 2] = IncBOpcode;
         });
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(2, machineCycles);
         Assert.True(cpu.Stopped);
@@ -33,8 +32,8 @@ public sealed class StopInstructionTests
     [Fact]
     public void Step_StoppedCpuReturnsZeroAndDoesNotFetchOrTickHardware()
     {
-        int ticks = 0;
-        Cpu cpu = CpuTestFactory.CreateCpu(
+        var ticks = 0;
+        var cpu = CpuTestFactory.CreateCpu(
             rom =>
             {
                 rom[EntryPoint] = StopOpcode;
@@ -45,9 +44,9 @@ public sealed class StopInstructionTests
         );
 
         Assert.Equal(2, cpu.Step());
-        int ticksAfterStopInstruction = ticks;
+        var ticksAfterStopInstruction = ticks;
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(0, machineCycles);
         Assert.True(cpu.Stopped);
@@ -59,8 +58,8 @@ public sealed class StopInstructionTests
     [Fact]
     public void Step_StoppedCpuWakesWhenSelectedJoypadLineGoesLowWithoutTickingHardware()
     {
-        int ticks = 0;
-        Cpu cpu = CpuTestFactory.CreateCpu(
+        var ticks = 0;
+        var cpu = CpuTestFactory.CreateCpu(
             rom =>
             {
                 rom[EntryPoint] = StopOpcode;
@@ -69,13 +68,13 @@ public sealed class StopInstructionTests
             },
             () => ticks++
         );
-        MemoryBus bus = CpuTestFactory.GetBus(cpu);
+        var bus = CpuTestFactory.GetBus(cpu);
         bus.WriteByte(AddressMap.JoypadRegister, 0x20);
         cpu.Step();
-        int ticksAfterStopInstruction = ticks;
+        var ticksAfterStopInstruction = ticks;
 
         bus.Joypad.SetButtonState(JoypadButton.Right, pressed: true);
-        int wakeMachineCycles = cpu.Step();
+        var wakeMachineCycles = cpu.Step();
 
         Assert.Equal(0, wakeMachineCycles);
         Assert.False(cpu.Stopped);
@@ -88,12 +87,12 @@ public sealed class StopInstructionTests
     [Fact]
     public void Step_StopResetsDividerRegister()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(rom =>
+        var cpu = CpuTestFactory.CreateCpu(rom =>
         {
             rom[EntryPoint] = StopOpcode;
             rom[EntryPoint + 1] = NopOpcode;
         });
-        MemoryBus bus = CpuTestFactory.GetBus(cpu);
+        var bus = CpuTestFactory.GetBus(cpu);
         bus.Clock.SetCounter(0xABCC);
 
         cpu.Step();

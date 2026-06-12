@@ -32,8 +32,8 @@ internal sealed class Channel1Sweep
 
     public Channel1SweepResult Trigger(ushort period)
     {
-        byte pace = (byte)((_register & PaceMask) >> PaceShift);
-        byte shift = (byte)(_register & ShiftMask);
+        var pace = (byte)((_register & PaceMask) >> PaceShift);
+        var shift = (byte)(_register & ShiftMask);
         _shadowPeriod = period;
         _timer = pace;
         _enabled = pace != 0 || shift != 0;
@@ -42,7 +42,7 @@ internal sealed class Channel1Sweep
 
     public Channel1SweepResult Clock()
     {
-        byte pace = (byte)((_register & PaceMask) >> PaceShift);
+        var pace = (byte)((_register & PaceMask) >> PaceShift);
         if (!_enabled || pace == 0)
         {
             return default;
@@ -60,14 +60,14 @@ internal sealed class Channel1Sweep
             return default;
         }
 
-        Channel1SweepResult result = GetOverflowCheckResult(_shadowPeriod);
+        var result = GetOverflowCheckResult(_shadowPeriod);
         if (result.Overflowed)
         {
             return result;
         }
 
         _shadowPeriod = result.Period;
-        Channel1SweepResult secondCheck = GetOverflowCheckResult(_shadowPeriod);
+        var secondCheck = GetOverflowCheckResult(_shadowPeriod);
         return new Channel1SweepResult(
             Overflowed: secondCheck.Overflowed,
             PeriodChanged: true,
@@ -85,8 +85,8 @@ internal sealed class Channel1Sweep
 
     private Channel1SweepResult GetOverflowCheckResult(ushort period)
     {
-        int delta = period >> (_register & ShiftMask);
-        int nextPeriod = (_register & DirectionSubtractMask) == 0 ? period + delta : period - delta;
+        var delta = period >> (_register & ShiftMask);
+        var nextPeriod = (_register & DirectionSubtractMask) == 0 ? period + delta : period - delta;
         return nextPeriod > MaxPeriod
             ? new Channel1SweepResult(Overflowed: true, PeriodChanged: false, Period: 0)
             : new Channel1SweepResult(

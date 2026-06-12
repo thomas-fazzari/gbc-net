@@ -71,9 +71,9 @@ internal sealed class InterruptController
     {
         requestedAndEnabledMask = (byte)(requestedAndEnabledMask & RequestedInterruptMask);
 
-        for (int bit = 0; bit <= (int)InterruptSource.Joypad; bit++)
+        for (var bit = 0; bit <= (int)InterruptSource.Joypad; bit++)
         {
-            byte mask = (byte)(1 << bit);
+            var mask = (byte)(1 << bit);
             if ((requestedAndEnabledMask & mask) == 0)
             {
                 continue;

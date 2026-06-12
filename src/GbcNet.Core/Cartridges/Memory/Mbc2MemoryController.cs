@@ -29,7 +29,7 @@ internal sealed class Mbc2MemoryController(
             return rom[address];
         }
 
-        int bank = _romBank % header.RomBankCount;
+        var bank = _romBank % header.RomBankCount;
         return rom[(bank * RomBankSize) + (address - RomBankNStart)];
     }
 

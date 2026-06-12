@@ -1,5 +1,3 @@
-using GbcNet.Core.Sm83;
-
 namespace GbcNet.Tests.Sm83;
 
 public sealed class LoadRegisterPairInstructionTests
@@ -17,7 +15,7 @@ public sealed class LoadRegisterPairInstructionTests
         byte expectedFlags
     )
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0xF8;
             bytes[0x0101] = offset;
@@ -26,7 +24,7 @@ public sealed class LoadRegisterPairInstructionTests
         cpu.Registers.HL = 0xFFFF;
         cpu.Registers.F = 0xF0;
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(3, machineCycles);
         Assert.Equal(expectedHl, cpu.Registers.HL);
@@ -38,12 +36,12 @@ public sealed class LoadRegisterPairInstructionTests
     [Fact]
     public void Step_LoadsStackPointerFromHlWithoutChangingFlags()
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0xF9);
+        var cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0xF9);
         cpu.Registers.HL = 0xC123;
         cpu.Registers.SP = 0xFFFE;
         cpu.Registers.F = 0xF0;
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(2, machineCycles);
         Assert.Equal(0xC123, cpu.Registers.SP);

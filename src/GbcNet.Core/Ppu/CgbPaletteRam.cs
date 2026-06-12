@@ -30,17 +30,17 @@ internal sealed class CgbPaletteRam(bool isCpuRegisterEnabled)
 
     public ushort ReadRgb555Color(int paletteIndex, byte colorId)
     {
-        int offset = GetColorOffset(paletteIndex, colorId);
+        var offset = GetColorOffset(paletteIndex, colorId);
 
         return (ushort)(_bytes[offset] | (_bytes[offset + 1] << 8));
     }
 
     internal void SetAllColorsRgb555(ushort color)
     {
-        byte lowByte = (byte)color;
-        byte highByte = (byte)(color >> 8);
+        var lowByte = (byte)color;
+        var highByte = (byte)(color >> 8);
 
-        for (int offset = 0; offset < _bytes.Length; offset += 2)
+        for (var offset = 0; offset < _bytes.Length; offset += 2)
         {
             _bytes[offset] = lowByte;
             _bytes[offset + 1] = highByte;
@@ -49,7 +49,7 @@ internal sealed class CgbPaletteRam(bool isCpuRegisterEnabled)
 
     internal void SetRgb555Color(int paletteIndex, byte colorId, ushort color)
     {
-        int offset = GetColorOffset(paletteIndex, colorId);
+        var offset = GetColorOffset(paletteIndex, colorId);
         _bytes[offset] = (byte)color;
         _bytes[offset + 1] = (byte)(color >> 8);
     }

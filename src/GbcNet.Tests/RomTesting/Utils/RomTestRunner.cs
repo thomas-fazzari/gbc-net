@@ -17,7 +17,7 @@ internal static class RomTestRunner
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxMachineCycles);
 
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
         var gameBoy = new GameBoy(cartridge, hardwareModel);
         IRomResultObserver[] observers = protocol switch
         {
@@ -33,13 +33,13 @@ internal static class RomTestRunner
             ],
             _ => throw new ArgumentOutOfRangeException(nameof(protocol), protocol, message: null),
         };
-        int machineCycles = 0;
+        var machineCycles = 0;
 
         while (machineCycles < maxMachineCycles)
         {
             machineCycles += gameBoy.Step();
 
-            RomTestResult? result = CreateTerminalResult(observers, machineCycles);
+            var result = CreateTerminalResult(observers, machineCycles);
             if (result is not null)
             {
                 return result;
@@ -72,7 +72,7 @@ internal static class RomTestRunner
         ArgumentNullException.ThrowIfNull(relativePaths);
 
         var rows = new TheoryData<string>();
-        foreach (string relativePath in relativePaths)
+        foreach (var relativePath in relativePaths)
         {
             rows.Add(relativePath);
         }

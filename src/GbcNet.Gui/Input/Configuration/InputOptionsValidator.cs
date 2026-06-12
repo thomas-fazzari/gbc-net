@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia.Input;
 using GbcNet.Core.Joypad;
 using Microsoft.Extensions.Options;
@@ -16,11 +17,14 @@ internal sealed class InputOptionsValidator : IValidateOptions<InputOptions>
         if (options.Version != InputOptions.SupportedVersion)
         {
             return ValidateOptionsResult.Fail(
-                $"Input config version {options.Version} is not supported."
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Input config version {options.Version} is not supported."
+                )
             );
         }
 
-        if (!options.Profiles.TryGetValue(options.ActiveProfile, out InputProfileOptions? profile))
+        if (!options.Profiles.TryGetValue(options.ActiveProfile, out var profile))
         {
             return ValidateOptionsResult.Fail(
                 $"Input profile '{options.ActiveProfile}' does not exist."
@@ -29,7 +33,7 @@ internal sealed class InputOptionsValidator : IValidateOptions<InputOptions>
 
         var usedKeys = new HashSet<Key>();
 
-        foreach (KeyboardInputBindingOptions binding in profile.Keyboard)
+        foreach (var binding in profile.Keyboard)
         {
             if (!Enum.TryParse(binding.Button, ignoreCase: true, out JoypadButton _))
             {

@@ -173,7 +173,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         e.Handled = true;
 
-        IStorageFile? file = GetFirstDroppedRom(e.DataTransfer.TryGetFiles());
+        var file = GetFirstDroppedRom(e.DataTransfer.TryGetFiles());
 
         if (file is null)
         {
@@ -204,7 +204,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             return null;
         }
 
-        foreach (IStorageItem item in items)
+        foreach (var item in items)
         {
             if (item is IStorageFile file && IsRomFileName(file.Name))
             {
@@ -217,7 +217,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private static bool IsRomFileName(string fileName)
     {
-        string extension = Path.GetExtension(fileName);
+        var extension = Path.GetExtension(fileName);
 
         return extension.Equals(".gb", StringComparison.OrdinalIgnoreCase)
             || extension.Equals(".gbc", StringComparison.OrdinalIgnoreCase);
@@ -314,7 +314,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
 
         await StopEmulationSessionAsync().ConfigureAwait(true);
-        Result<Cartridge> cartridge = LoadCartridge(_loadedRom);
+        var cartridge = LoadCartridge(_loadedRom);
 
         if (cartridge.IsFailed)
         {
@@ -330,7 +330,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private async Task OpenRomAsync()
     {
-        IReadOnlyList<IStorageFile> files = await StorageProvider
+        var files = await StorageProvider
             .OpenFilePickerAsync(
                 new FilePickerOpenOptions
                 {
@@ -351,9 +351,9 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private async Task OpenRomFileAsync(IStorageFile file)
     {
-        byte[] rom = await ReadFileAsync(file).ConfigureAwait(true);
+        var rom = await ReadFileAsync(file).ConfigureAwait(true);
         await StopEmulationSessionAsync().ConfigureAwait(true);
-        Result<Cartridge> cartridge = LoadCartridge(rom);
+        var cartridge = LoadCartridge(rom);
 
         if (cartridge.IsFailed)
         {
@@ -371,7 +371,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private static async Task<byte[]> ReadFileAsync(IStorageFile file)
     {
-        Stream stream = await file.OpenReadAsync().ConfigureAwait(false);
+        var stream = await file.OpenReadAsync().ConfigureAwait(false);
         await using (stream.ConfigureAwait(false))
         {
             var memoryStream = new MemoryStream();
@@ -387,13 +387,13 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private Result<Cartridge> LoadCartridge(byte[] rom)
     {
-        Result<Cartridge> cartridge = Cartridge.Load(rom);
+        var cartridge = Cartridge.Load(rom);
         if (cartridge.IsFailed)
         {
             return cartridge;
         }
 
-        Result save = _cartridgeSaveFileService.Load(cartridge.Value, rom);
+        var save = _cartridgeSaveFileService.Load(cartridge.Value, rom);
         return save.IsFailed ? Result.Fail<Cartridge>(save.Errors) : cartridge;
     }
 
@@ -415,7 +415,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private async Task StopEmulationSessionAsync()
     {
-        EmulationSession? session = _emulationSession;
+        var session = _emulationSession;
 
         if (session is null)
         {
@@ -450,7 +450,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
-        if (_keyboardInputMapper.TryMap(e.Key, out PhysicalInput input))
+        if (_keyboardInputMapper.TryMap(e.Key, out var input))
         {
             e.Handled = _inputRouter.Apply(input, pressed);
         }
@@ -468,7 +468,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private void RenderPendingFrame()
     {
-        LcdFrame? frame = Interlocked.Exchange(location1: ref _pendingFrame, value: null);
+        var frame = Interlocked.Exchange(location1: ref _pendingFrame, value: null);
         Volatile.Write(location: ref _isFrameRenderQueued, value: 0);
 
         if (frame is not null)

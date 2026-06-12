@@ -176,7 +176,7 @@ internal sealed class PpuController(
             return new PpuTickResult(CompletedFrame: null, EnteredVisibleHBlank: false);
         }
 
-        PpuEngineTickResult result = engine.Tick(tCycles, EngineInputs, VideoRenderingEnabled);
+        var result = engine.Tick(tCycles, EngineInputs, VideoRenderingEnabled);
         RequestInterrupts(result.Interrupts);
         return new PpuTickResult(result.CompletedFrame, result.EnteredVisibleHBlank);
     }
@@ -245,8 +245,8 @@ internal sealed class PpuController(
 
     private byte ReadStatus()
     {
-        byte lycEqualsLy = engine.LycEqualsLy ? PpuStatusRegister.LycEqualsLyMask : (byte)0;
-        byte mode = IsLcdEnabled ? (byte)engine.StatusMode : (byte)PpuMode.HBlank;
+        var lycEqualsLy = engine.LycEqualsLy ? PpuStatusRegister.LycEqualsLyMask : (byte)0;
+        var mode = IsLcdEnabled ? (byte)engine.StatusMode : (byte)PpuMode.HBlank;
 
         return (byte)(PpuStatusRegister.ReadMask | _statusInterruptSelect | lycEqualsLy | mode);
     }
@@ -298,7 +298,7 @@ internal sealed class PpuController(
 
     private void WriteLcdControl(byte value)
     {
-        bool wasEnabled = IsLcdEnabled;
+        var wasEnabled = IsLcdEnabled;
         _control = value;
 
         if (wasEnabled && !IsLcdEnabled)

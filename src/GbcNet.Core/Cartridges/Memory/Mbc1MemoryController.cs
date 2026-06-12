@@ -29,8 +29,8 @@ internal sealed class Mbc1MemoryController(
 
     public byte ReadRom(ushort address)
     {
-        int bank = address <= RomBank0End ? GetFixedAreaRomBank() : GetSwitchableRomBank();
-        int bankAddress = address <= RomBank0End ? address : address - RomBankNStart;
+        var bank = address <= RomBank0End ? GetFixedAreaRomBank() : GetSwitchableRomBank();
+        var bankAddress = address <= RomBank0End ? address : address - RomBankNStart;
         return rom[(bank * RomBankSize) + bankAddress];
     }
 
@@ -64,7 +64,7 @@ internal sealed class Mbc1MemoryController(
 
     private int GetSwitchableRomBank()
     {
-        int bank = (_bankHigh << 5) | _romBankLow;
+        var bank = (_bankHigh << 5) | _romBankLow;
         // MBC1 cannot select bank 00, 20, 40, or 60 in the switchable ROM window
         if ((bank & RomBankLowMask) == 0)
         {

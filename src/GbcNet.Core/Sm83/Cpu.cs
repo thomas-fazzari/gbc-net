@@ -68,13 +68,13 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
             return StepHalted();
         }
 
-        if (TryServiceInterrupt(out int interruptMachineCycles))
+        if (TryServiceInterrupt(out var interruptMachineCycles))
         {
             return interruptMachineCycles;
         }
 
-        bool enableImeAfterThisInstruction = ImeEnablePending;
-        int machineCycles = ExecuteNextInstruction();
+        var enableImeAfterThisInstruction = ImeEnablePending;
+        var machineCycles = ExecuteNextInstruction();
 
         if (!enableImeAfterThisInstruction || !ImeEnablePending)
         {
@@ -162,7 +162,7 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     /// </summary>
     internal byte ReadBus(ushort address)
     {
-        byte value = bus.ReadByte(address);
+        var value = bus.ReadByte(address);
         TickMachineCycle();
         return value;
     }
@@ -201,10 +201,10 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     /// </summary>
     internal ushort PopWord()
     {
-        byte lowByte = ReadBus(Registers.SP);
+        var lowByte = ReadBus(Registers.SP);
         Registers.SP = unchecked((ushort)(Registers.SP + 1));
 
-        byte highByte = ReadBus(Registers.SP);
+        var highByte = ReadBus(Registers.SP);
         Registers.SP = unchecked((ushort)(Registers.SP + 1));
 
         return (ushort)((highByte << 8) | lowByte);
@@ -212,10 +212,10 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
 
     private int ExecuteNextInstruction()
     {
-        byte opcode = FetchProgramByte();
+        var opcode = FetchProgramByte();
         ApplyHaltBugToFetchedOpcode();
 
-        Instruction instruction =
+        var instruction =
             InstructionSet.Find(opcode)
             ?? throw new NotSupportedException(
                 string.Format(
@@ -225,8 +225,8 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
                 )
             );
 
-        byte firstOperand = instruction.ByteLength > 1 ? FetchProgramByte() : (byte)0;
-        byte secondOperand = instruction.ByteLength > 2 ? FetchProgramByte() : (byte)0;
+        var firstOperand = instruction.ByteLength > 1 ? FetchProgramByte() : (byte)0;
+        var secondOperand = instruction.ByteLength > 2 ? FetchProgramByte() : (byte)0;
 
         instruction.Execute(this, firstOperand, secondOperand);
         InstructionObserver?.OnInstructionExecuted(opcode, Registers);
@@ -283,31 +283,31 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
         IdleCycle();
         IdleCycle();
 
-        ushort returnAddress = Registers.PC;
+        var returnAddress = Registers.PC;
 
         Registers.SP = unchecked((ushort)(Registers.SP - 1));
         WriteBus(Registers.SP, (byte)(returnAddress >> 8));
 
-        byte interruptEnableAfterHighPush = bus.Interrupts.InterruptEnable;
+        var interruptEnableAfterHighPush = bus.Interrupts.InterruptEnable;
 
         Registers.SP = unchecked((ushort)(Registers.SP - 1));
-        bool lowByteWritesInterruptFlag = Registers.SP == AddressMap.InterruptFlagRegister;
-        byte interruptFlagBeforeLowPush = bus.Interrupts.InterruptFlag;
+        var lowByteWritesInterruptFlag = Registers.SP == AddressMap.InterruptFlagRegister;
+        var interruptFlagBeforeLowPush = bus.Interrupts.InterruptFlag;
         WriteBus(Registers.SP, (byte)returnAddress);
 
-        byte interruptFlagForDispatch = lowByteWritesInterruptFlag
+        var interruptFlagForDispatch = lowByteWritesInterruptFlag
             ? interruptFlagBeforeLowPush
             : bus.Interrupts.InterruptFlag;
 
-        byte requestedAndEnabledAfterPushes = (byte)(
+        var requestedAndEnabledAfterPushes = (byte)(
             interruptEnableAfterHighPush & interruptFlagForDispatch
         );
 
         if (
             InterruptController.TryGetHighestPriority(
                 requestedAndEnabledAfterPushes,
-                out InterruptSource source,
-                out ushort vector
+                out var source,
+                out var vector
             )
         )
         {
@@ -338,7 +338,7 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     /// </summary>
     private byte FetchProgramByte()
     {
-        byte value = ReadBus(Registers.PC);
+        var value = ReadBus(Registers.PC);
         Registers.PC = unchecked((ushort)(Registers.PC + 1));
         return value;
     }

@@ -18,7 +18,7 @@ internal static class CartridgeMemoryControllerFactory
         Func<long> getUnixTimeSeconds
     )
     {
-        CartridgeType cartridgeType = header.CartridgeType;
+        var cartridgeType = header.CartridgeType;
 
         return cartridgeType switch
         {

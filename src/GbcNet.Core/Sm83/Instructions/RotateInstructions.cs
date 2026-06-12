@@ -36,8 +36,8 @@ internal static class RotateInstructions
     /// </summary>
     private static void RotateLeftCircularAccumulator(Cpu cpu)
     {
-        byte value = cpu.Registers.A;
-        bool carry = (value & Bit7Mask) != 0;
+        var value = cpu.Registers.A;
+        var carry = (value & Bit7Mask) != 0;
 
         cpu.Registers.A = unchecked((byte)((value << 1) | (carry ? Bit0Mask : 0)));
         SetAccumulatorRotateFlags(cpu, carry);
@@ -48,8 +48,8 @@ internal static class RotateInstructions
     /// </summary>
     private static void RotateRightCircularAccumulator(Cpu cpu)
     {
-        byte value = cpu.Registers.A;
-        bool carry = (value & Bit0Mask) != 0;
+        var value = cpu.Registers.A;
+        var carry = (value & Bit0Mask) != 0;
 
         cpu.Registers.A = (byte)((value >> 1) | (carry ? Bit7Mask : 0));
         SetAccumulatorRotateFlags(cpu, carry);
@@ -60,9 +60,9 @@ internal static class RotateInstructions
     /// </summary>
     private static void RotateLeftAccumulator(Cpu cpu)
     {
-        byte value = cpu.Registers.A;
-        bool incomingCarry = cpu.Registers.IsFlagSet(CpuFlag.Carry);
-        bool carry = (value & Bit7Mask) != 0;
+        var value = cpu.Registers.A;
+        var incomingCarry = cpu.Registers.IsFlagSet(CpuFlag.Carry);
+        var carry = (value & Bit7Mask) != 0;
 
         cpu.Registers.A = unchecked((byte)((value << 1) | (incomingCarry ? Bit0Mask : 0)));
         SetAccumulatorRotateFlags(cpu, carry);
@@ -73,9 +73,9 @@ internal static class RotateInstructions
     /// </summary>
     private static void RotateRightAccumulator(Cpu cpu)
     {
-        byte value = cpu.Registers.A;
-        bool incomingCarry = cpu.Registers.IsFlagSet(CpuFlag.Carry);
-        bool carry = (value & Bit0Mask) != 0;
+        var value = cpu.Registers.A;
+        var incomingCarry = cpu.Registers.IsFlagSet(CpuFlag.Carry);
+        var carry = (value & Bit0Mask) != 0;
 
         cpu.Registers.A = (byte)((value >> 1) | (incomingCarry ? Bit7Mask : 0));
         SetAccumulatorRotateFlags(cpu, carry);

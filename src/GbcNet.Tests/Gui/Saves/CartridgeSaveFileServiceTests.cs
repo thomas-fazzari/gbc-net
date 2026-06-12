@@ -11,26 +11,26 @@ public sealed class CartridgeSaveFileServiceTests
     [Fact]
     public void SaveAndLoad_PersistsBatterySaveByTitleAndRomHash()
     {
-        string tempDirectory = CreateTempDirectory();
-        byte[] rom = CreateBatteryBackedMbc1Rom();
+        var tempDirectory = CreateTempDirectory();
+        var rom = CreateBatteryBackedMbc1Rom();
         CartridgeSaveFileService saveFiles = new(tempDirectory);
 
         try
         {
-            Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+            var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
             cartridge.WriteRom(0x0000, 0x0A);
             cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
 
-            Result save = saveFiles.Save(cartridge, rom);
+            var save = saveFiles.Save(cartridge, rom);
 
             AssertSuccess(save);
             Assert.False(cartridge.IsBatterySaveDirty);
-            string savePath = saveFiles.GetSavePath(cartridge, rom);
+            var savePath = saveFiles.GetSavePath(cartridge, rom);
             Assert.True(File.Exists(savePath));
             Assert.StartsWith("TEST_ROM-", Path.GetFileName(savePath), StringComparison.Ordinal);
 
-            Cartridge reloaded = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
-            Result load = saveFiles.Load(reloaded, rom);
+            var reloaded = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+            var load = saveFiles.Load(reloaded, rom);
 
             AssertSuccess(load);
             Assert.False(reloaded.IsBatterySaveDirty);
@@ -50,17 +50,17 @@ public sealed class CartridgeSaveFileServiceTests
     [Fact]
     public void Load_RejectsInvalidSaveSize()
     {
-        string tempDirectory = CreateTempDirectory();
-        byte[] rom = CreateBatteryBackedMbc1Rom();
+        var tempDirectory = CreateTempDirectory();
+        var rom = CreateBatteryBackedMbc1Rom();
         CartridgeSaveFileService saveFiles = new(tempDirectory);
 
         try
         {
             Directory.CreateDirectory(tempDirectory);
-            Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+            var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
             File.WriteAllBytes(saveFiles.GetSavePath(cartridge, rom), [0x42]);
 
-            Result load = saveFiles.Load(cartridge, rom);
+            var load = saveFiles.Load(cartridge, rom);
 
             Assert.True(load.IsFailed);
         }

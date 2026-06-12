@@ -291,7 +291,7 @@ public sealed class ApuControllerTests
         apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
 
         apu.WriteRegister(0xFF19, 0xC0);
-        for (int lengthEvents = 0; lengthEvents < 63; )
+        for (var lengthEvents = 0; lengthEvents < 63; )
         {
             if (apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).Length)
             {
@@ -331,7 +331,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF17, 0x1A);
         apu.WriteRegister(0xFF19, 0x80);
 
-        for (int envelopeEvents = 0; envelopeEvents < 2; )
+        for (var envelopeEvents = 0; envelopeEvents < 2; )
         {
             if (apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).Envelope)
             {
@@ -369,7 +369,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF17, 0x58);
         apu.WriteRegister(0xFF19, 0x80);
 
-        for (int envelopeEvents = 0; envelopeEvents < 2; )
+        for (var envelopeEvents = 0; envelopeEvents < 2; )
         {
             if (apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).Envelope)
             {
@@ -903,7 +903,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF21, 0x1A);
         apu.WriteRegister(0xFF23, 0x80);
 
-        for (int envelopeEvents = 0; envelopeEvents < 2; )
+        for (var envelopeEvents = 0; envelopeEvents < 2; )
         {
             if (apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).Envelope)
             {
@@ -941,7 +941,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF21, 0x58);
         apu.WriteRegister(0xFF23, 0x80);
 
-        for (int envelopeEvents = 0; envelopeEvents < 2; )
+        for (var envelopeEvents = 0; envelopeEvents < 2; )
         {
             if (apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).Envelope)
             {
@@ -966,7 +966,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF21, envelope);
         apu.WriteRegister(0xFF23, 0x80);
 
-        for (int envelopeEvents = 0; envelopeEvents < 2; )
+        for (var envelopeEvents = 0; envelopeEvents < 2; )
         {
             if (apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).Envelope)
             {
@@ -1139,9 +1139,7 @@ public sealed class ApuControllerTests
     {
         ApuController apu = new(new DmgApuHardwareProfile());
 
-        ApuFrameSequencerEvents events = apu.TickSystemCounter(
-            new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)
-        );
+        var events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
 
         Assert.Equal(1, apu.DivApuStep);
         Assert.True(events.Length);
@@ -1154,9 +1152,7 @@ public sealed class ApuControllerTests
     {
         ApuController apu = new(new CgbApuHardwareProfile());
 
-        ApuFrameSequencerEvents events = apu.TickSystemCounter(
-            new ApuTickInputs(1 << 13, CgbDoubleSpeed: true)
-        );
+        var events = apu.TickSystemCounter(new ApuTickInputs(1 << 13, CgbDoubleSpeed: true));
 
         Assert.Equal(1, apu.DivApuStep);
         Assert.True(events.Length);
@@ -1169,9 +1165,7 @@ public sealed class ApuControllerTests
     {
         ApuController apu = new(new CgbApuHardwareProfile());
 
-        ApuFrameSequencerEvents events = apu.TickSystemCounter(
-            new ApuTickInputs(1 << 12, CgbDoubleSpeed: true)
-        );
+        var events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: true));
 
         Assert.Equal(0, apu.DivApuStep);
         Assert.Equal(default, events);
@@ -1182,9 +1176,7 @@ public sealed class ApuControllerTests
     {
         ApuController apu = new(new DmgApuHardwareProfile());
 
-        ApuFrameSequencerEvents events = apu.TickSystemCounter(
-            new ApuTickInputs(1 << 11, CgbDoubleSpeed: false)
-        );
+        var events = apu.TickSystemCounter(new ApuTickInputs(1 << 11, CgbDoubleSpeed: false));
 
         Assert.Equal(0, apu.DivApuStep);
         Assert.Equal(default, events);
@@ -1210,7 +1202,7 @@ public sealed class ApuControllerTests
         ApuController apu = new(new DmgApuHardwareProfile());
         ApuFrameSequencerEvents events = default;
 
-        for (int tick = 0; tick < ticks; tick++)
+        for (var tick = 0; tick < ticks; tick++)
         {
             events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
         }

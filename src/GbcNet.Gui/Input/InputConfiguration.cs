@@ -13,7 +13,7 @@ internal sealed class InputConfiguration(IReadOnlyList<InputBinding> bindings)
 
     public static InputConfiguration FromOptions(InputOptions options)
     {
-        InputProfileOptions profile = options.Profiles[options.ActiveProfile];
+        var profile = options.Profiles[options.ActiveProfile];
 
         return new InputConfiguration([
             .. profile.Keyboard.Select(binding =>

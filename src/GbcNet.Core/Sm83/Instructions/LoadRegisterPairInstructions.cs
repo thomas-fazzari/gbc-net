@@ -135,7 +135,7 @@ internal static class LoadRegisterPairInstructions
     /// </summary>
     private static void ExecuteLoadAddressHlIncrementFromA(Cpu cpu)
     {
-        ushort address = cpu.Registers.HL;
+        var address = cpu.Registers.HL;
         cpu.WriteBus(address, cpu.Registers.A);
         cpu.Registers.HL = unchecked((ushort)(address + 1));
     }
@@ -145,7 +145,7 @@ internal static class LoadRegisterPairInstructions
     /// </summary>
     private static void ExecuteLoadAFromAddressHlIncrement(Cpu cpu)
     {
-        ushort address = cpu.Registers.HL;
+        var address = cpu.Registers.HL;
         cpu.Registers.A = cpu.ReadBus(address);
         cpu.Registers.HL = unchecked((ushort)(address + 1));
     }
@@ -155,7 +155,7 @@ internal static class LoadRegisterPairInstructions
     /// </summary>
     private static void ExecuteLoadAddressHlDecrementFromA(Cpu cpu)
     {
-        ushort address = cpu.Registers.HL;
+        var address = cpu.Registers.HL;
         cpu.WriteBus(address, cpu.Registers.A);
         cpu.Registers.HL = unchecked((ushort)(address - 1));
     }
@@ -165,7 +165,7 @@ internal static class LoadRegisterPairInstructions
     /// </summary>
     private static void ExecuteLoadAFromAddressHlDecrement(Cpu cpu)
     {
-        ushort address = cpu.Registers.HL;
+        var address = cpu.Registers.HL;
         cpu.Registers.A = cpu.ReadBus(address);
         cpu.Registers.HL = unchecked((ushort)(address - 1));
     }
@@ -175,7 +175,7 @@ internal static class LoadRegisterPairInstructions
     /// </summary>
     private static void ExecuteLoadHlFromStackPointerPlusImmediate8(Cpu cpu, byte offset)
     {
-        (ushort value, byte flags) = InstructionOperands.AddSignedImmediate8WithFlags(
+        var (value, flags) = InstructionOperands.AddSignedImmediate8WithFlags(
             cpu.Registers.SP,
             offset
         );

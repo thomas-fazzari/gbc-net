@@ -31,7 +31,7 @@ internal sealed class ApuOutputFilter(double highPassChargeFactor)
 
     private double HighPass(double input, ref double capacitor)
     {
-        double output = input - capacitor;
+        var output = input - capacitor;
         capacitor = input - (output * highPassChargeFactor);
         return output;
     }

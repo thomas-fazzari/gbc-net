@@ -31,7 +31,7 @@ internal static class FlagInstructions
     /// </summary>
     private static void ComplementCarryFlag(Cpu cpu)
     {
-        bool carry = cpu.Registers.IsFlagSet(CpuFlag.Carry);
+        var carry = cpu.Registers.IsFlagSet(CpuFlag.Carry);
 
         cpu.Registers.SetFlag(CpuFlag.Carry, !carry);
         ResetSubtractAndHalfCarry(cpu);

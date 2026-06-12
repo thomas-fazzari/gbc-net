@@ -41,7 +41,7 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
 
     protected override byte ReadTileDataByte(PpuEngineInputs inputs, bool highByte)
     {
-        int tileBank = (_fetcherTileAttributes & AttributeTileBankMask) == 0 ? 0 : 1;
+        var tileBank = (_fetcherTileAttributes & AttributeTileBankMask) == 0 ? 0 : 1;
         return inputs.VideoRam.ReadBank(tileBank, GetTileDataAddress(inputs, highByte));
     }
 
@@ -52,8 +52,8 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
             return false;
         }
 
-        bool xFlip = (_fetcherTileAttributes & AttributeXFlipMask) != 0;
-        for (int pixel = 0; pixel < PpuTileData.TileSizePixels; pixel++)
+        var xFlip = (_fetcherTileAttributes & AttributeXFlipMask) != 0;
+        for (var pixel = 0; pixel < PpuTileData.TileSizePixels; pixel++)
         {
             PushBackgroundPixel(
                 PpuTileData.DecodeColorId(
@@ -75,7 +75,7 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
             return;
         }
 
-        PopBackgroundPixel(out byte colorId, out byte attributes);
+        PopBackgroundPixel(out var colorId, out var attributes);
         if (ShouldDiscardPixel())
         {
             return;
@@ -93,7 +93,7 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
 
     private ushort GetTileDataAddress(PpuEngineInputs inputs, bool highByte)
     {
-        int tileLine = GetFetcherY() & TileLineMask;
+        var tileLine = GetFetcherY() & TileLineMask;
         if ((_fetcherTileAttributes & AttributeYFlipMask) != 0)
         {
             tileLine = PpuTileData.TileSizePixels - 1 - tileLine;
@@ -108,7 +108,7 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
         PpuEngineInputs inputs
     )
     {
-        CgbObjectPixel? objectPixel = _objects.SelectPixel(RenderedPixels, LcdYCoordinate, inputs);
+        var objectPixel = _objects.SelectPixel(RenderedPixels, LcdYCoordinate, inputs);
         if (
             objectPixel is null
             || BackgroundCoversObject(
@@ -153,7 +153,7 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
 
     private void WriteRgb555Pixel(ushort color)
     {
-        int frameOffset =
+        var frameOffset =
             ((LcdYCoordinate * PpuGeometry.FrameWidth) + RenderedPixels) * Rgb555BytesPerPixel;
         FrameBuffer[frameOffset] = (byte)color;
         FrameBuffer[frameOffset + 1] = (byte)(color >> 8);
@@ -161,7 +161,7 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
 
     private void PushBackgroundPixel(byte colorId, byte attributes)
     {
-        int writeIndex = BackgroundFifoWriteIndex;
+        var writeIndex = BackgroundFifoWriteIndex;
         _backgroundColorFifo[writeIndex] = colorId;
         _backgroundAttributeFifo[writeIndex] = attributes;
         CommitBackgroundFifoPush();
@@ -169,7 +169,7 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
 
     private void PopBackgroundPixel(out byte colorId, out byte attributes)
     {
-        int readIndex = BackgroundFifoReadIndex;
+        var readIndex = BackgroundFifoReadIndex;
         colorId = _backgroundColorFifo[readIndex];
         attributes = _backgroundAttributeFifo[readIndex];
         CommitBackgroundFifoPop();

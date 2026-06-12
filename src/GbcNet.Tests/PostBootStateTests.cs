@@ -14,8 +14,8 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SetsDmgCpuRegistersAfterBootHandoff()
     {
-        Cartridge cartridge = LoadCartridge(TestRomFactory.Create());
-        (Cpu cpu, MemoryBus bus) = CreateHardware(cartridge);
+        var cartridge = LoadCartridge(TestRomFactory.Create());
+        var (cpu, bus) = CreateHardware(cartridge);
 
         PostBootState.Apply(DmgHardwareProfile.Instance, cartridge, cpu, bus);
 
@@ -31,8 +31,8 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_ClearsDmgHalfCarryAndCarryWhenHeaderChecksumIsZero()
     {
-        Cartridge cartridge = LoadCartridge(CreateRomWithZeroHeaderChecksum());
-        (Cpu cpu, MemoryBus bus) = CreateHardware(cartridge);
+        var cartridge = LoadCartridge(CreateRomWithZeroHeaderChecksum());
+        var (cpu, bus) = CreateHardware(cartridge);
 
         PostBootState.Apply(DmgHardwareProfile.Instance, cartridge, cpu, bus);
 
@@ -42,8 +42,8 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SetsDmgIoRegistersAfterBootHandoff()
     {
-        Cartridge cartridge = LoadCartridge(TestRomFactory.Create());
-        (Cpu cpu, MemoryBus bus) = CreateHardware(cartridge);
+        var cartridge = LoadCartridge(TestRomFactory.Create());
+        var (cpu, bus) = CreateHardware(cartridge);
 
         PostBootState.Apply(DmgHardwareProfile.Instance, cartridge, cpu, bus);
 
@@ -71,7 +71,7 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SetsCgbModeCpuRegistersAfterBootHandoff()
     {
-        Cartridge cartridge = LoadCartridge(
+        var cartridge = LoadCartridge(
             TestRomFactory.Create(rom => rom[0x0143] = (byte)CgbSupport.Required)
         );
         var profile = new CgbHardwareProfile(CgbOperatingMode.Cgb);
@@ -92,7 +92,7 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SetsCgbDmgCompatibilityCpuRegistersAfterBootHandoff()
     {
-        Cartridge cartridge = LoadCartridge(TestRomFactory.Create());
+        var cartridge = LoadCartridge(TestRomFactory.Create());
         var profile = new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility);
         var bus = new MemoryBus(cartridge, profile);
         var cpu = new Cpu(bus);
@@ -111,7 +111,7 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SetsCgbModeIoRegistersAfterBootHandoff()
     {
-        Cartridge cartridge = LoadCartridge(
+        var cartridge = LoadCartridge(
             TestRomFactory.Create(rom => rom[0x0143] = (byte)CgbSupport.Required)
         );
         var profile = new CgbHardwareProfile(CgbOperatingMode.Cgb);
@@ -143,7 +143,7 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SeedsCgbBackgroundPaletteRamToWhiteWithoutChangingIndex()
     {
-        Cartridge cartridge = LoadCartridge(
+        var cartridge = LoadCartridge(
             TestRomFactory.Create(rom => rom[0x0143] = (byte)CgbSupport.Required)
         );
         var profile = new CgbHardwareProfile(CgbOperatingMode.Cgb);
@@ -164,7 +164,7 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SeedsCgbDmgCompatibilityPaletteRamForRgbRendering()
     {
-        Cartridge cartridge = LoadCartridge(TestRomFactory.Create());
+        var cartridge = LoadCartridge(TestRomFactory.Create());
         var profile = new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility);
         var bus = new MemoryBus(cartridge, profile);
         var cpu = new Cpu(bus);
@@ -175,7 +175,7 @@ public sealed class PostBootStateTests
         bus.Ppu.VideoRam.Write(0x8000, 0x80);
 
         bus.Ppu.Tick(456 * 154);
-        LcdFrame frame = Assert.IsType<LcdFrame>(bus.Ppu.Tick(456 * 144).CompletedFrame);
+        var frame = Assert.IsType<LcdFrame>(bus.Ppu.Tick(456 * 144).CompletedFrame);
 
         Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
         Assert.Equal(0x4A, frame.Pixels.Span[0]);
@@ -196,7 +196,7 @@ public sealed class PostBootStateTests
     {
         return TestRomFactory.Create(bytes =>
         {
-            byte checksum = CartridgeHeader.CalculateHeaderChecksum(bytes);
+            var checksum = CartridgeHeader.CalculateHeaderChecksum(bytes);
             bytes[0x0134] = unchecked((byte)(bytes[0x0134] + checksum));
         });
     }

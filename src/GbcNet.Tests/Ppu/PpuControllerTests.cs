@@ -49,7 +49,7 @@ public sealed class PpuControllerTests
     [MemberData(nameof(ReadWriteRegisters))]
     public void WriteRegister_StoresReadWriteRegisters(ushort address, byte value)
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
 
         ppu.WriteRegister(address, value);
 
@@ -59,7 +59,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void ReadWriteRegister_SelectsVramBankWhenBanked()
     {
-        PpuController ppu = CreatePpu(videoRamBankCount: 2);
+        var ppu = CreatePpu(videoRamBankCount: 2);
 
         Assert.Equal(0xFE, ppu.ReadRegister(AddressMap.VideoRamBankRegister));
 
@@ -77,7 +77,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void ReadWriteRegister_IgnoresVramBankRegisterWhenUnbanked()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
 
         ppu.WriteRegister(AddressMap.VideoRamBankRegister, 0x01);
 
@@ -88,7 +88,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void ReadWriteRegister_StoresColorPaletteIndexWithReadMask()
     {
-        PpuController ppu = CreatePpu(isColorPaletteRamEnabled: true);
+        var ppu = CreatePpu(isColorPaletteRamEnabled: true);
 
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0xFF);
 
@@ -102,7 +102,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void ReadWriteRegister_StoresColorPaletteData()
     {
-        PpuController ppu = CreatePpu(isColorPaletteRamEnabled: true);
+        var ppu = CreatePpu(isColorPaletteRamEnabled: true);
 
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x02);
         ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0xAB);
@@ -113,7 +113,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void WriteRegister_AutoIncrementsColorPaletteIndexAfterDataWrite()
     {
-        PpuController ppu = CreatePpu(isColorPaletteRamEnabled: true);
+        var ppu = CreatePpu(isColorPaletteRamEnabled: true);
 
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x82);
         ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x11);
@@ -133,7 +133,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void ReadRegister_DoesNotAutoIncrementColorPaletteIndexAfterDataRead()
     {
-        PpuController ppu = CreatePpu(isColorPaletteRamEnabled: true);
+        var ppu = CreatePpu(isColorPaletteRamEnabled: true);
 
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x80);
         ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x11);
@@ -146,7 +146,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void WriteRegister_WrapsColorPaletteAutoIncrement()
     {
-        PpuController ppu = CreatePpu(isColorPaletteRamEnabled: true);
+        var ppu = CreatePpu(isColorPaletteRamEnabled: true);
 
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0xBF);
         ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x33);
@@ -157,7 +157,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void ReadWriteRegister_StoresBackgroundAndObjectColorPalettesIndependently()
     {
-        PpuController ppu = CreatePpu(isColorPaletteRamEnabled: true);
+        var ppu = CreatePpu(isColorPaletteRamEnabled: true);
 
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x01);
         ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x12);
@@ -174,7 +174,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void ReadWriteRegister_IgnoresColorPaletteRegistersWhenDisabled()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
 
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x81);
         ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x12);
@@ -190,7 +190,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void ReadRegister_ReturnsStatusReadMaskAndPpuState()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.SetRegisterState(AddressMap.LcdControlRegister, LcdEnable);
 
         ppu.SetRegisterState(AddressMap.LcdStatusRegister, 0x85);
@@ -201,7 +201,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void WriteRegister_UpdatesOnlyStatusInterruptSelectBits()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.SetRegisterState(AddressMap.LcdControlRegister, LcdEnable);
         ppu.SetRegisterState(AddressMap.LcdStatusRegister, 0x85);
 
@@ -213,7 +213,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void WriteRegister_IgnoresLcdYCoordinateWrites()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.SetRegisterState(AddressMap.LcdYCoordinateRegister, 0x42);
 
         ppu.WriteRegister(AddressMap.LcdYCoordinateRegister, 0x99);
@@ -224,7 +224,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void Tick_AdvancesVisibleScanlineModes()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
         ppu.Tick(79);
@@ -244,7 +244,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void AccessProperties_ReflectCurrentPpuMode()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
 
         AssertVideoRamBlocked(ppu, expected: false);
         AssertObjectAttributeMemoryBlocked(ppu, expected: false);
@@ -270,10 +270,10 @@ public sealed class PpuControllerTests
     public void Tick_RequestsVBlankInterruptWhenEnteringLineOneHundredFortyFour()
     {
         var interrupts = new InterruptController();
-        PpuController ppu = CreatePpu(interrupts);
+        var ppu = CreatePpu(interrupts);
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
-        LcdFrame? frame = ppu.Tick(456 * 144).CompletedFrame;
+        var frame = ppu.Tick(456 * 144).CompletedFrame;
 
         Assert.Equal(144, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
         Assert.Equal(0x01, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
@@ -289,11 +289,11 @@ public sealed class PpuControllerTests
     public void Tick_SkipsCompletedFrameWhenVideoRenderingIsDisabled()
     {
         var interrupts = new InterruptController();
-        PpuController ppu = CreatePpu(interrupts);
+        var ppu = CreatePpu(interrupts);
         ppu.VideoRenderingEnabled = false;
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
-        LcdFrame? frame = ppu.Tick(456 * 144).CompletedFrame;
+        var frame = ppu.Tick(456 * 144).CompletedFrame;
 
         Assert.Null(frame);
         Assert.Equal(144, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
@@ -303,7 +303,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void Tick_CapturesFrameAfterVideoRenderingIsEnabledAgain()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.VideoRenderingEnabled = false;
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
@@ -312,7 +312,7 @@ public sealed class PpuControllerTests
         ppu.VideoRenderingEnabled = true;
         ppu.Tick(456 * 10);
 
-        LcdFrame? frame = ppu.Tick(456 * 144).CompletedFrame;
+        var frame = ppu.Tick(456 * 144).CompletedFrame;
 
         Assert.NotNull(frame);
         Assert.Equal(PpuGeometry.FrameWidth, frame.Width);
@@ -323,7 +323,7 @@ public sealed class PpuControllerTests
     public void Tick_RequestsModeTwoLcdInterruptWhenEnteringVBlank()
     {
         var interrupts = new InterruptController();
-        PpuController ppu = CreatePpu(interrupts);
+        var ppu = CreatePpu(interrupts);
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
         ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x20);
 
@@ -339,7 +339,7 @@ public sealed class PpuControllerTests
     public void Tick_RequestsModeTwoLcdInterruptWhenLeavingVBlank()
     {
         var interrupts = new InterruptController();
-        PpuController ppu = CreatePpu(interrupts);
+        var ppu = CreatePpu(interrupts);
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
         ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x20);
 
@@ -352,7 +352,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void Tick_WrapsLyAfterLineOneHundredFiftyThree()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
         ppu.Tick(456 * 154);
@@ -364,9 +364,9 @@ public sealed class PpuControllerTests
     [Fact]
     public void Tick_DoesNotAdvanceWhenLcdIsDisabled()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
 
-        LcdFrame? frame = ppu.Tick(456 * 154).CompletedFrame;
+        var frame = ppu.Tick(456 * 154).CompletedFrame;
 
         Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
         Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
@@ -376,7 +376,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void WriteRegister_DisablingLcdResetsTiming()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
         ppu.Tick(456 * 3);
 
@@ -390,7 +390,7 @@ public sealed class PpuControllerTests
     public void WriteRegister_StatusEnableRequestsLcdInterruptOnRisingStatLine()
     {
         var interrupts = new InterruptController();
-        PpuController ppu = CreatePpu(interrupts);
+        var ppu = CreatePpu(interrupts);
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
         ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x08);
@@ -402,7 +402,7 @@ public sealed class PpuControllerTests
     public void Tick_RequestsLcdInterruptOnlyOnStatLineRisingEdge()
     {
         var interrupts = new InterruptController();
-        PpuController ppu = CreatePpu(interrupts);
+        var ppu = CreatePpu(interrupts);
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
         ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x08);
 
@@ -419,7 +419,7 @@ public sealed class PpuControllerTests
     public void WriteRegister_LycCompareUpdatesStatusAndRequestsLcdInterruptOnRisingStatLine()
     {
         var interrupts = new InterruptController();
-        PpuController ppu = CreatePpu(interrupts);
+        var ppu = CreatePpu(interrupts);
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
         ppu.WriteRegister(AddressMap.LcdYCompareRegister, 0x01);
         ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x40);
@@ -436,7 +436,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void WriteRegister_RetainsLycCompareWhileLcdIsDisabled()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.SetRegisterState(AddressMap.LcdStatusRegister, 0x84);
         ppu.SetRegisterState(AddressMap.LcdYCoordinateRegister, 0x90);
         ppu.SetRegisterState(AddressMap.LcdYCompareRegister, 0x90);
@@ -452,7 +452,7 @@ public sealed class PpuControllerTests
     public void WriteRegister_EnablingLcdUpdatesLycCompareAndRequestsRisingInterrupt()
     {
         var interrupts = new InterruptController();
-        PpuController ppu = CreatePpu(interrupts);
+        var ppu = CreatePpu(interrupts);
         ppu.SetRegisterState(AddressMap.LcdStatusRegister, 0x80);
         ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x40);
 
@@ -469,7 +469,7 @@ public sealed class PpuControllerTests
     public void WriteRegister_EnablingLcdRequestsModeInterruptWhenLycCompareStaysSet()
     {
         var interrupts = new InterruptController();
-        PpuController ppu = CreatePpu(interrupts);
+        var ppu = CreatePpu(interrupts);
         ppu.SetRegisterState(AddressMap.LcdStatusRegister, 0x84);
         ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x48);
 
@@ -492,12 +492,12 @@ public sealed class PpuControllerTests
     [Fact]
     public void Renderer_UsesUnsignedBackgroundTileData()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
         ppu.VideoRam.Write(0x9800, 0x01);
         WriteTileRow(ppu, 0x8010, row: 0, lowByte: 0x80, highByte: 0x00);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
@@ -508,12 +508,12 @@ public sealed class PpuControllerTests
     [Fact]
     public void Renderer_UsesSignedBackgroundTileData()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
         ppu.VideoRam.Write(0x9800, 0x80);
         WriteTileRow(ppu, 0x8800, row: 0, lowByte: 0x00, highByte: 0x80);
 
-        LcdFrame frame = RenderSecondFrame(ppu, LcdEnable | BackgroundEnable);
+        var frame = RenderSecondFrame(ppu, LcdEnable | BackgroundEnable);
 
         Assert.Equal(0x02, frame.Pixels.Span[0]);
     }
@@ -521,11 +521,11 @@ public sealed class PpuControllerTests
     [Fact]
     public void Renderer_AppliesBackgroundPalette()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, 0x10);
         WriteTileRow(ppu, 0x8000, row: 0, lowByte: 0x00, highByte: 0x80);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
@@ -536,13 +536,13 @@ public sealed class PpuControllerTests
     [Fact]
     public void Renderer_AppliesScrollX()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
         ppu.WriteRegister(AddressMap.ScrollXRegister, 0x08);
         ppu.VideoRam.Write(0x9801, 0x01);
         WriteTileRow(ppu, 0x8010, row: 0, lowByte: 0x80, highByte: 0x80);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
@@ -553,12 +553,12 @@ public sealed class PpuControllerTests
     [Fact]
     public void Renderer_AppliesScrollY()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
         ppu.WriteRegister(AddressMap.ScrollYRegister, 0x01);
         WriteTileRow(ppu, 0x8000, row: 1, lowByte: 0x00, highByte: 0x80);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
@@ -569,11 +569,11 @@ public sealed class PpuControllerTests
     [Fact]
     public void Renderer_FillsVisibleLine()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
         WriteTileRow(ppu, 0x8000, row: 0, lowByte: 0xFF, highByte: 0x00);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
@@ -584,7 +584,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void Renderer_StartsWindowAtWindowXMinusSeven()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
         ppu.WriteRegister(AddressMap.WindowXRegister, 0x0F);
         ppu.VideoRam.Write(0x9800, 0x01);
@@ -592,7 +592,7 @@ public sealed class PpuControllerTests
         WriteTileRow(ppu, 0x8010, row: 0, lowByte: 0xFF, highByte: 0x00);
         WriteTileRow(ppu, 0x8020, row: 0, lowByte: 0x00, highByte: 0xFF);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable
                 | BackgroundEnable
@@ -608,7 +608,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void Renderer_IncrementsWindowLineOnlyWhenWindowStarts()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
         ppu.WriteRegister(AddressMap.WindowYRegister, 0x01);
         ppu.WriteRegister(AddressMap.WindowXRegister, 0x07);
@@ -616,7 +616,7 @@ public sealed class PpuControllerTests
         WriteTileRow(ppu, 0x8010, row: 0, lowByte: 0xFF, highByte: 0x00);
         WriteTileRow(ppu, 0x8010, row: 1, lowByte: 0x00, highByte: 0xFF);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable
                 | BackgroundEnable
@@ -633,13 +633,13 @@ public sealed class PpuControllerTests
     [Fact]
     public void Renderer_DisablesWindowWhenBackgroundAndWindowDisplayIsDisabled()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
         ppu.WriteRegister(AddressMap.WindowXRegister, 0x07);
         ppu.VideoRam.Write(0x9C00, 0x02);
         WriteTileRow(ppu, 0x8020, row: 0, lowByte: 0x00, highByte: 0xFF);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | UnsignedBackgroundTileData | WindowEnable | WindowTileMap1
         );
@@ -650,9 +650,9 @@ public sealed class PpuControllerTests
     [Fact]
     public void CgbRenderer_CompletesRgb555Frame()
     {
-        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
@@ -664,12 +664,12 @@ public sealed class PpuControllerTests
     [Fact]
     public void CgbRenderer_UsesBackgroundPaletteSelectedByTileAttribute()
     {
-        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
         WriteBackgroundColor(ppu, paletteIndex: 5, colorId: 2, rgb555: 0x1234);
         WriteVideoRamBank(ppu, bank: 1, PpuTileData.TileMap0Start, value: 0x05);
         WriteBankedTileRow(ppu, bank: 0, 0x8000, row: 0, lowByte: 0x00, highByte: 0x80);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
@@ -680,7 +680,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void CgbRenderer_UsesTileDataBankSelectedByTileAttribute()
     {
-        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
         WriteBackgroundColor(ppu, paletteIndex: 0, colorId: 1, rgb555: 0x001F);
         WriteBackgroundColor(ppu, paletteIndex: 0, colorId: 3, rgb555: 0x03E0);
         WriteVideoRamBank(ppu, bank: 0, PpuTileData.TileMap0Start, value: 0x01);
@@ -688,7 +688,7 @@ public sealed class PpuControllerTests
         WriteBankedTileRow(ppu, bank: 0, 0x8010, row: 0, lowByte: 0x80, highByte: 0x00);
         WriteBankedTileRow(ppu, bank: 1, 0x8010, row: 0, lowByte: 0x80, highByte: 0x80);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
@@ -699,12 +699,12 @@ public sealed class PpuControllerTests
     [Fact]
     public void CgbRenderer_AppliesTileAttributeXFlip()
     {
-        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
         WriteBackgroundColor(ppu, paletteIndex: 0, colorId: 1, rgb555: 0x001F);
         WriteVideoRamBank(ppu, bank: 1, PpuTileData.TileMap0Start, value: 0x20);
         WriteBankedTileRow(ppu, bank: 0, 0x8000, row: 0, lowByte: 0x01, highByte: 0x00);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
@@ -715,12 +715,12 @@ public sealed class PpuControllerTests
     [Fact]
     public void CgbRenderer_AppliesTileAttributeYFlip()
     {
-        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
         WriteBackgroundColor(ppu, paletteIndex: 0, colorId: 2, rgb555: 0x7C00);
         WriteVideoRamBank(ppu, bank: 1, PpuTileData.TileMap0Start, value: 0x40);
         WriteBankedTileRow(ppu, bank: 0, 0x8000, row: 7, lowByte: 0x00, highByte: 0x80);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
@@ -731,12 +731,12 @@ public sealed class PpuControllerTests
     [Fact]
     public void CgbRenderer_UsesObjectPaletteSelectedByOamAttribute()
     {
-        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
         WriteObjectColor(ppu, paletteIndex: 5, colorId: 1, rgb555: 0x1234);
         WriteBankedTileRow(ppu, bank: 0, 0x8010, row: 0, lowByte: 0x80, highByte: 0x00);
         WriteObjectAttributes(ppu, index: 0, y: 16, x: 8, tile: 1, flags: 0x05);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
@@ -747,7 +747,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void CgbRenderer_UsesObjectTileDataBankSelectedByOamAttribute()
     {
-        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
         WriteObjectColor(ppu, paletteIndex: 0, colorId: 1, rgb555: 0x001F);
         WriteObjectColor(ppu, paletteIndex: 0, colorId: 3, rgb555: 0x03E0);
         WriteBankedTileRow(ppu, bank: 0, 0x8010, row: 0, lowByte: 0x80, highByte: 0x00);
@@ -761,7 +761,7 @@ public sealed class PpuControllerTests
             flags: PpuObjectAttributes.CgbTileBankMask
         );
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
@@ -772,7 +772,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void CgbRenderer_AppliesObjectFlipFlags()
     {
-        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
         WriteObjectColor(ppu, paletteIndex: 0, colorId: 1, rgb555: 0x7C00);
         WriteBankedTileRow(ppu, bank: 0, 0x8010, row: 7, lowByte: 0x01, highByte: 0x00);
         WriteObjectAttributes(
@@ -784,7 +784,7 @@ public sealed class PpuControllerTests
             flags: ObjectXFlip | ObjectYFlip
         );
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
@@ -795,13 +795,13 @@ public sealed class PpuControllerTests
     [Fact]
     public void CgbRenderer_TreatsObjectColorZeroAsTransparent()
     {
-        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
         WriteBackgroundColor(ppu, paletteIndex: 0, colorId: 1, rgb555: 0x1234);
         WriteBankedTileRow(ppu, bank: 0, 0x8000, row: 0, lowByte: 0x80, highByte: 0x00);
         WriteBankedTileRow(ppu, bank: 0, 0x8010, row: 0, lowByte: 0x00, highByte: 0x00);
         WriteObjectAttributes(ppu, index: 0, y: 16, x: 8, tile: 1, flags: 0);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
@@ -812,14 +812,14 @@ public sealed class PpuControllerTests
     [Fact]
     public void CgbRenderer_LetsNonZeroBackgroundCoverPriorityObject()
     {
-        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
         WriteBackgroundColor(ppu, paletteIndex: 0, colorId: 1, rgb555: 0x7C00);
         WriteObjectColor(ppu, paletteIndex: 0, colorId: 1, rgb555: 0x001F);
         WriteBankedTileRow(ppu, bank: 0, 0x8000, row: 0, lowByte: 0x80, highByte: 0x00);
         WriteBankedTileRow(ppu, bank: 0, 0x8010, row: 0, lowByte: 0x80, highByte: 0x00);
         WriteObjectAttributes(ppu, index: 0, y: 16, x: 8, tile: 1, flags: ObjectBehindBackground);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
@@ -830,10 +830,10 @@ public sealed class PpuControllerTests
     [Fact]
     public void CgbDmgCompatibilityRenderer_CompletesRgb555Frame()
     {
-        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+        var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
         ppu.SetDmgCompatibilityColorPaletteRam();
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
@@ -845,12 +845,12 @@ public sealed class PpuControllerTests
     [Fact]
     public void CgbDmgCompatibilityRenderer_MapsBackgroundPaletteThroughCgbPalette0()
     {
-        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+        var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
         ppu.SetDmgCompatibilityColorPaletteRam();
         ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, PaletteColorOneToDarkGray);
         WriteTileRow(ppu, 0x8000, row: 0, lowByte: 0x80, highByte: 0x00);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
@@ -861,7 +861,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void CgbDmgCompatibilityRenderer_MapsObjectPalettesThroughCgbObjectPalettes()
     {
-        PpuController ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+        var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
         ppu.SetDmgCompatibilityColorPaletteRam();
         ppu.WriteRegister(AddressMap.ObjectPalette0Register, PaletteColorOneToDarkGray);
         ppu.WriteRegister(AddressMap.ObjectPalette1Register, PaletteColorOneToBlack);
@@ -869,10 +869,7 @@ public sealed class PpuControllerTests
         WriteObjectAttributes(ppu, index: 0, y: 16, x: 8, tile: 1, flags: 0);
         WriteObjectAttributes(ppu, index: 1, y: 16, x: 16, tile: 1, flags: ObjectPalette1);
 
-        LcdFrame frame = RenderSecondFrame(
-            ppu,
-            LcdEnable | ObjectEnable | UnsignedBackgroundTileData
-        );
+        var frame = RenderSecondFrame(ppu, LcdEnable | ObjectEnable | UnsignedBackgroundTileData);
 
         AssertRgb555Pixel(frame, pixelIndex: 0, expected: CompatibilityDarkGrayRgb555);
         AssertRgb555Pixel(frame, pixelIndex: 8, expected: CompatibilityBlueRgb555);
@@ -881,7 +878,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void Tick_WindowStartupExtendsDrawingMode()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.WindowXRegister, 0x07);
         ppu.WriteRegister(
             AddressMap.LcdControlRegister,
@@ -897,7 +894,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void Tick_DisabledVideoRenderingPreservesWindowTiming()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.VideoRenderingEnabled = false;
         ppu.WriteRegister(AddressMap.WindowXRegister, 0x07);
         ppu.WriteRegister(
@@ -914,14 +911,14 @@ public sealed class PpuControllerTests
     [Fact]
     public void Renderer_AppliesObjectPalettes()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.ObjectPalette0Register, PaletteColorOneToDarkGray);
         ppu.WriteRegister(AddressMap.ObjectPalette1Register, PaletteColorOneToBlack);
         WriteTileRow(ppu, 0x8010, row: 0, lowByte: 0xFF, highByte: 0x00);
         WriteObjectAttributes(ppu, index: 0, y: 16, x: 8, tile: 1, flags: 0);
         WriteObjectAttributes(ppu, index: 1, y: 16, x: 16, tile: 1, flags: ObjectPalette1);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
@@ -933,14 +930,14 @@ public sealed class PpuControllerTests
     [Fact]
     public void Renderer_TreatsObjectColorZeroAsTransparent()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
         ppu.WriteRegister(AddressMap.ObjectPalette0Register, PaletteColorOneToBlack);
         WriteTileRow(ppu, 0x8000, row: 0, lowByte: 0x00, highByte: 0xFF);
         WriteTileRow(ppu, 0x8010, row: 0, lowByte: 0x00, highByte: 0x00);
         WriteObjectAttributes(ppu, index: 0, y: 16, x: 8, tile: 1, flags: 0);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
@@ -951,7 +948,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void Renderer_AppliesObjectFlipFlags()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.ObjectPalette0Register, IdentityPalette);
         WriteTileRow(ppu, 0x8010, row: 7, lowByte: 0x01, highByte: 0x00);
         WriteObjectAttributes(
@@ -963,7 +960,7 @@ public sealed class PpuControllerTests
             flags: ObjectXFlip | ObjectYFlip
         );
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
@@ -974,13 +971,13 @@ public sealed class PpuControllerTests
     [Fact]
     public void Renderer_UsesUnsignedTileDataForLargeObjects()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.ObjectPalette0Register, IdentityPalette);
         WriteTileRow(ppu, 0x8000, row: 0, lowByte: 0xFF, highByte: 0x00);
         WriteTileRow(ppu, 0x8010, row: 0, lowByte: 0x00, highByte: 0xFF);
         WriteObjectAttributes(ppu, index: 0, y: 16, x: 8, tile: 1, flags: 0);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | ObjectEnable | ObjectSize16
         );
@@ -992,14 +989,14 @@ public sealed class PpuControllerTests
     [Fact]
     public void Renderer_GivesObjectPriorityToSmallerXThenOamIndex()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.ObjectPalette0Register, PaletteColorOneToDarkGray);
         ppu.WriteRegister(AddressMap.ObjectPalette1Register, PaletteColorOneToBlack);
         WriteTileRow(ppu, 0x8010, row: 0, lowByte: 0xFF, highByte: 0x00);
         WriteObjectAttributes(ppu, index: 0, y: 16, x: 9, tile: 1, flags: 0);
         WriteObjectAttributes(ppu, index: 1, y: 16, x: 8, tile: 1, flags: ObjectPalette1);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
@@ -1010,7 +1007,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void Renderer_ResolvesObjectPriorityBeforeBackgroundPriority()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
         ppu.WriteRegister(AddressMap.ObjectPalette0Register, PaletteColorOneToDarkGray);
         ppu.WriteRegister(AddressMap.ObjectPalette1Register, PaletteColorOneToBlack);
@@ -1026,7 +1023,7 @@ public sealed class PpuControllerTests
         );
         WriteObjectAttributes(ppu, index: 1, y: 16, x: 8, tile: 1, flags: 0);
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
@@ -1037,10 +1034,10 @@ public sealed class PpuControllerTests
     [Fact]
     public void Renderer_LimitsObjectsPerScanlineBeforeCheckingObjectX()
     {
-        PpuController ppu = CreatePpu();
+        var ppu = CreatePpu();
         ppu.WriteRegister(AddressMap.ObjectPalette0Register, PaletteColorOneToBlack);
         WriteTileRow(ppu, 0x8010, row: 0, lowByte: 0xFF, highByte: 0x00);
-        for (int index = 0; index < PpuObjectAttributes.MaxObjectsPerScanline; index++)
+        for (var index = 0; index < PpuObjectAttributes.MaxObjectsPerScanline; index++)
         {
             WriteObjectAttributes(ppu, index, y: 16, x: 0, tile: 1, flags: 0);
         }
@@ -1054,7 +1051,7 @@ public sealed class PpuControllerTests
             flags: 0
         );
 
-        LcdFrame frame = RenderSecondFrame(
+        var frame = RenderSecondFrame(
             ppu,
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
@@ -1097,7 +1094,7 @@ public sealed class PpuControllerTests
         byte highByte
     )
     {
-        ushort rowAddress = (ushort)(tileAddress + (row * 2));
+        var rowAddress = (ushort)(tileAddress + (row * 2));
         ppu.VideoRam.Write(rowAddress, lowByte);
         ppu.VideoRam.Write((ushort)(rowAddress + 1), highByte);
     }
@@ -1111,7 +1108,7 @@ public sealed class PpuControllerTests
         byte highByte
     )
     {
-        ushort rowAddress = (ushort)(tileAddress + (row * 2));
+        var rowAddress = (ushort)(tileAddress + (row * 2));
         WriteVideoRamBank(ppu, bank, rowAddress, lowByte);
         WriteVideoRamBank(ppu, bank, (ushort)(rowAddress + 1), highByte);
     }
@@ -1130,7 +1127,7 @@ public sealed class PpuControllerTests
         ushort rgb555
     )
     {
-        byte offset = (byte)((((paletteIndex & 0x07) * 4) + (colorId & 0x03)) * 2);
+        var offset = (byte)((((paletteIndex & 0x07) * 4) + (colorId & 0x03)) * 2);
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, offset);
         ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, (byte)rgb555);
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, (byte)(offset + 1));
@@ -1144,7 +1141,7 @@ public sealed class PpuControllerTests
         ushort rgb555
     )
     {
-        byte offset = (byte)((((paletteIndex & 0x07) * 4) + (colorId & 0x03)) * 2);
+        var offset = (byte)((((paletteIndex & 0x07) * 4) + (colorId & 0x03)) * 2);
         ppu.WriteRegister(AddressMap.ObjectPaletteIndexRegister, offset);
         ppu.WriteRegister(AddressMap.ObjectPaletteDataRegister, (byte)rgb555);
         ppu.WriteRegister(AddressMap.ObjectPaletteIndexRegister, (byte)(offset + 1));
@@ -1154,8 +1151,8 @@ public sealed class PpuControllerTests
     private static void AssertRgb555Pixel(LcdFrame frame, int pixelIndex, ushort expected)
     {
         Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        ReadOnlySpan<byte> pixels = frame.Pixels.Span;
-        int offset = pixelIndex * 2;
+        var pixels = frame.Pixels.Span;
+        var offset = pixelIndex * 2;
         Assert.Equal((byte)expected, pixels[offset]);
         Assert.Equal((byte)(expected >> 8), pixels[offset + 1]);
     }
@@ -1169,7 +1166,7 @@ public sealed class PpuControllerTests
         byte flags
     )
     {
-        ushort address = (ushort)(
+        var address = (ushort)(
             AddressMap.ObjectAttributeMemoryStart + (index * PpuObjectAttributes.AttributeSize)
         );
         ppu.ObjectAttributeMemory.Write(address, y);

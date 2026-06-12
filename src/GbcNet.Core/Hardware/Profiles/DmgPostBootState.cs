@@ -98,8 +98,8 @@ internal static class DmgPostBootState
 
     private static void ApplyAudioRegisters(MemoryBus bus)
     {
-        ReadOnlySpan<byte> values = AudioRegisterStates;
-        for (int offset = 0; offset < values.Length; offset++)
+        var values = AudioRegisterStates;
+        for (var offset = 0; offset < values.Length; offset++)
         {
             bus.SetHardwareRegisterState((ushort)(AudioRegistersStart + offset), values[offset]);
         }

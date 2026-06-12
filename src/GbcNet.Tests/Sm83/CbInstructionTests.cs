@@ -25,7 +25,7 @@ public sealed class CbInstructionTests
         byte expectedFlags
     )
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0xCB;
             bytes[0x0101] = prefixedOpcode;
@@ -34,7 +34,7 @@ public sealed class CbInstructionTests
         cpu.Registers.SetRegister(register8, value);
         cpu.Registers.F = (byte)CpuFlag.Carry;
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(2, machineCycles);
         Assert.Equal(value, cpu.Registers.GetRegister(register8));
@@ -52,7 +52,7 @@ public sealed class CbInstructionTests
         byte expectedFlags
     )
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0xCB;
             bytes[0x0101] = prefixedOpcode;
@@ -61,7 +61,7 @@ public sealed class CbInstructionTests
         cpu.Registers.F = (byte)CpuFlag.Carry;
         CpuTestFactory.GetBus(cpu).WriteByte(0xC123, value);
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(3, machineCycles);
         Assert.Equal(value, CpuTestFactory.GetBus(cpu).ReadByte(0xC123));
@@ -74,8 +74,8 @@ public sealed class CbInstructionTests
     {
         for (byte prefixedOpcode = 0x40; prefixedOpcode <= 0x7F; prefixedOpcode++)
         {
-            byte opcode = prefixedOpcode;
-            Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+            var opcode = prefixedOpcode;
+            var cpu = CpuTestFactory.CreateCpu(bytes =>
             {
                 bytes[0x0100] = 0xCB;
                 bytes[0x0101] = opcode;
@@ -89,7 +89,7 @@ public sealed class CbInstructionTests
             cpu.Registers.L = 0x23;
             CpuTestFactory.GetBus(cpu).WriteByte(0xC123, 0xFF);
 
-            int machineCycles = cpu.Step();
+            var machineCycles = cpu.Step();
 
             Assert.Equal((prefixedOpcode & 0x07) == 0x06 ? 3 : 2, machineCycles);
             Assert.Equal(0x0102, cpu.Registers.PC);

@@ -27,17 +27,13 @@ public sealed class DmgAcid2VisualRomTests
     {
         SkipIfVisualAssetsAreMissing();
 
-        byte[] rom = File.ReadAllBytes(RomPath);
-        byte[] expectedPixels = File.ReadAllBytes(GoldenPath);
+        var rom = File.ReadAllBytes(RomPath);
+        var expectedPixels = File.ReadAllBytes(GoldenPath);
         Assert.Equal(ExpectedRomSha256, ComputeSha256(rom));
         Assert.Equal(ExpectedGoldenSha256, ComputeSha256(expectedPixels));
         Assert.Equal(ExpectedPixelCount, expectedPixels.Length);
 
-        VisualRomTestResult result = VisualRomTestRunner.RunToFrame(
-            rom,
-            TargetFrame,
-            MaxMachineCycles
-        );
+        var result = VisualRomTestRunner.RunToFrame(rom, TargetFrame, MaxMachineCycles);
 
         Assert.NotNull(result.Frame);
         Assert.Equal(LcdPixelFormat.DmgShadeIndex8, result.Frame.PixelFormat);
@@ -72,14 +68,14 @@ public sealed class DmgAcid2VisualRomTests
                 );
             }
 
-            ReadOnlySpan<byte> actual = result.Frame.Pixels.Span;
-            int comparedLength = Math.Min(expected.Length, actual.Length);
-            int unmatchedLength = Math.Abs(expected.Length - actual.Length);
-            int differenceCount = unmatchedLength;
-            string[] firstDifferences = new string[MaxReportedDiffOffsets];
-            int reportedDifferenceCount = 0;
+            var actual = result.Frame.Pixels.Span;
+            var comparedLength = Math.Min(expected.Length, actual.Length);
+            var unmatchedLength = Math.Abs(expected.Length - actual.Length);
+            var differenceCount = unmatchedLength;
+            var firstDifferences = new string[MaxReportedDiffOffsets];
+            var reportedDifferenceCount = 0;
 
-            for (int offset = 0; offset < comparedLength; offset++)
+            for (var offset = 0; offset < comparedLength; offset++)
             {
                 if (expected[offset] == actual[offset])
                 {
@@ -107,7 +103,7 @@ public sealed class DmgAcid2VisualRomTests
 
         private static string FormatDifference(int offset, byte expected, byte actual)
         {
-            int y = Math.DivRem(offset, PpuGeometry.FrameWidth, out int x);
+            var y = Math.DivRem(offset, PpuGeometry.FrameWidth, out var x);
             return string.Create(
                 CultureInfo.InvariantCulture,
                 $"({x},{y}) exp={expected} act={actual}"

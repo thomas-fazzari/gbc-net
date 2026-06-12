@@ -158,10 +158,10 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
 
     private void ReleaseDevice()
     {
-        AudioPlaybackDevice? device = _device;
-        SoundFlowSampleSource? source = _source;
-        MiniAudioEngine? engine = _engine;
-        bool wasStarted = Volatile.Read(ref _isStarted) != 0;
+        var device = _device;
+        var source = _source;
+        var engine = _engine;
+        var wasStarted = Volatile.Read(ref _isStarted) != 0;
 
         _device = null;
         _source = null;
@@ -197,7 +197,7 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
             return;
         }
 
-        int requestedFrames = output.Length / Channels;
+        var requestedFrames = output.Length / Channels;
 
         if (Volatile.Read(ref _needsPrebuffer) != 0)
         {
@@ -210,9 +210,9 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
             Volatile.Write(ref _needsPrebuffer, 0);
         }
 
-        int frame = 0;
+        var frame = 0;
 
-        for (; frame < requestedFrames && _buffer.TryDequeue(out ApuStereoSample sample); frame++)
+        for (; frame < requestedFrames && _buffer.TryDequeue(out var sample); frame++)
         {
             output[frame * Channels] = sample.Left / PcmScale;
             output[(frame * Channels) + 1] = sample.Right / PcmScale;

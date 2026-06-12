@@ -32,9 +32,9 @@ internal static class BitSetResetInstructions
     {
         for (int opcode = BitStartOpcode; opcode <= BitEndOpcode; opcode++)
         {
-            byte opcodeByte = (byte)opcode;
-            byte mask = DecodeBitMask(opcodeByte);
-            Register8Operand operand = Register8Operands.DecodeSource(opcodeByte);
+            var opcodeByte = (byte)opcode;
+            var mask = DecodeBitMask(opcodeByte);
+            var operand = Register8Operands.DecodeSource(opcodeByte);
 
             builder.MapPrefixed(opcodeByte, (cpu, _, _) => ExecuteBitTest(cpu, mask, operand));
         }
@@ -52,9 +52,9 @@ internal static class BitSetResetInstructions
     {
         for (int opcode = startOpcode; opcode <= endOpcode; opcode++)
         {
-            byte opcodeByte = (byte)opcode;
-            byte mask = DecodeBitMask(opcodeByte);
-            Register8Operand operand = Register8Operands.DecodeSource(opcodeByte);
+            var opcodeByte = (byte)opcode;
+            var mask = DecodeBitMask(opcodeByte);
+            var operand = Register8Operands.DecodeSource(opcodeByte);
 
             builder.MapPrefixed(
                 opcodeByte,
@@ -68,7 +68,7 @@ internal static class BitSetResetInstructions
     /// </summary>
     private static void ExecuteBitTest(Cpu cpu, byte mask, Register8Operand operand)
     {
-        byte value = Register8Operands.Read(cpu, operand);
+        var value = Register8Operands.Read(cpu, operand);
 
         cpu.Registers.SetFlag(CpuFlag.Zero, (value & mask) == 0);
         cpu.Registers.SetFlag(CpuFlag.Subtract, isSet: false);
@@ -85,8 +85,8 @@ internal static class BitSetResetInstructions
         bool setBit
     )
     {
-        byte value = Register8Operands.Read(cpu, operand);
-        byte result = setBit ? (byte)(value | mask) : (byte)(value & ~mask);
+        var value = Register8Operands.Read(cpu, operand);
+        var result = setBit ? (byte)(value | mask) : (byte)(value & ~mask);
 
         Register8Operands.Write(cpu, operand, result);
     }

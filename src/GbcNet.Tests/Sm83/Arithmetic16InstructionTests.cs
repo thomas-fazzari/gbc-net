@@ -1,5 +1,3 @@
-using GbcNet.Core.Sm83;
-
 namespace GbcNet.Tests.Sm83;
 
 public sealed class Arithmetic16InstructionTests
@@ -17,7 +15,7 @@ public sealed class Arithmetic16InstructionTests
         byte expectedFlags
     )
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0xE8;
             bytes[0x0101] = offset;
@@ -25,7 +23,7 @@ public sealed class Arithmetic16InstructionTests
         cpu.Registers.SP = stackPointer;
         cpu.Registers.F = 0xF0;
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(4, machineCycles);
         Assert.Equal(expectedStackPointer, cpu.Registers.SP);

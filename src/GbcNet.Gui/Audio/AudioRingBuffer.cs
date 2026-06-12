@@ -24,7 +24,7 @@ internal sealed class AudioRingBuffer
     {
         get
         {
-            long count = Volatile.Read(ref _writeCursor) - Volatile.Read(ref _readCursor);
+            var count = Volatile.Read(ref _writeCursor) - Volatile.Read(ref _readCursor);
             return (int)Math.Clamp(count, 0, _samples.Length);
         }
     }
@@ -34,10 +34,10 @@ internal sealed class AudioRingBuffer
     /// </summary>
     internal void Enqueue(ReadOnlySpan<ApuStereoSample> samples)
     {
-        long writeCursor = Volatile.Read(ref _writeCursor);
-        long readCursor = Volatile.Read(ref _readCursor);
+        var writeCursor = Volatile.Read(ref _writeCursor);
+        var readCursor = Volatile.Read(ref _readCursor);
 
-        foreach (ApuStereoSample sample in samples)
+        foreach (var sample in samples)
         {
             if (writeCursor - readCursor >= _samples.Length)
             {
@@ -60,8 +60,8 @@ internal sealed class AudioRingBuffer
     /// </summary>
     internal bool TryDequeue(out ApuStereoSample sample)
     {
-        long writeCursor = Volatile.Read(ref _writeCursor);
-        long readCursor = Volatile.Read(ref _readCursor);
+        var writeCursor = Volatile.Read(ref _writeCursor);
+        var readCursor = Volatile.Read(ref _readCursor);
 
         if (readCursor >= writeCursor)
         {

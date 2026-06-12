@@ -15,7 +15,7 @@ internal static class RomTestAssertions
         ArgumentNullException.ThrowIfNull(results);
         ArgumentNullException.ThrowIfNull(relativePath);
 
-        if (!results.TryGetValue(relativePath, out RomTestResult? result))
+        if (!results.TryGetValue(relativePath, out var result))
         {
             Assert.Fail($"Missing ROM result: {relativePath}");
         }

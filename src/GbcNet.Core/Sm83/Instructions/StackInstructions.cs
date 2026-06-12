@@ -68,8 +68,8 @@ internal static class StackInstructions
     {
         for (int opcode = startOpcode; opcode <= endOpcode; opcode += StackRegisterPairOpcodeStep)
         {
-            byte opcodeByte = (byte)opcode;
-            StackRegisterPair registerPair = DecodeStackRegisterPair(opcodeByte);
+            var opcodeByte = (byte)opcode;
+            var registerPair = DecodeStackRegisterPair(opcodeByte);
             builder.MapNoOperand(opcodeByte, cpu => execute(cpu, registerPair));
         }
     }

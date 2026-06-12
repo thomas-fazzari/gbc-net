@@ -134,7 +134,7 @@ internal sealed class PpuTiming
         int objectPenaltyDots
     )
     {
-        int drawingEndDots = FirstScanlineAfterLcdEnable
+        var drawingEndDots = FirstScanlineAfterLcdEnable
             ? FirstScanlineAfterLcdEnableDrawingEndDots
             : NormalScanlineDrawingEndDots;
 
@@ -146,7 +146,7 @@ internal sealed class PpuTiming
     /// </summary>
     public int GetNextTimingBoundary(int drawingEndDots)
     {
-        int scanlineDots = GetCurrentScanlineDots();
+        var scanlineDots = GetCurrentScanlineDots();
         if (LcdYCoordinate >= PpuGeometry.VBlankStartLine)
         {
             return scanlineDots;
@@ -172,7 +172,7 @@ internal sealed class PpuTiming
             return OamScanDots;
         }
 
-        int drawingStartDots = GetCurrentDrawingStartDots();
+        var drawingStartDots = GetCurrentDrawingStartDots();
         if (LineDots < drawingStartDots)
         {
             return drawingStartDots;

@@ -12,17 +12,17 @@ internal static class VisualRomTestRunner
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(targetFrame);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxMachineCycles);
 
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         LcdFrame? frame = null;
-        int frameCount = 0;
+        var frameCount = 0;
         gameBoy.FrameCompleted += (_, args) =>
         {
             frame = args.Frame;
             frameCount++;
         };
 
-        int machineCycles = 0;
+        var machineCycles = 0;
         while (machineCycles < maxMachineCycles && frameCount < targetFrame)
         {
             machineCycles += gameBoy.Step();

@@ -24,7 +24,7 @@ public sealed class BlarggMemoryTimingRomTests
             _romFileNames,
             fileName =>
             {
-                byte[] rom = File.ReadAllBytes(Path.Combine(RomDirectory, fileName));
+                var rom = File.ReadAllBytes(Path.Combine(RomDirectory, fileName));
                 return RomTestRunner.Run(rom, MaxMachineCycles);
             }
         )

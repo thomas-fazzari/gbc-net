@@ -45,8 +45,8 @@ internal static class CallReturnInstructions
             opcode += ConditionOpcodeStep
         )
         {
-            byte opcodeByte = (byte)opcode;
-            ConditionCode conditionCode = InstructionOperands.DecodeConditionCode(opcodeByte);
+            var opcodeByte = (byte)opcode;
+            var conditionCode = InstructionOperands.DecodeConditionCode(opcodeByte);
             builder.MapNoOperand(opcodeByte, cpu => ReturnIf(cpu, conditionCode));
         }
     }
@@ -62,8 +62,8 @@ internal static class CallReturnInstructions
             opcode += ConditionOpcodeStep
         )
         {
-            byte opcodeByte = (byte)opcode;
-            ConditionCode conditionCode = InstructionOperands.DecodeConditionCode(opcodeByte);
+            var opcodeByte = (byte)opcode;
+            var conditionCode = InstructionOperands.DecodeConditionCode(opcodeByte);
             builder.MapImmediate16(
                 opcodeByte,
                 (cpu, lowByte, highByte) => CallImmediate16If(cpu, lowByte, highByte, conditionCode)
@@ -82,8 +82,8 @@ internal static class CallReturnInstructions
             opcode += RestartOpcodeStep
         )
         {
-            byte opcodeByte = (byte)opcode;
-            ushort targetAddress = DecodeRestartTarget(opcodeByte);
+            var opcodeByte = (byte)opcode;
+            var targetAddress = DecodeRestartTarget(opcodeByte);
             builder.MapNoOperand(opcodeByte, cpu => Restart(cpu, targetAddress));
         }
     }

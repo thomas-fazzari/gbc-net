@@ -145,7 +145,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
 
         if (events.Sweep)
         {
-            Channel1SweepResult sweepResult = _channel1Sweep.Clock();
+            var sweepResult = _channel1Sweep.Clock();
             if (sweepResult.PeriodChanged)
             {
                 _channel1.SetPeriod(sweepResult.Period);
@@ -187,7 +187,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
         _channel3.Tick(tCycles);
         _channel4.Tick(tCycles);
 
-        for (int samplesDue = _sampleBuffer.Tick(tCycles); samplesDue > 0; samplesDue--)
+        for (var samplesDue = _sampleBuffer.Tick(tCycles); samplesDue > 0; samplesDue--)
         {
             _sampleBuffer.Add(_outputFilter.Filter(GetAnalogStereoSample(), IsAnyDacEnabled()));
         }
@@ -198,16 +198,16 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     /// </summary>
     internal ApuRawStereoSample GetRawStereoSample()
     {
-        byte masterVolume = _registers[MasterVolumeRegister - RegisterStart];
-        byte panning = _registers[SoundPanningRegister - RegisterStart];
+        var masterVolume = _registers[MasterVolumeRegister - RegisterStart];
+        var panning = _registers[SoundPanningRegister - RegisterStart];
 
-        int leftInput =
+        var leftInput =
             ((panning & Channel1LeftRouteMask) != 0 ? _channel1.DigitalOutput : 0)
             + ((panning & Channel2LeftRouteMask) != 0 ? _channel2.DigitalOutput : 0)
             + ((panning & Channel3LeftRouteMask) != 0 ? _channel3.DigitalOutput : 0)
             + ((panning & Channel4LeftRouteMask) != 0 ? _channel4.DigitalOutput : 0);
 
-        int rightInput =
+        var rightInput =
             ((panning & Channel1RightRouteMask) != 0 ? _channel1.DigitalOutput : 0)
             + ((panning & Channel2RightRouteMask) != 0 ? _channel2.DigitalOutput : 0)
             + ((panning & Channel3RightRouteMask) != 0 ? _channel3.DigitalOutput : 0)
@@ -221,12 +221,12 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
 
     private ApuAnalogStereoSample GetAnalogStereoSample()
     {
-        byte masterVolume = _registers[MasterVolumeRegister - RegisterStart];
-        byte panning = _registers[SoundPanningRegister - RegisterStart];
+        var masterVolume = _registers[MasterVolumeRegister - RegisterStart];
+        var panning = _registers[SoundPanningRegister - RegisterStart];
 
-        int leftVolume = ((masterVolume & LeftVolumeMask) >> LeftVolumeShift) + 1;
+        var leftVolume = ((masterVolume & LeftVolumeMask) >> LeftVolumeShift) + 1;
         double leftInput = 0;
-        int rightVolume = (masterVolume & RightVolumeMask) + 1;
+        var rightVolume = (masterVolume & RightVolumeMask) + 1;
         double rightInput = 0;
 
         if ((panning & Channel1LeftRouteMask) != 0)
@@ -351,9 +351,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
                 _channel1.WriteControl(value, _registers[Channel1EnvelopeRegister - RegisterStart]);
                 if ((value & TriggerMask) != 0)
                 {
-                    Channel1SweepResult triggerSweepResult = _channel1Sweep.Trigger(
-                        _channel1.Period
-                    );
+                    var triggerSweepResult = _channel1Sweep.Trigger(_channel1.Period);
                     if (triggerSweepResult.Overflowed)
                     {
                         _channel1.Disable();

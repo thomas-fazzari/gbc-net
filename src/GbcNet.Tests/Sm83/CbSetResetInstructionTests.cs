@@ -23,7 +23,7 @@ public sealed class CbSetResetInstructionTests
         byte expectedValue
     )
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0xCB;
             bytes[0x0101] = prefixedOpcode;
@@ -32,7 +32,7 @@ public sealed class CbSetResetInstructionTests
         cpu.Registers.SetRegister(register8, value);
         cpu.Registers.F = AllFlags;
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(2, machineCycles);
         Assert.Equal(expectedValue, cpu.Registers.GetRegister(register8));
@@ -51,7 +51,7 @@ public sealed class CbSetResetInstructionTests
         byte expectedValue
     )
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = 0xCB;
             bytes[0x0101] = prefixedOpcode;
@@ -60,7 +60,7 @@ public sealed class CbSetResetInstructionTests
         cpu.Registers.F = AllFlags;
         CpuTestFactory.GetBus(cpu).WriteByte(0xC123, value);
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(4, machineCycles);
         Assert.Equal(expectedValue, CpuTestFactory.GetBus(cpu).ReadByte(0xC123));
@@ -71,10 +71,10 @@ public sealed class CbSetResetInstructionTests
     [Fact]
     public void Step_ExecutesEveryPrefixedSetResetOpcode()
     {
-        for (int prefixedOpcode = 0x80; prefixedOpcode <= 0xFF; prefixedOpcode++)
+        for (var prefixedOpcode = 0x80; prefixedOpcode <= 0xFF; prefixedOpcode++)
         {
-            int opcode = prefixedOpcode;
-            Cpu cpu = CpuTestFactory.CreateCpu(bytes =>
+            var opcode = prefixedOpcode;
+            var cpu = CpuTestFactory.CreateCpu(bytes =>
             {
                 bytes[0x0100] = 0xCB;
                 bytes[0x0101] = (byte)opcode;
@@ -89,7 +89,7 @@ public sealed class CbSetResetInstructionTests
             cpu.Registers.F = AllFlags;
             CpuTestFactory.GetBus(cpu).WriteByte(0xC123, 0xFF);
 
-            int machineCycles = cpu.Step();
+            var machineCycles = cpu.Step();
 
             Assert.Equal((prefixedOpcode & 0x07) == 0x06 ? 4 : 2, machineCycles);
             Assert.Equal(AllFlags, cpu.Registers.F);

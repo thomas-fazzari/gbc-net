@@ -81,7 +81,7 @@ internal sealed partial class MainMenu : UserControl
 
     public void SetPauseState(bool isEnabled, bool isPaused)
     {
-        string header = isPaused ? "Resume" : "Pause";
+        var header = isPaused ? "Resume" : "Pause";
 
         _nativePauseMenuItem.Header = header;
         _nativePauseMenuItem.IsEnabled = isEnabled;
@@ -95,14 +95,12 @@ internal sealed partial class MainMenu : UserControl
         _nativeFastForwardMenuItem.IsChecked = isEnabled;
         FastForwardMenuItem.IsChecked = isEnabled;
 
-        foreach (
-            (NativeMenuItem item, EmulationSpeed itemSpeed) in _nativeFastForwardSpeedMenuItems
-        )
+        foreach (var (item, itemSpeed) in _nativeFastForwardSpeedMenuItems)
         {
             item.IsChecked = itemSpeed == speed;
         }
 
-        foreach ((MenuItem item, EmulationSpeed itemSpeed) in _windowFastForwardSpeedMenuItems)
+        foreach (var (item, itemSpeed) in _windowFastForwardSpeedMenuItems)
         {
             item.IsChecked = itemSpeed == speed;
         }
@@ -135,9 +133,9 @@ internal sealed partial class MainMenu : UserControl
         FastForwardMenuItem.InputGesture = _fastForwardGesture;
         FastForwardMenuItem.Click += (_, _) => FastForwardRequested?.Invoke(this, EventArgs.Empty);
 
-        foreach (EmulationSpeed speed in Enum.GetValues<EmulationSpeed>())
+        foreach (var speed in Enum.GetValues<EmulationSpeed>())
         {
-            MenuItem item = CreateWindowFastForwardSpeedMenuItem(speed);
+            var item = CreateWindowFastForwardSpeedMenuItem(speed);
             _windowFastForwardSpeedMenuItems.Add((item, speed));
             FastForwardSpeedMenuItem.Items.Add(item);
         }
@@ -211,9 +209,9 @@ internal sealed partial class MainMenu : UserControl
     {
         NativeMenu menu = [];
 
-        foreach (EmulationSpeed speed in Enum.GetValues<EmulationSpeed>())
+        foreach (var speed in Enum.GetValues<EmulationSpeed>())
         {
-            NativeMenuItem item = CreateNativeFastForwardSpeedMenuItem(speed);
+            var item = CreateNativeFastForwardSpeedMenuItem(speed);
             _nativeFastForwardSpeedMenuItems.Add((item, speed));
             menu.Add(item);
         }

@@ -61,7 +61,7 @@ internal sealed class WorkRam
 
     private int GetOffset(ushort address)
     {
-        ushort mappedAddress =
+        var mappedAddress =
             address >= AddressMap.EchoRamStart ? (ushort)(address - 0x2000) : address;
 
         return mappedAddress <= AddressMap.WorkRamFixedBankEnd

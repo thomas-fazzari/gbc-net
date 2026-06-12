@@ -1,4 +1,3 @@
-using FluentResults;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Cartridges.Memory;
 using GbcNet.Core.Memory;
@@ -15,9 +14,9 @@ public sealed class Mbc3CartridgeTests
     [InlineData(CartridgeType.Mbc3RamBattery)]
     public void Load_AcceptsMbc3Cartridge(CartridgeType cartridgeType)
     {
-        byte[] rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)cartridgeType);
+        var rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)cartridgeType);
 
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         Assert.Equal(cartridgeType, cartridge.Header.CartridgeType);
     }
@@ -27,14 +26,14 @@ public sealed class Mbc3CartridgeTests
     [InlineData(CartridgeType.Mbc3TimerRamBattery)]
     public void Load_AcceptsMbc3TimerCartridges(CartridgeType cartridgeType)
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)cartridgeType;
             bytes[0x0149] =
                 cartridgeType is CartridgeType.Mbc3TimerRamBattery ? (byte)0x03 : (byte)0;
         });
 
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         Assert.Equal(cartridgeType, cartridge.Header.CartridgeType);
     }
@@ -42,7 +41,7 @@ public sealed class Mbc3CartridgeTests
     [Fact]
     public void WriteRom_SwitchesMbc3RomBank()
     {
-        byte[] rom = TestRomFactory.Create(
+        var rom = TestRomFactory.Create(
             romSizeCode: 0x01,
             bytes =>
             {
@@ -51,7 +50,7 @@ public sealed class Mbc3CartridgeTests
                 bytes[2 * RomBankSize] = 0x22;
             }
         );
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRom(0x2000, 0x02);
 
@@ -61,13 +60,13 @@ public sealed class Mbc3CartridgeTests
     [Fact]
     public void WriteRom_TreatsMbc3RomBankZeroAsOne()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.Mbc3;
             bytes[0 * RomBankSize] = 0x00;
             bytes[1 * RomBankSize] = 0x11;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRom(0x2000, 0x00);
 
@@ -77,7 +76,7 @@ public sealed class Mbc3CartridgeTests
     [Fact]
     public void WriteRom_AllowsMbc3Banks20_40_60()
     {
-        byte[] rom = TestRomFactory.Create(
+        var rom = TestRomFactory.Create(
             romSizeCode: 0x06,
             bytes =>
             {
@@ -87,7 +86,7 @@ public sealed class Mbc3CartridgeTests
                 bytes[0x60 * RomBankSize] = 0x60;
             }
         );
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRom(0x2000, 0x20);
         Assert.Equal(0x20, cartridge.ReadRom(0x4000));
@@ -102,12 +101,12 @@ public sealed class Mbc3CartridgeTests
     [Fact]
     public void ReadWriteRam_RequiresMbc3RamEnable()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.Mbc3Ram;
             bytes[0x0149] = 0x02;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
 
@@ -122,12 +121,12 @@ public sealed class Mbc3CartridgeTests
     [Fact]
     public void ReadWriteRam_UsesMbc3RamBank()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.Mbc3Ram;
             bytes[0x0149] = 0x03;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRom(0x0000, 0x0A);
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x11);
@@ -145,12 +144,12 @@ public sealed class Mbc3CartridgeTests
     [Fact]
     public void ReadRam_RtcRegisterSelectionReturnsFF()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.Mbc3Ram;
             bytes[0x0149] = 0x02;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRom(0x0000, 0x0A);
         cartridge.WriteRom(0x4000, 0x08);
@@ -161,12 +160,12 @@ public sealed class Mbc3CartridgeTests
     [Fact]
     public void WriteRam_RtcRegisterSelectionDoesNotDirtyBatterySave()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.Mbc3RamBattery;
             bytes[0x0149] = 0x03;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRom(0x0000, 0x0A);
         cartridge.WriteRom(0x4000, 0x08);
@@ -179,7 +178,7 @@ public sealed class Mbc3CartridgeTests
     public void ReadWriteRam_RequiresMbc3RtcEnable()
     {
         FakeClock clock = new();
-        Cartridge cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        var cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
 
         SelectRtcRegister(cartridge, Mbc3RealTimeClock.SecondsRegister);
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x2A);
@@ -200,7 +199,7 @@ public sealed class Mbc3CartridgeTests
     public void ReadWriteRam_MapsMbc3RtcRegisters08Through0C()
     {
         FakeClock clock = new();
-        Cartridge cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        var cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
 
         cartridge.WriteRom(0x0000, 0x0A);
         WriteRtcRegister(cartridge, Mbc3RealTimeClock.SecondsRegister, 1);
@@ -221,7 +220,7 @@ public sealed class Mbc3CartridgeTests
     public void WriteRam_Mbc3RtcStoresMaskedRegisterBits()
     {
         FakeClock clock = new();
-        Cartridge cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        var cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
 
         cartridge.WriteRom(0x0000, 0x0A);
         WriteRtcRegister(cartridge, Mbc3RealTimeClock.SecondsRegister, 0xFF);
@@ -240,7 +239,7 @@ public sealed class Mbc3CartridgeTests
     public void WriteRom_LatchesMbc3RtcOnlyOnZeroToOneTransition()
     {
         FakeClock clock = new();
-        Cartridge cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        var cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
 
         cartridge.WriteRom(0x0000, 0x0A);
         WriteRtcRegister(cartridge, Mbc3RealTimeClock.SecondsRegister, 7);
@@ -257,7 +256,7 @@ public sealed class Mbc3CartridgeTests
     public void ReadRam_Mbc3RtcLatchedValueStaysStableWhileClockAdvances()
     {
         FakeClock clock = new();
-        Cartridge cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        var cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
 
         cartridge.WriteRom(0x0000, 0x0A);
         WriteRtcRegister(cartridge, Mbc3RealTimeClock.SecondsRegister, 10);
@@ -275,7 +274,7 @@ public sealed class Mbc3CartridgeTests
     public void ReadRam_Mbc3RtcTicksSecondsMinutesHoursDaysAndCarry()
     {
         FakeClock clock = new();
-        Cartridge cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        var cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
 
         cartridge.WriteRom(0x0000, 0x0A);
         WriteRtcRegister(cartridge, Mbc3RealTimeClock.SecondsRegister, 58);
@@ -297,7 +296,7 @@ public sealed class Mbc3CartridgeTests
     public void ReadRam_Mbc3RtcHaltBitStopsClock()
     {
         FakeClock clock = new();
-        Cartridge cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        var cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
 
         cartridge.WriteRom(0x0000, 0x0A);
         WriteRtcRegister(cartridge, Mbc3RealTimeClock.SecondsRegister, 10);
@@ -312,19 +311,19 @@ public sealed class Mbc3CartridgeTests
     [Fact]
     public void BatterySave_ExportsAndImportsMbc3RamBanks()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.Mbc3RamBattery;
             bytes[0x0149] = 0x03;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRom(0x0000, 0x0A);
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x11);
         cartridge.WriteRom(0x4000, 0x01);
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x22);
 
-        byte[] save = cartridge.ExportBatterySave();
+        var save = cartridge.ExportBatterySave();
 
         Assert.True(cartridge.HasBatteryBackedSave);
         Assert.Equal(32 * 1024, cartridge.BatterySaveSize);
@@ -332,8 +331,8 @@ public sealed class Mbc3CartridgeTests
         Assert.Equal(0x11, save[0]);
         Assert.Equal(0x22, save[AddressMap.ExternalRamWindowSize]);
 
-        Cartridge reloaded = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
-        Result import = reloaded.ImportBatterySave(save);
+        var reloaded = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var import = reloaded.ImportBatterySave(save);
 
         Assert.True(
             import.IsSuccess,
@@ -352,12 +351,12 @@ public sealed class Mbc3CartridgeTests
     public void BatterySave_ExportsAndImportsMbc3RamAndRtcState()
     {
         FakeClock clock = new();
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.Mbc3TimerRamBattery;
             bytes[0x0149] = 0x03;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(
+        var cartridge = ResultAssertions.AssertSuccess(
             Cartridge.Load(rom, () => clock.UnixTimeSeconds)
         );
 
@@ -369,16 +368,16 @@ public sealed class Mbc3CartridgeTests
         WriteRtcRegister(cartridge, Mbc3RealTimeClock.MinutesRegister, 34);
         LatchRtc(cartridge);
 
-        byte[] save = cartridge.ExportBatterySave();
+        var save = cartridge.ExportBatterySave();
 
         Assert.True(cartridge.HasBatteryBackedSave);
         Assert.Equal((32 * 1024) + Mbc3RealTimeClock.SaveStateSize, cartridge.BatterySaveSize);
         Assert.True(cartridge.IsBatterySaveDirty);
 
-        Cartridge reloaded = ResultAssertions.AssertSuccess(
+        var reloaded = ResultAssertions.AssertSuccess(
             Cartridge.Load(rom, () => clock.UnixTimeSeconds)
         );
-        Result import = reloaded.ImportBatterySave(save);
+        var import = reloaded.ImportBatterySave(save);
 
         Assert.True(
             import.IsSuccess,
@@ -399,7 +398,7 @@ public sealed class Mbc3CartridgeTests
     public void BatterySave_Mbc3RtcExportUsesStandardRtcTailOffsets()
     {
         FakeClock clock = new() { UnixTimeSeconds = 123456 };
-        Cartridge cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        var cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
 
         cartridge.WriteRom(0x0000, 0x0A);
         WriteRtcRegister(cartridge, Mbc3RealTimeClock.SecondsRegister, 1);
@@ -409,7 +408,7 @@ public sealed class Mbc3CartridgeTests
         WriteRtcRegister(cartridge, Mbc3RealTimeClock.DayHighRegister, 0x41);
         LatchRtc(cartridge);
 
-        byte[] save = cartridge.ExportBatterySave();
+        var save = cartridge.ExportBatterySave();
         byte[] expectedTimestamp = [0x40, 0xE2, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00];
 
         Assert.Equal(1, save[0]);
@@ -433,8 +432,8 @@ public sealed class Mbc3CartridgeTests
     public void BatterySave_Mbc3RtcImportIgnoresPaddingAndMasksRegisterBits()
     {
         FakeClock clock = new();
-        Cartridge cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
-        byte[] save = cartridge.ExportBatterySave();
+        var cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        var save = cartridge.ExportBatterySave();
         const int latchedRtcOffset = 20;
         save[latchedRtcOffset] = 0xFF;
         save[latchedRtcOffset + 1] = 0xEE;
@@ -444,9 +443,9 @@ public sealed class Mbc3CartridgeTests
         save[latchedRtcOffset + 9] = 0xCC;
         save[latchedRtcOffset + 16] = 0xFF;
         save[latchedRtcOffset + 17] = 0xBB;
-        Cartridge reloaded = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        var reloaded = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
 
-        Result import = reloaded.ImportBatterySave(save);
+        var import = reloaded.ImportBatterySave(save);
 
         Assert.True(
             import.IsSuccess,
@@ -462,10 +461,7 @@ public sealed class Mbc3CartridgeTests
     [Fact]
     public void BatterySave_Mbc3TimerBatteryHasSaveWithoutExternalRam()
     {
-        Cartridge cartridge = LoadMbc3TimerCartridge(
-            CartridgeType.Mbc3TimerBattery,
-            new FakeClock()
-        );
+        var cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, new FakeClock());
 
         Assert.True(cartridge.HasBatteryBackedSave);
         Assert.Equal(Mbc3RealTimeClock.SaveStateSize, cartridge.BatterySaveSize);
@@ -475,12 +471,9 @@ public sealed class Mbc3CartridgeTests
     [Fact]
     public void BatterySave_RejectsInvalidMbc3RtcSaveSize()
     {
-        Cartridge cartridge = LoadMbc3TimerCartridge(
-            CartridgeType.Mbc3TimerBattery,
-            new FakeClock()
-        );
+        var cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, new FakeClock());
 
-        Result result = cartridge.ImportBatterySave(new byte[1]);
+        var result = cartridge.ImportBatterySave(new byte[1]);
 
         Assert.True(result.IsFailed);
     }
@@ -488,21 +481,21 @@ public sealed class Mbc3CartridgeTests
     [Fact]
     public void BatterySave_RejectsInvalidMbc3SaveSize()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.Mbc3RamBattery;
             bytes[0x0149] = 0x02;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
-        Result result = cartridge.ImportBatterySave(new byte[1]);
+        var result = cartridge.ImportBatterySave(new byte[1]);
 
         Assert.True(result.IsFailed);
     }
 
     private static Cartridge LoadMbc3TimerCartridge(CartridgeType cartridgeType, FakeClock clock)
     {
-        byte[] rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)cartridgeType);
+        var rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)cartridgeType);
         return ResultAssertions.AssertSuccess(Cartridge.Load(rom, () => clock.UnixTimeSeconds));
     }
 

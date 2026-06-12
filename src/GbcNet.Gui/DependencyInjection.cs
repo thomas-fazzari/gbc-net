@@ -29,13 +29,13 @@ internal static class DependencyInjection
             .Configure<StartupConfiguration>(
                 static (options, startupConfiguration) =>
                 {
-                    InputOptions inputOptions = startupConfiguration.InputOptions;
+                    var inputOptions = startupConfiguration.InputOptions;
                     options.Version = inputOptions.Version;
                     options.ActiveProfile = inputOptions.ActiveProfile;
                     options.Profiles = inputOptions.Profiles;
                 }
             );
-        services.AddSingleton<InputConfiguration>(provider =>
+        services.AddSingleton(provider =>
             InputConfiguration.FromOptions(
                 provider.GetRequiredService<IOptions<InputOptions>>().Value
             )

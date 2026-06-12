@@ -60,7 +60,7 @@ internal sealed class JoypadController(InterruptController interrupts)
     /// </summary>
     public void Write(byte value, bool requestInterruptOnTransition)
     {
-        byte previousValue = Read();
+        var previousValue = Read();
         _selectedGroups = (byte)(value & SelectBitsMask);
 
         if (requestInterruptOnTransition)
@@ -74,8 +74,8 @@ internal sealed class JoypadController(InterruptController interrupts)
     /// </summary>
     public void SetButtonState(JoypadButton button, bool pressed)
     {
-        byte previousValue = Read();
-        byte buttonMask = GetButtonMask(button);
+        var previousValue = Read();
+        var buttonMask = GetButtonMask(button);
         _pressedButtons = pressed
             ? (byte)(_pressedButtons | buttonMask)
             : (byte)(_pressedButtons & ~buttonMask);
@@ -100,7 +100,7 @@ internal sealed class JoypadController(InterruptController interrupts)
 
     private void RequestInterruptOnHighToLowTransition(byte previousValue, byte currentValue)
     {
-        byte newlyPressedVisibleBits = (byte)(previousValue & ~currentValue & ReleasedLowNibble);
+        var newlyPressedVisibleBits = (byte)(previousValue & ~currentValue & ReleasedLowNibble);
         if (newlyPressedVisibleBits != 0)
         {
             interrupts.Request(InterruptSource.Joypad);

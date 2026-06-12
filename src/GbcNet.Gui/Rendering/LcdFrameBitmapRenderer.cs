@@ -21,10 +21,10 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
     {
         ArgumentNullException.ThrowIfNull(frame);
 
-        WriteableBitmap bitmap = GetNextBitmap(frame.Width, frame.Height);
+        var bitmap = GetNextBitmap(frame.Width, frame.Height);
 
-        using ILockedFramebuffer framebuffer = bitmap.Lock();
-        int bgraLength = checked(framebuffer.RowBytes * frame.Height);
+        using var framebuffer = bitmap.Lock();
+        var bgraLength = checked(framebuffer.RowBytes * frame.Height);
         WritePixels(
             frame,
             destination: new Span<byte>(framebuffer.Address.ToPointer(), bgraLength),
@@ -35,7 +35,7 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
 
     public void Dispose()
     {
-        for (int index = 0; index < _bitmaps.Length; index++)
+        for (var index = 0; index < _bitmaps.Length; index++)
         {
             _bitmaps[index]?.Dispose();
             _bitmaps[index] = null;
@@ -44,11 +44,11 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
 
     private WriteableBitmap GetNextBitmap(int width, int height)
     {
-        int index = _nextBitmapIndex;
+        var index = _nextBitmapIndex;
         _nextBitmapIndex = (_nextBitmapIndex + 1) % _bitmaps.Length;
 
         var pixelSize = new PixelSize(width, height);
-        WriteableBitmap? bitmap = _bitmaps[index];
+        var bitmap = _bitmaps[index];
 
         if (bitmap?.PixelSize == pixelSize)
         {
@@ -71,7 +71,7 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
         ArgumentNullException.ThrowIfNull(frame);
         ArgumentOutOfRangeException.ThrowIfLessThan(rowBytes, frame.Width * BytesPerPixel);
 
-        int requiredLength = checked(rowBytes * frame.Height);
+        var requiredLength = checked(rowBytes * frame.Height);
 
         if (destination.Length < requiredLength)
         {
@@ -97,18 +97,18 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
 
     private static void WriteDmgShadePixels(LcdFrame frame, Span<byte> destination, int rowBytes)
     {
-        ReadOnlySpan<byte> shades = frame.Pixels.Span;
-        ReadOnlySpan<byte> colors = DmgLcdPalette.Bgra;
+        var shades = frame.Pixels.Span;
+        var colors = DmgLcdPalette.Bgra;
 
-        for (int y = 0; y < frame.Height; y++)
+        for (var y = 0; y < frame.Height; y++)
         {
-            int sourceRowOffset = y * frame.Width;
-            int targetRowOffset = y * rowBytes;
+            var sourceRowOffset = y * frame.Width;
+            var targetRowOffset = y * rowBytes;
 
-            for (int x = 0; x < frame.Width; x++)
+            for (var x = 0; x < frame.Width; x++)
             {
-                int targetOffset = targetRowOffset + (x * BytesPerPixel);
-                int colorOffset =
+                var targetOffset = targetRowOffset + (x * BytesPerPixel);
+                var colorOffset =
                     (shades[sourceRowOffset + x] > 3 ? 3 : shades[sourceRowOffset + x])
                     * BytesPerPixel;
                 destination[targetOffset] = colors[colorOffset];
@@ -121,18 +121,18 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
 
     private static void WriteRgb555Pixels(LcdFrame frame, Span<byte> destination, int rowBytes)
     {
-        ReadOnlySpan<byte> pixels = frame.Pixels.Span;
+        var pixels = frame.Pixels.Span;
 
-        for (int y = 0; y < frame.Height; y++)
+        for (var y = 0; y < frame.Height; y++)
         {
-            int sourceRowOffset = y * frame.Width * 2;
-            int targetRowOffset = y * rowBytes;
+            var sourceRowOffset = y * frame.Width * 2;
+            var targetRowOffset = y * rowBytes;
 
-            for (int x = 0; x < frame.Width; x++)
+            for (var x = 0; x < frame.Width; x++)
             {
-                int sourceOffset = sourceRowOffset + (x * 2);
-                int color = pixels[sourceOffset] | (pixels[sourceOffset + 1] << 8);
-                int targetOffset = targetRowOffset + (x * BytesPerPixel);
+                var sourceOffset = sourceRowOffset + (x * 2);
+                var color = pixels[sourceOffset] | (pixels[sourceOffset + 1] << 8);
+                var targetOffset = targetRowOffset + (x * BytesPerPixel);
 
                 destination[targetOffset] = ExpandRgb555Channel((color >> 10) & 0x1F);
                 destination[targetOffset + 1] = ExpandRgb555Channel((color >> 5) & 0x1F);

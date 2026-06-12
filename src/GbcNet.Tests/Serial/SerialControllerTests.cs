@@ -109,7 +109,7 @@ public sealed class SerialControllerTests
         int machineCycles
     )
     {
-        for (int cycle = 0; cycle < machineCycles; cycle++)
+        for (var cycle = 0; cycle < machineCycles; cycle++)
         {
             serial.TickSystemCounter(counter.AdvanceMachineCycle());
         }

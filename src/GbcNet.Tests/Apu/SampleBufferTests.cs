@@ -13,7 +13,7 @@ public sealed class SampleBufferTests
     {
         SampleBuffer<ApuStereoSample> buffer = new(SourceClockHz, SampleRate);
 
-        int samplesDue = buffer.Tick(SourceClockHz);
+        var samplesDue = buffer.Tick(SourceClockHz);
 
         Assert.Equal(SampleRate, samplesDue);
     }

@@ -18,13 +18,11 @@ public sealed class GameBoyTests
     [Fact]
     public void Step_ReturnsCpuMachineCyclesAndTicksTimer()
     {
-        Cartridge cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(TestRomFactory.Create())
-        );
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         gameBoy.Bus.WriteByte(AddressMap.TimerControlRegister, 0b0000_0101);
 
-        int machineCycles = gameBoy.Step();
+        var machineCycles = gameBoy.Step();
         gameBoy.Step();
         gameBoy.Step();
         gameBoy.Step();
@@ -36,7 +34,7 @@ public sealed class GameBoyTests
     [Fact]
     public void Step_ReturnsZeroAfterCpuEntersStop()
     {
-        Cartridge cartridge = ResultAssertions.AssertSuccess(
+        var cartridge = ResultAssertions.AssertSuccess(
             Cartridge.Load(
                 TestRomFactory.Create(bytes =>
                 {
@@ -54,7 +52,7 @@ public sealed class GameBoyTests
     [Fact]
     public void Step_TicksSerial()
     {
-        Cartridge cartridge = ResultAssertions.AssertSuccess(
+        var cartridge = ResultAssertions.AssertSuccess(
             Cartridge.Load(TestRomFactory.Create(bytes => bytes[0x0100] = HaltOpcode))
         );
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
@@ -63,7 +61,7 @@ public sealed class GameBoyTests
         gameBoy.Bus.WriteByte(AddressMap.SerialTransferDataRegister, 0x41);
         gameBoy.Bus.WriteByte(AddressMap.SerialTransferControlRegister, 0x81);
 
-        for (int step = 0; step < 1024; step++)
+        for (var step = 0; step < 1024; step++)
         {
             gameBoy.Step();
         }
@@ -76,9 +74,7 @@ public sealed class GameBoyTests
     [Fact]
     public void Constructor_AppliesDmgPostBootState()
     {
-        Cartridge cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(TestRomFactory.Create())
-        );
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
 
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
 
@@ -90,9 +86,7 @@ public sealed class GameBoyTests
     [Fact]
     public void DrainAudioSamples_ReturnsProducedSamples()
     {
-        Cartridge cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(TestRomFactory.Create())
-        );
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         var destination = new ApuStereoSample[1];
 
@@ -105,9 +99,7 @@ public sealed class GameBoyTests
     [Fact]
     public void DrainAudioSamples_PreservesSamplesThatDoNotFit()
     {
-        Cartridge cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(TestRomFactory.Create())
-        );
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         var firstDrain = new ApuStereoSample[1];
         var secondDrain = new ApuStereoSample[2];
@@ -121,9 +113,7 @@ public sealed class GameBoyTests
     [Fact]
     public void DrainAudioSamples_ReturnsZeroWhenEmpty()
     {
-        Cartridge cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(TestRomFactory.Create())
-        );
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         Span<ApuStereoSample> destination = stackalloc ApuStereoSample[1];
 
@@ -133,9 +123,7 @@ public sealed class GameBoyTests
     [Fact]
     public void SetButtonState_UpdatesJoypadInputState()
     {
-        Cartridge cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(TestRomFactory.Create())
-        );
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x10);
 
@@ -147,7 +135,7 @@ public sealed class GameBoyTests
     [Fact]
     public void Step_RaisesFrameCompletedAfterCpuInstruction()
     {
-        Cartridge cartridge = ResultAssertions.AssertSuccess(
+        var cartridge = ResultAssertions.AssertSuccess(
             Cartridge.Load(
                 TestRomFactory.Create(bytes =>
                 {
@@ -161,12 +149,12 @@ public sealed class GameBoyTests
         var completedFrames = new List<LcdFrame>();
         gameBoy.FrameCompleted += (_, e) => completedFrames.Add(e.Frame);
 
-        for (int step = 0; completedFrames.Count == 0 && step < 20_000; step++)
+        for (var step = 0; completedFrames.Count == 0 && step < 20_000; step++)
         {
             gameBoy.Step();
         }
 
-        LcdFrame completedFrame = Assert.Single(completedFrames);
+        var completedFrame = Assert.Single(completedFrames);
         Assert.Equal(160, completedFrame.Width);
         Assert.Equal(144, completedFrame.Height);
         Assert.Equal(LcdPixelFormat.DmgShadeIndex8, completedFrame.PixelFormat);

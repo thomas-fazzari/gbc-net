@@ -141,8 +141,8 @@ internal static class CgbPostBootState
         Cartridge cartridge
     )
     {
-        byte registerB = CalculateDmgCompatibilityRegisterB(cartridge);
-        ushort registerHl = registerB is 0x43 or 0x58
+        var registerB = CalculateDmgCompatibilityRegisterB(cartridge);
+        var registerHl = registerB is 0x43 or 0x58
             ? DmgCompatibilityLogoRegisterHl
             : DmgCompatibilityDefaultRegisterHl;
 
@@ -175,7 +175,7 @@ internal static class CgbPostBootState
 
     private static bool IsNintendoLicensee(Cartridge cartridge)
     {
-        byte oldLicenseeCode = cartridge.ReadRom(OldLicenseeCodeAddress);
+        var oldLicenseeCode = cartridge.ReadRom(OldLicenseeCodeAddress);
         return oldLicenseeCode == OldNintendoLicenseeCode
             || (
                 oldLicenseeCode == NewLicenseeMarker
@@ -186,8 +186,8 @@ internal static class CgbPostBootState
 
     private static void ApplyAudioRegisters(MemoryBus bus)
     {
-        ReadOnlySpan<byte> values = AudioRegisterStates;
-        for (int offset = 0; offset < values.Length; offset++)
+        var values = AudioRegisterStates;
+        for (var offset = 0; offset < values.Length; offset++)
         {
             bus.SetHardwareRegisterState((ushort)(AudioRegistersStart + offset), values[offset]);
         }

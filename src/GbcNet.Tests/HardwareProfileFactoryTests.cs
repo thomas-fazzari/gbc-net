@@ -15,9 +15,9 @@ public sealed class HardwareProfileFactoryTests
     [InlineData(CgbSupport.Enhanced)]
     public void Create_ReturnsDmgProfileForDmgHardwareWhenCartridgeAllowsDmg(CgbSupport cgbSupport)
     {
-        CartridgeHeader header = CreateHeader(cgbSupport);
+        var header = CreateHeader(cgbSupport);
 
-        IHardwareProfile profile = HardwareProfileFactory.Create(HardwareModel.Dmg, header);
+        var profile = HardwareProfileFactory.Create(HardwareModel.Dmg, header);
 
         Assert.Same(DmgHardwareProfile.Instance, profile);
         Assert.Equal(HardwareModel.Dmg, profile.Model);
@@ -27,9 +27,7 @@ public sealed class HardwareProfileFactoryTests
         Assert.IsType<DmgPpuEngine>(profile.CreatePpuEngine());
         Assert.IsType<DmgOamDmaTransferPolicy>(profile.CreateOamDmaTransferPolicy());
 
-        DmgApuHardwareProfile apuProfile = Assert.IsType<DmgApuHardwareProfile>(
-            profile.CreateApuHardwareProfile()
-        );
+        var apuProfile = Assert.IsType<DmgApuHardwareProfile>(profile.CreateApuHardwareProfile());
 
         Assert.Equal(0.999958, apuProfile.GetOutputHighPassChargeFactor(apuProfile.OutputClockHz));
         Assert.Equal(2, profile.WorkRamBankCount);
@@ -38,9 +36,9 @@ public sealed class HardwareProfileFactoryTests
     [Fact]
     public void Create_RejectsCgbRequiredCartridgeForDmgHardware()
     {
-        CartridgeHeader header = CreateHeader(CgbSupport.Required);
+        var header = CreateHeader(CgbSupport.Required);
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+        var exception = Assert.Throws<NotSupportedException>(() =>
             HardwareProfileFactory.Create(HardwareModel.Dmg, header)
         );
 
@@ -54,11 +52,11 @@ public sealed class HardwareProfileFactoryTests
         CgbSupport cgbSupport
     )
     {
-        CartridgeHeader header = CreateHeader(cgbSupport);
+        var header = CreateHeader(cgbSupport);
 
-        IHardwareProfile profile = HardwareProfileFactory.Create(HardwareModel.Cgb, header);
+        var profile = HardwareProfileFactory.Create(HardwareModel.Cgb, header);
 
-        CgbHardwareProfile cgbProfile = Assert.IsType<CgbHardwareProfile>(profile);
+        var cgbProfile = Assert.IsType<CgbHardwareProfile>(profile);
         Assert.Equal(HardwareModel.Cgb, cgbProfile.Model);
         Assert.Equal(CgbOperatingMode.Cgb, cgbProfile.OperatingMode);
         Assert.Equal(2, cgbProfile.VideoRamBankCount);
@@ -66,7 +64,7 @@ public sealed class HardwareProfileFactoryTests
         Assert.True(cgbProfile.IsColorPaletteRamEnabled);
         Assert.IsType<CgbPpuEngine>(cgbProfile.CreatePpuEngine());
         Assert.IsType<CgbOamDmaTransferPolicy>(cgbProfile.CreateOamDmaTransferPolicy());
-        CgbApuHardwareProfile apuProfile = Assert.IsType<CgbApuHardwareProfile>(
+        var apuProfile = Assert.IsType<CgbApuHardwareProfile>(
             cgbProfile.CreateApuHardwareProfile()
         );
         Assert.Equal(0.998943, apuProfile.GetOutputHighPassChargeFactor(apuProfile.OutputClockHz));
@@ -76,11 +74,11 @@ public sealed class HardwareProfileFactoryTests
     [Fact]
     public void Create_ReturnsDmgCompatibilityProfileForCgbHardwareWhenCartridgeIsDmgOnly()
     {
-        CartridgeHeader header = CreateHeader(CgbSupport.None);
+        var header = CreateHeader(CgbSupport.None);
 
-        IHardwareProfile profile = HardwareProfileFactory.Create(HardwareModel.Cgb, header);
+        var profile = HardwareProfileFactory.Create(HardwareModel.Cgb, header);
 
-        CgbHardwareProfile cgbProfile = Assert.IsType<CgbHardwareProfile>(profile);
+        var cgbProfile = Assert.IsType<CgbHardwareProfile>(profile);
         Assert.Equal(HardwareModel.Cgb, cgbProfile.Model);
         Assert.Equal(CgbOperatingMode.DmgCompatibility, cgbProfile.OperatingMode);
         Assert.Equal(1, cgbProfile.VideoRamBankCount);
@@ -106,7 +104,7 @@ public sealed class HardwareProfileFactoryTests
             ),
         };
 
-        Cartridge cartridge = ResultAssertions.AssertSuccess(
+        var cartridge = ResultAssertions.AssertSuccess(
             Cartridge.Load(TestRomFactory.Create(rom => rom[0x0143] = cgbFlag))
         );
 

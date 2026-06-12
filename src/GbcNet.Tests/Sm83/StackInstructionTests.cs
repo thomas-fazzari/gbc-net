@@ -21,11 +21,11 @@ public sealed class StackInstructionTests
         ushort expectedValue
     )
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
+        var cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
         cpu.Registers.SP = 0xC100;
         cpu.Registers.SetStackRegisterPair((StackRegisterPair)registerPair, value);
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(4, machineCycles);
         Assert.Equal(0xC0FE, cpu.Registers.SP);
@@ -50,12 +50,12 @@ public sealed class StackInstructionTests
         ushort expectedValue
     )
     {
-        Cpu cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
+        var cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
         cpu.Registers.SP = 0xC100;
         CpuTestFactory.GetBus(cpu).WriteByte(0xC100, (byte)stackValue);
         CpuTestFactory.GetBus(cpu).WriteByte(0xC101, (byte)(stackValue >> 8));
 
-        int machineCycles = cpu.Step();
+        var machineCycles = cpu.Step();
 
         Assert.Equal(3, machineCycles);
         Assert.Equal(0xC102, cpu.Registers.SP);

@@ -112,10 +112,10 @@ internal sealed class EmulationSession
             );
         }
 
-        bool enabledChanged =
+        var enabledChanged =
             Interlocked.Exchange(ref _isFastForwardEnabled, enabled ? 1 : 0) != (enabled ? 1 : 0);
 
-        bool speedChanged = Interlocked.Exchange(ref _fastForwardSpeed, (int)speed) != (int)speed;
+        var speedChanged = Interlocked.Exchange(ref _fastForwardSpeed, (int)speed) != (int)speed;
 
         if (!enabledChanged && !speedChanged)
         {
@@ -131,15 +131,15 @@ internal sealed class EmulationSession
 
     private async Task RunAsync()
     {
-        long pacingBaseTimestamp = Stopwatch.GetTimestamp();
+        var pacingBaseTimestamp = Stopwatch.GetTimestamp();
         long elapsedMachineCycles = 0;
-        double speedMultiplier = GetSpeedMultiplier();
-        long nextThrottleMachineCycles = GetThrottleMachineCycles(speedMultiplier);
+        var speedMultiplier = GetSpeedMultiplier();
+        var nextThrottleMachineCycles = GetThrottleMachineCycles(speedMultiplier);
         long nextSaveMachineCycles = MachineCyclesPerSaveFlush;
         long pacingBaseMachineCycles = 0;
-        long metricsTimestamp = pacingBaseTimestamp;
-        int metricsFrameCount = 0;
-        int pacingRevision = Volatile.Read(ref _pacingRevision);
+        var metricsTimestamp = pacingBaseTimestamp;
+        var metricsFrameCount = 0;
+        var pacingRevision = Volatile.Read(ref _pacingRevision);
 
         try
         {
@@ -155,17 +155,13 @@ internal sealed class EmulationSession
                     continue;
                 }
 
-                while (
-                    _pendingButtonStates.TryDequeue(
-                        out (JoypadButton Button, bool Pressed) buttonState
-                    )
-                )
+                while (_pendingButtonStates.TryDequeue(out var buttonState))
                 {
                     _gameBoy.SetButtonState(buttonState.Button, buttonState.Pressed);
                 }
 
                 _gameBoy.VideoRenderingEnabled = ShouldRenderVideoFrame();
-                int stepMachineCycles = _gameBoy.Step();
+                var stepMachineCycles = _gameBoy.Step();
                 if (stepMachineCycles == 0)
                 {
                     await Task.WhenAny(
@@ -191,7 +187,7 @@ internal sealed class EmulationSession
                     continue;
                 }
 
-                int currentPacingRevision = Volatile.Read(ref _pacingRevision);
+                var currentPacingRevision = Volatile.Read(ref _pacingRevision);
                 if (currentPacingRevision != pacingRevision)
                 {
                     // Timing baseline restarted when speed changes to avoid a catch-up delay.
@@ -211,8 +207,8 @@ internal sealed class EmulationSession
                     continue;
                 }
 
-                long timestamp = Stopwatch.GetTimestamp();
-                long expectedTimestamp =
+                var timestamp = Stopwatch.GetTimestamp();
+                var expectedTimestamp =
                     pacingBaseTimestamp
                     + (long)
                         Math.Round(
@@ -222,7 +218,7 @@ internal sealed class EmulationSession
                                 ),
                             MidpointRounding.ToEven
                         );
-                long delayTimestamp = expectedTimestamp - timestamp;
+                var delayTimestamp = expectedTimestamp - timestamp;
 
                 if (delayTimestamp > 0)
                 {
@@ -291,15 +287,15 @@ internal sealed class EmulationSession
         ref int metricsFrameCount
     )
     {
-        double elapsedSeconds = (timestamp - metricsTimestamp) / (double)Stopwatch.Frequency;
+        var elapsedSeconds = (timestamp - metricsTimestamp) / (double)Stopwatch.Frequency;
 
         if (elapsedSeconds < 1)
         {
             return;
         }
 
-        int completedFrameCount = _completedFrameCount;
-        double displayFramesPerSecond = (completedFrameCount - metricsFrameCount) / elapsedSeconds;
+        var completedFrameCount = _completedFrameCount;
+        var displayFramesPerSecond = (completedFrameCount - metricsFrameCount) / elapsedSeconds;
 
         _handleMetrics(new EmulationMetrics(speedMultiplier, displayFramesPerSecond));
 
@@ -324,7 +320,7 @@ internal sealed class EmulationSession
 
     private void FlushBatterySave()
     {
-        Result result = _flushBatterySave();
+        var result = _flushBatterySave();
 
         if (result.IsFailed)
         {

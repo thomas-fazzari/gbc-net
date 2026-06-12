@@ -28,7 +28,7 @@ internal sealed class CartridgeSaveFileService
             return Result.Ok();
         }
 
-        string path = GetSavePath(cartridge, rom);
+        var path = GetSavePath(cartridge, rom);
         if (!File.Exists(path))
         {
             return Result.Ok();
@@ -54,13 +54,8 @@ internal sealed class CartridgeSaveFileService
         try
         {
             Directory.CreateDirectory(_saveDirectoryPath);
-            string savePath = GetSavePath(cartridge, rom);
-            string temporaryPath = string.Concat(
-                savePath,
-                ".",
-                Guid.NewGuid().ToString("N"),
-                ".tmp"
-            );
+            var savePath = GetSavePath(cartridge, rom);
+            var temporaryPath = $"{savePath}.{Guid.NewGuid():N}.tmp";
 
             File.WriteAllBytes(temporaryPath, cartridge.ExportBatterySave());
             File.Move(temporaryPath, savePath, overwrite: true);
@@ -75,8 +70,8 @@ internal sealed class CartridgeSaveFileService
 
     internal string GetSavePath(Cartridge cartridge, ReadOnlySpan<byte> rom)
     {
-        byte[] hash = SHA256.HashData(rom);
-        string fileName = string.Concat(
+        var hash = SHA256.HashData(rom);
+        var fileName = string.Concat(
             SanitizeName(cartridge.Header.Title),
             "-",
             Convert.ToHexString(hash.AsSpan(0, ShortHashHexLength / 2)),
@@ -90,7 +85,7 @@ internal sealed class CartridgeSaveFileService
     {
         StringBuilder builder = new(name.Length);
 
-        foreach (char character in name)
+        foreach (var character in name)
         {
             if (char.IsAsciiLetterOrDigit(character))
             {

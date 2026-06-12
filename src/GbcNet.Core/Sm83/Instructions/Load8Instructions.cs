@@ -99,9 +99,9 @@ internal static class Load8Instructions
                 continue;
             }
 
-            byte opcodeByte = (byte)opcode;
-            Register8Operand destination = Register8Operands.DecodeDestination(opcodeByte);
-            Register8Operand source = Register8Operands.DecodeSource(opcodeByte);
+            var opcodeByte = (byte)opcode;
+            var destination = Register8Operands.DecodeDestination(opcodeByte);
+            var source = Register8Operands.DecodeSource(opcodeByte);
             builder.MapNoOperand(opcodeByte, cpu => LoadRegisterOperand(cpu, destination, source));
         }
     }
@@ -115,7 +115,7 @@ internal static class Load8Instructions
         Register8Operand source
     )
     {
-        byte value = Register8Operands.Read(cpu, source);
+        var value = Register8Operands.Read(cpu, source);
         Register8Operands.Write(cpu, destination, value);
     }
 

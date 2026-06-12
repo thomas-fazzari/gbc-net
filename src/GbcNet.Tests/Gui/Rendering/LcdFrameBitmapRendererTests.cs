@@ -8,8 +8,8 @@ public sealed class LcdFrameBitmapRendererTests
     [Fact]
     public void WritePixels_ConvertsShadeIndicesToBgra()
     {
-        LcdFrame frame = CreateFrame(width: 2, height: 2, 0, 1, 2, 3);
-        byte[] destination = new byte[16];
+        var frame = CreateFrame(width: 2, height: 2, 0, 1, 2, 3);
+        var destination = new byte[16];
 
         LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 8);
 
@@ -39,8 +39,8 @@ public sealed class LcdFrameBitmapRendererTests
     [Fact]
     public void WritePixels_RespectsRowPaddingAndClampsInvalidShadeIndices()
     {
-        LcdFrame frame = CreateFrame(width: 1, height: 2, 0, 7);
-        byte[] destination = Enumerable.Repeat((byte)0xCC, count: 16).ToArray();
+        var frame = CreateFrame(width: 1, height: 2, 0, 7);
+        var destination = Enumerable.Repeat((byte)0xCC, count: 16).ToArray();
 
         LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 8);
 
@@ -76,7 +76,7 @@ public sealed class LcdFrameBitmapRendererTests
             LcdPixelFormat.Rgb555Le,
             [0x1F, 0x00, 0xE0, 0x03, 0x00, 0x7C]
         );
-        byte[] destination = new byte[12];
+        var destination = new byte[12];
 
         LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 12);
 

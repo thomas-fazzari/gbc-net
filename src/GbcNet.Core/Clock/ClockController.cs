@@ -68,7 +68,7 @@ internal sealed class ClockController
             return DisabledRegisterValue;
         }
 
-        byte value = Key1ReadMask;
+        var value = Key1ReadMask;
         if (CgbDoubleSpeed)
         {
             value |= Key1CurrentSpeedMask;

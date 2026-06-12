@@ -80,7 +80,7 @@ internal static class UserDataPaths
         string fallbackDirectoryName
     )
     {
-        string? directoryPath = Environment.GetEnvironmentVariable(environmentVariableName);
+        var directoryPath = Environment.GetEnvironmentVariable(environmentVariableName);
 
         return string.IsNullOrWhiteSpace(directoryPath)
             ? Path.Combine(GetUserProfilePath(), fallbackDirectoryName)

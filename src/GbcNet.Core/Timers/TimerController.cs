@@ -107,9 +107,9 @@ internal sealed class TimerController(InterruptController interrupts, SystemCoun
     /// </summary>
     internal void WriteTimerControl(byte value)
     {
-        byte newTimerControl = (byte)(value & TimerControlWriteMask);
-        bool wasTimerInputHigh = IsTimerInputHigh(_timerControl, systemCounter.Value);
-        bool isTimerInputHigh = IsTimerInputHigh(newTimerControl, systemCounter.Value);
+        var newTimerControl = (byte)(value & TimerControlWriteMask);
+        var wasTimerInputHigh = IsTimerInputHigh(_timerControl, systemCounter.Value);
+        var isTimerInputHigh = IsTimerInputHigh(newTimerControl, systemCounter.Value);
         _timerControl = newTimerControl;
 
         // TAC writes can create a synthetic falling edge without the system counter ticking

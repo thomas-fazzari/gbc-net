@@ -20,7 +20,7 @@ internal sealed class BlarggSerialResultObserver : IRomResultObserver
 
     public RomTestObservation? Observe()
     {
-        string output = _output.ToString();
+        var output = _output.ToString();
         if (output.Contains(PassedMarker, StringComparison.Ordinal))
         {
             return new RomTestObservation(Source, RomTestStatus.Passed, output);

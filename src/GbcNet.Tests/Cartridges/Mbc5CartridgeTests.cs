@@ -1,4 +1,3 @@
-using FluentResults;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Memory;
 
@@ -14,9 +13,9 @@ public sealed class Mbc5CartridgeTests
     [InlineData(CartridgeType.Mbc5RamBattery)]
     public void Load_AcceptsMbc5Cartridge(CartridgeType cartridgeType)
     {
-        byte[] rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)cartridgeType);
+        var rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)cartridgeType);
 
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         Assert.Equal(cartridgeType, cartridge.Header.CartridgeType);
     }
@@ -24,12 +23,12 @@ public sealed class Mbc5CartridgeTests
     [Fact]
     public void ReadRom_MapsSwitchableAreaToBankOneByDefault()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.Mbc5;
             bytes[RomBankSize] = 0x42;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         Assert.Equal(0x42, cartridge.ReadRom(0x4000));
     }
@@ -37,12 +36,12 @@ public sealed class Mbc5CartridgeTests
     [Fact]
     public void WriteRom_AllowsMbc5RomBankZeroInSwitchableArea()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.Mbc5;
             bytes[0] = 0x11;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRom(0x2000, 0x00);
 
@@ -52,7 +51,7 @@ public sealed class Mbc5CartridgeTests
     [Fact]
     public void WriteRom_UsesMbc5LowRomBankBits()
     {
-        byte[] rom = TestRomFactory.Create(
+        var rom = TestRomFactory.Create(
             romSizeCode: 0x01,
             bytes =>
             {
@@ -61,7 +60,7 @@ public sealed class Mbc5CartridgeTests
                 bytes[2 * RomBankSize] = 0x22;
             }
         );
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRom(0x2000, 0x02);
 
@@ -73,7 +72,7 @@ public sealed class Mbc5CartridgeTests
     {
         const int bank257 = 0x101;
 
-        byte[] rom = TestRomFactory.Create(
+        var rom = TestRomFactory.Create(
             romSizeCode: 0x08,
             bytes =>
             {
@@ -82,7 +81,7 @@ public sealed class Mbc5CartridgeTests
                 bytes[bank257 * RomBankSize] = 0x57;
             }
         );
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRom(0x2000, 0x01);
         cartridge.WriteRom(0x3000, 0x01);
@@ -93,12 +92,12 @@ public sealed class Mbc5CartridgeTests
     [Fact]
     public void ReadWriteRam_RequiresMbc5RamEnable()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.Mbc5Ram;
             bytes[0x0149] = 0x02;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
 
@@ -113,12 +112,12 @@ public sealed class Mbc5CartridgeTests
     [Fact]
     public void ReadWriteRam_UsesMbc5RamBank()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.Mbc5Ram;
             bytes[0x0149] = 0x03;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRom(0x0000, 0x0A);
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x11);
@@ -136,19 +135,19 @@ public sealed class Mbc5CartridgeTests
     [Fact]
     public void BatterySave_ExportsAndImportsMbc5RamBanks()
     {
-        byte[] rom = TestRomFactory.Create(bytes =>
+        var rom = TestRomFactory.Create(bytes =>
         {
             bytes[0x0147] = (byte)CartridgeType.Mbc5RamBattery;
             bytes[0x0149] = 0x03;
         });
-        Cartridge cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
 
         cartridge.WriteRom(0x0000, 0x0A);
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x11);
         cartridge.WriteRom(0x4000, 0x01);
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x22);
 
-        byte[] save = cartridge.ExportBatterySave();
+        var save = cartridge.ExportBatterySave();
 
         Assert.True(cartridge.HasBatteryBackedSave);
         Assert.Equal(32 * 1024, cartridge.BatterySaveSize);
@@ -156,8 +155,8 @@ public sealed class Mbc5CartridgeTests
         Assert.Equal(0x11, save[0]);
         Assert.Equal(0x22, save[AddressMap.ExternalRamWindowSize]);
 
-        Cartridge reloaded = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
-        Result import = reloaded.ImportBatterySave(save);
+        var reloaded = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var import = reloaded.ImportBatterySave(save);
 
         Assert.True(
             import.IsSuccess,

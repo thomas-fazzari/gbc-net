@@ -52,9 +52,9 @@ internal static class CbRotateShiftInstructions
     {
         for (int opcode = RotateShiftStartOpcode; opcode <= RotateShiftEndOpcode; opcode++)
         {
-            byte opcodeByte = (byte)opcode;
-            Register8Operand operand = Register8Operands.DecodeSource(opcodeByte);
-            RotateShiftExecutor execute = DecodeOperation(opcodeByte);
+            var opcodeByte = (byte)opcode;
+            var operand = Register8Operands.DecodeSource(opcodeByte);
+            var execute = DecodeOperation(opcodeByte);
 
             builder.MapPrefixed(opcodeByte, (cpu, _, _) => Execute(cpu, operand, execute));
         }
@@ -65,9 +65,9 @@ internal static class CbRotateShiftInstructions
     /// </summary>
     private static void Execute(Cpu cpu, Register8Operand operand, RotateShiftExecutor execute)
     {
-        byte value = Register8Operands.Read(cpu, operand);
-        bool incomingCarry = cpu.Registers.IsFlagSet(CpuFlag.Carry);
-        byte result = execute(value, incomingCarry, out bool carry);
+        var value = Register8Operands.Read(cpu, operand);
+        var incomingCarry = cpu.Registers.IsFlagSet(CpuFlag.Carry);
+        var result = execute(value, incomingCarry, out var carry);
 
         Register8Operands.Write(cpu, operand, result);
         cpu.Registers.SetFlag(CpuFlag.Zero, result == 0);

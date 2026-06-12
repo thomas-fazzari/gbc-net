@@ -58,8 +58,8 @@ internal static class JumpInstructions
             opcode += ConditionOpcodeStep
         )
         {
-            byte opcodeByte = (byte)opcode;
-            ConditionCode conditionCode = InstructionOperands.DecodeConditionCode(opcodeByte);
+            var opcodeByte = (byte)opcode;
+            var conditionCode = InstructionOperands.DecodeConditionCode(opcodeByte);
             builder.MapImmediate16(
                 opcodeByte,
                 (cpu, lowByte, highByte) => JumpImmediate16If(cpu, lowByte, highByte, conditionCode)

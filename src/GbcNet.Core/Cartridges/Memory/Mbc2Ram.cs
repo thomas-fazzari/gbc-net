@@ -56,7 +56,7 @@ internal sealed class Mbc2Ram(bool hasBattery) : ICartridgeSaveData
             );
         }
 
-        for (int index = 0; index < data.Length; index++)
+        for (var index = 0; index < data.Length; index++)
         {
             _bytes[index] = (byte)(data[index] & StoredNibbleMask);
         }
