@@ -20,6 +20,8 @@ internal sealed class DmgHardwareProfile : IHardwareProfile
 
     public int VideoRamBankCount => 1;
 
+    public bool IsVideoRamBankRegisterEnabled => false;
+
     public int WorkRamBankCount => 2;
 
     public bool IsKey1RegisterEnabled => false;
@@ -28,9 +30,13 @@ internal sealed class DmgHardwareProfile : IHardwareProfile
 
     public bool IsColorPaletteRamEnabled => false;
 
+    public bool IsColorPaletteIndexRegisterEnabled => false;
+
     public bool IsObjectPriorityModeRegisterEnabled => false;
 
     public bool IsVideoRamDmaRegisterEnabled => false;
+
+    public bool IsCgbMiscRegisterEnabled => false;
 
     public IPpuEngine CreatePpuEngine() => new DmgPpuEngine();
 

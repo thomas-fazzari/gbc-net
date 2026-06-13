@@ -176,9 +176,9 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
-    public void ReadWriteByte_RoutesCgbMiscRegistersInDmgCompatibilityMode()
+    public void ReadWriteByte_RoutesCgbMiscRegistersInCgbMode()
     {
-        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf72, 0x12);
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf73, 0x34);
@@ -195,6 +195,22 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
+    public void ReadWriteByte_RoutesCgbMiscRegistersInCgbDmgCompatibilityMode()
+    {
+        var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf72, 0x12);
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf73, 0x34);
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf74, 0x56);
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf75, 0x70);
+
+        Assert.Equal(0x12, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72));
+        Assert.Equal(0x34, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
+    }
+
+    [Fact]
     public void ReadWriteByte_IgnoresCgbMiscRegistersOnDmg()
     {
         var bus = CreateBus();
@@ -202,10 +218,12 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf72, 0x12);
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf73, 0x34);
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf75, 0x70);
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf74, 0x56);
 
         Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72));
         Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73));
         Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74));
     }
 
     [Fact]

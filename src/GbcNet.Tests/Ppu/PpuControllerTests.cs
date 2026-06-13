@@ -59,7 +59,7 @@ public sealed class PpuControllerTests
     [Fact]
     public void ReadWriteRegister_SelectsVramBankWhenBanked()
     {
-        var ppu = CreatePpu(videoRamBankCount: 2);
+        var ppu = CreatePpu(videoRamBankCount: 2, isVideoRamBankRegisterEnabled: true);
 
         Assert.Equal(0xFE, ppu.ReadRegister(AddressMap.VideoRamBankRegister));
 
@@ -72,6 +72,17 @@ public sealed class PpuControllerTests
 
         Assert.Equal(0, ppu.VideoRam.SelectedBank);
         Assert.Equal(0xFE, ppu.ReadRegister(AddressMap.VideoRamBankRegister));
+    }
+
+    [Fact]
+    public void ReadWriteRegister_IgnoresVramBankRegisterWhenCapabilityDisabled()
+    {
+        var ppu = CreatePpu(videoRamBankCount: 2);
+
+        ppu.WriteRegister(AddressMap.VideoRamBankRegister, 0x01);
+
+        Assert.Equal(0, ppu.VideoRam.SelectedBank);
+        Assert.Equal(0xFF, ppu.ReadRegister(AddressMap.VideoRamBankRegister));
     }
 
     [Fact]
@@ -1099,13 +1110,16 @@ public sealed class PpuControllerTests
     private static PpuController CreatePpu(
         InterruptController? interrupts = null,
         int videoRamBankCount = 1,
+        bool isVideoRamBankRegisterEnabled = false,
+        bool isColorPaletteIndexRegisterEnabled = false,
         bool isColorPaletteRamEnabled = false
     ) =>
         new(
             interrupts ?? new InterruptController(),
             new DmgPpuEngine(),
             videoRamBankCount,
-            isCgbHardware: videoRamBankCount > 1 || isColorPaletteRamEnabled,
+            isVideoRamBankRegisterEnabled,
+            isColorPaletteIndexRegisterEnabled || isColorPaletteRamEnabled,
             isColorPaletteRamEnabled,
             isObjectPriorityModeRegisterEnabled: false
         );
@@ -1115,7 +1129,8 @@ public sealed class PpuControllerTests
             new InterruptController(),
             profile.CreatePpuEngine(),
             profile.VideoRamBankCount,
-            profile.Model is HardwareModel.Cgb,
+            profile.IsVideoRamBankRegisterEnabled,
+            profile.IsColorPaletteIndexRegisterEnabled,
             profile.IsColorPaletteRamEnabled,
             profile.IsObjectPriorityModeRegisterEnabled
         );

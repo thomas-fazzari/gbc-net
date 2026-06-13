@@ -3,7 +3,6 @@ using GbcNet.Core.Cartridges;
 using GbcNet.Core.Clock;
 using GbcNet.Core.Dma;
 using GbcNet.Core.Dma.Policies;
-using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Joypad;
@@ -91,7 +90,7 @@ internal sealed class MemoryBus
             hardwareProfile.IsWorkRamBankRegisterEnabled
         );
 
-        var cgbMiscRegisters = new CgbMiscRegisters(hardwareProfile.Model is HardwareModel.Cgb);
+        var cgbMiscRegisters = new CgbMiscRegisters(hardwareProfile.IsCgbMiscRegisterEnabled);
 
         _oamDmaTransferPolicy = hardwareProfile.CreateOamDmaTransferPolicy();
 
@@ -106,7 +105,8 @@ internal sealed class MemoryBus
             Interrupts,
             hardwareProfile.CreatePpuEngine(),
             hardwareProfile.VideoRamBankCount,
-            hardwareProfile.Model is HardwareModel.Cgb,
+            hardwareProfile.IsVideoRamBankRegisterEnabled,
+            hardwareProfile.IsColorPaletteIndexRegisterEnabled,
             hardwareProfile.IsColorPaletteRamEnabled,
             hardwareProfile.IsObjectPriorityModeRegisterEnabled
         );

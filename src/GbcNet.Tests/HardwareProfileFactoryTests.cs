@@ -22,8 +22,11 @@ public sealed class HardwareProfileFactoryTests
         Assert.Same(DmgHardwareProfile.Instance, profile);
         Assert.Equal(HardwareModel.Dmg, profile.Model);
         Assert.Equal(1, profile.VideoRamBankCount);
+        Assert.False(profile.IsVideoRamBankRegisterEnabled);
         Assert.False(profile.IsKey1RegisterEnabled);
         Assert.False(profile.IsColorPaletteRamEnabled);
+        Assert.False(profile.IsColorPaletteIndexRegisterEnabled);
+        Assert.False(profile.IsCgbMiscRegisterEnabled);
         Assert.IsType<DmgPpuEngine>(profile.CreatePpuEngine());
         Assert.IsType<DmgOamDmaTransferPolicy>(profile.CreateOamDmaTransferPolicy());
 
@@ -60,8 +63,11 @@ public sealed class HardwareProfileFactoryTests
         Assert.Equal(HardwareModel.Cgb, cgbProfile.Model);
         Assert.Equal(CgbOperatingMode.Cgb, cgbProfile.OperatingMode);
         Assert.Equal(2, cgbProfile.VideoRamBankCount);
+        Assert.True(cgbProfile.IsVideoRamBankRegisterEnabled);
         Assert.True(cgbProfile.IsKey1RegisterEnabled);
         Assert.True(cgbProfile.IsColorPaletteRamEnabled);
+        Assert.True(cgbProfile.IsColorPaletteIndexRegisterEnabled);
+        Assert.True(cgbProfile.IsCgbMiscRegisterEnabled);
         Assert.IsType<CgbPpuEngine>(cgbProfile.CreatePpuEngine());
         Assert.IsType<CgbOamDmaTransferPolicy>(cgbProfile.CreateOamDmaTransferPolicy());
         var apuProfile = Assert.IsType<CgbApuHardwareProfile>(
@@ -82,8 +88,11 @@ public sealed class HardwareProfileFactoryTests
         Assert.Equal(HardwareModel.Cgb, cgbProfile.Model);
         Assert.Equal(CgbOperatingMode.DmgCompatibility, cgbProfile.OperatingMode);
         Assert.Equal(1, cgbProfile.VideoRamBankCount);
+        Assert.True(cgbProfile.IsVideoRamBankRegisterEnabled);
         Assert.False(cgbProfile.IsKey1RegisterEnabled);
         Assert.False(cgbProfile.IsColorPaletteRamEnabled);
+        Assert.True(cgbProfile.IsColorPaletteIndexRegisterEnabled);
+        Assert.True(cgbProfile.IsCgbMiscRegisterEnabled);
         Assert.IsType<CgbDmgCompatibilityPpuEngine>(cgbProfile.CreatePpuEngine());
         Assert.IsType<CgbOamDmaTransferPolicy>(cgbProfile.CreateOamDmaTransferPolicy());
         Assert.IsType<CgbApuHardwareProfile>(cgbProfile.CreateApuHardwareProfile());

@@ -25,6 +25,8 @@ internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHard
 
     public int VideoRamBankCount => OperatingMode is CgbOperatingMode.Cgb ? 2 : 1;
 
+    public bool IsVideoRamBankRegisterEnabled => true;
+
     public int WorkRamBankCount => 8;
 
     public bool IsKey1RegisterEnabled => OperatingMode is CgbOperatingMode.Cgb;
@@ -33,9 +35,13 @@ internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHard
 
     public bool IsColorPaletteRamEnabled => OperatingMode is CgbOperatingMode.Cgb;
 
+    public bool IsColorPaletteIndexRegisterEnabled => true;
+
     public bool IsObjectPriorityModeRegisterEnabled => OperatingMode is CgbOperatingMode.Cgb;
 
     public bool IsVideoRamDmaRegisterEnabled => OperatingMode is CgbOperatingMode.Cgb;
+
+    public bool IsCgbMiscRegisterEnabled => true;
 
     public IPpuEngine CreatePpuEngine() =>
         OperatingMode is CgbOperatingMode.Cgb

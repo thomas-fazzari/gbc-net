@@ -23,6 +23,11 @@ internal interface IHardwareProfile
     int VideoRamBankCount { get; }
 
     /// <summary>
+    /// Indicates whether the CPU-visible CGB VRAM bank register is enabled.
+    /// </summary>
+    bool IsVideoRamBankRegisterEnabled { get; }
+
+    /// <summary>
     /// Number of physical 4 KiB WRAM banks available to the model.
     /// </summary>
     int WorkRamBankCount { get; }
@@ -43,6 +48,11 @@ internal interface IHardwareProfile
     bool IsColorPaletteRamEnabled { get; }
 
     /// <summary>
+    /// Indicates whether the CPU-visible CGB color palette index registers are enabled.
+    /// </summary>
+    bool IsColorPaletteIndexRegisterEnabled { get; }
+
+    /// <summary>
     /// Indicates whether the CPU-visible CGB object priority mode register is enabled.
     /// </summary>
     bool IsObjectPriorityModeRegisterEnabled { get; }
@@ -51,6 +61,11 @@ internal interface IHardwareProfile
     /// Indicates whether the CPU-visible CGB VRAM DMA registers are enabled.
     /// </summary>
     bool IsVideoRamDmaRegisterEnabled { get; }
+
+    /// <summary>
+    /// Indicates whether the CGB-only undocumented registers at FF72-FF75 are enabled.
+    /// </summary>
+    bool IsCgbMiscRegisterEnabled { get; }
 
     /// <summary>
     /// Creates the LCD/PPU engine for this hardware model.

@@ -1,7 +1,7 @@
 namespace GbcNet.Core.Ppu;
 
 /// <summary>
-/// Stores one CGB color palette RAM, DMG compatibility may expose only the index register.
+/// Stores one CGB color palette RAM, with index visibility separated from data access.
 /// </summary>
 internal sealed class CgbPaletteRam(bool isIndexRegisterEnabled, bool isDataRegisterEnabled)
 {

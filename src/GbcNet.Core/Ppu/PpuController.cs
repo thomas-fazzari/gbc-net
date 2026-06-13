@@ -12,7 +12,8 @@ internal sealed class PpuController(
     InterruptController interrupts,
     IPpuEngine engine,
     int videoRamBankCount,
-    bool isCgbHardware,
+    bool isVideoRamBankRegisterEnabled,
+    bool isColorPaletteIndexRegisterEnabled,
     bool isColorPaletteRamEnabled,
     bool isObjectPriorityModeRegisterEnabled
 )
@@ -22,19 +23,21 @@ internal sealed class PpuController(
     private const ushort WhiteRgb555 = 0x7FFF;
 
     /// <summary>
-    /// VRAM at 8000-9FFF, banked by VBK when the active hardware mode exposes it.
+    /// VRAM at 8000-9FFF, banked when the profile exposes VBK and multiple banks.
     /// </summary>
-    internal VideoRam VideoRam { get; } = new(videoRamBankCount, isCgbHardware);
+    internal VideoRam VideoRam { get; } = new(videoRamBankCount, isVideoRamBankRegisterEnabled);
 
     /// <summary>
     /// CGB background color palette RAM accessed through BGPI/BGPD.
     /// </summary>
-    private CgbPaletteRam BgPaletteRam { get; } = new(isCgbHardware, isColorPaletteRamEnabled);
+    private CgbPaletteRam BgPaletteRam { get; } =
+        new(isColorPaletteIndexRegisterEnabled, isColorPaletteRamEnabled);
 
     /// <summary>
     /// CGB object color palette RAM accessed through OBPI/OBPD.
     /// </summary>
-    private CgbPaletteRam ObjectPaletteRam { get; } = new(isCgbHardware, isColorPaletteRamEnabled);
+    private CgbPaletteRam ObjectPaletteRam { get; } =
+        new(isColorPaletteIndexRegisterEnabled, isColorPaletteRamEnabled);
 
     /// <summary>
     /// Sprite attribute table at FE00-FE9F.
