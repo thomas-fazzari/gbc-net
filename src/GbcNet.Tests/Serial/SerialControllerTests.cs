@@ -1,3 +1,6 @@
+using GbcNet.Core;
+using GbcNet.Core.Apu;
+using GbcNet.Core.Apu.Profiles;
 using GbcNet.Core.Clock;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Serial;
@@ -17,18 +20,74 @@ public sealed class SerialControllerTests
     }
 
     [Fact]
-    public void TickSystemCounter_ShiftsDisconnectedInputBitEvery128MachineCycles()
+    public void WriteControl_InCgbModeStoresHighSpeedBit()
+    {
+        var serial = new SerialController(new InterruptController(), isHighSpeedClockEnabled: true);
+
+        serial.WriteControl(0x81);
+        Assert.Equal(0xFD, serial.ReadControl());
+
+        serial.WriteControl(0x83);
+        Assert.Equal(0xFF, serial.ReadControl());
+    }
+
+    [Fact]
+    public void WriteControl_InDmgModeIgnoresHighSpeedBit()
     {
         var counter = new SystemCounter();
         var serial = new SerialController(new InterruptController());
-        serial.WriteControl(0x81);
+        serial.WriteControl(0x83);
 
-        TickMachineCycles(counter, serial, 127);
+        TickMachineCycles(counter, serial, 32);
+
+        Assert.NotEqual(0, serial.ReadControl() & 0x80);
         Assert.Equal(0x00, serial.TransferData);
 
-        TickMachineCycles(counter, serial, 1);
+        TickMachineCycles(counter, serial, 1024 - 32);
 
-        Assert.Equal(0x01, serial.TransferData);
+        Assert.Equal(0, serial.ReadControl() & 0x80);
+        Assert.Equal(0xFF, serial.TransferData);
+    }
+
+    [Theory]
+    [InlineData(false, false, 8192, 1024)]
+    [InlineData(false, true, 262144, 32)]
+    [InlineData(true, false, 16384, 1024)]
+    [InlineData(true, true, 524288, 32)]
+    public void TickMachineCycle_CompletesCgbInternalClockTransferAtPanDocsRate(
+        bool doubleSpeed,
+        bool highSpeed,
+        int serialHz,
+        int expectedMachineCycles
+    )
+    {
+        var interrupts = new InterruptController();
+        var serial = new SerialController(interrupts, isHighSpeedClockEnabled: true);
+        var clock = new ClockController(
+            interrupts,
+            serial,
+            new ApuController(new CgbApuHardwareProfile()),
+            isKey1RegisterEnabled: true
+        );
+        if (doubleSpeed)
+        {
+            clock.WriteKey1(0x01);
+            Assert.True(clock.TryStartSpeedSwitch());
+        }
+
+        serial.WriteControl((byte)(0x81 | (highSpeed ? 0x02 : 0x00)));
+
+        TickMachineCycles(clock, expectedMachineCycles - 1);
+        Assert.NotEqual(0, serial.ReadControl() & 0x80);
+
+        TickMachineCycles(clock, 1);
+
+        Assert.Equal(0, serial.ReadControl() & 0x80);
+        Assert.Equal(0xFF, serial.TransferData);
+        Assert.Equal(
+            expectedMachineCycles,
+            (doubleSpeed ? GbTiming.DoubleCpuHz : GbTiming.NormalCpuHz) / serialHz * 8
+        );
     }
 
     [Fact]
@@ -101,6 +160,14 @@ public sealed class SerialControllerTests
         Assert.Equal(0xFF, serial.ReadControl());
         Assert.Equal(0x00, interrupts.InterruptFlag);
         Assert.Null(transferredByte);
+    }
+
+    private static void TickMachineCycles(ClockController clock, int machineCycles)
+    {
+        for (var cycle = 0; cycle < machineCycles; cycle++)
+        {
+            clock.TickMachineCycle();
+        }
     }
 
     private static void TickMachineCycles(

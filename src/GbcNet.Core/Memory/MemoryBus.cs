@@ -99,8 +99,11 @@ internal sealed class MemoryBus
 
         Interrupts = new InterruptController();
         Joypad = new JoypadController(Interrupts);
-        Serial = new SerialController(Interrupts);
+
+        Serial = new SerialController(Interrupts, hardwareProfile.IsSerialHighSpeedClockEnabled);
+
         Apu = new ApuController(hardwareProfile.CreateApuHardwareProfile());
+
         Clock = new ClockController(
             Interrupts,
             Serial,
@@ -109,6 +112,7 @@ internal sealed class MemoryBus
             hardwareProfile.TicksTimerOnTacDisableWhenInputHigh,
             hardwareProfile.TicksTimerOnTacEnableWhenInputHigh
         );
+
         Timers = Clock.Timers;
 
         Ppu = new PpuController(

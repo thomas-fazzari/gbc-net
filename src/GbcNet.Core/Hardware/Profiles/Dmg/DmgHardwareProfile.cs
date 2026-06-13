@@ -26,6 +26,8 @@ internal sealed class DmgHardwareProfile : IHardwareProfile
 
     public bool IsKey1RegisterEnabled => false;
 
+    public bool IsSerialHighSpeedClockEnabled => false;
+
     public bool TicksTimerOnTacDisableWhenInputHigh => true;
 
     public bool TicksTimerOnTacEnableWhenInputHigh => false;

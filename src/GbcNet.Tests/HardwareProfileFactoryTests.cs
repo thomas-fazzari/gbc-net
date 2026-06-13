@@ -24,6 +24,7 @@ public sealed class HardwareProfileFactoryTests
         Assert.Equal(1, profile.VideoRamBankCount);
         Assert.False(profile.IsVideoRamBankRegisterEnabled);
         Assert.False(profile.IsKey1RegisterEnabled);
+        Assert.False(profile.IsSerialHighSpeedClockEnabled);
         Assert.False(profile.IsColorPaletteRamEnabled);
         Assert.False(profile.IsColorPaletteIndexRegisterEnabled);
         Assert.False(profile.IsCgbHardwareMiscRegisterEnabled);
@@ -68,6 +69,7 @@ public sealed class HardwareProfileFactoryTests
         Assert.Equal(2, cgbProfile.VideoRamBankCount);
         Assert.True(cgbProfile.IsVideoRamBankRegisterEnabled);
         Assert.True(cgbProfile.IsKey1RegisterEnabled);
+        Assert.True(profile.IsSerialHighSpeedClockEnabled);
         Assert.True(cgbProfile.IsColorPaletteRamEnabled);
         Assert.True(cgbProfile.IsColorPaletteIndexRegisterEnabled);
         Assert.True(cgbProfile.IsCgbHardwareMiscRegisterEnabled);
@@ -96,6 +98,7 @@ public sealed class HardwareProfileFactoryTests
         Assert.Equal(1, cgbProfile.VideoRamBankCount);
         Assert.True(cgbProfile.IsVideoRamBankRegisterEnabled);
         Assert.False(cgbProfile.IsKey1RegisterEnabled);
+        Assert.False(profile.IsSerialHighSpeedClockEnabled);
         Assert.False(cgbProfile.IsColorPaletteRamEnabled);
         Assert.True(cgbProfile.IsColorPaletteIndexRegisterEnabled);
         Assert.True(cgbProfile.IsCgbHardwareMiscRegisterEnabled);
