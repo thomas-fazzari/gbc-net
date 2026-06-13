@@ -41,7 +41,9 @@ internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHard
 
     public bool IsVideoRamDmaRegisterEnabled => OperatingMode is CgbOperatingMode.Cgb;
 
-    public bool IsCgbMiscRegisterEnabled => true;
+    public bool IsCgbHardwareMiscRegisterEnabled => true;
+
+    public bool IsCgbUndocumentedFf74RegisterEnabled => OperatingMode is CgbOperatingMode.Cgb;
 
     public IPpuEngine CreatePpuEngine() =>
         OperatingMode is CgbOperatingMode.Cgb

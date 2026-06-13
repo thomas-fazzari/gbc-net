@@ -276,7 +276,7 @@ internal static class AddressMap
     public const ushort CgbUndocumentedRegisterFf73 = 0xFF73;
 
     /// <summary>
-    /// Address of the CGB register that stays unmapped after boot on tested CGB hardware.
+    /// Address of the third CGB undocumented read/write register.
     /// </summary>
     public const ushort CgbUndocumentedRegisterFf74 = 0xFF74;
 

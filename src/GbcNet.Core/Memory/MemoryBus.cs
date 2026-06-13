@@ -90,7 +90,10 @@ internal sealed class MemoryBus
             hardwareProfile.IsWorkRamBankRegisterEnabled
         );
 
-        var cgbMiscRegisters = new CgbMiscRegisters(hardwareProfile.IsCgbMiscRegisterEnabled);
+        var cgbMiscRegisters = new CgbMiscRegisters(
+            hardwareProfile.IsCgbHardwareMiscRegisterEnabled,
+            hardwareProfile.IsCgbUndocumentedFf74RegisterEnabled
+        );
 
         _oamDmaTransferPolicy = hardwareProfile.CreateOamDmaTransferPolicy();
 

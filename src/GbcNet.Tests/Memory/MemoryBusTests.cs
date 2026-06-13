@@ -180,24 +180,35 @@ public sealed class MemoryBusTests
     {
         var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
-        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf72, 0x12);
-        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf73, 0x34);
-        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf75, 0x00);
-
-        Assert.Equal(0x12, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72));
-        Assert.Equal(0x34, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73));
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72));
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73));
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74));
         Assert.Equal(0x8F, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
 
-        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf75, 0xFF);
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf72, 0xFF);
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf73, 0xA5);
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf74, 0x5A);
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf75, 0x00);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72));
+        Assert.Equal(0xA5, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73));
+        Assert.Equal(0x5A, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74));
+        Assert.Equal(0x8F, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
+
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf75, 0x70);
 
         Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74));
     }
 
     [Fact]
     public void ReadWriteByte_RoutesCgbMiscRegistersInCgbDmgCompatibilityMode()
     {
         var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
+
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72));
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74));
+        Assert.Equal(0x8F, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
 
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf72, 0x12);
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf73, 0x34);
@@ -217,13 +228,13 @@ public sealed class MemoryBusTests
 
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf72, 0x12);
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf73, 0x34);
-        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf75, 0x70);
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf74, 0x56);
+        bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf75, 0x70);
 
         Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72));
         Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
         Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74));
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
     }
 
     [Fact]

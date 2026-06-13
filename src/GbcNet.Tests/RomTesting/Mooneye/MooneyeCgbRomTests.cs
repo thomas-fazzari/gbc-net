@@ -47,6 +47,7 @@ public sealed class MooneyeCgbRomTests
             relativePath =>
             {
                 var rom = File.ReadAllBytes(Path.Combine(RomDirectory, relativePath));
+
                 return RomTestRunner.Run(
                     rom,
                     MaxMachineCycles,

@@ -26,7 +26,8 @@ public sealed class HardwareProfileFactoryTests
         Assert.False(profile.IsKey1RegisterEnabled);
         Assert.False(profile.IsColorPaletteRamEnabled);
         Assert.False(profile.IsColorPaletteIndexRegisterEnabled);
-        Assert.False(profile.IsCgbMiscRegisterEnabled);
+        Assert.False(profile.IsCgbHardwareMiscRegisterEnabled);
+        Assert.False(profile.IsCgbUndocumentedFf74RegisterEnabled);
         Assert.IsType<DmgPpuEngine>(profile.CreatePpuEngine());
         Assert.IsType<DmgOamDmaTransferPolicy>(profile.CreateOamDmaTransferPolicy());
 
@@ -67,7 +68,8 @@ public sealed class HardwareProfileFactoryTests
         Assert.True(cgbProfile.IsKey1RegisterEnabled);
         Assert.True(cgbProfile.IsColorPaletteRamEnabled);
         Assert.True(cgbProfile.IsColorPaletteIndexRegisterEnabled);
-        Assert.True(cgbProfile.IsCgbMiscRegisterEnabled);
+        Assert.True(cgbProfile.IsCgbHardwareMiscRegisterEnabled);
+        Assert.True(cgbProfile.IsCgbUndocumentedFf74RegisterEnabled);
         Assert.IsType<CgbPpuEngine>(cgbProfile.CreatePpuEngine());
         Assert.IsType<CgbOamDmaTransferPolicy>(cgbProfile.CreateOamDmaTransferPolicy());
         var apuProfile = Assert.IsType<CgbApuHardwareProfile>(
@@ -92,7 +94,8 @@ public sealed class HardwareProfileFactoryTests
         Assert.False(cgbProfile.IsKey1RegisterEnabled);
         Assert.False(cgbProfile.IsColorPaletteRamEnabled);
         Assert.True(cgbProfile.IsColorPaletteIndexRegisterEnabled);
-        Assert.True(cgbProfile.IsCgbMiscRegisterEnabled);
+        Assert.True(cgbProfile.IsCgbHardwareMiscRegisterEnabled);
+        Assert.False(cgbProfile.IsCgbUndocumentedFf74RegisterEnabled);
         Assert.IsType<CgbDmgCompatibilityPpuEngine>(cgbProfile.CreatePpuEngine());
         Assert.IsType<CgbOamDmaTransferPolicy>(cgbProfile.CreateOamDmaTransferPolicy());
         Assert.IsType<CgbApuHardwareProfile>(cgbProfile.CreateApuHardwareProfile());

@@ -63,9 +63,14 @@ internal interface IHardwareProfile
     bool IsVideoRamDmaRegisterEnabled { get; }
 
     /// <summary>
-    /// Indicates whether the CGB-only undocumented registers at FF72-FF75 are enabled.
+    /// Indicates whether the CGB hardware undocumented registers at FF72, FF73, and FF75 are enabled.
     /// </summary>
-    bool IsCgbMiscRegisterEnabled { get; }
+    bool IsCgbHardwareMiscRegisterEnabled { get; }
+
+    /// <summary>
+    /// Indicates whether the CGB-mode-only undocumented register at FF74 is enabled.
+    /// </summary>
+    bool IsCgbUndocumentedFf74RegisterEnabled { get; }
 
     /// <summary>
     /// Creates the LCD/PPU engine for this hardware model.

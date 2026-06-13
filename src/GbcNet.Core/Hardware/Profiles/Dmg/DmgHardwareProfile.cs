@@ -36,7 +36,9 @@ internal sealed class DmgHardwareProfile : IHardwareProfile
 
     public bool IsVideoRamDmaRegisterEnabled => false;
 
-    public bool IsCgbMiscRegisterEnabled => false;
+    public bool IsCgbHardwareMiscRegisterEnabled => false;
+
+    public bool IsCgbUndocumentedFf74RegisterEnabled => false;
 
     public IPpuEngine CreatePpuEngine() => new DmgPpuEngine();
 
