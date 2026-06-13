@@ -26,13 +26,18 @@ internal sealed class ClockController
         InterruptController interrupts,
         SerialController serial,
         ApuController apu,
-        bool isKey1RegisterEnabled = false
+        bool isKey1RegisterEnabled = false,
+        bool ticksTimerOnTacDisableWhenInputHigh = true
     )
     {
         _serial = serial;
         _apu = apu;
         _isKey1RegisterEnabled = isKey1RegisterEnabled;
-        Timers = new TimerController(interrupts, _systemCounter);
+        Timers = new TimerController(
+            interrupts,
+            _systemCounter,
+            ticksTimerOnTacDisableWhenInputHigh
+        );
     }
 
     /// <summary>

@@ -6,7 +6,11 @@ namespace GbcNet.Core.Timers;
 /// <summary>
 /// Emulates the DMG divider and programmable timer registers.
 /// </summary>
-internal sealed class TimerController(InterruptController interrupts, SystemCounter systemCounter)
+internal sealed class TimerController(
+    InterruptController interrupts,
+    SystemCounter systemCounter,
+    bool ticksOnTacDisableWhenInputHigh = true
+)
 {
     /// <summary>
     /// Unused TAC bits read back as set on DMG hardware.
@@ -112,8 +116,11 @@ internal sealed class TimerController(InterruptController interrupts, SystemCoun
         var isTimerInputHigh = IsTimerInputHigh(newTimerControl, systemCounter.Value);
         _timerControl = newTimerControl;
 
-        // TAC writes can create a synthetic falling edge without the system counter ticking
-        if (wasTimerInputHigh && !isTimerInputHigh)
+        if (
+            wasTimerInputHigh
+            && !isTimerInputHigh
+            && (IsTimerEnabled(newTimerControl) || ticksOnTacDisableWhenInputHigh)
+        )
         {
             IncrementTimerCounter();
         }
@@ -161,8 +168,9 @@ internal sealed class TimerController(InterruptController interrupts, SystemCoun
     }
 
     private static bool IsTimerInputHigh(byte timerControl, ushort systemCounter) =>
-        (timerControl & TimerEnableMask) != 0
-        && (systemCounter & GetClockBitMask(timerControl)) != 0;
+        IsTimerEnabled(timerControl) && (systemCounter & GetClockBitMask(timerControl)) != 0;
+
+    private static bool IsTimerEnabled(byte timerControl) => (timerControl & TimerEnableMask) != 0;
 
     private static ushort GetClockBitMask(byte timerControl) =>
         (timerControl & TimerClockSelectMask) switch

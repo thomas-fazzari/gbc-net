@@ -38,6 +38,11 @@ internal interface IHardwareProfile
     bool IsKey1RegisterEnabled { get; }
 
     /// <summary>
+    /// Indicates whether disabling TAC while the selected timer counter bit is high ticks TIMA.
+    /// </summary>
+    bool TicksTimerOnTacDisableWhenInputHigh { get; }
+
+    /// <summary>
     /// Indicates whether the CPU-visible CGB WRAM bank register is enabled.
     /// </summary>
     bool IsWorkRamBankRegisterEnabled { get; }

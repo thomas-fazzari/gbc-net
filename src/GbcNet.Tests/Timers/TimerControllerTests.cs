@@ -118,15 +118,27 @@ public sealed class TimerControllerTests
     }
 
     [Fact]
-    public void WriteTimerControl_IncrementsTimerCounterWhenDisablingHighSelectedBit()
+    public void WriteTimerControl_IncrementsTimerCounterWhenDisablingHighSelectedBitIfProfileTicksOnDisable()
     {
-        var (counter, timers) = CreateTimers();
+        var (counter, timers) = CreateTimers(ticksOnTacDisableWhenInputHigh: true);
         timers.WriteTimerControl(0b0000_0101);
         TickMachineCycles(counter, timers, 2);
 
         timers.WriteTimerControl(0b0000_0001);
 
         Assert.Equal(0x01, timers.TimerCounter);
+    }
+
+    [Fact]
+    public void WriteTimerControl_DoesNotIncrementTimerCounterWhenDisablingHighSelectedBitIfProfileDoesNotTickOnDisable()
+    {
+        var (counter, timers) = CreateTimers(ticksOnTacDisableWhenInputHigh: false);
+        timers.WriteTimerControl(0b0000_0101);
+        TickMachineCycles(counter, timers, 2);
+
+        timers.WriteTimerControl(0b0000_0001);
+
+        Assert.Equal(0x00, timers.TimerCounter);
     }
 
     [Fact]
@@ -208,11 +220,19 @@ public sealed class TimerControllerTests
     }
 
     private static (SystemCounter Counter, TimerController Timers) CreateTimers(
-        InterruptController? interrupts = null
+        InterruptController? interrupts = null,
+        bool ticksOnTacDisableWhenInputHigh = true
     )
     {
         var counter = new SystemCounter();
-        return (counter, new TimerController(interrupts ?? new InterruptController(), counter));
+        return (
+            counter,
+            new TimerController(
+                interrupts ?? new InterruptController(),
+                counter,
+                ticksOnTacDisableWhenInputHigh
+            )
+        );
     }
 
     private static void ResetSystemCounter(SystemCounter counter, TimerController timers)

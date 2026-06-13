@@ -31,6 +31,8 @@ internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHard
 
     public bool IsKey1RegisterEnabled => OperatingMode is CgbOperatingMode.Cgb;
 
+    public bool TicksTimerOnTacDisableWhenInputHigh => false;
+
     public bool IsWorkRamBankRegisterEnabled => OperatingMode is CgbOperatingMode.Cgb;
 
     public bool IsColorPaletteRamEnabled => OperatingMode is CgbOperatingMode.Cgb;
