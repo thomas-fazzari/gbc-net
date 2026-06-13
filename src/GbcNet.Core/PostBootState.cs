@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Memory;
@@ -49,7 +48,6 @@ internal static class PostBootState
     }
 }
 
-[StructLayout(LayoutKind.Sequential)]
 internal readonly record struct PostBootCpuRegisterState(
     byte A,
     byte F,
@@ -60,5 +58,4 @@ internal readonly record struct PostBootCpuRegisterState(
     ushort SP
 );
 
-[StructLayout(LayoutKind.Sequential)]
 internal readonly record struct PostBootHardwareRegisterState(ushort Address, byte Value);

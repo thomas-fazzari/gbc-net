@@ -177,6 +177,7 @@ dotnet_diagnostic.RCS1229.severity = warning
 dotnet_diagnostic.RCS1235.severity = warning
 
 # Meziantou
+dotnet_diagnostic.MA0008.severity = none
 dotnet_diagnostic.MA0009.severity = warning
 dotnet_diagnostic.MA0026.severity = none
 dotnet_diagnostic.MA0032.severity = warning

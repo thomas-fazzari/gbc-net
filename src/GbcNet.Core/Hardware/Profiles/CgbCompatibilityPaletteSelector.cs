@@ -1,9 +1,7 @@
-using System.Runtime.InteropServices;
 using GbcNet.Core.Cartridges;
 
 namespace GbcNet.Core.Hardware.Profiles;
 
-[StructLayout(LayoutKind.Sequential)]
 internal readonly record struct CgbCompatibilityPalette(
     ushort Color0,
     ushort Color1,
@@ -11,7 +9,6 @@ internal readonly record struct CgbCompatibilityPalette(
     ushort Color3
 );
 
-[StructLayout(LayoutKind.Sequential)]
 internal readonly record struct CgbCompatibilityPalettes(
     CgbCompatibilityPalette Background,
     CgbCompatibilityPalette ObjectPalette0,
@@ -256,7 +253,6 @@ internal static class CgbCompatibilityPaletteSelector
             );
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     private readonly record struct PaletteCombination(
         byte Object0StartColor,
         byte Object1StartColor,

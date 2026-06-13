@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using GbcNet.Core.Memory;
 
 namespace GbcNet.Core.Ppu.Engines;
@@ -191,7 +190,6 @@ internal sealed class CgbObjectLayer
         highByte = inputs.VideoRam.ReadBank(bank, (ushort)(tileRowAddress + 1));
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     private readonly record struct ScanlineObject(int Index, byte X, byte Y, byte Tile, byte Flags);
 }
 
