@@ -38,6 +38,11 @@ internal sealed class VideoRam
 
     public byte ReadBank(int bank, ushort address) => _banks[GetOffset(bank, address)];
 
+    public void WriteBank(int bank, ushort address, byte value)
+    {
+        _banks[GetOffset(bank, address)] = value;
+    }
+
     public byte ReadBankRegister() =>
         _isBankRegisterEnabled ? (byte)(BankRegisterReadMask | SelectedBank) : (byte)0xFF;
 

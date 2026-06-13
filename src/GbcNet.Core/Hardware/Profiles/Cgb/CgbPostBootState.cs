@@ -137,6 +137,11 @@ internal static class CgbPostBootState
 
         PostBootState.SetHardwareRegisterStates(bus, _dmgCompatibilityPostAudioRegisters);
         bus.Ppu.SetDmgCompatibilityColorPaletteRam(compatibilityPaletteSelection.Palettes);
+
+        if (compatibilityPaletteSelection.UsesCompatibilityLogoTilemap)
+        {
+            CgbCompatibilityLogoTilemap.Apply(bus.Ppu.VideoRam);
+        }
     }
 
     private static PostBootCpuRegisterState CreateCgbModeCpuRegisterState() =>

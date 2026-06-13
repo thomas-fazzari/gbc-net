@@ -109,7 +109,7 @@ public sealed class PostBootStateTests
     }
 
     [Fact]
-    public void Apply_SetsCgbDmgCompatibilityLogoTilemapRegistersForMatchingPaletteTitle()
+    public void Apply_SeedsCgbDmgCompatibilityLogoTilemapForMatchingPaletteTitle()
     {
         var cartridge = LoadCartridge(
             TestRomFactory.Create(bytes =>
@@ -127,6 +127,34 @@ public sealed class PostBootStateTests
 
         Assert.Equal(0x5800, cpu.Registers.BC);
         Assert.Equal(0x991A, cpu.Registers.HL);
+        Assert.Equal(0x01, bus.Ppu.VideoRam.ReadBank(0, 0x9904));
+        Assert.Equal(0x0C, bus.Ppu.VideoRam.ReadBank(0, 0x990F));
+        Assert.Equal(0x19, bus.Ppu.VideoRam.ReadBank(0, 0x9910));
+        Assert.Equal(0x0D, bus.Ppu.VideoRam.ReadBank(0, 0x9924));
+        Assert.Equal(0x18, bus.Ppu.VideoRam.ReadBank(0, 0x992F));
+    }
+
+    [Fact]
+    public void Apply_DoesNotSeedCgbDmgCompatibilityLogoTilemapForRegularPaletteTitle()
+    {
+        var cartridge = LoadCartridge(
+            TestRomFactory.Create(bytes =>
+            {
+                bytes.AsSpan(0x0134, 16).Clear();
+                "POKEMON RED"u8.CopyTo(bytes.AsSpan(0x0134));
+                bytes[0x014B] = 0x01;
+            })
+        );
+        var profile = new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility);
+        var bus = new MemoryBus(cartridge, profile);
+        var cpu = new Cpu(bus);
+
+        PostBootState.Apply(profile, cartridge, cpu, bus);
+
+        Assert.Equal(0x007C, cpu.Registers.HL);
+        Assert.Equal(0x00, bus.Ppu.VideoRam.ReadBank(0, 0x9904));
+        Assert.Equal(0x00, bus.Ppu.VideoRam.ReadBank(0, 0x9910));
+        Assert.Equal(0x00, bus.Ppu.VideoRam.ReadBank(0, 0x992F));
     }
 
     [Fact]

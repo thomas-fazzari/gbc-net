@@ -42,6 +42,11 @@ internal sealed class IoRegisters(
             return apu.ReadRegister(address);
         }
 
+        if (CgbMiscRegisters.ContainsRegister(address))
+        {
+            return cgbMiscRegisters.ReadRegister(address);
+        }
+
         return address switch
         {
             AddressMap.JoypadRegister => joypad.Read(),
@@ -59,11 +64,6 @@ internal sealed class IoRegisters(
             AddressMap.TimerControlRegister => _timers.ReadTimerControl(),
 
             AddressMap.InterruptFlagRegister => interrupts.ReadInterruptFlag(),
-
-            AddressMap.CgbUndocumentedRegisterFf72
-            or AddressMap.CgbUndocumentedRegisterFf73
-            or AddressMap.CgbUndocumentedRegisterFf74
-            or AddressMap.CgbUndocumentedRegisterFf75 => cgbMiscRegisters.ReadRegister(address),
 
             AddressMap.Key1Register => clock.ReadKey1(),
 
@@ -115,6 +115,12 @@ internal sealed class IoRegisters(
                 apu.SetRegisterState(address, value);
             }
 
+            return;
+        }
+
+        if (CgbMiscRegisters.ContainsRegister(address))
+        {
+            cgbMiscRegisters.WriteRegister(address, value);
             return;
         }
 
@@ -245,13 +251,6 @@ internal sealed class IoRegisters(
 
             case AddressMap.WorkRamBankRegister:
                 workRam.WriteBankRegister(value);
-                return;
-
-            case AddressMap.CgbUndocumentedRegisterFf72:
-            case AddressMap.CgbUndocumentedRegisterFf73:
-            case AddressMap.CgbUndocumentedRegisterFf74:
-            case AddressMap.CgbUndocumentedRegisterFf75:
-                cgbMiscRegisters.WriteRegister(address, value);
                 return;
 
             default:
