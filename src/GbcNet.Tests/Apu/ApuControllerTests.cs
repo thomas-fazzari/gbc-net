@@ -987,7 +987,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF22, 0x01);
         apu.WriteRegister(0xFF23, 0x80);
 
-        apu.Tick(239);
+        apu.Tick(255);
 
         Assert.Equal(0, apu.Channel4DigitalOutput);
 
@@ -1011,8 +1011,8 @@ public sealed class ApuControllerTests
         normalApu.WriteRegister(0xFF22, 0x00);
         normalApu.WriteRegister(0xFF23, 0x80);
 
-        wideApu.Tick(56);
-        normalApu.Tick(56);
+        wideApu.Tick(64);
+        normalApu.Tick(64);
 
         Assert.Equal(15, wideApu.Channel4DigitalOutput);
         Assert.Equal(0, normalApu.Channel4DigitalOutput);
@@ -1053,7 +1053,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF21, 0xF0);
         apu.WriteRegister(0xFF23, 0x80);
-        apu.Tick(120);
+        apu.Tick(128);
         apu.WriteRegister(0xFF24, masterVolume);
         apu.WriteRegister(0xFF25, panning);
 

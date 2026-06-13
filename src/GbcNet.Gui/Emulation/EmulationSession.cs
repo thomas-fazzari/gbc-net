@@ -14,11 +14,8 @@ namespace GbcNet.Gui.Emulation;
 /// </summary>
 internal sealed class EmulationSession
 {
-    private const int MachineCyclesPerSecond = 1_048_576;
-    private const int ThrottleIntervalMilliseconds = 8;
-    private const int MachineCyclesPerSaveFlush = 5 * MachineCyclesPerSecond;
+    private const int MachineCyclesPerSaveFlush = 5 * GbTiming.NormalCpuHz;
     private const int AudioDrainSampleCapacity = 512;
-    private const double ThrottleIntervalSeconds = ThrottleIntervalMilliseconds / 1000.0;
     private static readonly long _fastForwardFrameIntervalTimestamp = Stopwatch.Frequency / 60;
     private static readonly TimeSpan _stoppedCpuSleepInterval = TimeSpan.FromMilliseconds(1);
 
@@ -131,15 +128,18 @@ internal sealed class EmulationSession
 
     private async Task RunAsync()
     {
-        var pacingBaseTimestamp = Stopwatch.GetTimestamp();
+        var timestamp = Stopwatch.GetTimestamp();
         long elapsedMachineCycles = 0;
-        var speedMultiplier = GetSpeedMultiplier();
-        var nextThrottleMachineCycles = GetThrottleMachineCycles(speedMultiplier);
         long nextSaveMachineCycles = MachineCyclesPerSaveFlush;
-        long pacingBaseMachineCycles = 0;
-        var metricsTimestamp = pacingBaseTimestamp;
+        var metricsTimestamp = timestamp;
         var metricsFrameCount = 0;
-        var pacingRevision = Volatile.Read(ref _pacingRevision);
+        EmulationPacingState pacing = new(
+            timestamp,
+            elapsedMachineCycles,
+            GetSpeedMultiplier(),
+            _gameBoy.CpuMachineCyclesPerSecond,
+            Volatile.Read(ref _pacingRevision)
+        );
 
         try
         {
@@ -182,43 +182,33 @@ internal sealed class EmulationSession
                     nextSaveMachineCycles += MachineCyclesPerSaveFlush;
                 }
 
-                if (elapsedMachineCycles < nextThrottleMachineCycles)
+                if (!pacing.ShouldThrottle(elapsedMachineCycles))
                 {
                     continue;
                 }
 
-                var currentPacingRevision = Volatile.Read(ref _pacingRevision);
-                if (currentPacingRevision != pacingRevision)
+                timestamp = Stopwatch.GetTimestamp();
+                if (
+                    pacing.ResetIfChanged(
+                        timestamp,
+                        elapsedMachineCycles,
+                        GetSpeedMultiplier(),
+                        _gameBoy.CpuMachineCyclesPerSecond,
+                        Volatile.Read(ref _pacingRevision)
+                    )
+                )
                 {
-                    // Timing baseline restarted when speed changes to avoid a catch-up delay.
-                    pacingRevision = currentPacingRevision;
-                    speedMultiplier = GetSpeedMultiplier();
-                    pacingBaseMachineCycles = elapsedMachineCycles;
-                    pacingBaseTimestamp = Stopwatch.GetTimestamp();
-                    nextThrottleMachineCycles =
-                        elapsedMachineCycles + GetThrottleMachineCycles(speedMultiplier);
-                    RequestFastForwardFrameIfDue(pacingBaseTimestamp);
+                    RequestFastForwardFrameIfDue(timestamp);
                     PublishMetricsIfDue(
-                        pacingBaseTimestamp,
-                        speedMultiplier,
+                        timestamp,
+                        pacing.SpeedMultiplier,
                         ref metricsTimestamp,
                         ref metricsFrameCount
                     );
                     continue;
                 }
 
-                var timestamp = Stopwatch.GetTimestamp();
-                var expectedTimestamp =
-                    pacingBaseTimestamp
-                    + (long)
-                        Math.Round(
-                            (elapsedMachineCycles - pacingBaseMachineCycles)
-                                * (
-                                    Stopwatch.Frequency / (MachineCyclesPerSecond * speedMultiplier)
-                                ),
-                            MidpointRounding.ToEven
-                        );
-                var delayTimestamp = expectedTimestamp - timestamp;
+                var delayTimestamp = pacing.GetDelayTimestamp(timestamp, elapsedMachineCycles);
 
                 if (delayTimestamp > 0)
                 {
@@ -232,18 +222,17 @@ internal sealed class EmulationSession
                             _stopRequested.Task
                         )
                         .ConfigureAwait(false);
-                    timestamp = expectedTimestamp;
+                    timestamp += delayTimestamp;
                 }
 
                 RequestFastForwardFrameIfDue(timestamp);
                 PublishMetricsIfDue(
                     timestamp,
-                    speedMultiplier,
+                    pacing.SpeedMultiplier,
                     ref metricsTimestamp,
                     ref metricsFrameCount
                 );
-                nextThrottleMachineCycles =
-                    elapsedMachineCycles + GetThrottleMachineCycles(speedMultiplier);
+                pacing.ScheduleNextThrottle(elapsedMachineCycles);
             }
         }
         catch (Exception exception)
@@ -262,16 +251,6 @@ internal sealed class EmulationSession
         Volatile.Read(ref _isFastForwardEnabled) != 0
             ? Volatile.Read(ref _fastForwardSpeed) / (double)(int)EmulationSpeed.Normal
             : 1.0;
-
-    private static long GetThrottleMachineCycles(double speedMultiplier) =>
-        Math.Max(
-            1,
-            (long)
-                Math.Round(
-                    MachineCyclesPerSecond * speedMultiplier * ThrottleIntervalSeconds,
-                    MidpointRounding.ToEven
-                )
-        );
 
     private bool ShouldMuteAudio()
     {

@@ -90,6 +90,7 @@ internal sealed class MemoryBus
             hardwareProfile.WorkRamBankCount,
             hardwareProfile.IsWorkRamBankRegisterEnabled
         );
+
         var cgbMiscRegisters = new CgbMiscRegisters(hardwareProfile.Model is HardwareModel.Cgb);
 
         _oamDmaTransferPolicy = hardwareProfile.CreateOamDmaTransferPolicy();

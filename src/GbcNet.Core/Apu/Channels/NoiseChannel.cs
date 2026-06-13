@@ -25,6 +25,7 @@ internal sealed class NoiseChannel
     private byte _clockShift;
     private byte _divisorCode;
     private bool _widthMode;
+    private bool _currentLfsrSample;
 
     /// <summary>
     /// Whether CH4 generation is active and reported through NR52 bit 3.
@@ -42,9 +43,9 @@ internal sealed class NoiseChannel
     public byte Volume => _envelope.Volume;
 
     /// <summary>
-    /// Current CH4 digital output from the LFSR low bit and envelope volume.
+    /// Current CH4 digital output from the last LFSR bit shifted out.
     /// </summary>
-    public byte DigitalOutput => IsActive && (_lfsr & 1) != 0 ? _envelope.Volume : (byte)0;
+    public byte DigitalOutput => IsActive && _currentLfsrSample ? _envelope.Volume : (byte)0;
 
     /// <summary>
     /// Loads NR41 initial length.
@@ -94,6 +95,7 @@ internal sealed class NoiseChannel
         _lfsr = LfsrResetValue;
         _timer = GetPeriod();
         _tCycleAccumulator = 0;
+        _currentLfsrSample = false;
         IsActive = _envelope.DacEnabled;
     }
 
@@ -153,6 +155,7 @@ internal sealed class NoiseChannel
         _clockShift = 0;
         _divisorCode = 0;
         _widthMode = false;
+        _currentLfsrSample = false;
         IsActive = false;
     }
 
@@ -161,6 +164,8 @@ internal sealed class NoiseChannel
 
     private void ClockLfsr()
     {
+        _currentLfsrSample = (_lfsr & 1) != 0;
+
         // Hardware feeds back bit0 XNOR bit1 into the top of the shift register
         var feedback = ~(_lfsr ^ (_lfsr >> 1)) & 1;
         _lfsr = (_lfsr >> 1) | (feedback << 14);

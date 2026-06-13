@@ -12,6 +12,22 @@ using GbcNet.Core.Sm83;
 namespace GbcNet.Core;
 
 /// <summary>
+/// Shared constants used by core and host.
+/// </summary>
+public static class GbTiming
+{
+    /// <summary>
+    /// CPU machine-cycle rate in normal-speed mode.
+    /// </summary>
+    public const int NormalCpuHz = 1_048_576;
+
+    /// <summary>
+    /// CPU machine-cycle rate in CGB double-speed mode.
+    /// </summary>
+    public const int DoubleCpuHz = NormalCpuHz * 2;
+}
+
+/// <summary>
 /// Coordinates the emulated Game Boy hardware components for one execution step.
 /// </summary>
 public sealed class GameBoy
@@ -90,6 +106,12 @@ public sealed class GameBoy
     /// Hardware model selected for this emulation instance.
     /// </summary>
     public HardwareModel HardwareModel { get; }
+
+    /// <summary>
+    /// Current CPU machine-cycle rate, doubled while CGB double-speed mode is active.
+    /// </summary>
+    public int CpuMachineCyclesPerSecond =>
+        Bus.Clock.CgbDoubleSpeed ? GbTiming.DoubleCpuHz : GbTiming.NormalCpuHz;
 
     internal MemoryBus Bus { get; }
 

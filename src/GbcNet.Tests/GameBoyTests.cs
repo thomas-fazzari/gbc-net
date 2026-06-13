@@ -50,6 +50,29 @@ public sealed class GameBoyTests
     }
 
     [Fact]
+    public void CpuMachineCyclesPerSecond_DoublesAfterCgbSpeedSwitch()
+    {
+        var cartridge = ResultAssertions.AssertSuccess(
+            Cartridge.Load(
+                TestRomFactory.Create(bytes =>
+                {
+                    bytes[0x0100] = StopOpcode;
+                    bytes[0x0101] = 0x00;
+                    bytes[0x0143] = 0xC0;
+                })
+            )
+        );
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Cgb);
+
+        Assert.Equal(GbTiming.NormalCpuHz, gameBoy.CpuMachineCyclesPerSecond);
+
+        gameBoy.Bus.WriteByte(AddressMap.Key1Register, 0x01);
+        gameBoy.Step();
+
+        Assert.Equal(GbTiming.DoubleCpuHz, gameBoy.CpuMachineCyclesPerSecond);
+    }
+
+    [Fact]
     public void Step_TicksSerial()
     {
         var cartridge = ResultAssertions.AssertSuccess(

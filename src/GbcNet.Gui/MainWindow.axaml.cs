@@ -399,9 +399,15 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private void StartEmulation(Cartridge cartridge, byte[] rom, string romName)
     {
+        var hardwareModel = cartridge.Header.CgbSupport
+            is CgbSupport.Required
+                or CgbSupport.Enhanced
+            ? HardwareModel.Cgb
+            : HardwareModel.Dmg;
+
         _inputRouter.Clear();
         _emulationSession = new EmulationSession(
-            new GameBoy(cartridge, HardwareModel.Dmg),
+            new GameBoy(cartridge, hardwareModel),
             _audioOutput,
             OnFrameCompleted,
             OnEmulationMetricsUpdated,

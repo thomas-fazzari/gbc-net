@@ -219,11 +219,6 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
         }
 
         output[(frame * Channels)..].Clear();
-
-        if (frame < requestedFrames)
-        {
-            Volatile.Write(ref _needsPrebuffer, 1);
-        }
     }
 
     private static bool IsExpectedAudioStartupException(Exception exception) =>
