@@ -29,6 +29,7 @@ public sealed class HardwareProfileFactoryTests
         Assert.False(profile.IsCgbHardwareMiscRegisterEnabled);
         Assert.False(profile.IsCgbUndocumentedFf74RegisterEnabled);
         Assert.True(profile.TicksTimerOnTacDisableWhenInputHigh);
+        Assert.False(profile.TicksTimerOnTacEnableWhenInputHigh);
         Assert.IsType<DmgPpuEngine>(profile.CreatePpuEngine());
         Assert.IsType<DmgOamDmaTransferPolicy>(profile.CreateOamDmaTransferPolicy());
 
@@ -72,6 +73,7 @@ public sealed class HardwareProfileFactoryTests
         Assert.True(cgbProfile.IsCgbHardwareMiscRegisterEnabled);
         Assert.True(cgbProfile.IsCgbUndocumentedFf74RegisterEnabled);
         Assert.False(cgbProfile.TicksTimerOnTacDisableWhenInputHigh);
+        Assert.True(cgbProfile.TicksTimerOnTacEnableWhenInputHigh);
         Assert.IsType<CgbPpuEngine>(cgbProfile.CreatePpuEngine());
         Assert.IsType<CgbOamDmaTransferPolicy>(cgbProfile.CreateOamDmaTransferPolicy());
         var apuProfile = Assert.IsType<CgbApuHardwareProfile>(
@@ -99,6 +101,7 @@ public sealed class HardwareProfileFactoryTests
         Assert.True(cgbProfile.IsCgbHardwareMiscRegisterEnabled);
         Assert.False(cgbProfile.IsCgbUndocumentedFf74RegisterEnabled);
         Assert.False(cgbProfile.TicksTimerOnTacDisableWhenInputHigh);
+        Assert.True(cgbProfile.TicksTimerOnTacEnableWhenInputHigh);
         Assert.IsType<CgbDmgCompatibilityPpuEngine>(cgbProfile.CreatePpuEngine());
         Assert.IsType<CgbOamDmaTransferPolicy>(cgbProfile.CreateOamDmaTransferPolicy());
         Assert.IsType<CgbApuHardwareProfile>(cgbProfile.CreateApuHardwareProfile());

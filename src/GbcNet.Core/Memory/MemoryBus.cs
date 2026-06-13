@@ -106,7 +106,8 @@ internal sealed class MemoryBus
             Serial,
             Apu,
             hardwareProfile.IsKey1RegisterEnabled,
-            hardwareProfile.TicksTimerOnTacDisableWhenInputHigh
+            hardwareProfile.TicksTimerOnTacDisableWhenInputHigh,
+            hardwareProfile.TicksTimerOnTacEnableWhenInputHigh
         );
         Timers = Clock.Timers;
 

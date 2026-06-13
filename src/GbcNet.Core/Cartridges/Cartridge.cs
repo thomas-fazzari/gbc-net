@@ -11,8 +11,8 @@ namespace GbcNet.Core.Cartridges;
 public sealed class Cartridge
 {
     public const int FixedRomBankSize = 16 * 1024;
-    public const int AddressableRomSize = 2 * FixedRomBankSize;
 
+    private const int AddressableRomSize = 2 * FixedRomBankSize;
     private readonly ICartridgeMemoryController _memoryController;
 
     private Cartridge(CartridgeHeader header, ICartridgeMemoryController memoryController)
@@ -169,7 +169,7 @@ public sealed class Cartridge
     /// <summary>
     /// Reads from cartridge external RAM using a cartridge-local 8 KiB bank offset.
     /// </summary>
-    internal byte ReadRamOffset(ushort offset)
+    private byte ReadRamOffset(ushort offset)
     {
         if (offset >= AddressMap.ExternalRamWindowSize)
         {

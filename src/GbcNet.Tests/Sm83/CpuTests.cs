@@ -41,7 +41,7 @@ public sealed class CpuTests
     }
 
     [Fact]
-    public void Step_StopWithArmedKey1SwitchesSpeedWithoutEnteringStoppedState()
+    public void Step_StopWithArmedKey1SwitchesSpeedStartsPauseAndDoesNotEnterStoppedState()
     {
         var cpu = CpuTestFactory.CreateCpu(
             bytes =>
@@ -59,6 +59,7 @@ public sealed class CpuTests
         Assert.Equal(2, machineCycles);
         Assert.False(cpu.Stopped);
         Assert.True(bus.Clock.CgbDoubleSpeed);
+        Assert.Equal(2050, bus.Clock.SpeedSwitchPauseCycles);
         Assert.Equal(0xFE, bus.ReadByte(AddressMap.Key1Register));
     }
 
@@ -80,6 +81,7 @@ public sealed class CpuTests
         Assert.Equal(2, machineCycles);
         Assert.True(cpu.Stopped);
         Assert.False(bus.Clock.CgbDoubleSpeed);
+        Assert.Equal(0, bus.Clock.SpeedSwitchPauseCycles);
         Assert.Equal(0x7E, bus.ReadByte(AddressMap.Key1Register));
     }
 

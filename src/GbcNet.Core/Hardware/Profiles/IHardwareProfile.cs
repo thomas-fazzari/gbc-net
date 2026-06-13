@@ -43,6 +43,11 @@ internal interface IHardwareProfile
     bool TicksTimerOnTacDisableWhenInputHigh { get; }
 
     /// <summary>
+    /// TAC enable-on-high tick. Color hardware varies.
+    /// </summary>
+    bool TicksTimerOnTacEnableWhenInputHigh { get; }
+
+    /// <summary>
     /// Indicates whether the CPU-visible CGB WRAM bank register is enabled.
     /// </summary>
     bool IsWorkRamBankRegisterEnabled { get; }

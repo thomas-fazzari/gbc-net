@@ -13,6 +13,7 @@ public sealed class GameBoyTests
 {
     private const byte HaltOpcode = 0x76;
     private const byte StopOpcode = 0x10;
+    private const byte IncBOpcode = 0x04;
     private const byte JumpImmediate16Opcode = 0xC3;
 
     [Fact]
@@ -70,6 +71,49 @@ public sealed class GameBoyTests
         gameBoy.Step();
 
         Assert.Equal(GbTiming.DoubleCpuHz, gameBoy.CpuMachineCyclesPerSecond);
+    }
+
+    [Fact]
+    public void Step_ConsumesCgbSpeedSwitchPauseWithoutAdvancingDividerThenResumesCpu()
+    {
+        var cartridge = ResultAssertions.AssertSuccess(
+            Cartridge.Load(
+                TestRomFactory.Create(bytes =>
+                {
+                    bytes[0x0100] = StopOpcode;
+                    bytes[0x0101] = 0x00;
+                    bytes[0x0102] = IncBOpcode;
+                    bytes[0x0143] = 0xC0;
+                })
+            )
+        );
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Cgb);
+        gameBoy.Bus.Clock.SetCounter(0xABCC);
+        gameBoy.Bus.WriteByte(AddressMap.Key1Register, 0x01);
+
+        Assert.Equal(2, gameBoy.Step());
+        var dividerAfterStop = gameBoy.Bus.ReadByte(AddressMap.DividerRegister);
+
+        Assert.True(gameBoy.Bus.Clock.CgbDoubleSpeed);
+        Assert.Equal(0xFE, gameBoy.Bus.ReadByte(AddressMap.Key1Register));
+        Assert.Equal(2050, gameBoy.Bus.Clock.SpeedSwitchPauseCycles);
+
+        var pauseMachineCycles = 0;
+        for (var cycle = 0; cycle < 2050; cycle++)
+        {
+            pauseMachineCycles += gameBoy.Step();
+        }
+
+        Assert.Equal(2050, pauseMachineCycles);
+        Assert.Equal(0, gameBoy.Bus.Clock.SpeedSwitchPauseCycles);
+        Assert.Equal(dividerAfterStop, gameBoy.Bus.ReadByte(AddressMap.DividerRegister));
+        Assert.Equal(0, gameBoy.Cpu.Registers.B);
+        Assert.Equal(0x0102, gameBoy.Cpu.Registers.PC);
+
+        Assert.Equal(1, gameBoy.Step());
+
+        Assert.Equal(1, gameBoy.Cpu.Registers.B);
+        Assert.Equal(0x0103, gameBoy.Cpu.Registers.PC);
     }
 
     [Fact]

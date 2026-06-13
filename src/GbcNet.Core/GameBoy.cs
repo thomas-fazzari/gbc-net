@@ -78,7 +78,7 @@ public sealed class GameBoy
     /// </returns>
     public int Step()
     {
-        var machineCycles = Cpu.Step();
+        var machineCycles = Bus.Clock.TryStepSpeedSwitchPause() ? 1 : Cpu.Step();
 
         while (_clock.TryDequeueCompletedFrame(out var frame))
         {

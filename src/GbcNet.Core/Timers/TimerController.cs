@@ -9,7 +9,8 @@ namespace GbcNet.Core.Timers;
 internal sealed class TimerController(
     InterruptController interrupts,
     SystemCounter systemCounter,
-    bool ticksOnTacDisableWhenInputHigh = true
+    bool ticksOnTacDisableWhenInputHigh = true,
+    bool ticksOnTacEnableWhenInputHigh = false
 )
 {
     /// <summary>
@@ -107,19 +108,28 @@ internal sealed class TimerController(
     }
 
     /// <summary>
-    /// Writes TAC and applies the DMG falling-edge tick caused by changing timer input.
+    /// Writes TAC and applies model-specific falling-edge ticks caused by changing timer input.
     /// </summary>
     internal void WriteTimerControl(byte value)
     {
+        var oldTimerControl = _timerControl;
         var newTimerControl = (byte)(value & TimerControlWriteMask);
-        var wasTimerInputHigh = IsTimerInputHigh(_timerControl, systemCounter.Value);
+        var wasTimerInputHigh = IsTimerInputHigh(oldTimerControl, systemCounter.Value);
         var isTimerInputHigh = IsTimerInputHigh(newTimerControl, systemCounter.Value);
         _timerControl = newTimerControl;
 
         if (
-            wasTimerInputHigh
-            && !isTimerInputHigh
-            && (IsTimerEnabled(newTimerControl) || ticksOnTacDisableWhenInputHigh)
+            (
+                wasTimerInputHigh
+                && !isTimerInputHigh
+                && (IsTimerEnabled(newTimerControl) || ticksOnTacDisableWhenInputHigh)
+            )
+            || (
+                ticksOnTacEnableWhenInputHigh
+                && !IsTimerEnabled(oldTimerControl)
+                && IsTimerEnabled(newTimerControl)
+                && IsSelectedCounterBitHigh(newTimerControl, systemCounter.Value)
+            )
         )
         {
             IncrementTimerCounter();
@@ -168,7 +178,10 @@ internal sealed class TimerController(
     }
 
     private static bool IsTimerInputHigh(byte timerControl, ushort systemCounter) =>
-        IsTimerEnabled(timerControl) && (systemCounter & GetClockBitMask(timerControl)) != 0;
+        IsTimerEnabled(timerControl) && IsSelectedCounterBitHigh(timerControl, systemCounter);
+
+    private static bool IsSelectedCounterBitHigh(byte timerControl, ushort systemCounter) =>
+        (systemCounter & GetClockBitMask(timerControl)) != 0;
 
     private static bool IsTimerEnabled(byte timerControl) => (timerControl & TimerEnableMask) != 0;
 

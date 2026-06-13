@@ -977,7 +977,7 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.LcdControlRegister, 0x80);
         bus.WriteByte(AddressMap.Key1Register, 0x01);
 
-        Assert.True(bus.Clock.TrySwitchSpeedOnStop());
+        Assert.True(bus.Clock.TryStartSpeedSwitch());
 
         TickMachineCycles(clock, 114);
 

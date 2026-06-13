@@ -42,11 +42,7 @@ public sealed record CartridgeHeader(
     byte HeaderChecksum
 )
 {
-    /// <summary>
-    /// Last byte of the cartridge header.
-    /// </summary>
-    public const int HeaderEndAddress = 0x014F;
-
+    private const int HeaderEndAddress = 0x014F;
     private const int TitleStartAddress = 0x0134;
     private const int TitleEndAddress = 0x0143;
     private const int NewHeaderTitleEndAddress = 0x013E;
@@ -82,8 +78,8 @@ public sealed record CartridgeHeader(
             return Result.Fail<CartridgeHeader>(ramSizeResult.Errors);
         }
 
-        (var romSizeBytes, var romBankCount) = romSizeResult.Value;
-        (var ramSizeBytes, var ramBankCount) = ramSizeResult.Value;
+        var (romSizeBytes, romBankCount) = romSizeResult.Value;
+        var (ramSizeBytes, ramBankCount) = ramSizeResult.Value;
         var cgbSupport = DecodeCgbSupport(rom[CgbFlagAddress]);
 
         return Result.Ok(

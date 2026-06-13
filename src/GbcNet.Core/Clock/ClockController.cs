@@ -10,6 +10,9 @@ namespace GbcNet.Core.Clock;
 /// </summary>
 internal sealed class ClockController
 {
+    // Pan Docs: KEY1-armed STOP pauses the CPU for 2050 M-cycles while DIV is frozen.
+    private const int SpeedSwitchPauseDuration = 2050;
+
     private const byte Key1SwitchArmedMask = 0x01;
     private const byte Key1ReadMask = 0x7E;
     private const byte Key1CurrentSpeedMask = 0x80;
@@ -21,13 +24,15 @@ internal sealed class ClockController
 
     private readonly bool _isKey1RegisterEnabled;
     private bool _speedSwitchArmed;
+    private int _speedSwitchPauseCycles;
 
     public ClockController(
         InterruptController interrupts,
         SerialController serial,
         ApuController apu,
         bool isKey1RegisterEnabled = false,
-        bool ticksTimerOnTacDisableWhenInputHigh = true
+        bool ticksTimerOnTacDisableWhenInputHigh = true,
+        bool ticksTimerOnTacEnableWhenInputHigh = false
     )
     {
         _serial = serial;
@@ -36,7 +41,8 @@ internal sealed class ClockController
         Timers = new TimerController(
             interrupts,
             _systemCounter,
-            ticksTimerOnTacDisableWhenInputHigh
+            ticksTimerOnTacDisableWhenInputHigh,
+            ticksTimerOnTacEnableWhenInputHigh
         );
     }
 
@@ -49,6 +55,11 @@ internal sealed class ClockController
     /// Indicates that CGB CPU double-speed mode is active.
     /// </summary>
     public bool CgbDoubleSpeed { get; private set; }
+
+    /// <summary>
+    /// Remaining CGB speed-switch pause duration in CPU machine cycles.
+    /// </summary>
+    public int SpeedSwitchPauseCycles => _speedSwitchPauseCycles;
 
     /// <summary>
     /// Number of PPU/APU T-cycles elapsed per CPU machine cycle at the current speed.
@@ -113,9 +124,9 @@ internal sealed class ClockController
     }
 
     /// <summary>
-    /// Applies a CGB speed switch requested by STOP, if armed.
+    /// Applies a CGB speed switch requested by STOP, if armed, and starts the hardware pause.
     /// </summary>
-    public bool TrySwitchSpeedOnStop()
+    public bool TryStartSpeedSwitch()
     {
         if (!_isKey1RegisterEnabled || !_speedSwitchArmed)
         {
@@ -125,6 +136,21 @@ internal sealed class ClockController
         ResetDivider();
         _speedSwitchArmed = false;
         CgbDoubleSpeed = !CgbDoubleSpeed;
+        _speedSwitchPauseCycles = SpeedSwitchPauseDuration;
+        return true;
+    }
+
+    /// <summary>
+    /// Consumes one CGB speed-switch pause machine cycle without advancing the system counter.
+    /// </summary>
+    public bool TryStepSpeedSwitchPause()
+    {
+        if (_speedSwitchPauseCycles == 0)
+        {
+            return false;
+        }
+
+        _speedSwitchPauseCycles--;
         return true;
     }
 

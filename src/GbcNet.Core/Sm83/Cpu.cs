@@ -142,13 +142,13 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     }
 
     /// <summary>
-    /// Executes STOP by switching CGB speed when armed, or entering the low-power stopped state.
+    /// Executes STOP by starting a CGB speed-switch pause when armed, or entering the low-power stopped state.
     /// </summary>
     internal void Stop()
     {
         Halted = false;
 
-        if (bus.Clock.TrySwitchSpeedOnStop())
+        if (bus.Clock.TryStartSpeedSwitch())
         {
             return;
         }

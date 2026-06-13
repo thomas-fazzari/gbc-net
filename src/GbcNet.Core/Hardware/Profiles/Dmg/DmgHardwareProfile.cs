@@ -28,6 +28,8 @@ internal sealed class DmgHardwareProfile : IHardwareProfile
 
     public bool TicksTimerOnTacDisableWhenInputHigh => true;
 
+    public bool TicksTimerOnTacEnableWhenInputHigh => false;
+
     public bool IsWorkRamBankRegisterEnabled => false;
 
     public bool IsColorPaletteRamEnabled => false;

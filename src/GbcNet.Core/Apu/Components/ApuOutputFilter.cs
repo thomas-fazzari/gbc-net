@@ -6,8 +6,8 @@ namespace GbcNet.Core.Apu.Components;
 internal sealed class ApuOutputFilter(double highPassChargeFactor)
 {
     internal const double MaxAnalogMixerOutput = 4 * 8;
-    internal const int PcmScale = short.MaxValue;
 
+    private const int PcmScale = short.MaxValue;
     private double _leftCapacitor;
     private double _rightCapacitor;
 

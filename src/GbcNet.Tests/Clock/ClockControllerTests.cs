@@ -25,13 +25,13 @@ public sealed class ClockControllerTests
     }
 
     [Fact]
-    public void TrySwitchSpeedOnStop_TogglesSpeedResetsDividerAndClearsArmedBit()
+    public void TryStartSpeedSwitch_TogglesSpeedResetsDividerClearsArmedBitAndStartsPause()
     {
         var clock = CreateClock(isKey1RegisterEnabled: true);
         clock.SetDivider(0x12);
         clock.WriteKey1(0x01);
 
-        Assert.True(clock.TrySwitchSpeedOnStop());
+        Assert.True(clock.TryStartSpeedSwitch());
 
         Assert.True(clock.CgbDoubleSpeed);
         Assert.Equal(0xFE, clock.ReadKey1());
@@ -40,14 +40,15 @@ public sealed class ClockControllerTests
             HardwareTiming.DoubleSpeedMachineCycleTCycles,
             clock.VideoAndAudioTCyclesPerMachineCycle
         );
+        Assert.Equal(2050, clock.SpeedSwitchPauseCycles);
     }
 
     [Fact]
-    public void TrySwitchSpeedOnStop_ReturnsFalseWhenKey1IsNotArmed()
+    public void TryStartSpeedSwitch_ReturnsFalseWhenKey1IsNotArmed()
     {
         var clock = CreateClock(isKey1RegisterEnabled: true);
 
-        Assert.False(clock.TrySwitchSpeedOnStop());
+        Assert.False(clock.TryStartSpeedSwitch());
 
         Assert.False(clock.CgbDoubleSpeed);
         Assert.Equal(0x7E, clock.ReadKey1());
@@ -61,7 +62,7 @@ public sealed class ClockControllerTests
         clock.WriteKey1(0x01);
 
         Assert.Equal(0xFF, clock.ReadKey1());
-        Assert.False(clock.TrySwitchSpeedOnStop());
+        Assert.False(clock.TryStartSpeedSwitch());
         Assert.False(clock.CgbDoubleSpeed);
     }
 
