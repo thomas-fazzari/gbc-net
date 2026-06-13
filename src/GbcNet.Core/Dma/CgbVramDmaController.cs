@@ -7,6 +7,7 @@ namespace GbcNet.Core.Dma;
 /// </summary>
 internal sealed class CgbVramDmaController(
     bool isRegisterEnabled,
+    Func<bool> isDoubleSpeed,
     Func<ushort, byte> readSourceByte,
     Action<ushort, byte> writeDestinationByte
 )
@@ -19,14 +20,20 @@ internal sealed class CgbVramDmaController(
     private const byte CompletedReadValue = 0xFF;
     private const byte InactiveHBlankReadMask = 0x80;
     private const int BlockSize = 0x10;
+    private const int NormalSpeedBlockMachineCycles = 8;
+    private const int DoubleSpeedBlockMachineCycles = 16;
 
     private byte _sourceHigh;
     private byte _sourceLow;
     private byte _destinationHigh;
     private byte _destinationLow;
     private byte _lengthModeReadValue = CompletedReadValue;
+
     private int _hblankBlocksRemaining;
+    private int _cpuStallMachineCycles;
+
     private bool _isHblankDmaActive;
+    private bool _cpuHalted;
 
     /// <summary>
     /// Reads CPU-visible HDMA registers. HDMA1-HDMA4 are write-only.
@@ -63,11 +70,33 @@ internal sealed class CgbVramDmaController(
     }
 
     /// <summary>
+    /// Records whether CPU HALT currently pauses HBlank DMA block transfers.
+    /// </summary>
+    public void SetCpuHalted(bool value)
+    {
+        _cpuHalted = value;
+    }
+
+    /// <summary>
+    /// Consumes one CPU-blocked VRAM DMA machine cycle, if a transfer stalled execution.
+    /// </summary>
+    public bool TryConsumeCpuStallMachineCycle()
+    {
+        if (_cpuStallMachineCycles == 0)
+        {
+            return false;
+        }
+
+        _cpuStallMachineCycles--;
+        return true;
+    }
+
+    /// <summary>
     /// Transfers one active HBlank DMA block on a visible scanline Mode 0 entry.
     /// </summary>
     public void TransferHBlankBlock()
     {
-        if (!isRegisterEnabled || !_isHblankDmaActive)
+        if (!isRegisterEnabled || !_isHblankDmaActive || _cpuHalted)
         {
             return;
         }
@@ -80,6 +109,7 @@ internal sealed class CgbVramDmaController(
         }
 
         CopyBlock(GetSourceAddress(), destinationAddress);
+        QueueCpuStall(blockCount: 1);
         AdvanceSourceAddress();
         var destinationWithinVram = TryAdvanceDestinationAddress();
         _hblankBlocksRemaining--;
@@ -148,21 +178,27 @@ internal sealed class CgbVramDmaController(
     {
         var sourceAddress = GetSourceAddress();
         var destinationAddress = GetDestinationAddress();
-        var byteCount = ((value & LengthMask) + 1) * BlockSize;
+        var blockCount = (value & LengthMask) + 1;
 
-        for (var blockOffset = 0; blockOffset < byteCount; blockOffset += BlockSize)
+        var transferredBlocks = 0;
+        for (var block = 0; block < blockCount; block++)
         {
-            var currentDestinationAddress = destinationAddress + blockOffset;
+            var currentDestinationAddress = destinationAddress + (block * BlockSize);
 
             if (currentDestinationAddress > AddressMap.VideoRamEnd)
             {
                 break;
             }
 
-            CopyBlock((ushort)(sourceAddress + blockOffset), (ushort)currentDestinationAddress);
+            CopyBlock(
+                (ushort)(sourceAddress + (block * BlockSize)),
+                (ushort)currentDestinationAddress
+            );
+            transferredBlocks++;
         }
 
         CompleteTransfer();
+        QueueCpuStall(transferredBlocks);
     }
 
     private void StartHBlankDma(byte value)
@@ -170,6 +206,13 @@ internal sealed class CgbVramDmaController(
         _hblankBlocksRemaining = (value & LengthMask) + 1;
         _isHblankDmaActive = true;
         _lengthModeReadValue = (byte)(value & LengthMask);
+    }
+
+    private void QueueCpuStall(int blockCount)
+    {
+        _cpuStallMachineCycles +=
+            blockCount
+            * (isDoubleSpeed() ? DoubleSpeedBlockMachineCycles : NormalSpeedBlockMachineCycles);
     }
 
     private void CopyBlock(ushort sourceAddress, ushort destinationAddress)

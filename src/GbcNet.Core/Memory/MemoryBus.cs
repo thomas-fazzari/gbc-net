@@ -100,6 +100,7 @@ internal sealed class MemoryBus
         Apu = new ApuController(hardwareProfile.CreateApuHardwareProfile());
         Clock = new ClockController(Interrupts, Serial, Apu, hardwareProfile.IsKey1RegisterEnabled);
         Timers = Clock.Timers;
+
         Ppu = new PpuController(
             Interrupts,
             hardwareProfile.CreatePpuEngine(),
@@ -108,9 +109,11 @@ internal sealed class MemoryBus
             hardwareProfile.IsColorPaletteRamEnabled,
             hardwareProfile.IsObjectPriorityModeRegisterEnabled
         );
+
         OamDma = new OamDmaController();
         VramDma = new CgbVramDmaController(
             hardwareProfile.IsVideoRamDmaRegisterEnabled,
+            () => Clock.CgbDoubleSpeed,
             ReadVramDmaSourceByte,
             Ppu.VideoRam.Write
         );

@@ -5,6 +5,7 @@ using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu;
+using GbcNet.Core.Sm83;
 using GbcNet.Tests.Cartridges;
 
 namespace GbcNet.Tests.Memory;
@@ -429,6 +430,112 @@ public sealed class MemoryBusTests
 
         Assert.Equal(0x55, bus.ReadByte(0x9000));
         Assert.Equal(0x66, bus.ReadByte(0x900F));
+    }
+
+    [Fact]
+    public void CpuWrite_BlocksDuringGeneralPurposeCgbVramDma()
+    {
+        var rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0100] = 0x3E;
+            bytes[0x0101] = 0x00;
+            bytes[0x0102] = 0xE0;
+            bytes[0x0103] = 0x55;
+            bytes[0x1230] = 0xA1;
+            bytes[0x123F] = 0xAF;
+        });
+        var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var clock = new MachineClock(bus);
+        var cpu = new Cpu(bus, clock.TickMachineCycle);
+        bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x12);
+        bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x30);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
+
+        Assert.Equal(2, cpu.Step());
+        var machineCycles = cpu.Step();
+
+        Assert.Equal(11, machineCycles);
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
+        Assert.Equal(0xA1, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
+        Assert.Equal(0xAF, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F));
+    }
+
+    [Fact]
+    public void CpuWrite_BlocksDuringGeneralPurposeCgbVramDmaWithDoubleSpeedCycles()
+    {
+        var rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0100] = 0x3E;
+            bytes[0x0101] = 0x00;
+            bytes[0x0102] = 0xE0;
+            bytes[0x0103] = 0x55;
+            bytes[0x1230] = 0xA1;
+        });
+        var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var clock = new MachineClock(bus);
+        var cpu = new Cpu(bus, clock.TickMachineCycle);
+        bus.Clock.SetKey1State(0x80);
+        bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x12);
+        bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x30);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
+
+        cpu.Step();
+        var machineCycles = cpu.Step();
+
+        Assert.Equal(19, machineCycles);
+        Assert.Equal(0xA1, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
+    }
+
+    [Fact]
+    public void CpuStep_BlocksDuringCgbHBlankVramDmaBlock()
+    {
+        var rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x1230] = 0xA1;
+            bytes[0x123F] = 0xAF;
+        });
+        var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var clock = new MachineClock(bus);
+        var cpu = new Cpu(bus, clock.TickMachineCycle);
+        bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x12);
+        bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x30);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x80);
+        bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
+        TickMachineCycles(clock, 62);
+
+        var machineCycles = cpu.Step();
+
+        Assert.Equal(9, machineCycles);
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
+        Assert.Equal(0xA1, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
+        Assert.Equal(0xAF, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F));
+    }
+
+    [Fact]
+    public void CpuHalt_SuspendsCgbHBlankVramDmaBlocks()
+    {
+        var rom = TestRomFactory.Create(bytes => bytes[0x1230] = 0xA1);
+        var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var clock = new MachineClock(bus);
+        var cpu = new Cpu(bus, clock.TickMachineCycle);
+        bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x12);
+        bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x30);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x80);
+        bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
+        TickMachineCycles(clock, 62);
+        cpu.Halt();
+
+        var machineCycles = cpu.Step();
+
+        Assert.Equal(1, machineCycles);
+        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
+        Assert.Equal(0x00, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
     }
 
     [Fact]

@@ -345,6 +345,17 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
 
     private void TickMachineCycle()
     {
+        TickSingleMachineCycle();
+
+        while (bus.VramDma.TryConsumeCpuStallMachineCycle())
+        {
+            TickSingleMachineCycle();
+        }
+    }
+
+    private void TickSingleMachineCycle()
+    {
+        bus.VramDma.SetCpuHalted(Halted);
         tickMachineCycle?.Invoke();
         _currentInstructionMachineCycles++;
     }
