@@ -1,5 +1,3 @@
-using GbcNet.Core.Memory;
-
 namespace GbcNet.Core.Ppu.Engines;
 
 /// <summary>
@@ -7,43 +5,16 @@ namespace GbcNet.Core.Ppu.Engines;
 /// </summary>
 internal sealed class CgbObjectLayer
 {
-    private readonly ScanlineObject[] _scanlineObjects = new ScanlineObject[
-        PpuObjectAttributes.MaxObjectsPerScanline
-    ];
-
-    private int _scanlineObjectCount;
-    private int _scanlineObjectHeight = PpuObjectAttributes.Size8;
-
-    private bool _scanlineObjectsSelected;
+    private readonly ScanlineObjectSelector _selector = new();
 
     public void Clear()
     {
-        _scanlineObjectCount = 0;
-        _scanlineObjectHeight = PpuObjectAttributes.Size8;
-        _scanlineObjectsSelected = false;
+        _selector.Clear();
     }
 
     public void EnsureSelected(PpuEngineInputs inputs, byte lcdYCoordinate, bool oamScanComplete)
     {
-        if (
-            _scanlineObjectsSelected
-            || lcdYCoordinate >= PpuGeometry.VBlankStartLine
-            || !oamScanComplete
-        )
-        {
-            return;
-        }
-
-        if ((inputs.LcdControl & PpuLcdControlRegister.ObjectEnableMask) == 0)
-        {
-            _scanlineObjectCount = 0;
-            _scanlineObjectHeight = PpuObjectAttributes.Size8;
-            _scanlineObjectsSelected = true;
-            return;
-        }
-
-        SelectScanlineObjects(inputs, lcdYCoordinate);
-        _scanlineObjectsSelected = true;
+        _selector.TrySelect(inputs, lcdYCoordinate, oamScanComplete, inputs.ObjectPriorityMode);
     }
 
     public CgbObjectPixel? SelectPixel(int screenX, byte lcdYCoordinate, PpuEngineInputs inputs)
@@ -53,7 +24,7 @@ internal sealed class CgbObjectLayer
             return null;
         }
 
-        foreach (var scanlineObject in _scanlineObjects.AsSpan(0, _scanlineObjectCount))
+        foreach (var scanlineObject in _selector.Objects)
         {
             var objectLeft = scanlineObject.X - PpuObjectAttributes.XScreenOffset;
             if (screenX < objectLeft || screenX >= objectLeft + PpuTileData.TileSizePixels)
@@ -73,66 +44,6 @@ internal sealed class CgbObjectLayer
         return null;
     }
 
-    private void SelectScanlineObjects(PpuEngineInputs inputs, byte lcdYCoordinate)
-    {
-        _scanlineObjectHeight =
-            (inputs.LcdControl & PpuLcdControlRegister.ObjectSizeMask) == 0
-                ? PpuObjectAttributes.Size8
-                : PpuObjectAttributes.Size16;
-        _scanlineObjectCount = 0;
-
-        for (var objectIndex = 0; objectIndex < PpuObjectAttributes.ObjectCount; objectIndex++)
-        {
-            var objectAddress = (ushort)(
-                AddressMap.ObjectAttributeMemoryStart
-                + (objectIndex * PpuObjectAttributes.AttributeSize)
-            );
-            var objectY = inputs.ObjectAttributeMemory.Read(
-                (ushort)(objectAddress + PpuObjectAttributes.YCoordinateOffset)
-            );
-            var objectTop = objectY - PpuObjectAttributes.YScreenOffset;
-
-            if (objectTop > lcdYCoordinate || objectTop + _scanlineObjectHeight <= lcdYCoordinate)
-            {
-                continue;
-            }
-
-            _scanlineObjects[_scanlineObjectCount] = new ScanlineObject(
-                objectIndex,
-                inputs.ObjectAttributeMemory.Read(
-                    (ushort)(objectAddress + PpuObjectAttributes.XCoordinateOffset)
-                ),
-                objectY,
-                inputs.ObjectAttributeMemory.Read(
-                    (ushort)(objectAddress + PpuObjectAttributes.TileIndexOffset)
-                ),
-                inputs.ObjectAttributeMemory.Read(
-                    (ushort)(objectAddress + PpuObjectAttributes.FlagsOffset)
-                )
-            );
-
-            _scanlineObjectCount++;
-
-            if (_scanlineObjectCount == PpuObjectAttributes.MaxObjectsPerScanline)
-            {
-                break;
-            }
-        }
-
-        if (inputs.ObjectPriorityMode is ObjectPriorityMode.XCoordinate)
-        {
-            _scanlineObjects
-                .AsSpan(0, _scanlineObjectCount)
-                .Sort(
-                    static (x, y) =>
-                    {
-                        var xComparison = x.X.CompareTo(y.X);
-                        return xComparison != 0 ? xComparison : x.Index.CompareTo(y.Index);
-                    }
-                );
-        }
-    }
-
     private byte ReadColorId(
         ScanlineObject scanlineObject,
         int screenX,
@@ -143,13 +54,13 @@ internal sealed class CgbObjectLayer
         var objectLine = PpuObjectTile.ResolveTileLine(
             scanlineObject.Y,
             scanlineObject.Flags,
-            _scanlineObjectHeight,
+            _selector.ObjectHeight,
             lcdYCoordinate
         );
         var tileId = PpuObjectTile.ResolveTileId(
             scanlineObject.Tile,
             objectLine,
-            _scanlineObjectHeight
+            _selector.ObjectHeight
         );
         var tileRowAddress = PpuObjectTile.GetTileRowAddress(tileId, objectLine);
 
@@ -189,8 +100,6 @@ internal sealed class CgbObjectLayer
         lowByte = inputs.VideoRam.ReadBank(bank, tileRowAddress);
         highByte = inputs.VideoRam.ReadBank(bank, (ushort)(tileRowAddress + 1));
     }
-
-    private readonly record struct ScanlineObject(int Index, byte X, byte Y, byte Tile, byte Flags);
 }
 
 /// <summary>
