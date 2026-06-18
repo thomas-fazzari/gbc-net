@@ -8,9 +8,6 @@ namespace GbcNet.Core.Memory;
 /// </summary>
 internal sealed class BootRom
 {
-    internal const int DmgSize = 256;
-    internal const int CgbSize = 2048;
-
     private const ushort LowerEnd = 0x00FF;
     private const ushort CgbUpperStart = 0x0200;
     private const ushort CgbUpperEnd = 0x08FF;
@@ -44,7 +41,11 @@ internal sealed class BootRom
             return null;
         }
 
-        var expectedLength = hardwareModel is HardwareModel.Dmg ? DmgSize : CgbSize;
+        var expectedLength =
+            hardwareModel is HardwareModel.Dmg
+                ? GameBoyOptions.DmgBootRomSize
+                : GameBoyOptions.CgbBootRomSize;
+
         if (bytes.Length != expectedLength)
         {
             throw new ArgumentException(

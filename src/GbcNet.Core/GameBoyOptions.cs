@@ -6,6 +6,16 @@ namespace GbcNet.Core;
 public sealed class GameBoyOptions
 {
     /// <summary>
+    /// Required byte length of a DMG boot ROM image.
+    /// </summary>
+    public const int DmgBootRomSize = 256;
+
+    /// <summary>
+    /// Required byte length of a CGB boot ROM image.
+    /// </summary>
+    public const int CgbBootRomSize = 2048;
+
+    /// <summary>
     /// Optional 256-byte DMG boot ROM image.
     /// </summary>
     /// <remarks>

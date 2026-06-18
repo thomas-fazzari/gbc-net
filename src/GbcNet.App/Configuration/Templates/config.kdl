@@ -12,3 +12,6 @@ input version=1 {
     }
   }
 }
+
+boot_roms {
+}

@@ -1,11 +1,15 @@
 using FluentResults;
 using GbcNet.App.Input.Configuration;
-using KdlSharp;
+using GbcNet.Core;
 using Microsoft.Extensions.Options;
 
 namespace GbcNet.App.Configuration;
 
-internal sealed record StartupConfiguration(InputOptions InputOptions, string? StartupMessage);
+internal sealed record StartupConfiguration(
+    InputOptions InputOptions,
+    GameBoyOptions GameBoyOptions,
+    string? StartupMessage
+);
 
 /// <summary>
 /// Resolves startup configuration.
@@ -18,30 +22,58 @@ internal static class StartupConfigurationLoader
     )
     {
         var document = KdlConfigurationFile.LoadOrCreate(configPath);
-        var loadedOptions = document.IsSuccess
+        var loadedInputOptions = document.IsSuccess
             ? KdlInputOptionsReader.Read(document.Value)
             : document.ToResult<InputOptions>();
+        var loadedGameBoyOptions = document.IsSuccess
+            ? KdlBootRomOptionsReader.Read(
+                document.Value,
+                Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory
+            )
+            : Result.Ok(new GameBoyOptions());
 
-        var inputOptions = loadedOptions.IsSuccess
-            ? loadedOptions.Value
+        var inputOptions = loadedInputOptions.IsSuccess
+            ? loadedInputOptions.Value
             : LoadTemplateInputOptions();
-        var startupMessage = loadedOptions.IsFailed
-            ? string.Join(Environment.NewLine, loadedOptions.Errors.Select(error => error.Message))
-            : null;
+        var gameBoyOptions = loadedGameBoyOptions.IsSuccess
+            ? loadedGameBoyOptions.Value
+            : new GameBoyOptions();
+        var startupMessages = new List<string>();
+        AddErrors(startupMessages, loadedInputOptions);
+        AddErrors(startupMessages, loadedGameBoyOptions);
 
         var validation = inputOptionsValidator.Validate(Options.DefaultName, inputOptions);
 
         if (!validation.Failed)
         {
-            return new StartupConfiguration(inputOptions, startupMessage);
+            return new StartupConfiguration(
+                inputOptions,
+                gameBoyOptions,
+                ToStartupMessage(startupMessages)
+            );
         }
 
-        startupMessage = string.Join(Environment.NewLine, validation.Failures);
+        startupMessages.AddRange(validation.Failures);
         inputOptions = LoadTemplateInputOptions();
         ValidateFallbackOptions(inputOptionsValidator, inputOptions);
 
-        return new StartupConfiguration(inputOptions, startupMessage);
+        return new StartupConfiguration(
+            inputOptions,
+            gameBoyOptions,
+            ToStartupMessage(startupMessages)
+        );
     }
+
+    private static void AddErrors<T>(List<string> messages, Result<T> result)
+    {
+        if (result.IsFailed)
+        {
+            messages.AddRange(result.Errors.Select(error => error.Message));
+        }
+    }
+
+    private static string? ToStartupMessage(List<string> messages) =>
+        messages.Count == 0 ? null : string.Join(Environment.NewLine, messages);
 
     private static void ValidateFallbackOptions(
         IValidateOptions<InputOptions> validator,

@@ -35,6 +35,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     private readonly KeyboardInputMapper _keyboardInputMapper;
     private readonly CartridgeSaveFileService _cartridgeSaveFileService;
     private readonly InputRouter _inputRouter;
+    private readonly GameBoyOptions _gameBoyOptions;
     private byte[]? _loadedRom;
     private string _loadedRomName = string.Empty;
     private readonly LcdFramePresenter _framePresenter;
@@ -62,6 +63,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         _cartridgeSaveFileService = cartridgeSaveFileService;
         _audioOutput = audioOutput;
+        _gameBoyOptions = startupConfiguration.GameBoyOptions;
         _keyboardInputMapper = new KeyboardInputMapper(inputConfiguration.Bindings);
         _inputRouter = new InputRouter(
             inputConfiguration.Bindings,
@@ -406,7 +408,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         _inputRouter.Clear();
         _emulationSession = new EmulationSession(
-            new GameBoy(cartridge, hardwareModel),
+            new GameBoy(cartridge, hardwareModel, _gameBoyOptions),
             _audioOutput,
             OnFrameCompleted,
             OnEmulationMetricsUpdated,
