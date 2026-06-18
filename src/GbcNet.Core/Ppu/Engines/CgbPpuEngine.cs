@@ -32,24 +32,24 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
         _objects.Clear();
     }
 
-    protected override bool IsWindowEnabled(PpuEngineInputs inputs) =>
+    internal override bool IsWindowEnabled(PpuEngineInputs inputs) =>
         (inputs.LcdControl & PpuLcdControlRegister.WindowEnableMask) != 0;
 
-    protected override void FetchTileMapEntry(PpuEngineInputs inputs, ushort tileMapAddress)
+    internal override void FetchTileMapEntry(PpuEngineInputs inputs, ushort tileMapAddress)
     {
         _fetcherTileId = inputs.VideoRam.ReadBank(bank: 0, tileMapAddress);
         _fetcherTileAttributes = inputs.VideoRam.ReadBank(bank: 1, tileMapAddress);
     }
 
-    protected override byte ReadTileDataByte(PpuEngineInputs inputs, bool highByte)
+    internal override byte ReadTileDataByte(PpuEngineInputs inputs, bool highByte)
     {
         var tileBank = (_fetcherTileAttributes & AttributeTileBankMask) == 0 ? 0 : 1;
         return inputs.VideoRam.ReadBank(tileBank, GetTileDataAddress(inputs, highByte));
     }
 
-    protected override bool TryPushFetchedTileRow()
+    internal override bool TryPushFetchedTileRow()
     {
-        if (BackgroundFifoCount > PpuTileData.TileSizePixels)
+        if (BgWindowFetcher.BackgroundFifoCount > PpuTileData.TileSizePixels)
         {
             return false;
         }
@@ -59,8 +59,8 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
         {
             PushBackgroundPixel(
                 PpuTileData.DecodeColorId(
-                    FetchedTileDataLow,
-                    FetchedTileDataHigh,
+                    BgWindowFetcher.FetchedTileDataLow,
+                    BgWindowFetcher.FetchedTileDataHigh,
                     xFlip ? pixel : 7 - pixel
                 ),
                 _fetcherTileAttributes
@@ -72,22 +72,22 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
 
     protected override void TryRenderPixel(PpuEngineInputs inputs)
     {
-        if (BackgroundFifoCount == 0 || RenderedPixels == PpuGeometry.FrameWidth)
+        if (BgWindowFetcher.BackgroundFifoCount == 0 || RenderedPixels == PpuGeometry.FrameWidth)
         {
             return;
         }
 
         PopBackgroundPixel(out var colorId, out var attributes);
-        if (ShouldDiscardPixel())
+        if (BgWindowFetcher.ShouldDiscardPixel())
         {
             return;
         }
 
         WriteRgb555Pixel(MixPixel(colorId, attributes, inputs));
-        AdvanceRenderedPixel();
+        RenderedPixels++;
     }
 
-    protected override void ClearFetchedTileMapEntry()
+    internal override void ClearFetchedTileMapEntry()
     {
         _fetcherTileId = 0;
         _fetcherTileAttributes = 0;
@@ -95,13 +95,18 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
 
     private ushort GetTileDataAddress(PpuEngineInputs inputs, bool highByte)
     {
-        var tileLine = GetFetcherY() & TileLineMask;
+        var tileLine = BgWindowFetcher.GetFetcherY(LcdYCoordinate) & TileLineMask;
         if ((_fetcherTileAttributes & AttributeYFlipMask) != 0)
         {
             tileLine = PpuTileData.TileSizePixels - 1 - tileLine;
         }
 
-        return GetBackgroundTileDataAddress(inputs, _fetcherTileId, tileLine, highByte);
+        return BackgroundWindowFetcher.GetBackgroundTileDataAddress(
+            inputs,
+            _fetcherTileId,
+            tileLine,
+            highByte
+        );
     }
 
     private ushort MixPixel(
@@ -163,17 +168,17 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
 
     private void PushBackgroundPixel(byte colorId, byte attributes)
     {
-        var writeIndex = BackgroundFifoWriteIndex;
+        var writeIndex = BgWindowFetcher.BackgroundFifoWriteIndex;
         _backgroundColorFifo[writeIndex] = colorId;
         _backgroundAttributeFifo[writeIndex] = attributes;
-        CommitBackgroundFifoPush();
+        BgWindowFetcher.CommitBackgroundFifoPush();
     }
 
     private void PopBackgroundPixel(out byte colorId, out byte attributes)
     {
-        var readIndex = BackgroundFifoReadIndex;
+        var readIndex = BgWindowFetcher.BackgroundFifoReadIndex;
         colorId = _backgroundColorFifo[readIndex];
         attributes = _backgroundAttributeFifo[readIndex];
-        CommitBackgroundFifoPop();
+        BgWindowFetcher.CommitBackgroundFifoPop();
     }
 }
