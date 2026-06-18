@@ -4,6 +4,6 @@
     <File Path="Directory.Packages.props" />
   </Folder>
   <Project Path="src/GbcNet.Core/GbcNet.Core.csproj" />
-  <Project Path="src/GbcNet.Gui/GbcNet.Gui.csproj" />
+  <Project Path="src/GbcNet.App/GbcNet.App.csproj" />
   <Project Path="src/GbcNet.Tests/GbcNet.Tests.csproj" />
 </Solution>

@@ -1,5 +1,5 @@
 SOLUTION = GbcNet.slnx
-APP = src/GbcNet.Gui/GbcNet.Gui.csproj
+APP = src/GbcNet.App/GbcNet.App.csproj
 CONFIGURATION ?= Debug
 RUN_CONFIGURATION ?= Release
 AOT_RUNTIME ?= osx-arm64
