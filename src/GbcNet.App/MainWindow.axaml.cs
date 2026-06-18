@@ -37,13 +37,11 @@ internal sealed partial class MainWindow : Window, IDisposable
     private readonly InputRouter _inputRouter;
     private byte[]? _loadedRom;
     private string _loadedRomName = string.Empty;
-    private readonly LcdFrameBitmapRenderer _screenRenderer = new();
-    private LcdFrame? _pendingFrame;
+    private readonly LcdFramePresenter _framePresenter;
     private bool _closeAfterAsyncStop;
     private bool _fastForwardEnabled;
     private EmulationSpeed _fastForwardSpeed = EmulationSpeed.Two;
     private int _closeStopStarted;
-    private int _isFrameRenderQueued;
 
     public MainWindow(
         InputConfiguration inputConfiguration,
@@ -53,6 +51,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     )
     {
         InitializeComponent();
+        _framePresenter = new LcdFramePresenter(ScreenImage);
         ConfigureMenu();
         ConfigureDragDrop();
 
@@ -146,7 +145,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     public void Dispose()
     {
-        _screenRenderer.Dispose();
+        _framePresenter.Dispose();
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -448,7 +447,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
-        if (pressed && e.Key == Key.Tab)
+        if (pressed && e.Key is Key.Tab)
         {
             _fastForwardEnabled = !_fastForwardEnabled;
             ApplyFastForwardSettings();
@@ -464,33 +463,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private void OnFrameCompleted(FrameCompletedEventArgs e)
     {
-        Interlocked.Exchange(ref _pendingFrame, e.Frame);
-
-        if (Interlocked.Exchange(ref _isFrameRenderQueued, 1) == 0)
-        {
-            Dispatcher.UIThread.Post(RenderPendingFrame);
-        }
-    }
-
-    private void RenderPendingFrame()
-    {
-        var frame = Interlocked.Exchange(location1: ref _pendingFrame, value: null);
-        Volatile.Write(location: ref _isFrameRenderQueued, value: 0);
-
-        if (frame is not null)
-        {
-            ScreenImage.Source = _screenRenderer.Render(frame: frame);
-        }
-
-        // Keep latest frame only; fast-forward must not build a Dispatcher backlog.
-        if (
-            Interlocked.CompareExchange(location1: ref _pendingFrame, value: null, comparand: null)
-                is not null
-            && Interlocked.Exchange(location1: ref _isFrameRenderQueued, value: 1) == 0
-        )
-        {
-            Dispatcher.UIThread.Post(action: RenderPendingFrame);
-        }
+        _framePresenter.Enqueue(e.Frame);
     }
 
     private void OnEmulationFaulted(Exception e)
