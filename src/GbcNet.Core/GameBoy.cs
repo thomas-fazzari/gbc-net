@@ -35,20 +35,36 @@ public sealed class GameBoy
     private readonly MachineClock _clock;
 
     /// <summary>
-    /// Creates a Game Boy instance using the supplied cartridge.
+    /// Creates a Game Boy instance using the supplied cartridge and post-boot hand-off state.
     /// </summary>
     public GameBoy(Cartridge cartridge, HardwareModel hardwareModel)
+        : this(cartridge, hardwareModel, new GameBoyOptions()) { }
+
+    /// <summary>
+    /// Creates a Game Boy instance using optional model-specific boot ROM images.
+    /// </summary>
+    public GameBoy(Cartridge cartridge, HardwareModel hardwareModel, GameBoyOptions options)
     {
         ArgumentNullException.ThrowIfNull(cartridge);
+        ArgumentNullException.ThrowIfNull(options);
 
         var hardwareProfile = HardwareProfileFactory.Create(hardwareModel, cartridge.Header);
 
-        Bus = new MemoryBus(cartridge, hardwareProfile);
+        var bootRom = BootRom.Create(hardwareProfile.Model, options);
+        Bus = new MemoryBus(cartridge, hardwareProfile, bootRom);
         Bus.Serial.ByteTransferred += OnSerialByteTransferred;
         _clock = new MachineClock(Bus);
         Cpu = new Cpu(Bus, _clock.TickMachineCycle);
         HardwareModel = hardwareProfile.Model;
-        PostBootState.Apply(hardwareProfile, cartridge, Cpu, Bus);
+
+        if (bootRom is null)
+        {
+            PostBootState.Apply(hardwareProfile, cartridge, Cpu, Bus);
+        }
+        else
+        {
+            Cpu.Registers.PC = AddressMap.RomStart;
+        }
     }
 
     /// <summary>

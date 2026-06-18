@@ -216,6 +216,11 @@ internal static class AddressMap
     public const ushort VideoRamBankRegister = 0xFF4F;
 
     /// <summary>
+    /// Address of the boot ROM unmap register.
+    /// </summary>
+    public const ushort BootRomDisableRegister = 0xFF50;
+
+    /// <summary>
     /// Address of HDMA1, the CGB VRAM DMA source high register.
     /// </summary>
     public const ushort VideoRamDmaSourceHighRegister = 0xFF51;

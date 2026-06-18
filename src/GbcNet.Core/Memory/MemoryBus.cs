@@ -28,6 +28,7 @@ internal sealed class MemoryBus
     private readonly Func<ushort, byte> _readByteForOamDma;
     private readonly Action<ushort, byte> _writeOamByteForDma;
     private readonly IoRegisters _ioRegisters;
+    private readonly BootRom? _bootRom;
 
     /// <summary>
     /// Interrupt request and enable registers routed through FF0F and FFFF.
@@ -82,9 +83,10 @@ internal sealed class MemoryBus
     /// <summary>
     /// Creates the CPU-visible bus and model-specific DMA/PPU policies for a cartridge.
     /// </summary>
-    public MemoryBus(Cartridge cartridge, IHardwareProfile hardwareProfile)
+    public MemoryBus(Cartridge cartridge, IHardwareProfile hardwareProfile, BootRom? bootRom = null)
     {
         _cartridge = cartridge;
+        _bootRom = bootRom;
         _workRam = new WorkRam(
             hardwareProfile.WorkRamBankCount,
             hardwareProfile.IsWorkRamBankRegisterEnabled
@@ -272,7 +274,7 @@ internal sealed class MemoryBus
     private byte ReadMappedByte(ushort address) =>
         address switch
         {
-            <= AddressMap.RomEnd => _cartridge.ReadRom(address),
+            <= AddressMap.RomEnd => ReadRomWindowByte(address),
             <= AddressMap.VideoRamEnd => Ppu.VideoRam.Read(address),
             <= AddressMap.ExternalRamEnd => _cartridge.ReadRam(address),
             <= AddressMap.WorkRamEnd => _workRam.Read(address),
@@ -293,7 +295,7 @@ internal sealed class MemoryBus
 
         return mappedAddress switch
         {
-            <= AddressMap.RomEnd => _cartridge.ReadRom(mappedAddress),
+            <= AddressMap.RomEnd => ReadRomWindowByte(mappedAddress),
             <= AddressMap.VideoRamEnd => Ppu.VideoRam.Read(mappedAddress),
             <= AddressMap.ExternalRamEnd => _cartridge.ReadRam(mappedAddress),
             <= AddressMap.WorkRamEnd => _workRam.Read(mappedAddress),
@@ -304,13 +306,18 @@ internal sealed class MemoryBus
     private byte ReadVramDmaSourceByte(ushort address) =>
         address switch
         {
-            <= AddressMap.RomEnd => _cartridge.ReadRom(address),
+            <= AddressMap.RomEnd => ReadRomWindowByte(address),
             >= AddressMap.ExternalRamStart and <= AddressMap.ExternalRamEnd => _cartridge.ReadRam(
                 address
             ),
             >= AddressMap.WorkRamStart and <= AddressMap.WorkRamEnd => _workRam.Read(address),
             _ => 0xFF,
         };
+
+    private byte ReadRomWindowByte(ushort address) =>
+        _bootRom is not null && _bootRom.TryRead(address, out var value)
+            ? value
+            : _cartridge.ReadRom(address);
 
     private void WriteMappedByte(ushort address, byte value)
     {
@@ -333,6 +340,9 @@ internal sealed class MemoryBus
                 Ppu.ObjectAttributeMemory.Write(address, value);
                 return;
             case <= AddressMap.NotUsableEnd:
+                return;
+            case AddressMap.BootRomDisableRegister:
+                _bootRom?.Disable(value);
                 return;
             case <= AddressMap.IoRegistersEnd:
                 _ioRegisters.WriteCpu(address, value);

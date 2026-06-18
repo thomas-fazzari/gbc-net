@@ -15,6 +15,8 @@ public sealed class GameBoyTests
     private const byte StopOpcode = 0x10;
     private const byte IncBOpcode = 0x04;
     private const byte JumpImmediate16Opcode = 0xC3;
+    private const byte LoadAImmediate8Opcode = 0x3E;
+    private const byte LoadHighMemoryAImmediate8Opcode = 0xE0;
 
     [Fact]
     public void Step_ReturnsCpuMachineCyclesAndTicksTimer()
@@ -151,6 +153,113 @@ public sealed class GameBoyTests
     }
 
     [Fact]
+    public void Constructor_WithEmptyBootRomSlotAppliesPostBootState()
+    {
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
+
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg, new GameBoyOptions());
+
+        Assert.Equal(0x0100, gameBoy.Cpu.Registers.PC);
+        Assert.Equal(0xAB, gameBoy.Bus.ReadByte(AddressMap.DividerRegister));
+    }
+
+    [Fact]
+    public void Constructor_WithDmgBootRomStartsAtResetVector()
+    {
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
+        var bootRom = CreateDmgBootRom(bytes => bytes[0x0000] = IncBOpcode);
+
+        var gameBoy = new GameBoy(
+            cartridge,
+            HardwareModel.Dmg,
+            new GameBoyOptions { DmgBootRom = bootRom }
+        );
+
+        Assert.Equal(0x0000, gameBoy.Cpu.Registers.PC);
+        Assert.Equal(IncBOpcode, gameBoy.Bus.ReadByte(0x0000));
+
+        gameBoy.Step();
+
+        Assert.Equal(0x01, gameBoy.Cpu.Registers.B);
+        Assert.Equal(0x0001, gameBoy.Cpu.Registers.PC);
+    }
+
+    [Fact]
+    public void Constructor_RejectsInvalidSelectedBootRomSize()
+    {
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            new GameBoy(
+                cartridge,
+                HardwareModel.Dmg,
+                new GameBoyOptions { DmgBootRom = new byte[255] }
+            )
+        );
+
+        Assert.Contains(
+            "Dmg boot ROM must be 256 bytes",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Step_UnmapsBootRomWhenFf50IsWritten()
+    {
+        var cartridge = ResultAssertions.AssertSuccess(
+            Cartridge.Load(TestRomFactory.Create(bytes => bytes[0x0000] = HaltOpcode))
+        );
+        var bootRom = CreateDmgBootRom(bytes =>
+        {
+            bytes[0x0000] = LoadAImmediate8Opcode;
+            bytes[0x0001] = 0x01;
+            bytes[0x0002] = LoadHighMemoryAImmediate8Opcode;
+            bytes[0x0003] = 0x50;
+            bytes[0x0004] = JumpImmediate16Opcode;
+            bytes[0x0005] = 0x00;
+            bytes[0x0006] = 0x01;
+        });
+        var gameBoy = new GameBoy(
+            cartridge,
+            HardwareModel.Dmg,
+            new GameBoyOptions { DmgBootRom = bootRom }
+        );
+
+        Assert.Equal(LoadAImmediate8Opcode, gameBoy.Bus.ReadByte(0x0000));
+
+        gameBoy.Step();
+        gameBoy.Step();
+
+        Assert.Equal(HaltOpcode, gameBoy.Bus.ReadByte(0x0000));
+    }
+
+    [Fact]
+    public void Constructor_CgbHardwareWithDmgCartridgeMapsCgbBootRom()
+    {
+        var cartridge = ResultAssertions.AssertSuccess(
+            Cartridge.Load(TestRomFactory.Create(bytes => bytes[0x0100] = HaltOpcode))
+        );
+        var dmgBootRom = CreateDmgBootRom(bytes => bytes[0x0000] = IncBOpcode);
+        var cgbBootRom = CreateCgbBootRom(bytes =>
+        {
+            bytes[0x0000] = LoadAImmediate8Opcode;
+            bytes[0x0100] = StopOpcode;
+        });
+
+        var gameBoy = new GameBoy(
+            cartridge,
+            HardwareModel.Cgb,
+            new GameBoyOptions { DmgBootRom = dmgBootRom, CgbBootRom = cgbBootRom }
+        );
+
+        Assert.Equal(HardwareModel.Cgb, gameBoy.HardwareModel);
+        Assert.Equal(LoadAImmediate8Opcode, gameBoy.Bus.ReadByte(0x0000));
+        Assert.Equal(HaltOpcode, gameBoy.Bus.ReadByte(0x0100));
+        Assert.Equal(StopOpcode, gameBoy.Bus.ReadByte(0x0200));
+    }
+
+    [Fact]
     public void DrainAudioSamples_ReturnsProducedSamples()
     {
         var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
@@ -225,5 +334,19 @@ public sealed class GameBoyTests
         Assert.Equal(160, completedFrame.Width);
         Assert.Equal(144, completedFrame.Height);
         Assert.Equal(LcdPixelFormat.DmgShadeIndex8, completedFrame.PixelFormat);
+    }
+
+    private static byte[] CreateDmgBootRom(Action<byte[]> configure)
+    {
+        var bootRom = new byte[256];
+        configure(bootRom);
+        return bootRom;
+    }
+
+    private static byte[] CreateCgbBootRom(Action<byte[]> configure)
+    {
+        var bootRom = new byte[2048];
+        configure(bootRom);
+        return bootRom;
     }
 }
