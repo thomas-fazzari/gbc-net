@@ -1,53 +1,32 @@
 using System.Globalization;
 using FluentResults;
-using GbcNet.App.Configuration;
+using GbcNet.App.Configuration.Kdl;
 using KdlSharp;
 
-namespace GbcNet.App.Input.Configuration;
+namespace GbcNet.App.Configuration.Sections.Input;
 
 /// <summary>
 /// Reads input options from the KDL configuration document.
 /// </summary>
-internal static class KdlInputOptionsReader
+internal static class InputOptionsReader
 {
-    private const string InputNodeName = "input";
-    private const string ProfileNodeName = "profile";
-    private const string KeyboardNodeName = "keyboard";
-    private const string BindNodeName = "bind";
-    private const string VersionPropertyName = "version";
-    private const string ActiveProfilePropertyName = "active";
-    private const string KeyPropertyName = "key";
-
     /// <summary>
     /// Reads the input section from the configuration document.
     /// </summary>
     public static Result<InputOptions> Read(KdlDocument document)
     {
-        KdlNode? inputNode = null;
-
-        foreach (var node in document.Nodes)
-        {
-            if (!string.Equals(node.Name, InputNodeName, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            if (inputNode is not null)
-            {
-                return Result.Fail("Config file must contain only one input node.");
-            }
-
-            inputNode = node;
-        }
-
-        return inputNode is null
-            ? Result.Fail("Config file must contain one input node.")
-            : ReadInputNode(inputNode);
+        var inputNode = document.ReadRequiredSection(InputOptionsSchema.InputNodeName);
+        return inputNode.IsSuccess
+            ? ReadInputNode(inputNode.Value)
+            : inputNode.ToResult<InputOptions>();
     }
 
     private static Result<InputOptions> ReadInputNode(KdlNode inputNode)
     {
-        var version = KdlNodeReader.ReadRequiredInt32Property(inputNode, VersionPropertyName);
+        var version = KdlNodeReader.ReadRequiredInt32Property(
+            inputNode,
+            InputOptionsSchema.VersionPropertyName
+        );
 
         if (version.IsFailed)
         {
@@ -63,8 +42,8 @@ internal static class KdlInputOptionsReader
 
         var activeProfile = KdlNodeReader.ReadOptionalStringProperty(
             inputNode,
-            ActiveProfilePropertyName,
-            "default"
+            InputOptionsSchema.ActiveProfilePropertyName,
+            InputOptionsSchema.DefaultProfileName
         );
 
         if (activeProfile.IsFailed)
@@ -93,10 +72,16 @@ internal static class KdlInputOptionsReader
 
         foreach (var node in inputNode.Children)
         {
-            if (!string.Equals(node.Name, ProfileNodeName, StringComparison.Ordinal))
+            if (
+                !string.Equals(
+                    node.Name,
+                    InputOptionsSchema.ProfileNodeName,
+                    StringComparison.Ordinal
+                )
+            )
             {
                 return Result.Fail(
-                    $"Input config node '{InputNodeName}' does not allow child '{node.Name}'."
+                    $"Input config node '{InputOptionsSchema.InputNodeName}' does not allow child '{node.Name}'."
                 );
             }
 
@@ -131,7 +116,13 @@ internal static class KdlInputOptionsReader
 
         foreach (var node in profileNode.Children)
         {
-            if (!string.Equals(node.Name, KeyboardNodeName, StringComparison.Ordinal))
+            if (
+                !string.Equals(
+                    node.Name,
+                    InputOptionsSchema.KeyboardNodeName,
+                    StringComparison.Ordinal
+                )
+            )
             {
                 return Result.Fail($"Input profile does not allow child '{node.Name}'.");
             }
@@ -157,7 +148,9 @@ internal static class KdlInputOptionsReader
 
         foreach (var node in keyboardNode.Children)
         {
-            if (!string.Equals(node.Name, BindNodeName, StringComparison.Ordinal))
+            if (
+                !string.Equals(node.Name, InputOptionsSchema.BindNodeName, StringComparison.Ordinal)
+            )
             {
                 return Result.Fail($"Keyboard config does not allow child '{node.Name}'.");
             }
@@ -178,7 +171,10 @@ internal static class KdlInputOptionsReader
     private static Result<KeyboardInputBindingOptions> ReadKeyboardBinding(KdlNode bindNode)
     {
         var button = KdlNodeReader.ReadRequiredStringArgument(bindNode);
-        var key = KdlNodeReader.ReadRequiredStringProperty(bindNode, KeyPropertyName);
+        var key = KdlNodeReader.ReadRequiredStringProperty(
+            bindNode,
+            InputOptionsSchema.KeyPropertyName
+        );
 
         var validation = Result.Merge(button.ToResult(), key.ToResult());
 

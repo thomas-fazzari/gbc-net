@@ -33,6 +33,12 @@ internal sealed partial class MainMenu : UserControl
         ToggleType = MenuItemToggleType.CheckBox,
     };
 
+    private readonly NativeMenuItem _nativeStatusBarMenuItem = new("Status Bar")
+    {
+        ToggleType = MenuItemToggleType.CheckBox,
+        IsChecked = true,
+    };
+
     private readonly List<(
         NativeMenuItem Item,
         EmulationSpeed Speed
@@ -54,6 +60,8 @@ internal sealed partial class MainMenu : UserControl
 
     public event EventHandler? CloseRequested;
 
+    public event EventHandler? ConfigurationRequested;
+
     public event EventHandler? PauseRequested;
 
     public event EventHandler? ResetRequested;
@@ -63,6 +71,8 @@ internal sealed partial class MainMenu : UserControl
     public event EventHandler<FastForwardSpeedSelectedEventArgs>? FastForwardSpeedSelected;
 
     public event EventHandler? FullscreenRequested;
+
+    public event EventHandler? StatusBarRequested;
 
     public void AttachNativeMenu(Window window)
     {
@@ -112,10 +122,17 @@ internal sealed partial class MainMenu : UserControl
         FullscreenMenuItem.IsChecked = isFullscreen;
     }
 
+    public void SetStatusBarState(bool isVisible)
+    {
+        _nativeStatusBarMenuItem.IsChecked = isVisible;
+        StatusBarMenuItem.IsChecked = isVisible;
+    }
+
     #region Window menu
     private void ConfigureWindowMenu()
     {
         ConfigureWindowFileMenu();
+        ConfigureWindowSettingsMenu();
         ConfigureWindowEmulationMenu();
         ConfigureWindowViewMenu();
     }
@@ -124,6 +141,12 @@ internal sealed partial class MainMenu : UserControl
     {
         OpenRomMenuItem.Click += (_, _) => OpenRomRequested?.Invoke(this, EventArgs.Empty);
         CloseWindowMenuItem.Click += (_, _) => CloseRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ConfigureWindowSettingsMenu()
+    {
+        ConfigurationMenuItem.Click += (_, _) =>
+            ConfigurationRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private void ConfigureWindowEmulationMenu()
@@ -145,6 +168,7 @@ internal sealed partial class MainMenu : UserControl
     {
         FullscreenMenuItem.InputGesture = _fullscreenGesture;
         FullscreenMenuItem.Click += (_, _) => FullscreenRequested?.Invoke(this, EventArgs.Empty);
+        StatusBarMenuItem.Click += (_, _) => StatusBarRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private MenuItem CreateWindowFastForwardSpeedMenuItem(EmulationSpeed speed)
@@ -166,6 +190,7 @@ internal sealed partial class MainMenu : UserControl
         [
             new NativeMenuItem("File") { Menu = CreateNativeFileMenu() },
             new NativeMenuItem("Emulation") { Menu = CreateNativeEmulationMenu() },
+            new NativeMenuItem("Settings") { Menu = CreateNativeSettingsMenu() },
             new NativeMenuItem("View") { Menu = CreateNativeViewMenu() },
         ];
 
@@ -178,6 +203,16 @@ internal sealed partial class MainMenu : UserControl
         closeItem.Click += (_, _) => CloseRequested?.Invoke(this, EventArgs.Empty);
 
         return [openItem, new NativeMenuItemSeparator(), closeItem];
+    }
+
+    private NativeMenu CreateNativeSettingsMenu()
+    {
+        var configurationItem = new NativeMenuItem("Configuration")
+        {
+            Gesture = KeyGesture.Parse("Meta+C"),
+        };
+        configurationItem.Click += (_, _) => ConfigurationRequested?.Invoke(this, EventArgs.Empty);
+        return [configurationItem];
     }
 
     private NativeMenu CreateNativeEmulationMenu()
@@ -201,8 +236,10 @@ internal sealed partial class MainMenu : UserControl
     {
         _nativeFullscreenMenuItem.Click += (_, _) =>
             FullscreenRequested?.Invoke(this, EventArgs.Empty);
+        _nativeStatusBarMenuItem.Click += (_, _) =>
+            StatusBarRequested?.Invoke(this, EventArgs.Empty);
 
-        return [_nativeFullscreenMenuItem];
+        return [_nativeFullscreenMenuItem, new NativeMenuItemSeparator(), _nativeStatusBarMenuItem];
     }
 
     private NativeMenu CreateNativeFastForwardSpeedMenu()

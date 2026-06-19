@@ -10,7 +10,14 @@
         </NativeMenu>
     </NativeMenu.Menu>
 
+    <Application.Resources>
+        <FontFamily x:Key="AppFont">avares://GbcNet/Assets/Fonts/HankenGrotesk.ttf#Hanken Grotesk</FontFamily>
+    </Application.Resources>
+
     <Application.Styles>
         <FluentTheme />
+        <Style Selector="Window">
+            <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+        </Style>
     </Application.Styles>
 </Application>

@@ -1,7 +1,7 @@
 using FluentResults;
 using KdlSharp;
 
-namespace GbcNet.App.Configuration;
+namespace GbcNet.App.Configuration.Kdl;
 
 /// <summary>
 /// Helpers for reading strongly typed values from KDL nodes.

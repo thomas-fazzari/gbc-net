@@ -2,11 +2,14 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using FluentResults;
 using GbcNet.App.Audio;
 using GbcNet.App.Configuration;
+using GbcNet.App.Configuration.Kdl;
+using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Emulation;
 using GbcNet.App.Input;
 using GbcNet.App.Menus;
@@ -35,7 +38,8 @@ internal sealed partial class MainWindow : Window, IDisposable
     private readonly KeyboardInputMapper _keyboardInputMapper;
     private readonly CartridgeSaveFileService _cartridgeSaveFileService;
     private readonly InputRouter _inputRouter;
-    private readonly GameBoyOptions _gameBoyOptions;
+    private GameBoyOptions _gameBoyOptions;
+    private readonly string _configPath;
     private byte[]? _loadedRom;
     private string _loadedRomName = string.Empty;
     private readonly LcdFramePresenter _framePresenter;
@@ -58,12 +62,13 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         if (startupConfiguration.StartupMessage is not null)
         {
-            Title = startupConfiguration.StartupMessage;
+            ShowError(startupConfiguration.StartupMessage);
         }
 
         _cartridgeSaveFileService = cartridgeSaveFileService;
         _audioOutput = audioOutput;
         _gameBoyOptions = startupConfiguration.GameBoyOptions;
+        _configPath = startupConfiguration.ConfigPath;
         _keyboardInputMapper = new KeyboardInputMapper(inputConfiguration.Bindings);
         _inputRouter = new InputRouter(
             inputConfiguration.Bindings,
@@ -76,13 +81,16 @@ internal sealed partial class MainWindow : Window, IDisposable
         MainMenu.AttachNativeMenu(this);
         MainMenu.OpenRomRequested += OpenRomMenu_OnClick;
         MainMenu.CloseRequested += CloseMenu_OnClick;
+        MainMenu.ConfigurationRequested += ConfigurationMenu_OnClick;
         MainMenu.PauseRequested += PauseMenu_OnClick;
         MainMenu.ResetRequested += ResetMenu_OnClick;
         MainMenu.FastForwardRequested += FastForwardMenu_OnClick;
         MainMenu.FastForwardSpeedSelected += FastForwardSpeedMenu_OnSelected;
         MainMenu.FullscreenRequested += FullscreenMenu_OnClick;
+        MainMenu.StatusBarRequested += StatusBarMenu_OnClick;
         MainMenu.SetFastForwardState(_fastForwardEnabled, _fastForwardSpeed);
         MainMenu.SetFullscreenState(isFullscreen: false);
+        MainMenu.SetStatusBarState(isVisible: true);
     }
 
     private void ConfigureDragDrop()
@@ -91,6 +99,63 @@ internal sealed partial class MainWindow : Window, IDisposable
         DragDrop.AddDragOverHandler(this, DragDrop_OnDragOver);
         DragDrop.AddDropHandler(this, DragDrop_OnDrop);
     }
+
+    private void RunUiTask(Func<Task> action)
+    {
+        _ = RunUiTaskAsync(action);
+    }
+
+    private async Task RunUiTaskAsync(Func<Task> action)
+    {
+        try
+        {
+            await action().ConfigureAwait(true);
+        }
+        catch (Exception exception) when (IsExpectedUiException(exception))
+        {
+            ShowError(exception.Message);
+        }
+    }
+
+    private const int StatusRomNameMaxLength = 72;
+
+    private void ShowStatus(string message)
+    {
+        StatusTextBlock.Foreground = new SolidColorBrush(Color.Parse("#a1a1aa"));
+        StatusTextBlock.Text = message;
+        StatusMetricsTextBlock.Text = string.Empty;
+    }
+
+    private void ShowError(string message)
+    {
+        StatusTextBlock.Foreground = new SolidColorBrush(Color.Parse("#fca5a5"));
+        StatusTextBlock.Text = message;
+        StatusMetricsTextBlock.Text = string.Empty;
+    }
+
+    private void ShowMetrics(EmulationMetrics metrics)
+    {
+        StatusMetricsTextBlock.Text = string.Create(
+            CultureInfo.InvariantCulture,
+            $"{metrics.TargetSpeed:0.#}x | {metrics.DisplayFramesPerSecond:0} fps"
+        );
+    }
+
+    private static string FormatRomName(string romName) =>
+        romName.Length <= StatusRomNameMaxLength
+            ? romName
+            : $"{romName.AsSpan(0, StatusRomNameMaxLength - 1)}…";
+
+    private static string FormatErrors(IEnumerable<IError> errors) =>
+        string.Join(Environment.NewLine, errors.Select(static error => error.Message));
+
+    private static bool IsExpectedUiException(Exception exception) =>
+        exception
+            is IOException
+                or UnauthorizedAccessException
+                or InvalidOperationException
+                or NotSupportedException
+                or ArgumentException;
 
     protected override void OnClosing(WindowClosingEventArgs e)
     {
@@ -105,27 +170,22 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         if (Interlocked.Exchange(ref _closeStopStarted, 1) == 0)
         {
-            _ = StopEmulationSessionAsync()
-                .ContinueWith(
-                    static (task, state) =>
-                    {
-                        var window = (MainWindow)state!;
+            RunUiTask(StopAndCloseAsync);
+        }
+    }
 
-                        if (task.IsFaulted)
-                        {
-                            window.Title = task.Exception!.GetBaseException().Message;
-                            Volatile.Write(ref window._closeStopStarted, 0);
-                            return;
-                        }
-
-                        window._closeAfterAsyncStop = true;
-                        window.Close();
-                    },
-                    this,
-                    CancellationToken.None,
-                    TaskContinuationOptions.None,
-                    TaskScheduler.FromCurrentSynchronizationContext()
-                );
+    private async Task StopAndCloseAsync()
+    {
+        try
+        {
+            await StopEmulationSessionAsync().ConfigureAwait(true);
+            _closeAfterAsyncStop = true;
+            Close();
+        }
+        catch (Exception exception) when (IsExpectedUiException(exception))
+        {
+            ShowError(exception.Message);
+            Volatile.Write(ref _closeStopStarted, 0);
         }
     }
 
@@ -178,24 +238,11 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         if (file is null)
         {
-            Title = UnsupportedDroppedFileMessage;
+            ShowError(UnsupportedDroppedFileMessage);
             return;
         }
 
-        _ = OpenRomFileAsync(file)
-            .ContinueWith(
-                static (task, state) =>
-                {
-                    if (task.Exception is not null)
-                    {
-                        ((MainWindow)state!).Title = task.Exception.GetBaseException().Message;
-                    }
-                },
-                this,
-                CancellationToken.None,
-                TaskContinuationOptions.OnlyOnFaulted,
-                TaskScheduler.FromCurrentSynchronizationContext()
-            );
+        RunUiTask(() => OpenRomFileAsync(file));
     }
 
     private static IStorageFile? GetFirstDroppedRom(IEnumerable<IStorageItem>? items)
@@ -226,20 +273,71 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private void OpenRomMenu_OnClick(object? sender, EventArgs e)
     {
-        _ = OpenRomAsync()
-            .ContinueWith(
-                static (task, state) =>
-                {
-                    if (task.Exception is not null)
-                    {
-                        ((MainWindow)state!).Title = task.Exception.GetBaseException().Message;
-                    }
-                },
-                this,
-                CancellationToken.None,
-                TaskContinuationOptions.OnlyOnFaulted,
-                TaskScheduler.FromCurrentSynchronizationContext()
-            );
+        RunUiTask(OpenRomAsync);
+    }
+
+    private void ConfigurationMenu_OnClick(object? sender, EventArgs e)
+    {
+        RunUiTask(OpenConfigurationAsync);
+    }
+
+    private async Task OpenConfigurationAsync()
+    {
+        var document = KdlConfigurationFile.LoadOrCreate(_configPath);
+        if (document.IsFailed)
+        {
+            ShowError(FormatErrors(document.Errors));
+            return;
+        }
+
+        var pathOptions = BootRomOptionsReader.ReadPaths(document.Value);
+        if (pathOptions.IsFailed)
+        {
+            ShowError(FormatErrors(pathOptions.Errors));
+            return;
+        }
+
+        var savedOptions = await new SettingsWindow(pathOptions.Value)
+            .ShowDialog<BootRomPathOptions?>(this)
+            .ConfigureAwait(true);
+        if (savedOptions is null)
+        {
+            return;
+        }
+
+        var saved = BootRomOptionsWriter.Write(_configPath, savedOptions.Value);
+        if (saved.IsFailed)
+        {
+            ShowError(FormatErrors(saved.Errors));
+            return;
+        }
+
+        ReloadGameBoyOptions();
+    }
+
+    private void ReloadGameBoyOptions()
+    {
+        var document = KdlConfigurationFile.LoadOrCreate(_configPath);
+        if (document.IsFailed)
+        {
+            _gameBoyOptions = new GameBoyOptions();
+            ShowError(FormatErrors(document.Errors));
+            return;
+        }
+
+        var options = BootRomOptionsReader.Read(
+            document.Value,
+            Path.GetDirectoryName(_configPath) ?? Environment.CurrentDirectory
+        );
+        if (options.IsFailed)
+        {
+            _gameBoyOptions = new GameBoyOptions();
+            ShowError(FormatErrors(options.Errors));
+            return;
+        }
+
+        _gameBoyOptions = options.Value;
+        ShowStatus("Configuration saved.");
     }
 
     private void CloseMenu_OnClick(object? sender, EventArgs e)
@@ -271,22 +369,15 @@ internal sealed partial class MainWindow : Window, IDisposable
         ToggleFullscreen();
     }
 
+    private void StatusBarMenu_OnClick(object? sender, EventArgs e)
+    {
+        StatusBar.IsVisible = !StatusBar.IsVisible;
+        MainMenu.SetStatusBarState(StatusBar.IsVisible);
+    }
+
     private void ResetMenu_OnClick(object? sender, EventArgs e)
     {
-        _ = ResetRomAsync()
-            .ContinueWith(
-                static (task, state) =>
-                {
-                    if (task.Exception is not null)
-                    {
-                        ((MainWindow)state!).Title = task.Exception.GetBaseException().Message;
-                    }
-                },
-                this,
-                CancellationToken.None,
-                TaskContinuationOptions.OnlyOnFaulted,
-                TaskScheduler.FromCurrentSynchronizationContext()
-            );
+        RunUiTask(ResetRomAsync);
     }
 
     private void FastForwardMenu_OnClick(object? sender, EventArgs e)
@@ -319,10 +410,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         if (cartridge.IsFailed)
         {
-            Title = string.Join(
-                Environment.NewLine,
-                cartridge.Errors.Select(error => error.Message)
-            );
+            ShowError(FormatErrors(cartridge.Errors));
             return;
         }
 
@@ -358,10 +446,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         if (cartridge.IsFailed)
         {
-            Title = string.Join(
-                Environment.NewLine,
-                cartridge.Errors.Select(error => error.Message)
-            );
+            ShowError(FormatErrors(cartridge.Errors));
             return;
         }
 
@@ -416,7 +501,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             () => _cartridgeSaveFileService.Save(cartridge, rom)
         );
         ApplyFastForwardSettings();
-        Title = romName;
+        ShowStatus(FormatRomName(romName));
         MainMenu.SetEmulationActionsEnabled(isEnabled: true);
     }
 
@@ -470,7 +555,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private void OnEmulationFaulted(Exception e)
     {
-        Dispatcher.UIThread.Post(() => Title = e.Message);
+        Dispatcher.UIThread.Post(() => ShowError(e.Message));
     }
 
     private void OnEmulationMetricsUpdated(EmulationMetrics metrics)
@@ -482,10 +567,7 @@ internal sealed partial class MainWindow : Window, IDisposable
                 return;
             }
 
-            Title = string.Create(
-                CultureInfo.InvariantCulture,
-                $"{_loadedRomName} | {metrics.TargetSpeed:0.#}x | {metrics.DisplayFramesPerSecond:0} fps"
-            );
+            ShowMetrics(metrics);
         });
     }
 

@@ -24,17 +24,20 @@ internal enum EmulationSpeed
 
 internal static class EmulationSpeedExtensions
 {
-    internal static string GetDisplayName(this EmulationSpeed speed) =>
-        speed switch
-        {
-            EmulationSpeed.Normal => "1x",
-            EmulationSpeed.OnePointFive => "1.5x",
-            EmulationSpeed.Two => "2x",
-            EmulationSpeed.TwoPointFive => "2.5x",
-            EmulationSpeed.Three => "3x",
-            EmulationSpeed.ThreePointFive => "3.5x",
-            EmulationSpeed.Four => "4x",
-            EmulationSpeed.Eight => "8x",
-            _ => throw new ArgumentOutOfRangeException(nameof(speed), speed, message: null),
-        };
+    extension(EmulationSpeed speed)
+    {
+        public string GetDisplayName() =>
+            speed switch
+            {
+                EmulationSpeed.Normal => "1x",
+                EmulationSpeed.OnePointFive => "1.5x",
+                EmulationSpeed.Two => "2x",
+                EmulationSpeed.TwoPointFive => "2.5x",
+                EmulationSpeed.Three => "3x",
+                EmulationSpeed.ThreePointFive => "3.5x",
+                EmulationSpeed.Four => "4x",
+                EmulationSpeed.Eight => "8x",
+                _ => throw new ArgumentOutOfRangeException(nameof(speed), speed, message: null),
+            };
+    }
 }

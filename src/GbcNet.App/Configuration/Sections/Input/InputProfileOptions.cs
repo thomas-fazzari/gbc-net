@@ -1,4 +1,4 @@
-namespace GbcNet.App.Input.Configuration;
+namespace GbcNet.App.Configuration.Sections.Input;
 
 /// <summary>
 /// Input bindings belonging to one configurable input profile.

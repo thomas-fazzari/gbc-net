@@ -1,9 +1,10 @@
 using GbcNet.App.Audio;
 using GbcNet.App.Configuration;
+using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.App.Input;
-using GbcNet.App.Input.Configuration;
 using GbcNet.App.Saves;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace GbcNet.App;
@@ -16,6 +17,7 @@ internal static class DependencyInjection
     public static ServiceProvider BuildServiceProvider()
     {
         var services = new ServiceCollection();
+        services.AddLogging(static builder => builder.AddDebug());
 
         services.AddSingleton<IValidateOptions<InputOptions>, InputOptionsValidator>();
         services.AddSingleton(provider =>

@@ -9,12 +9,5 @@ internal static class Program
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
 
     public static AppBuilder BuildAvaloniaApp() =>
-        AppBuilder
-            .Configure<GbcNetApplication>()
-            .UsePlatformDetect()
-#if DEBUG
-            .WithDeveloperTools()
-#endif
-            .WithInterFont()
-            .LogToTrace();
+        AppBuilder.Configure<GbcNetApplication>().UsePlatformDetect().LogToTrace();
 }

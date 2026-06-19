@@ -3,7 +3,7 @@ using Avalonia.Input;
 using GbcNet.Core.Joypad;
 using Microsoft.Extensions.Options;
 
-namespace GbcNet.App.Input.Configuration;
+namespace GbcNet.App.Configuration.Sections.Input;
 
 /// <summary>
 /// Validates loaded input options before they are converted to runtime bindings.
@@ -28,6 +28,13 @@ internal sealed class InputOptionsValidator : IValidateOptions<InputOptions>
         {
             return ValidateOptionsResult.Fail(
                 $"Input profile '{options.ActiveProfile}' does not exist."
+            );
+        }
+
+        if (profile.Keyboard.Count == 0)
+        {
+            return ValidateOptionsResult.Fail(
+                $"Input profile '{options.ActiveProfile}' must contain at least one keyboard binding."
             );
         }
 

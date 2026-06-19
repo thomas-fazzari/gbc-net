@@ -1,7 +1,8 @@
 using GbcNet.App;
 using GbcNet.App.Configuration;
+using GbcNet.App.Configuration.Sections.BootRom;
+using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.App.Input;
-using GbcNet.App.Input.Configuration;
 using GbcNet.Core;
 using GbcNet.Core.Joypad;
 using Microsoft.Extensions.Options;
@@ -13,11 +14,7 @@ public sealed class AppConfigurationIntegrationTests
     [Fact]
     public void Load_CreatesDefaultConfigFileAndBuildsInputConfiguration()
     {
-        var tempDirectory = Path.Combine(
-            Path.GetTempPath(),
-            "gbc-net-tests",
-            Guid.NewGuid().ToString("N")
-        );
+        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
 
         try
@@ -29,12 +26,17 @@ public sealed class AppConfigurationIntegrationTests
 
             Assert.Null(startupConfiguration.StartupMessage);
             Assert.True(File.Exists(configPath));
+            var configText = File.ReadAllText(configPath);
             Assert.Contains(
-                "input version=1",
-                File.ReadAllText(configPath),
+                $"{InputOptionsSchema.InputNodeName} {InputOptionsSchema.VersionPropertyName}=1",
+                configText,
                 StringComparison.Ordinal
             );
-            Assert.Contains("boot_roms", File.ReadAllText(configPath), StringComparison.Ordinal);
+            Assert.Contains(
+                BootRomOptionsSchema.BootRomNodeName,
+                configText,
+                StringComparison.Ordinal
+            );
             AssertInputOptionsAreValid(startupConfiguration.InputOptions);
 
             var inputConfiguration = InputConfiguration.FromOptions(
@@ -63,21 +65,14 @@ public sealed class AppConfigurationIntegrationTests
         }
         finally
         {
-            if (Directory.Exists(tempDirectory))
-            {
-                Directory.Delete(tempDirectory, recursive: true);
-            }
+            TestDirectories.DeleteIfExists(tempDirectory);
         }
     }
 
     [Fact]
     public void Load_ReadsBootRomFilesFromConfig()
     {
-        var tempDirectory = Path.Combine(
-            Path.GetTempPath(),
-            "gbc-net-tests",
-            Guid.NewGuid().ToString("N")
-        );
+        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
 
         try
@@ -112,21 +107,14 @@ public sealed class AppConfigurationIntegrationTests
         }
         finally
         {
-            if (Directory.Exists(tempDirectory))
-            {
-                Directory.Delete(tempDirectory, recursive: true);
-            }
+            TestDirectories.DeleteIfExists(tempDirectory);
         }
     }
 
     [Fact]
     public void Load_ReportsInvalidBootRomSizeAndFallsBackToEmptyBootRomOptions()
     {
-        var tempDirectory = Path.Combine(
-            Path.GetTempPath(),
-            "gbc-net-tests",
-            Guid.NewGuid().ToString("N")
-        );
+        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
 
         try
@@ -150,21 +138,14 @@ public sealed class AppConfigurationIntegrationTests
         }
         finally
         {
-            if (Directory.Exists(tempDirectory))
-            {
-                Directory.Delete(tempDirectory, recursive: true);
-            }
+            TestDirectories.DeleteIfExists(tempDirectory);
         }
     }
 
     [Fact]
     public void Load_ReportsMissingBootRomFileAndFallsBackToEmptyBootRomOptions()
     {
-        var tempDirectory = Path.Combine(
-            Path.GetTempPath(),
-            "gbc-net-tests",
-            Guid.NewGuid().ToString("N")
-        );
+        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
 
         try
@@ -187,11 +168,29 @@ public sealed class AppConfigurationIntegrationTests
         }
         finally
         {
-            if (Directory.Exists(tempDirectory))
-            {
-                Directory.Delete(tempDirectory, recursive: true);
-            }
+            TestDirectories.DeleteIfExists(tempDirectory);
         }
+    }
+
+    [Fact]
+    public void InputValidation_RejectsEmptyActiveKeyboardProfile()
+    {
+        InputOptions options = new()
+        {
+            Profiles = new Dictionary<string, InputProfileOptions>(StringComparer.Ordinal)
+            {
+                [InputOptionsSchema.DefaultProfileName] = new(),
+            },
+        };
+
+        var validation = new InputOptionsValidator().Validate(Options.DefaultName, options);
+
+        Assert.True(validation.Failed);
+        Assert.Contains(
+            "must contain at least one keyboard binding",
+            validation.Failures.Single(),
+            StringComparison.Ordinal
+        );
     }
 
     private static byte[] CreateBootRom(int length, byte marker)
@@ -206,31 +205,35 @@ public sealed class AppConfigurationIntegrationTests
         var bootRomLines = new List<string>();
         if (dmgBootRomPath is not null)
         {
-            bootRomLines.Add("  dmg \"" + dmgBootRomPath + "\"");
+            bootRomLines.Add(
+                "  " + BootRomOptionsSchema.DmgNodeName + " \"" + dmgBootRomPath + "\""
+            );
         }
 
         if (cgbBootRomPath is not null)
         {
-            bootRomLines.Add("  cgb \"" + cgbBootRomPath + "\"");
+            bootRomLines.Add(
+                "  " + BootRomOptionsSchema.CgbNodeName + " \"" + cgbBootRomPath + "\""
+            );
         }
 
         return $$"""
-            input version=1 {
-              profile "default" {
-                keyboard {
-                  bind "up" key="Up"
-                  bind "down" key="Down"
-                  bind "left" key="Left"
-                  bind "right" key="Right"
-                  bind "a" key="Z"
-                  bind "b" key="X"
-                  bind "start" key="Enter"
-                  bind "select" key="Back"
+            {{InputOptionsSchema.InputNodeName}} {{InputOptionsSchema.VersionPropertyName}}=1 {
+              {{InputOptionsSchema.ProfileNodeName}} "{{InputOptionsSchema.DefaultProfileName}}" {
+                {{InputOptionsSchema.KeyboardNodeName}} {
+                  {{InputOptionsSchema.BindNodeName}} "up" {{InputOptionsSchema.KeyPropertyName}}="Up"
+                  {{InputOptionsSchema.BindNodeName}} "down" {{InputOptionsSchema.KeyPropertyName}}="Down"
+                  {{InputOptionsSchema.BindNodeName}} "left" {{InputOptionsSchema.KeyPropertyName}}="Left"
+                  {{InputOptionsSchema.BindNodeName}} "right" {{InputOptionsSchema.KeyPropertyName}}="Right"
+                  {{InputOptionsSchema.BindNodeName}} "a" {{InputOptionsSchema.KeyPropertyName}}="Z"
+                  {{InputOptionsSchema.BindNodeName}} "b" {{InputOptionsSchema.KeyPropertyName}}="X"
+                  {{InputOptionsSchema.BindNodeName}} "start" {{InputOptionsSchema.KeyPropertyName}}="Enter"
+                  {{InputOptionsSchema.BindNodeName}} "select" {{InputOptionsSchema.KeyPropertyName}}="Back"
                 }
               }
             }
 
-            boot_roms {
+            {{BootRomOptionsSchema.BootRomNodeName}} {
             {{string.Join(Environment.NewLine, bootRomLines)}}
             }
             """;

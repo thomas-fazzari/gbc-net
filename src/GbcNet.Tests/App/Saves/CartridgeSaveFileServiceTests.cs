@@ -11,7 +11,7 @@ public sealed class CartridgeSaveFileServiceTests
     [Fact]
     public void SaveAndLoad_PersistsBatterySaveByTitleAndRomHash()
     {
-        var tempDirectory = CreateTempDirectory();
+        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var rom = CreateBatteryBackedMbc1Rom();
         CartridgeSaveFileService saveFiles = new(tempDirectory);
 
@@ -40,17 +40,14 @@ public sealed class CartridgeSaveFileServiceTests
         }
         finally
         {
-            if (Directory.Exists(tempDirectory))
-            {
-                Directory.Delete(tempDirectory, recursive: true);
-            }
+            TestDirectories.DeleteIfExists(tempDirectory);
         }
     }
 
     [Fact]
     public void Load_RejectsInvalidSaveSize()
     {
-        var tempDirectory = CreateTempDirectory();
+        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var rom = CreateBatteryBackedMbc1Rom();
         CartridgeSaveFileService saveFiles = new(tempDirectory);
 
@@ -66,10 +63,7 @@ public sealed class CartridgeSaveFileServiceTests
         }
         finally
         {
-            if (Directory.Exists(tempDirectory))
-            {
-                Directory.Delete(tempDirectory, recursive: true);
-            }
+            TestDirectories.DeleteIfExists(tempDirectory);
         }
     }
 
@@ -79,9 +73,6 @@ public sealed class CartridgeSaveFileServiceTests
             bytes[0x0147] = (byte)CartridgeType.Mbc1RamBattery;
             bytes[0x0149] = 0x02;
         });
-
-    private static string CreateTempDirectory() =>
-        Path.Combine(Path.GetTempPath(), "gbc-net-tests", Guid.NewGuid().ToString("N"));
 
     private static void AssertSuccess(Result result)
     {

@@ -222,7 +222,7 @@ internal sealed class EmulationSession
                             _stopRequested.Task
                         )
                         .ConfigureAwait(false);
-                    timestamp += delayTimestamp;
+                    timestamp = Stopwatch.GetTimestamp();
                 }
 
                 RequestFastForwardFrameIfDue(timestamp);

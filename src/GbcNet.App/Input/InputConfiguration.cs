@@ -1,5 +1,5 @@
 using Avalonia.Input;
-using GbcNet.App.Input.Configuration;
+using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.Core.Joypad;
 
 namespace GbcNet.App.Input;

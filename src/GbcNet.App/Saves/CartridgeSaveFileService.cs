@@ -36,6 +36,14 @@ internal sealed class CartridgeSaveFileService
 
         try
         {
+            var saveLength = new FileInfo(path).Length;
+            if (saveLength != cartridge.BatterySaveSize)
+            {
+                return Result.Fail(
+                    $"Save file is {saveLength} bytes, but cartridge expects {cartridge.BatterySaveSize} bytes."
+                );
+            }
+
             return cartridge.ImportBatterySave(File.ReadAllBytes(path));
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)

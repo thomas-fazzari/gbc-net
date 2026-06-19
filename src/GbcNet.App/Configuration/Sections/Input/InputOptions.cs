@@ -1,4 +1,4 @@
-namespace GbcNet.App.Input.Configuration;
+namespace GbcNet.App.Configuration.Sections.Input;
 
 /// <summary>
 /// Strongly typed input configuration loaded from defaults or a user config file.
@@ -15,7 +15,7 @@ internal sealed class InputOptions
     /// <summary>
     /// Profile selected by the GUI.
     /// </summary>
-    public string ActiveProfile { get; set; } = "default";
+    public string ActiveProfile { get; set; } = InputOptionsSchema.DefaultProfileName;
 
     /// <summary>
     /// Available input profiles keyed by profile name.

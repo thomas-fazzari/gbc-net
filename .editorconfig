@@ -191,3 +191,9 @@ dotnet_diagnostic.MA0110.severity = warning
 dotnet_diagnostic.S1135.severity = none
 dotnet_diagnostic.S125.severity = none
 dotnet_diagnostic.S3871.severity = none
+
+# Extension block members must be public, CA1515 misreads generated public members in WinExe projects.
+[src/GbcNet.App/Configuration/Kdl/KdlDocumentExtensions.cs]
+dotnet_diagnostic.CA1515.severity = none
+[src/GbcNet.App/Emulation/EmulationSpeed.cs]
+dotnet_diagnostic.CA1515.severity = none

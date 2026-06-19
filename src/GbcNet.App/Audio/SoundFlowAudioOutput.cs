@@ -1,4 +1,5 @@
 using GbcNet.Core.Apu;
+using Microsoft.Extensions.Logging;
 using SoundFlow.Abstracts;
 using SoundFlow.Abstracts.Devices;
 using SoundFlow.Backends.MiniAudio;
@@ -11,7 +12,7 @@ namespace GbcNet.App.Audio;
 /// <summary>
 /// Plays emulator audio through SoundFlow.
 /// </summary>
-internal sealed class SoundFlowAudioOutput : IAudioOutput
+internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger) : IAudioOutput
 {
     private const int Channels = 2;
     private const int SampleRate = 48_000;
@@ -59,6 +60,16 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
     /// <inheritdoc />
     public void Clear()
     {
+        Clear(resetUnavailable: true);
+    }
+
+    private void Clear(bool resetUnavailable)
+    {
+        if (resetUnavailable)
+        {
+            Volatile.Write(ref _isUnavailable, 0);
+        }
+
         _buffer.Clear();
         Volatile.Write(ref _needsPrebuffer, 1);
     }
@@ -71,7 +82,7 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
             return;
         }
 
-        Clear();
+        Clear(resetUnavailable: false);
 
         lock (_deviceLock)
         {
@@ -152,7 +163,7 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
     {
         // Called while _deviceLock is held during startup failure handling
         Volatile.Write(ref _isUnavailable, 1);
-        Clear();
+        Clear(resetUnavailable: false);
         ReleaseDevice();
     }
 
@@ -169,24 +180,55 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
         Volatile.Write(ref _isDeviceCreated, 0);
         Volatile.Write(ref _isStarted, 0);
         Volatile.Write(ref _needsPrebuffer, 1);
-
         if (device is not null)
         {
             if (wasStarted)
             {
-                device.Stop();
+                try
+                {
+                    device.Stop();
+                }
+                catch (Exception exception) when (IsExpectedAudioStartupException(exception))
+                {
+                    Volatile.Write(ref _isUnavailable, 1);
+                    SoundFlowAudioOutputLog.PlaybackDeviceReleaseFailed(logger, exception);
+                }
             }
 
             if (source is not null)
             {
-                device.MasterMixer.RemoveComponent(source);
+                try
+                {
+                    device.MasterMixer.RemoveComponent(source);
+                }
+                catch (Exception exception) when (IsExpectedAudioStartupException(exception))
+                {
+                    Volatile.Write(ref _isUnavailable, 1);
+                    SoundFlowAudioOutputLog.PlaybackDeviceReleaseFailed(logger, exception);
+                }
             }
 
-            device.Dispose();
+            try
+            {
+                device.Dispose();
+            }
+            catch (Exception exception) when (IsExpectedAudioStartupException(exception))
+            {
+                Volatile.Write(ref _isUnavailable, 1);
+                SoundFlowAudioOutputLog.PlaybackDeviceReleaseFailed(logger, exception);
+            }
         }
 
-        source?.Dispose();
-        engine?.Dispose();
+        try
+        {
+            source?.Dispose();
+            engine?.Dispose();
+        }
+        catch (Exception exception) when (IsExpectedAudioStartupException(exception))
+        {
+            Volatile.Write(ref _isUnavailable, 1);
+            SoundFlowAudioOutputLog.AudioEngineReleaseFailed(logger, exception);
+        }
     }
 
     private void Fill(Span<float> output, int channels)
@@ -245,4 +287,13 @@ internal sealed class SoundFlowAudioOutput : IAudioOutput
             audioOutput.Fill(buffer, channels);
         }
     }
+}
+
+internal static partial class SoundFlowAudioOutputLog
+{
+    [LoggerMessage(Level = LogLevel.Warning, Message = "SoundFlow playback device release failed.")]
+    internal static partial void PlaybackDeviceReleaseFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "SoundFlow audio engine release failed.")]
+    internal static partial void AudioEngineReleaseFailed(ILogger logger, Exception exception);
 }

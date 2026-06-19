@@ -1,5 +1,7 @@
 using FluentResults;
-using GbcNet.App.Input.Configuration;
+using GbcNet.App.Configuration.Kdl;
+using GbcNet.App.Configuration.Sections.BootRom;
+using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.Core;
 using Microsoft.Extensions.Options;
 
@@ -8,6 +10,7 @@ namespace GbcNet.App.Configuration;
 internal sealed record StartupConfiguration(
     InputOptions InputOptions,
     GameBoyOptions GameBoyOptions,
+    string ConfigPath,
     string? StartupMessage
 );
 
@@ -22,11 +25,13 @@ internal static class StartupConfigurationLoader
     )
     {
         var document = KdlConfigurationFile.LoadOrCreate(configPath);
+
         var loadedInputOptions = document.IsSuccess
-            ? KdlInputOptionsReader.Read(document.Value)
+            ? InputOptionsReader.Read(document.Value)
             : document.ToResult<InputOptions>();
+
         var loadedGameBoyOptions = document.IsSuccess
-            ? KdlBootRomOptionsReader.Read(
+            ? BootRomOptionsReader.Read(
                 document.Value,
                 Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory
             )
@@ -35,10 +40,13 @@ internal static class StartupConfigurationLoader
         var inputOptions = loadedInputOptions.IsSuccess
             ? loadedInputOptions.Value
             : LoadTemplateInputOptions();
+
         var gameBoyOptions = loadedGameBoyOptions.IsSuccess
             ? loadedGameBoyOptions.Value
             : new GameBoyOptions();
+
         var startupMessages = new List<string>();
+
         AddErrors(startupMessages, loadedInputOptions);
         AddErrors(startupMessages, loadedGameBoyOptions);
 
@@ -49,17 +57,20 @@ internal static class StartupConfigurationLoader
             return new StartupConfiguration(
                 inputOptions,
                 gameBoyOptions,
+                configPath,
                 ToStartupMessage(startupMessages)
             );
         }
 
         startupMessages.AddRange(validation.Failures);
         inputOptions = LoadTemplateInputOptions();
+
         ValidateFallbackOptions(inputOptionsValidator, inputOptions);
 
         return new StartupConfiguration(
             inputOptions,
             gameBoyOptions,
+            configPath,
             ToStartupMessage(startupMessages)
         );
     }
@@ -101,7 +112,7 @@ internal static class StartupConfigurationLoader
             );
         }
 
-        var inputOptions = KdlInputOptionsReader.Read(template.Value);
+        var inputOptions = InputOptionsReader.Read(template.Value);
 
         return inputOptions.IsSuccess
             ? inputOptions.Value
