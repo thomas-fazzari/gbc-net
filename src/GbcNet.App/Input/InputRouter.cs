@@ -1,3 +1,4 @@
+using Avalonia.Input;
 using GbcNet.Core.Joypad;
 
 namespace GbcNet.App.Input;
@@ -10,21 +11,21 @@ internal sealed class InputRouter(
     Action<JoypadButton, bool> setButtonState
 )
 {
-    private readonly HashSet<PhysicalInput> _activeInputs = [];
+    private readonly HashSet<Key> _activeKeys = [];
     private readonly Dictionary<JoypadButton, int> _activeInputCountByButton = CreateButtonCounts();
-    private readonly Dictionary<PhysicalInput, JoypadButton> _buttonByInput = bindings.ToDictionary(
-        binding => binding.Input,
+    private readonly Dictionary<Key, JoypadButton> _buttonByKey = bindings.ToDictionary(
+        binding => binding.Key,
         binding => binding.Button
     );
 
-    public bool Apply(PhysicalInput input, bool pressed)
+    public bool Apply(Key key, bool pressed)
     {
-        if (!_buttonByInput.TryGetValue(input, out var button))
+        if (!_buttonByKey.TryGetValue(key, out var button))
         {
             return false;
         }
 
-        var stateChanged = pressed ? _activeInputs.Add(input) : _activeInputs.Remove(input);
+        var stateChanged = pressed ? _activeKeys.Add(key) : _activeKeys.Remove(key);
 
         if (!stateChanged)
         {
@@ -45,7 +46,7 @@ internal sealed class InputRouter(
 
     public void Clear()
     {
-        _activeInputs.Clear();
+        _activeKeys.Clear();
 
         foreach (var button in Enum.GetValues<JoypadButton>())
         {

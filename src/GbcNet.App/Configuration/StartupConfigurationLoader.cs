@@ -3,7 +3,6 @@ using GbcNet.App.Configuration.Kdl;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.Core;
-using Microsoft.Extensions.Options;
 
 namespace GbcNet.App.Configuration;
 
@@ -19,10 +18,7 @@ internal sealed record StartupConfiguration(
 /// </summary>
 internal static class StartupConfigurationLoader
 {
-    public static StartupConfiguration Load(
-        IValidateOptions<InputOptions> inputOptionsValidator,
-        string configPath
-    )
+    public static StartupConfiguration Load(string configPath)
     {
         var document = KdlConfigurationFile.LoadOrCreate(configPath);
 
@@ -50,9 +46,9 @@ internal static class StartupConfigurationLoader
         AddErrors(startupMessages, loadedInputOptions);
         AddErrors(startupMessages, loadedGameBoyOptions);
 
-        var validation = inputOptionsValidator.Validate(Options.DefaultName, inputOptions);
+        var validation = InputOptionsValidator.Validate(inputOptions);
 
-        if (!validation.Failed)
+        if (validation.Count == 0)
         {
             return new StartupConfiguration(
                 inputOptions,
@@ -62,10 +58,10 @@ internal static class StartupConfigurationLoader
             );
         }
 
-        startupMessages.AddRange(validation.Failures);
+        startupMessages.AddRange(validation);
         inputOptions = LoadTemplateInputOptions();
 
-        ValidateFallbackOptions(inputOptionsValidator, inputOptions);
+        ValidateFallbackOptions(inputOptions);
 
         return new StartupConfiguration(
             inputOptions,
@@ -86,17 +82,14 @@ internal static class StartupConfigurationLoader
     private static string? ToStartupMessage(List<string> messages) =>
         messages.Count == 0 ? null : string.Join(Environment.NewLine, messages);
 
-    private static void ValidateFallbackOptions(
-        IValidateOptions<InputOptions> validator,
-        InputOptions inputOptions
-    )
+    private static void ValidateFallbackOptions(InputOptions inputOptions)
     {
-        var validation = validator.Validate(Options.DefaultName, inputOptions);
+        var validation = InputOptionsValidator.Validate(inputOptions);
 
-        if (validation.Failed)
+        if (validation.Count != 0)
         {
             throw new InvalidOperationException(
-                $"Default input options are invalid:{Environment.NewLine}{string.Join(Environment.NewLine, validation.Failures)}"
+                $"Default input options are invalid:{Environment.NewLine}{string.Join(Environment.NewLine, validation)}"
             );
         }
     }

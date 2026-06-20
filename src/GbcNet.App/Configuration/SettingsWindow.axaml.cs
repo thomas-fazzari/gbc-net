@@ -28,7 +28,7 @@ internal sealed partial class SettingsWindow : Window
         _cgbBootRomPathTextBox = CreatePathBox(bootRomPaths.CgbPath);
 
         Title = "Configuration";
-        Background = SettingsChrome.Brush(SettingsChrome.Bg);
+        Background = AppChrome.Brush(AppChrome.Bg);
         Content = BuildContent();
     }
 
@@ -38,8 +38,8 @@ internal sealed partial class SettingsWindow : Window
 
         var sidebar = new Border
         {
-            Background = SettingsChrome.Brush(SettingsChrome.Panel),
-            BorderBrush = SettingsChrome.Brush(SettingsChrome.Hair),
+            Background = AppChrome.Brush(AppChrome.Panel),
+            BorderBrush = AppChrome.Brush(AppChrome.Hair),
             BorderThickness = new Thickness(0, 0, 1, 0),
             Padding = new Thickness(8),
             Child = new StackPanel
@@ -89,9 +89,9 @@ internal sealed partial class SettingsWindow : Window
             HorizontalAlignment = HorizontalAlignment.Right,
             Spacing = 8,
         };
-        var cancelButton = CreateButton("Cancel");
+        var cancelButton = AppChrome.Button("Cancel");
         cancelButton.Click += (_, _) => Close(null);
-        var saveButton = CreateButton("Save", accent: true);
+        var saveButton = AppChrome.Button("Save", accent: true);
         saveButton.Click += (_, _) => Close(GetBootRomPathOptions());
         footer.Children.Add(cancelButton);
         footer.Children.Add(saveButton);
@@ -108,24 +108,23 @@ internal sealed partial class SettingsWindow : Window
     private static Border CreateSidebarItem(string text, string iconAsset, bool isSelected)
     {
         var icon = Icons.Make(iconAsset, size: 15);
-        var label = CreateText(
+        var label = AppChrome.TextBlock(
             text,
-            isSelected ? SettingsChrome.Text : SettingsChrome.Muted,
-            fontSize: 14,
-            FontWeight.SemiBold
+            isSelected ? AppChrome.Text : AppChrome.Muted,
+            fontSize: 14
         );
         Grid.SetColumn(label, 1);
 
         return new Border
         {
             Height = 34,
-            CornerRadius = new CornerRadius(SettingsChrome.Radius),
+            CornerRadius = new CornerRadius(AppChrome.Radius),
             Background = isSelected
-                ? SettingsChrome.Brush(SettingsChrome.SelectedSurface)
-                : SettingsChrome.Brush(Colors.Transparent),
+                ? AppChrome.Brush(AppChrome.SelectedSurface)
+                : AppChrome.Brush(Colors.Transparent),
             BorderBrush = isSelected
-                ? SettingsChrome.Brush(SettingsChrome.SelectedBorder)
-                : SettingsChrome.Brush(Colors.Transparent),
+                ? AppChrome.Brush(AppChrome.SelectedBorder)
+                : AppChrome.Brush(Colors.Transparent),
             Padding = new Thickness(12, 0),
             Child = new Grid
             {
@@ -143,8 +142,8 @@ internal sealed partial class SettingsWindow : Window
             PlaceholderText = "No file selected",
             Height = 30,
             FontSize = 12,
-            Foreground = SettingsChrome.Brush(SettingsChrome.Text),
-            Background = SettingsChrome.Brush(Colors.Transparent),
+            Foreground = AppChrome.Brush(AppChrome.Text),
+            Background = AppChrome.Brush(Colors.Transparent),
             BorderThickness = new Thickness(0),
             Padding = new Thickness(10, 0),
             VerticalContentAlignment = VerticalAlignment.Center,
@@ -153,7 +152,7 @@ internal sealed partial class SettingsWindow : Window
 
     private void AddPathRow(Grid form, int row, string label, TextBox pathBox, string pickerTitle)
     {
-        var labelBlock = CreateText(label, SettingsChrome.Text, fontSize: 13, FontWeight.SemiBold);
+        var labelBlock = AppChrome.TextBlock(label, AppChrome.Text, fontSize: 13);
         form.Children.Add(labelBlock);
         Grid.SetRow(labelBlock, row);
 
@@ -162,14 +161,14 @@ internal sealed partial class SettingsWindow : Window
         Grid.SetRow(pathWell, row);
         Grid.SetColumn(pathWell, 1);
 
-        var browseButton = CreateButton("Browse");
+        var browseButton = AppChrome.Button("Browse");
         browseButton.Click += async (_, _) =>
             await BrowseBootRomAsync(pathBox, pickerTitle).ConfigureAwait(true);
         form.Children.Add(browseButton);
         Grid.SetRow(browseButton, row);
         Grid.SetColumn(browseButton, 2);
 
-        var clearButton = CreateButton("Clear");
+        var clearButton = AppChrome.Button("Clear");
         clearButton.Click += (_, _) => pathBox.Text = string.Empty;
         form.Children.Add(clearButton);
         Grid.SetRow(clearButton, row);
@@ -181,62 +180,16 @@ internal sealed partial class SettingsWindow : Window
         var well = new Border
         {
             Height = 32,
-            Background = SettingsChrome.Brush(SettingsChrome.Surface),
-            BorderBrush = SettingsChrome.Brush(SettingsChrome.Hair),
+            Background = AppChrome.Brush(AppChrome.Surface),
+            BorderBrush = AppChrome.Brush(AppChrome.Hair),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(SettingsChrome.Radius),
+            CornerRadius = new CornerRadius(AppChrome.Radius),
             Child = pathBox,
         };
-        pathBox.GotFocus += (_, _) =>
-            well.BorderBrush = SettingsChrome.Brush(SettingsChrome.Strong);
-        pathBox.LostFocus += (_, _) => well.BorderBrush = SettingsChrome.Brush(SettingsChrome.Hair);
+        pathBox.GotFocus += (_, _) => well.BorderBrush = AppChrome.Brush(AppChrome.Strong);
+        pathBox.LostFocus += (_, _) => well.BorderBrush = AppChrome.Brush(AppChrome.Hair);
         return well;
     }
-
-    private static Button CreateButton(string text, bool accent = false)
-    {
-        var button = new Button
-        {
-            Content = text,
-            Height = 30,
-            MinWidth = 0,
-            Padding = new Thickness(10, 0),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            FontSize = 12,
-            FontWeight = FontWeight.Medium,
-            Foreground = SettingsChrome.Brush(
-                accent ? SettingsChrome.AccentOn : SettingsChrome.Text
-            ),
-            Background = SettingsChrome.Brush(
-                accent ? SettingsChrome.Accent : SettingsChrome.Raise
-            ),
-            BorderBrush = SettingsChrome.Brush(
-                accent ? SettingsChrome.Accent : SettingsChrome.Hair
-            ),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(SettingsChrome.Radius),
-        };
-        SettingsChrome.AttachHover(button, accent);
-        return button;
-    }
-
-    private static TextBlock CreateText(
-        string text,
-        Color color,
-        double fontSize,
-        FontWeight fontWeight
-    ) =>
-        new()
-        {
-            Text = text,
-            FontSize = fontSize,
-            FontWeight = fontWeight,
-            Foreground = SettingsChrome.Brush(color),
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
 
     private BootRomPathOptions GetBootRomPathOptions() =>
         new(NormalizePath(_dmgBootRomPathTextBox.Text), NormalizePath(_cgbBootRomPathTextBox.Text));
@@ -263,46 +216,5 @@ internal sealed partial class SettingsWindow : Window
         }
 
         pathBox.Text = files[0].Path.IsFile ? files[0].Path.LocalPath : files[0].Path.ToString();
-    }
-}
-
-file static class SettingsChrome
-{
-    public const double Radius = 4;
-
-    public static readonly Color Bg = Color.Parse("#18181b");
-    public static readonly Color Panel = Color.Parse("#202024");
-    public static readonly Color Surface = Color.Parse("#26262b");
-    public static readonly Color Raise = Color.Parse("#2f2f35");
-    public static readonly Color Hover = Color.Parse("#38383f");
-    public static readonly Color Press = Color.Parse("#44444c");
-    public static readonly Color Hair = Color.FromArgb(28, 255, 255, 255);
-    public static readonly Color Text = Color.Parse("#f2f2f3");
-    public static readonly Color Muted = Color.Parse("#8f8f99");
-    public static readonly Color Strong = Color.FromArgb(56, 255, 255, 255);
-    public static readonly Color SelectedSurface = Color.Parse("#303036");
-    public static readonly Color SelectedBorder = Color.FromArgb(42, 255, 255, 255);
-    public static readonly Color Accent = Color.Parse("#3a3a41");
-    public static readonly Color AccentOn = Text;
-
-    private static readonly Color FocusBlue = Color.Parse("#0078d4");
-    private static readonly Color FocusBluePressed = Color.Parse("#005a9e");
-
-    public static SolidColorBrush Brush(Color color) => new(color);
-
-    public static void AttachHover(Button button, bool accent)
-    {
-        var normal = accent ? Accent : Raise;
-        var hover = accent ? FocusBlue : Hover;
-        var press = accent ? FocusBluePressed : Press;
-        button.PointerEntered += (_, _) => button.Background = Brush(hover);
-        button.PointerExited += (_, _) => button.Background = Brush(normal);
-        button.PointerPressed += (_, _) => button.Background = Brush(press);
-        button.PointerReleased += (_, e) =>
-        {
-            button.Background = new Rect(button.Bounds.Size).Contains(e.GetPosition(button))
-                ? Brush(hover)
-                : Brush(normal);
-        };
     }
 }

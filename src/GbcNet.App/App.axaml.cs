@@ -2,13 +2,18 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
-using Microsoft.Extensions.DependencyInjection;
+using GbcNet.App.Audio;
+using GbcNet.App.Configuration;
+using GbcNet.App.Input;
+using GbcNet.App.Saves;
+using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App;
 
-internal sealed class GbcNetApplication : Application
+internal sealed class GbcNetApplication : Application, IDisposable
 {
-    private ServiceProvider? _serviceProvider;
+    private ILoggerFactory? _loggerFactory;
+    private SoundFlowAudioOutput? _audioOutput;
 
     public override void Initialize()
     {
@@ -20,11 +25,46 @@ internal sealed class GbcNetApplication : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            _serviceProvider = DependencyInjection.BuildServiceProvider();
-            desktop.MainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-            desktop.Exit += (_, _) => _serviceProvider.Dispose();
+            _loggerFactory = LoggerFactory.Create(static builder => builder.AddDebug());
+
+            var startupConfiguration = StartupConfigurationLoader.Load(
+                UserDataPaths.ConfigFilePath
+            );
+            var inputConfiguration = InputConfiguration.FromOptions(
+                startupConfiguration.InputOptions
+            );
+            var configurationService = new AppConfigurationService(startupConfiguration.ConfigPath);
+            var cartridgeSaveFileService = new CartridgeSaveFileService(
+                UserDataPaths.SaveDirectoryPath
+            );
+
+            _audioOutput = new SoundFlowAudioOutput(
+                _loggerFactory.CreateLogger<SoundFlowAudioOutput>()
+            );
+            desktop.MainWindow = new MainWindow(
+                inputConfiguration,
+                startupConfiguration,
+                configurationService,
+                cartridgeSaveFileService,
+                _audioOutput,
+                _loggerFactory.CreateLogger<MainWindow>()
+            );
+            desktop.Exit += (_, _) => DisposeServices();
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    public void Dispose()
+    {
+        DisposeServices();
+    }
+
+    private void DisposeServices()
+    {
+        _audioOutput?.Dispose();
+        _loggerFactory?.Dispose();
+        _audioOutput = null;
+        _loggerFactory = null;
     }
 }

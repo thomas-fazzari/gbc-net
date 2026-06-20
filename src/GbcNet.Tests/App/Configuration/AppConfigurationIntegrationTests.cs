@@ -1,3 +1,4 @@
+using Avalonia.Input;
 using GbcNet.App;
 using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.BootRom;
@@ -5,7 +6,6 @@ using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.App.Input;
 using GbcNet.Core;
 using GbcNet.Core.Joypad;
-using Microsoft.Extensions.Options;
 
 namespace GbcNet.Tests.App.Configuration;
 
@@ -19,10 +19,7 @@ public sealed class AppConfigurationIntegrationTests
 
         try
         {
-            var startupConfiguration = StartupConfigurationLoader.Load(
-                new InputOptionsValidator(),
-                configPath
-            );
+            var startupConfiguration = StartupConfigurationLoader.Load(configPath);
 
             Assert.Null(startupConfiguration.StartupMessage);
             Assert.True(File.Exists(configPath));
@@ -46,19 +43,11 @@ public sealed class AppConfigurationIntegrationTests
             Assert.Equal(8, inputConfiguration.Bindings.Count);
             Assert.Contains(
                 inputConfiguration.Bindings,
-                binding =>
-                    binding
-                        is { Button: JoypadButton.A, Input.DeviceKind: InputDeviceKind.Keyboard }
-                    && string.Equals(binding.Input.Code, "Z", StringComparison.Ordinal)
+                binding => binding is { Button: JoypadButton.A, Key: Key.Z }
             );
             Assert.Contains(
                 inputConfiguration.Bindings,
-                binding =>
-                    binding
-                        is {
-                            Button: JoypadButton.Start,
-                            Input.DeviceKind: InputDeviceKind.Keyboard,
-                        }
+                binding => binding is { Button: JoypadButton.Start, Key: Key.Enter }
             );
             Assert.True(startupConfiguration.GameBoyOptions.DmgBootRom.IsEmpty);
             Assert.True(startupConfiguration.GameBoyOptions.CgbBootRom.IsEmpty);
@@ -88,10 +77,7 @@ public sealed class AppConfigurationIntegrationTests
             );
             File.WriteAllText(configPath, CreateConfig("dmg.bin", "cgb.bin"));
 
-            var startupConfiguration = StartupConfigurationLoader.Load(
-                new InputOptionsValidator(),
-                configPath
-            );
+            var startupConfiguration = StartupConfigurationLoader.Load(configPath);
 
             Assert.Null(startupConfiguration.StartupMessage);
             Assert.Equal(
@@ -123,10 +109,7 @@ public sealed class AppConfigurationIntegrationTests
             File.WriteAllBytes(Path.Combine(tempDirectory, "dmg.bin"), new byte[255]);
             File.WriteAllText(configPath, CreateConfig("dmg.bin", null));
 
-            var startupConfiguration = StartupConfigurationLoader.Load(
-                new InputOptionsValidator(),
-                configPath
-            );
+            var startupConfiguration = StartupConfigurationLoader.Load(configPath);
 
             Assert.Contains(
                 "DMG boot ROM must be 256 bytes",
@@ -153,10 +136,7 @@ public sealed class AppConfigurationIntegrationTests
             Directory.CreateDirectory(tempDirectory);
             File.WriteAllText(configPath, CreateConfig("missing-dmg.bin", null));
 
-            var startupConfiguration = StartupConfigurationLoader.Load(
-                new InputOptionsValidator(),
-                configPath
-            );
+            var startupConfiguration = StartupConfigurationLoader.Load(configPath);
 
             Assert.Contains(
                 "DMG boot ROM file could not be read",
@@ -183,12 +163,12 @@ public sealed class AppConfigurationIntegrationTests
             },
         };
 
-        var validation = new InputOptionsValidator().Validate(Options.DefaultName, options);
+        var validation = InputOptionsValidator.Validate(options);
 
-        Assert.True(validation.Failed);
+        Assert.NotEmpty(validation);
         Assert.Contains(
             "must contain at least one keyboard binding",
-            validation.Failures.Single(),
+            validation.Single(),
             StringComparison.Ordinal
         );
     }
@@ -241,11 +221,8 @@ public sealed class AppConfigurationIntegrationTests
 
     private static void AssertInputOptionsAreValid(InputOptions options)
     {
-        var validation = new InputOptionsValidator().Validate(Options.DefaultName, options);
+        var validation = InputOptionsValidator.Validate(options);
 
-        Assert.False(
-            validation.Failed,
-            string.Join(Environment.NewLine, validation.Failures ?? [])
-        );
+        Assert.False(validation.Count != 0, string.Join(Environment.NewLine, validation));
     }
 }

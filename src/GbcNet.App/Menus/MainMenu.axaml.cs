@@ -267,4 +267,9 @@ internal sealed partial class MainMenu : UserControl
         return item;
     }
     #endregion Native menu
+
+    internal sealed class FastForwardSpeedSelectedEventArgs(EmulationSpeed speed) : EventArgs
+    {
+        public EmulationSpeed Speed { get; } = speed;
+    }
 }

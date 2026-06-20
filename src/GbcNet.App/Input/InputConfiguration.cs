@@ -16,15 +16,10 @@ internal sealed class InputConfiguration(IReadOnlyList<InputBinding> bindings)
         var profile = options.Profiles[options.ActiveProfile];
 
         return new InputConfiguration([
-            .. profile.Keyboard.Select(binding =>
-                CreateKeyboardBinding(
-                    Enum.Parse<Key>(binding.Key),
-                    Enum.Parse<JoypadButton>(binding.Button, ignoreCase: true)
-                )
-            ),
+            .. profile.Keyboard.Select(binding => new InputBinding(
+                Enum.Parse<Key>(binding.Key),
+                Enum.Parse<JoypadButton>(binding.Button, ignoreCase: true)
+            )),
         ]);
     }
-
-    private static InputBinding CreateKeyboardBinding(Key key, JoypadButton button) =>
-        new(new PhysicalInput(InputDeviceKind.Keyboard, key.ToString()), button);
 }

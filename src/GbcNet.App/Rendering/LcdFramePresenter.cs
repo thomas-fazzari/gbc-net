@@ -17,7 +17,7 @@ internal sealed class LcdFramePresenter(Image screenImage) : IDisposable
             return;
         }
 
-        Interlocked.Exchange(ref _pendingFrame, frame);
+        _ = Interlocked.Exchange(ref _pendingFrame, frame);
 
         if (Interlocked.Exchange(ref _isRenderQueued, 1) == 0)
         {
@@ -32,7 +32,7 @@ internal sealed class LcdFramePresenter(Image screenImage) : IDisposable
             return;
         }
 
-        Interlocked.Exchange(ref _pendingFrame, null);
+        _ = Interlocked.Exchange(ref _pendingFrame, value: null);
         screenImage.Source = null;
         _renderer.Dispose();
     }
@@ -41,7 +41,7 @@ internal sealed class LcdFramePresenter(Image screenImage) : IDisposable
     {
         if (Volatile.Read(ref _isDisposed) != 0)
         {
-            Interlocked.Exchange(ref _pendingFrame, null);
+            _ = Interlocked.Exchange(ref _pendingFrame, value: null);
             Volatile.Write(ref _isRenderQueued, 0);
             return;
         }

@@ -1,7 +1,6 @@
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using GbcNet.App.Rendering.Palettes;
 using GbcNet.Core.Ppu;
 
 namespace GbcNet.App.Rendering;
@@ -13,6 +12,26 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
 {
     private const int BytesPerPixel = 4;
     private const double Dpi = 96;
+
+    private static ReadOnlySpan<byte> DmgPaletteBgra =>
+        [
+            0xD0,
+            0xF8,
+            0xE0,
+            0xFF,
+            0x70,
+            0xC0,
+            0x88,
+            0xFF,
+            0x56,
+            0x68,
+            0x34,
+            0xFF,
+            0x18,
+            0x18,
+            0x08,
+            0xFF,
+        ];
 
     private readonly WriteableBitmap?[] _bitmaps = new WriteableBitmap?[2];
     private int _nextBitmapIndex;
@@ -98,7 +117,7 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
     private static void WriteDmgShadePixels(LcdFrame frame, Span<byte> destination, int rowBytes)
     {
         var shades = frame.Pixels.Span;
-        var colors = DmgLcdPalette.Bgra;
+        var colors = DmgPaletteBgra;
 
         for (var y = 0; y < frame.Height; y++)
         {
