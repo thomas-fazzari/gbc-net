@@ -1,6 +1,6 @@
 namespace GbcNet.App.Configuration.Sections.Input;
 
-internal static class InputOptionsSchema
+internal static class InputConfigSchema
 {
     internal const string InputNodeName = "input";
     internal const string ProfileNodeName = "profile";

@@ -5,35 +5,35 @@ using GbcNet.Core.Joypad;
 namespace GbcNet.App.Configuration.Sections.Input;
 
 /// <summary>
-/// Validates loaded input options before they are converted to runtime bindings.
+/// Validates loaded input config before it is converted to runtime bindings.
 /// </summary>
-internal static class InputOptionsValidator
+internal static class InputConfigValidator
 {
-    public static IReadOnlyList<string> Validate(InputOptions options)
+    public static IReadOnlyList<string> Validate(InputConfig config)
     {
-        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(config);
 
-        if (options.Version != InputOptions.SupportedVersion)
+        if (config.Version != InputConfig.SupportedVersion)
         {
             return
             [
                 string.Create(
                     CultureInfo.InvariantCulture,
-                    $"Input config version {options.Version} is not supported."
+                    $"Input config version {config.Version} is not supported."
                 ),
             ];
         }
 
-        if (!options.Profiles.TryGetValue(options.ActiveProfile, out var profile))
+        if (!config.Profiles.TryGetValue(config.ActiveProfile, out var profile))
         {
-            return [$"Input profile '{options.ActiveProfile}' does not exist."];
+            return [$"Input profile '{config.ActiveProfile}' does not exist."];
         }
 
         if (profile.Keyboard.Count == 0)
         {
             return
             [
-                $"Input profile '{options.ActiveProfile}' must contain at least one keyboard binding.",
+                $"Input profile '{config.ActiveProfile}' must contain at least one keyboard binding.",
             ];
         }
 

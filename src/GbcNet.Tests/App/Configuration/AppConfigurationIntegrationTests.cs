@@ -12,7 +12,7 @@ namespace GbcNet.Tests.App.Configuration;
 public sealed class AppConfigurationIntegrationTests
 {
     [Fact]
-    public void Load_CreatesDefaultConfigFileAndBuildsInputConfiguration()
+    public void Load_CreatesDefaultConfigFileAndBuildsInputMap()
     {
         var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
@@ -25,28 +25,26 @@ public sealed class AppConfigurationIntegrationTests
             Assert.True(File.Exists(configPath));
             var configText = File.ReadAllText(configPath);
             Assert.Contains(
-                $"{InputOptionsSchema.InputNodeName} {InputOptionsSchema.VersionPropertyName}=1",
+                $"{InputConfigSchema.InputNodeName} {InputConfigSchema.VersionPropertyName}=1",
                 configText,
                 StringComparison.Ordinal
             );
             Assert.Contains(
-                BootRomOptionsSchema.BootRomNodeName,
+                BootRomConfigSchema.BootRomNodeName,
                 configText,
                 StringComparison.Ordinal
             );
-            AssertInputOptionsAreValid(startupConfiguration.InputOptions);
+            AssertInputConfigIsValid(startupConfiguration.InputConfig);
 
-            var inputConfiguration = InputConfiguration.FromOptions(
-                startupConfiguration.InputOptions
-            );
+            var inputMap = InputMap.FromConfig(startupConfiguration.InputConfig);
 
-            Assert.Equal(8, inputConfiguration.Bindings.Count);
+            Assert.Equal(8, inputMap.Bindings.Count);
             Assert.Contains(
-                inputConfiguration.Bindings,
+                inputMap.Bindings,
                 binding => binding is { Button: JoypadButton.A, Key: Key.Z }
             );
             Assert.Contains(
-                inputConfiguration.Bindings,
+                inputMap.Bindings,
                 binding => binding is { Button: JoypadButton.Start, Key: Key.Enter }
             );
             Assert.True(startupConfiguration.GameBoyOptions.DmgBootRom.IsEmpty);
@@ -98,7 +96,7 @@ public sealed class AppConfigurationIntegrationTests
     }
 
     [Fact]
-    public void Load_ReportsInvalidBootRomSizeAndFallsBackToEmptyBootRomOptions()
+    public void Load_ReportsInvalidBootRomSizeAndFallsBackToEmptyBootRoms()
     {
         var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
@@ -126,7 +124,7 @@ public sealed class AppConfigurationIntegrationTests
     }
 
     [Fact]
-    public void Load_ReportsMissingBootRomFileAndFallsBackToEmptyBootRomOptions()
+    public void Load_ReportsMissingBootRomFileAndFallsBackToEmptyBootRoms()
     {
         var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
@@ -155,15 +153,15 @@ public sealed class AppConfigurationIntegrationTests
     [Fact]
     public void InputValidation_RejectsEmptyActiveKeyboardProfile()
     {
-        InputOptions options = new()
+        InputConfig config = new()
         {
-            Profiles = new Dictionary<string, InputProfileOptions>(StringComparer.Ordinal)
+            Profiles = new Dictionary<string, InputProfileConfig>(StringComparer.Ordinal)
             {
-                [InputOptionsSchema.DefaultProfileName] = new(),
+                [InputConfigSchema.DefaultProfileName] = new(),
             },
         };
 
-        var validation = InputOptionsValidator.Validate(options);
+        var validation = InputConfigValidator.Validate(config);
 
         Assert.NotEmpty(validation);
         Assert.Contains(
@@ -186,42 +184,42 @@ public sealed class AppConfigurationIntegrationTests
         if (dmgBootRomPath is not null)
         {
             bootRomLines.Add(
-                "  " + BootRomOptionsSchema.DmgNodeName + " \"" + dmgBootRomPath + "\""
+                "  " + BootRomConfigSchema.DmgNodeName + " \"" + dmgBootRomPath + "\""
             );
         }
 
         if (cgbBootRomPath is not null)
         {
             bootRomLines.Add(
-                "  " + BootRomOptionsSchema.CgbNodeName + " \"" + cgbBootRomPath + "\""
+                "  " + BootRomConfigSchema.CgbNodeName + " \"" + cgbBootRomPath + "\""
             );
         }
 
         return $$"""
-            {{InputOptionsSchema.InputNodeName}} {{InputOptionsSchema.VersionPropertyName}}=1 {
-              {{InputOptionsSchema.ProfileNodeName}} "{{InputOptionsSchema.DefaultProfileName}}" {
-                {{InputOptionsSchema.KeyboardNodeName}} {
-                  {{InputOptionsSchema.BindNodeName}} "up" {{InputOptionsSchema.KeyPropertyName}}="Up"
-                  {{InputOptionsSchema.BindNodeName}} "down" {{InputOptionsSchema.KeyPropertyName}}="Down"
-                  {{InputOptionsSchema.BindNodeName}} "left" {{InputOptionsSchema.KeyPropertyName}}="Left"
-                  {{InputOptionsSchema.BindNodeName}} "right" {{InputOptionsSchema.KeyPropertyName}}="Right"
-                  {{InputOptionsSchema.BindNodeName}} "a" {{InputOptionsSchema.KeyPropertyName}}="Z"
-                  {{InputOptionsSchema.BindNodeName}} "b" {{InputOptionsSchema.KeyPropertyName}}="X"
-                  {{InputOptionsSchema.BindNodeName}} "start" {{InputOptionsSchema.KeyPropertyName}}="Enter"
-                  {{InputOptionsSchema.BindNodeName}} "select" {{InputOptionsSchema.KeyPropertyName}}="Back"
+            {{InputConfigSchema.InputNodeName}} {{InputConfigSchema.VersionPropertyName}}=1 {
+              {{InputConfigSchema.ProfileNodeName}} "{{InputConfigSchema.DefaultProfileName}}" {
+                {{InputConfigSchema.KeyboardNodeName}} {
+                  {{InputConfigSchema.BindNodeName}} "up" {{InputConfigSchema.KeyPropertyName}}="Up"
+                  {{InputConfigSchema.BindNodeName}} "down" {{InputConfigSchema.KeyPropertyName}}="Down"
+                  {{InputConfigSchema.BindNodeName}} "left" {{InputConfigSchema.KeyPropertyName}}="Left"
+                  {{InputConfigSchema.BindNodeName}} "right" {{InputConfigSchema.KeyPropertyName}}="Right"
+                  {{InputConfigSchema.BindNodeName}} "a" {{InputConfigSchema.KeyPropertyName}}="Z"
+                  {{InputConfigSchema.BindNodeName}} "b" {{InputConfigSchema.KeyPropertyName}}="X"
+                  {{InputConfigSchema.BindNodeName}} "start" {{InputConfigSchema.KeyPropertyName}}="Enter"
+                  {{InputConfigSchema.BindNodeName}} "select" {{InputConfigSchema.KeyPropertyName}}="Back"
                 }
               }
             }
 
-            {{BootRomOptionsSchema.BootRomNodeName}} {
+            {{BootRomConfigSchema.BootRomNodeName}} {
             {{string.Join(Environment.NewLine, bootRomLines)}}
             }
             """;
     }
 
-    private static void AssertInputOptionsAreValid(InputOptions options)
+    private static void AssertInputConfigIsValid(InputConfig config)
     {
-        var validation = InputOptionsValidator.Validate(options);
+        var validation = InputConfigValidator.Validate(config);
 
         Assert.False(validation.Count != 0, string.Join(Environment.NewLine, validation));
     }

@@ -6,34 +6,34 @@ using KdlSharp;
 namespace GbcNet.App.Configuration.Sections.Input;
 
 /// <summary>
-/// Reads input options from the KDL configuration document.
+/// Reads input config from the KDL configuration document.
 /// </summary>
-internal static class InputOptionsReader
+internal static class InputConfigReader
 {
     /// <summary>
     /// Reads the input section from the configuration document.
     /// </summary>
-    public static Result<InputOptions> Read(KdlDocument document)
+    public static Result<InputConfig> Read(KdlDocument document)
     {
-        var inputNode = document.ReadRequiredSection(InputOptionsSchema.InputNodeName);
+        var inputNode = document.ReadRequiredSection(InputConfigSchema.InputNodeName);
         return inputNode.IsSuccess
             ? ReadInputNode(inputNode.Value)
-            : inputNode.ToResult<InputOptions>();
+            : inputNode.ToResult<InputConfig>();
     }
 
-    private static Result<InputOptions> ReadInputNode(KdlNode inputNode)
+    private static Result<InputConfig> ReadInputNode(KdlNode inputNode)
     {
         var version = KdlNodeReader.ReadRequiredInt32Property(
             inputNode,
-            InputOptionsSchema.VersionPropertyName
+            InputConfigSchema.VersionPropertyName
         );
 
         if (version.IsFailed)
         {
-            return version.ToResult<InputOptions>();
+            return version.ToResult<InputConfig>();
         }
 
-        if (version.Value != InputOptions.SupportedVersion)
+        if (version.Value != InputConfig.SupportedVersion)
         {
             return Result.Fail(
                 $"Input config version {version.Value.ToString(CultureInfo.InvariantCulture)} is not supported."
@@ -42,46 +42,46 @@ internal static class InputOptionsReader
 
         var activeProfile = KdlNodeReader.ReadOptionalStringProperty(
             inputNode,
-            InputOptionsSchema.ActiveProfilePropertyName,
-            InputOptionsSchema.DefaultProfileName
+            InputConfigSchema.ActiveProfilePropertyName,
+            InputConfigSchema.DefaultProfileName
         );
 
         if (activeProfile.IsFailed)
         {
-            return activeProfile.ToResult<InputOptions>();
+            return activeProfile.ToResult<InputConfig>();
         }
 
         var profiles = ReadProfiles(inputNode);
 
         if (profiles.IsFailed)
         {
-            return profiles.ToResult<InputOptions>();
+            return profiles.ToResult<InputConfig>();
         }
 
-        return new InputOptions
+        return new InputConfig
         {
-            Version = InputOptions.SupportedVersion,
+            Version = InputConfig.SupportedVersion,
             ActiveProfile = activeProfile.Value,
             Profiles = profiles.Value,
         };
     }
 
-    private static Result<Dictionary<string, InputProfileOptions>> ReadProfiles(KdlNode inputNode)
+    private static Result<Dictionary<string, InputProfileConfig>> ReadProfiles(KdlNode inputNode)
     {
-        var profiles = new Dictionary<string, InputProfileOptions>(StringComparer.Ordinal);
+        var profiles = new Dictionary<string, InputProfileConfig>(StringComparer.Ordinal);
 
         foreach (var node in inputNode.Children)
         {
             if (
                 !string.Equals(
                     node.Name,
-                    InputOptionsSchema.ProfileNodeName,
+                    InputConfigSchema.ProfileNodeName,
                     StringComparison.Ordinal
                 )
             )
             {
                 return Result.Fail(
-                    $"Input config node '{InputOptionsSchema.InputNodeName}' does not allow child '{node.Name}'."
+                    $"Input config node '{InputConfigSchema.InputNodeName}' does not allow child '{node.Name}'."
                 );
             }
 
@@ -89,14 +89,14 @@ internal static class InputOptionsReader
 
             if (profileName.IsFailed)
             {
-                return profileName.ToResult<Dictionary<string, InputProfileOptions>>();
+                return profileName.ToResult<Dictionary<string, InputProfileConfig>>();
             }
 
             var profile = ReadProfile(node);
 
             if (profile.IsFailed)
             {
-                return profile.ToResult<Dictionary<string, InputProfileOptions>>();
+                return profile.ToResult<Dictionary<string, InputProfileConfig>>();
             }
 
             if (!profiles.TryAdd(profileName.Value, profile.Value))
@@ -110,16 +110,16 @@ internal static class InputOptionsReader
             : profiles;
     }
 
-    private static Result<InputProfileOptions> ReadProfile(KdlNode profileNode)
+    private static Result<InputProfileConfig> ReadProfile(KdlNode profileNode)
     {
-        var keyboardBindings = new List<KeyboardInputBindingOptions>();
+        var keyboardBindings = new List<KeyboardInputBindingConfig>();
 
         foreach (var node in profileNode.Children)
         {
             if (
                 !string.Equals(
                     node.Name,
-                    InputOptionsSchema.KeyboardNodeName,
+                    InputConfigSchema.KeyboardNodeName,
                     StringComparison.Ordinal
                 )
             )
@@ -131,26 +131,24 @@ internal static class InputOptionsReader
 
             if (keyboard.IsFailed)
             {
-                return keyboard.ToResult<InputProfileOptions>();
+                return keyboard.ToResult<InputProfileConfig>();
             }
 
             keyboardBindings.AddRange(keyboard.Value);
         }
 
-        return new InputProfileOptions { Keyboard = keyboardBindings };
+        return new InputProfileConfig { Keyboard = keyboardBindings };
     }
 
-    private static Result<IReadOnlyList<KeyboardInputBindingOptions>> ReadKeyboard(
+    private static Result<IReadOnlyList<KeyboardInputBindingConfig>> ReadKeyboard(
         KdlNode keyboardNode
     )
     {
-        var bindings = new List<KeyboardInputBindingOptions>();
+        var bindings = new List<KeyboardInputBindingConfig>();
 
         foreach (var node in keyboardNode.Children)
         {
-            if (
-                !string.Equals(node.Name, InputOptionsSchema.BindNodeName, StringComparison.Ordinal)
-            )
+            if (!string.Equals(node.Name, InputConfigSchema.BindNodeName, StringComparison.Ordinal))
             {
                 return Result.Fail($"Keyboard config does not allow child '{node.Name}'.");
             }
@@ -159,7 +157,7 @@ internal static class InputOptionsReader
 
             if (binding.IsFailed)
             {
-                return binding.ToResult<IReadOnlyList<KeyboardInputBindingOptions>>();
+                return binding.ToResult<IReadOnlyList<KeyboardInputBindingConfig>>();
             }
 
             bindings.Add(binding.Value);
@@ -168,21 +166,21 @@ internal static class InputOptionsReader
         return bindings;
     }
 
-    private static Result<KeyboardInputBindingOptions> ReadKeyboardBinding(KdlNode bindNode)
+    private static Result<KeyboardInputBindingConfig> ReadKeyboardBinding(KdlNode bindNode)
     {
         var button = KdlNodeReader.ReadRequiredStringArgument(bindNode);
         var key = KdlNodeReader.ReadRequiredStringProperty(
             bindNode,
-            InputOptionsSchema.KeyPropertyName
+            InputConfigSchema.KeyPropertyName
         );
 
         var validation = Result.Merge(button.ToResult(), key.ToResult());
 
         if (validation.IsFailed)
         {
-            return validation.ToResult<KeyboardInputBindingOptions>();
+            return validation.ToResult<KeyboardInputBindingConfig>();
         }
 
-        return new KeyboardInputBindingOptions(button.Value, key.Value);
+        return new KeyboardInputBindingConfig(button.Value, key.Value);
     }
 }

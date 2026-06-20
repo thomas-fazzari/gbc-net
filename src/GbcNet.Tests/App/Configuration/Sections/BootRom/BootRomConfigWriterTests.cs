@@ -3,7 +3,7 @@ using GbcNet.App.Configuration.Sections.BootRom;
 
 namespace GbcNet.Tests.App.Configuration.Sections.BootRom;
 
-public sealed class BootRomConfigurationWriterTests
+public sealed class BootRomConfigWriterTests
 {
     [Fact]
     public void Write_ReplacesExistingBootRomNodeAndKeepsInputNode()
@@ -31,9 +31,9 @@ public sealed class BootRomConfigurationWriterTests
                 """
             );
 
-            var result = BootRomOptionsWriter.Write(
+            var result = BootRomConfigWriter.Write(
                 configPath,
-                new BootRomPathOptions("new-dmg.bin", "new-cgb.bin")
+                new BootRomConfig("new-dmg.bin", "new-cgb.bin")
             );
 
             Assert.True(result.IsSuccess, string.Join(Environment.NewLine, result.Errors));
@@ -75,9 +75,9 @@ public sealed class BootRomConfigurationWriterTests
                 """
             );
 
-            var result = BootRomOptionsWriter.Write(
+            var result = BootRomConfigWriter.Write(
                 configPath,
-                new BootRomPathOptions("new-dmg.bin", CgbPath: null)
+                new BootRomConfig("new-dmg.bin", CgbPath: null)
             );
 
             Assert.True(result.IsSuccess, string.Join(Environment.NewLine, result.Errors));
@@ -105,10 +105,7 @@ public sealed class BootRomConfigurationWriterTests
             Directory.CreateDirectory(tempDirectory);
             File.WriteAllText(configPath, "input version=1 { }" + Environment.NewLine);
 
-            var result = BootRomOptionsWriter.Write(
-                configPath,
-                new BootRomPathOptions(null, "cgb.bin")
-            );
+            var result = BootRomConfigWriter.Write(configPath, new BootRomConfig(null, "cgb.bin"));
 
             Assert.True(result.IsSuccess, string.Join(Environment.NewLine, result.Errors));
             var text = File.ReadAllText(configPath);
@@ -122,7 +119,7 @@ public sealed class BootRomConfigurationWriterTests
     }
 
     [Fact]
-    public void Write_ClearsPathsWhenOptionsAreEmpty()
+    public void Write_ClearsPathsWhenConfigIsEmpty()
     {
         var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
@@ -142,11 +139,11 @@ public sealed class BootRomConfigurationWriterTests
                 """
             );
 
-            var result = BootRomOptionsWriter.Write(configPath, new BootRomPathOptions());
+            var result = BootRomConfigWriter.Write(configPath, new BootRomConfig());
 
             Assert.True(result.IsSuccess, string.Join(Environment.NewLine, result.Errors));
             var text = File.ReadAllText(configPath);
-            Assert.Contains(BootRomOptionsSchema.BootRomNodeName, text, StringComparison.Ordinal);
+            Assert.Contains(BootRomConfigSchema.BootRomNodeName, text, StringComparison.Ordinal);
             Assert.DoesNotContain("dmg.bin", text, StringComparison.Ordinal);
             Assert.DoesNotContain("cgb.bin", text, StringComparison.Ordinal);
         }
@@ -168,9 +165,9 @@ public sealed class BootRomConfigurationWriterTests
             Directory.CreateDirectory(tempDirectory);
             File.WriteAllText(configPath, "input version=1 { }" + Environment.NewLine);
 
-            var result = BootRomOptionsWriter.Write(
+            var result = BootRomConfigWriter.Write(
                 configPath,
-                new BootRomPathOptions(path, CgbPath: null)
+                new BootRomConfig(path, CgbPath: null)
             );
 
             Assert.True(result.IsSuccess, string.Join(Environment.NewLine, result.Errors));
@@ -210,9 +207,9 @@ public sealed class BootRomConfigurationWriterTests
                 """
             );
 
-            var result = BootRomOptionsWriter.Write(
+            var result = BootRomConfigWriter.Write(
                 configPath,
-                new BootRomPathOptions("new-dmg.bin", null)
+                new BootRomConfig("new-dmg.bin", null)
             );
 
             Assert.True(result.IsFailed);

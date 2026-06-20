@@ -30,9 +30,7 @@ internal sealed class GbcNetApplication : Application, IDisposable
             var startupConfiguration = StartupConfigurationLoader.Load(
                 UserDataPaths.ConfigFilePath
             );
-            var inputConfiguration = InputConfiguration.FromOptions(
-                startupConfiguration.InputOptions
-            );
+            var inputMap = InputMap.FromConfig(startupConfiguration.InputConfig);
             var configurationService = new AppConfigurationService(startupConfiguration.ConfigPath);
             var cartridgeSaveFileService = new CartridgeSaveFileService(
                 UserDataPaths.SaveDirectoryPath
@@ -42,7 +40,7 @@ internal sealed class GbcNetApplication : Application, IDisposable
                 _loggerFactory.CreateLogger<SoundFlowAudioOutput>()
             );
             desktop.MainWindow = new MainWindow(
-                inputConfiguration,
+                inputMap,
                 startupConfiguration,
                 configurationService,
                 cartridgeSaveFileService,

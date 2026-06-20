@@ -3,7 +3,7 @@ namespace GbcNet.App.Configuration.Sections.Input;
 /// <summary>
 /// Strongly typed input configuration loaded from defaults or a user config file.
 /// </summary>
-internal sealed class InputOptions
+internal sealed class InputConfig
 {
     /// <summary>
     /// Supported input configuration schema version.
@@ -15,11 +15,11 @@ internal sealed class InputOptions
     /// <summary>
     /// Profile selected by the GUI.
     /// </summary>
-    public string ActiveProfile { get; set; } = InputOptionsSchema.DefaultProfileName;
+    public string ActiveProfile { get; set; } = InputConfigSchema.DefaultProfileName;
 
     /// <summary>
     /// Available input profiles keyed by profile name.
     /// </summary>
-    public IReadOnlyDictionary<string, InputProfileOptions> Profiles { get; set; } =
-        new Dictionary<string, InputProfileOptions>(StringComparer.Ordinal);
+    public IReadOnlyDictionary<string, InputProfileConfig> Profiles { get; set; } =
+        new Dictionary<string, InputProfileConfig>(StringComparer.Ordinal);
 }

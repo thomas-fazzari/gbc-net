@@ -20,12 +20,12 @@ internal sealed partial class SettingsWindow : Window
     private readonly TextBox _dmgBootRomPathTextBox;
     private readonly TextBox _cgbBootRomPathTextBox;
 
-    public SettingsWindow(BootRomPathOptions bootRomPaths)
+    public SettingsWindow(BootRomConfig bootRomConfig)
     {
         InitializeComponent();
 
-        _dmgBootRomPathTextBox = CreatePathBox(bootRomPaths.DmgPath);
-        _cgbBootRomPathTextBox = CreatePathBox(bootRomPaths.CgbPath);
+        _dmgBootRomPathTextBox = CreatePathBox(bootRomConfig.DmgPath);
+        _cgbBootRomPathTextBox = CreatePathBox(bootRomConfig.CgbPath);
 
         Title = "Configuration";
         Background = AppChrome.Brush(AppChrome.Bg);
@@ -71,16 +71,16 @@ internal sealed partial class SettingsWindow : Window
         AddPathRow(
             form,
             row: 0,
-            BootRomOptionsSchema.DmgNodeName.ToUpperInvariant(),
+            BootRomConfigSchema.DmgNodeName.ToUpperInvariant(),
             _dmgBootRomPathTextBox,
-            $"Select {BootRomOptionsSchema.DmgNodeName.ToUpperInvariant()} boot ROM"
+            $"Select {BootRomConfigSchema.DmgNodeName.ToUpperInvariant()} boot ROM"
         );
         AddPathRow(
             form,
             row: 1,
-            BootRomOptionsSchema.CgbNodeName.ToUpperInvariant(),
+            BootRomConfigSchema.CgbNodeName.ToUpperInvariant(),
             _cgbBootRomPathTextBox,
-            $"Select {BootRomOptionsSchema.CgbNodeName.ToUpperInvariant()} boot ROM"
+            $"Select {BootRomConfigSchema.CgbNodeName.ToUpperInvariant()} boot ROM"
         );
 
         var footer = new StackPanel
@@ -92,7 +92,7 @@ internal sealed partial class SettingsWindow : Window
         var cancelButton = AppChrome.Button("Cancel");
         cancelButton.Click += (_, _) => Close(null);
         var saveButton = AppChrome.Button("Save", accent: true);
-        saveButton.Click += (_, _) => Close(GetBootRomPathOptions());
+        saveButton.Click += (_, _) => Close(GetBootRomConfig());
         footer.Children.Add(cancelButton);
         footer.Children.Add(saveButton);
 
@@ -191,7 +191,7 @@ internal sealed partial class SettingsWindow : Window
         return well;
     }
 
-    private BootRomPathOptions GetBootRomPathOptions() =>
+    private BootRomConfig GetBootRomConfig() =>
         new(NormalizePath(_dmgBootRomPathTextBox.Text), NormalizePath(_cgbBootRomPathTextBox.Text));
 
     private static string? NormalizePath(string? path) =>

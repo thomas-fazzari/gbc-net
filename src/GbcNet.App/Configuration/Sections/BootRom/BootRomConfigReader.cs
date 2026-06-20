@@ -8,11 +8,14 @@ namespace GbcNet.App.Configuration.Sections.BootRom;
 /// <summary>
 /// Reads optional boot ROM paths from the KDL configuration document.
 /// </summary>
-internal static class BootRomOptionsReader
+internal static class BootRomConfigReader
 {
-    public static Result<GameBoyOptions> Read(KdlDocument document, string configDirectoryPath)
+    public static Result<GameBoyOptions> ReadGameBoyOptions(
+        KdlDocument document,
+        string configDirectoryPath
+    )
     {
-        var bootRomNode = document.ReadOptionalSection(BootRomOptionsSchema.BootRomNodeName);
+        var bootRomNode = document.ReadOptionalSection(BootRomConfigSchema.BootRomNodeName);
         if (bootRomNode.IsFailed)
         {
             return bootRomNode.ToResult<GameBoyOptions>();
@@ -23,17 +26,15 @@ internal static class BootRomOptionsReader
             : ReadBootRomNode(bootRomNode.Value, configDirectoryPath);
     }
 
-    public static Result<BootRomPathOptions> ReadPaths(KdlDocument document)
+    public static Result<BootRomConfig> ReadConfig(KdlDocument document)
     {
-        var bootRomNode = document.ReadOptionalSection(BootRomOptionsSchema.BootRomNodeName);
+        var bootRomNode = document.ReadOptionalSection(BootRomConfigSchema.BootRomNodeName);
         if (bootRomNode.IsFailed)
         {
-            return bootRomNode.ToResult<BootRomPathOptions>();
+            return bootRomNode.ToResult<BootRomConfig>();
         }
 
-        return bootRomNode.Value is null
-            ? new BootRomPathOptions()
-            : ReadPathOptionsNode(bootRomNode.Value);
+        return bootRomNode.Value is null ? new BootRomConfig() : ReadConfigNode(bootRomNode.Value);
     }
 
     private static Result<GameBoyOptions> ReadBootRomNode(
@@ -53,7 +54,7 @@ internal static class BootRomOptionsReader
 
             switch (node.Name)
             {
-                case BootRomOptionsSchema.DmgNodeName:
+                case BootRomConfigSchema.DmgNodeName:
                     if (!dmgBootRom.IsEmpty)
                     {
                         return Result.Fail("Boot ROM config has duplicate dmg node.");
@@ -62,7 +63,7 @@ internal static class BootRomOptionsReader
                     var dmg = ReadBootRom(
                         node,
                         configDirectoryPath,
-                        BootRomOptionsSchema.DmgNodeName.ToUpperInvariant(),
+                        BootRomConfigSchema.DmgNodeName.ToUpperInvariant(),
                         GameBoyOptions.DmgBootRomSize
                     );
                     if (dmg.IsFailed)
@@ -73,7 +74,7 @@ internal static class BootRomOptionsReader
                     dmgBootRom = dmg.Value;
                     break;
 
-                case BootRomOptionsSchema.CgbNodeName:
+                case BootRomConfigSchema.CgbNodeName:
                     if (!cgbBootRom.IsEmpty)
                     {
                         return Result.Fail("Boot ROM config has duplicate cgb node.");
@@ -82,7 +83,7 @@ internal static class BootRomOptionsReader
                     var cgb = ReadBootRom(
                         node,
                         configDirectoryPath,
-                        BootRomOptionsSchema.CgbNodeName.ToUpperInvariant(),
+                        BootRomConfigSchema.CgbNodeName.ToUpperInvariant(),
                         GameBoyOptions.CgbBootRomSize
                     );
                     if (cgb.IsFailed)
@@ -95,7 +96,7 @@ internal static class BootRomOptionsReader
 
                 default:
                     return Result.Fail(
-                        $"Boot ROM config node '{BootRomOptionsSchema.BootRomNodeName}' does not allow child '{node.Name}'."
+                        $"Boot ROM config node '{BootRomConfigSchema.BootRomNodeName}' does not allow child '{node.Name}'."
                     );
             }
         }
@@ -103,7 +104,7 @@ internal static class BootRomOptionsReader
         return new GameBoyOptions { DmgBootRom = dmgBootRom, CgbBootRom = cgbBootRom };
     }
 
-    private static Result<BootRomPathOptions> ReadPathOptionsNode(KdlNode bootRomNode)
+    private static Result<BootRomConfig> ReadConfigNode(KdlNode bootRomNode)
     {
         string? dmgPath = null;
         string? cgbPath = null;
@@ -117,7 +118,7 @@ internal static class BootRomOptionsReader
 
             switch (node.Name)
             {
-                case BootRomOptionsSchema.DmgNodeName:
+                case BootRomConfigSchema.DmgNodeName:
                     if (dmgPath is not null)
                     {
                         return Result.Fail("Boot ROM config has duplicate dmg node.");
@@ -126,13 +127,13 @@ internal static class BootRomOptionsReader
                     var dmg = KdlNodeReader.ReadRequiredStringArgument(node);
                     if (dmg.IsFailed)
                     {
-                        return dmg.ToResult<BootRomPathOptions>();
+                        return dmg.ToResult<BootRomConfig>();
                     }
 
                     dmgPath = dmg.Value;
                     break;
 
-                case BootRomOptionsSchema.CgbNodeName:
+                case BootRomConfigSchema.CgbNodeName:
                     if (cgbPath is not null)
                     {
                         return Result.Fail("Boot ROM config has duplicate cgb node.");
@@ -141,7 +142,7 @@ internal static class BootRomOptionsReader
                     var cgb = KdlNodeReader.ReadRequiredStringArgument(node);
                     if (cgb.IsFailed)
                     {
-                        return cgb.ToResult<BootRomPathOptions>();
+                        return cgb.ToResult<BootRomConfig>();
                     }
 
                     cgbPath = cgb.Value;
@@ -149,12 +150,12 @@ internal static class BootRomOptionsReader
 
                 default:
                     return Result.Fail(
-                        $"Boot ROM config node '{BootRomOptionsSchema.BootRomNodeName}' does not allow child '{node.Name}'."
+                        $"Boot ROM config node '{BootRomConfigSchema.BootRomNodeName}' does not allow child '{node.Name}'."
                     );
             }
         }
 
-        return new BootRomPathOptions(dmgPath, cgbPath);
+        return new BootRomConfig(dmgPath, cgbPath);
     }
 
     private static Result<byte[]> ReadBootRom(

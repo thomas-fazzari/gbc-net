@@ -7,9 +7,9 @@ namespace GbcNet.App.Configuration.Sections.BootRom;
 /// <summary>
 /// Writes boot ROM path settings into the KDL configuration file.
 /// </summary>
-internal static class BootRomOptionsWriter
+internal static class BootRomConfigWriter
 {
-    public static Result Write(string configPath, BootRomPathOptions options)
+    public static Result Write(string configPath, BootRomConfig config)
     {
         var document = KdlConfigurationFile.LoadOrCreate(configPath);
         if (document.IsFailed)
@@ -17,7 +17,7 @@ internal static class BootRomOptionsWriter
             return document.ToResult();
         }
 
-        var section = document.Value.ReadOptionalSection(BootRomOptionsSchema.BootRomNodeName);
+        var section = document.Value.ReadOptionalSection(BootRomConfigSchema.BootRomNodeName);
         if (section.IsFailed)
         {
             return section.ToResult();
@@ -32,7 +32,7 @@ internal static class BootRomOptionsWriter
         var replacement = KdlSectionTextEditor.ReplaceTopLevelSection(
             text.Value,
             section.Value,
-            CreateBootRomNode(options).ToKdlString()
+            CreateBootRomNode(config).ToKdlString()
         );
 
         return replacement.IsFailed
@@ -40,11 +40,11 @@ internal static class BootRomOptionsWriter
             : KdlConfigurationFile.SaveText(configPath, replacement.Value);
     }
 
-    private static KdlNode CreateBootRomNode(BootRomPathOptions options)
+    private static KdlNode CreateBootRomNode(BootRomConfig config)
     {
-        var bootRomNode = new KdlNode(BootRomOptionsSchema.BootRomNodeName);
-        AddPath(bootRomNode, BootRomOptionsSchema.DmgNodeName, options.DmgPath);
-        AddPath(bootRomNode, BootRomOptionsSchema.CgbNodeName, options.CgbPath);
+        var bootRomNode = new KdlNode(BootRomConfigSchema.BootRomNodeName);
+        AddPath(bootRomNode, BootRomConfigSchema.DmgNodeName, config.DmgPath);
+        AddPath(bootRomNode, BootRomConfigSchema.CgbNodeName, config.CgbPath);
         return bootRomNode;
     }
 
@@ -57,4 +57,4 @@ internal static class BootRomOptionsWriter
     }
 }
 
-internal readonly record struct BootRomPathOptions(string? DmgPath, string? CgbPath);
+internal readonly record struct BootRomConfig(string? DmgPath, string? CgbPath);

@@ -7,7 +7,7 @@ using GbcNet.Core;
 namespace GbcNet.App.Configuration;
 
 internal sealed record StartupConfiguration(
-    InputOptions InputOptions,
+    InputConfig InputConfig,
     GameBoyOptions GameBoyOptions,
     string ConfigPath,
     string? StartupMessage
@@ -22,20 +22,20 @@ internal static class StartupConfigurationLoader
     {
         var document = KdlConfigurationFile.LoadOrCreate(configPath);
 
-        var loadedInputOptions = document.IsSuccess
-            ? InputOptionsReader.Read(document.Value)
-            : document.ToResult<InputOptions>();
+        var loadedInputConfig = document.IsSuccess
+            ? InputConfigReader.Read(document.Value)
+            : document.ToResult<InputConfig>();
 
         var loadedGameBoyOptions = document.IsSuccess
-            ? BootRomOptionsReader.Read(
+            ? BootRomConfigReader.ReadGameBoyOptions(
                 document.Value,
                 Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory
             )
             : Result.Ok(new GameBoyOptions());
 
-        var inputOptions = loadedInputOptions.IsSuccess
-            ? loadedInputOptions.Value
-            : LoadTemplateInputOptions();
+        var inputConfig = loadedInputConfig.IsSuccess
+            ? loadedInputConfig.Value
+            : LoadTemplateInputConfig();
 
         var gameBoyOptions = loadedGameBoyOptions.IsSuccess
             ? loadedGameBoyOptions.Value
@@ -43,15 +43,15 @@ internal static class StartupConfigurationLoader
 
         var startupMessages = new List<string>();
 
-        AddErrors(startupMessages, loadedInputOptions);
+        AddErrors(startupMessages, loadedInputConfig);
         AddErrors(startupMessages, loadedGameBoyOptions);
 
-        var validation = InputOptionsValidator.Validate(inputOptions);
+        var validation = InputConfigValidator.Validate(inputConfig);
 
         if (validation.Count == 0)
         {
             return new StartupConfiguration(
-                inputOptions,
+                inputConfig,
                 gameBoyOptions,
                 configPath,
                 ToStartupMessage(startupMessages)
@@ -59,12 +59,12 @@ internal static class StartupConfigurationLoader
         }
 
         startupMessages.AddRange(validation);
-        inputOptions = LoadTemplateInputOptions();
+        inputConfig = LoadTemplateInputConfig();
 
-        ValidateFallbackOptions(inputOptions);
+        ValidateFallbackConfig(inputConfig);
 
         return new StartupConfiguration(
-            inputOptions,
+            inputConfig,
             gameBoyOptions,
             configPath,
             ToStartupMessage(startupMessages)
@@ -82,19 +82,19 @@ internal static class StartupConfigurationLoader
     private static string? ToStartupMessage(List<string> messages) =>
         messages.Count == 0 ? null : string.Join(Environment.NewLine, messages);
 
-    private static void ValidateFallbackOptions(InputOptions inputOptions)
+    private static void ValidateFallbackConfig(InputConfig inputConfig)
     {
-        var validation = InputOptionsValidator.Validate(inputOptions);
+        var validation = InputConfigValidator.Validate(inputConfig);
 
         if (validation.Count != 0)
         {
             throw new InvalidOperationException(
-                $"Default input options are invalid:{Environment.NewLine}{string.Join(Environment.NewLine, validation)}"
+                $"Default input config is invalid:{Environment.NewLine}{string.Join(Environment.NewLine, validation)}"
             );
         }
     }
 
-    private static InputOptions LoadTemplateInputOptions()
+    private static InputConfig LoadTemplateInputConfig()
     {
         var template = KdlConfigurationFile.LoadTemplate();
 
@@ -105,12 +105,12 @@ internal static class StartupConfigurationLoader
             );
         }
 
-        var inputOptions = InputOptionsReader.Read(template.Value);
+        var inputConfig = InputConfigReader.Read(template.Value);
 
-        return inputOptions.IsSuccess
-            ? inputOptions.Value
+        return inputConfig.IsSuccess
+            ? inputConfig.Value
             : throw new InvalidOperationException(
-                string.Join(Environment.NewLine, inputOptions.Errors.Select(error => error.Message))
+                string.Join(Environment.NewLine, inputConfig.Errors.Select(error => error.Message))
             );
     }
 }

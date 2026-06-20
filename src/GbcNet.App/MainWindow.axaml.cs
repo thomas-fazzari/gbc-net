@@ -36,7 +36,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     private int _closeStopStarted;
 
     public MainWindow(
-        InputConfiguration inputConfiguration,
+        InputMap inputMap,
         StartupConfiguration startupConfiguration,
         AppConfigurationService configurationService,
         CartridgeSaveFileService cartridgeSaveFileService,
@@ -61,10 +61,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             OnEmulationMetricsUpdated,
             OnEmulationFaulted
         );
-        _inputRouter = new InputRouter(
-            inputConfiguration.Bindings,
-            _emulationController.SetButtonState
-        );
+        _inputRouter = new InputRouter(inputMap.Bindings, _emulationController.SetButtonState);
 
         ConfigureMenu();
         ConfigureDragDrop();
@@ -193,22 +190,22 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private async Task OpenConfigurationAsync()
     {
-        var pathOptions = _configurationService.LoadBootRomPaths();
-        if (pathOptions.IsFailed)
+        var bootRomConfig = _configurationService.LoadBootRomConfig();
+        if (bootRomConfig.IsFailed)
         {
-            _statusBar.ShowError(StatusBarPresenter.FormatErrors(pathOptions.Errors));
+            _statusBar.ShowError(StatusBarPresenter.FormatErrors(bootRomConfig.Errors));
             return;
         }
 
-        var savedOptions = await new SettingsWindow(pathOptions.Value)
-            .ShowDialog<BootRomPathOptions?>(this)
+        var savedConfig = await new SettingsWindow(bootRomConfig.Value)
+            .ShowDialog<BootRomConfig?>(this)
             .ConfigureAwait(true);
-        if (savedOptions is null)
+        if (savedConfig is null)
         {
             return;
         }
 
-        var saved = _configurationService.SaveBootRomPaths(savedOptions.Value);
+        var saved = _configurationService.SaveBootRomConfig(savedConfig.Value);
         if (saved.IsFailed)
         {
             _statusBar.ShowError(StatusBarPresenter.FormatErrors(saved.Errors));
@@ -220,15 +217,15 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private void ReloadGameBoyOptions()
     {
-        var options = _configurationService.LoadGameBoyOptions();
-        if (options.IsFailed)
+        var gameBoyOptions = _configurationService.LoadGameBoyOptions();
+        if (gameBoyOptions.IsFailed)
         {
             _emulationController.SetGameBoyOptions(new GameBoyOptions());
-            _statusBar.ShowError(StatusBarPresenter.FormatErrors(options.Errors));
+            _statusBar.ShowError(StatusBarPresenter.FormatErrors(gameBoyOptions.Errors));
             return;
         }
 
-        _emulationController.SetGameBoyOptions(options.Value);
+        _emulationController.SetGameBoyOptions(gameBoyOptions.Value);
         _statusBar.ShowStatus("Configuration saved.");
     }
 
