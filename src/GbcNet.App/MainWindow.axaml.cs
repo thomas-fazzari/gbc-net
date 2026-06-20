@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -27,6 +28,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     };
 
     private readonly AppConfigurationService _configurationService;
+    private readonly string _configurationPath;
     private readonly EmulationController _emulationController;
     private readonly LcdFramePresenter _framePresenter;
     private readonly InputRouter _inputRouter;
@@ -47,6 +49,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         InitializeComponent();
 
         _configurationService = configurationService;
+        _configurationPath = startupConfiguration.ConfigPath;
         _framePresenter = new LcdFramePresenter(ScreenImage);
         _statusBar = new StatusBarPresenter(StatusTextBlock, StatusMetricsTextBlock);
         _operationRunner = new ShellOperationRunner(
@@ -79,6 +82,8 @@ internal sealed partial class MainWindow : Window, IDisposable
         MainMenu.OpenRomRequested += (_, _) => _operationRunner.Run(OpenRomAsync);
         MainMenu.CloseRequested += (_, _) => Close();
         MainMenu.ConfigurationRequested += (_, _) => _operationRunner.Run(OpenConfigurationAsync);
+        MainMenu.ConfigurationFileLocationRequested += (_, _) =>
+            _operationRunner.Run(OpenConfigurationFileLocationAsync);
         MainMenu.PauseRequested += (_, _) => TogglePause();
         MainMenu.ResetRequested += (_, _) => _operationRunner.Run(ResetRomAsync);
         MainMenu.FastForwardRequested += (_, _) => ToggleFastForward();
@@ -213,6 +218,26 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
 
         ReloadGameBoyOptions();
+    }
+
+    private Task OpenConfigurationFileLocationAsync()
+    {
+        var directoryPath = Path.GetDirectoryName(_configurationPath);
+
+        if (string.IsNullOrWhiteSpace(directoryPath))
+        {
+            throw new InvalidOperationException("Configuration file path has no directory.");
+        }
+
+        Directory.CreateDirectory(directoryPath);
+
+        using var process =
+            Process.Start(new ProcessStartInfo { FileName = directoryPath, UseShellExecute = true })
+            ?? throw new InvalidOperationException(
+                "Configuration file location could not be opened."
+            );
+
+        return Task.CompletedTask;
     }
 
     private void ReloadGameBoyOptions()

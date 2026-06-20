@@ -62,6 +62,8 @@ internal sealed partial class MainMenu : UserControl
 
     public event EventHandler? ConfigurationRequested;
 
+    public event EventHandler? ConfigurationFileLocationRequested;
+
     public event EventHandler? PauseRequested;
 
     public event EventHandler? ResetRequested;
@@ -212,7 +214,11 @@ internal sealed partial class MainMenu : UserControl
             Gesture = KeyGesture.Parse("Meta+C"),
         };
         configurationItem.Click += (_, _) => ConfigurationRequested?.Invoke(this, EventArgs.Empty);
-        return [configurationItem];
+        var fileLocationItem = new NativeMenuItem("Open KDL File Location");
+        fileLocationItem.Click += (_, _) =>
+            ConfigurationFileLocationRequested?.Invoke(this, EventArgs.Empty);
+
+        return [configurationItem, new NativeMenuItemSeparator(), fileLocationItem];
     }
 
     private NativeMenu CreateNativeEmulationMenu()
