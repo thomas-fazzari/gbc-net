@@ -38,11 +38,7 @@ internal sealed class CgbOamDmaTransferPolicy : ITransferPolicy
         None = 3,
     }
 
-    public bool TryMapSourceAddress(ushort sourceAddress, out ushort mappedAddress)
-    {
-        mappedAddress = MapHighSourceAddress(sourceAddress);
-        return true;
-    }
+    public ushort MapSourceAddress(ushort sourceAddress) => MapHighSourceAddress(sourceAddress);
 
     public bool IsCpuAddressBlocked(ushort address, ushort sourceAddress)
     {

@@ -5,6 +5,10 @@ namespace GbcNet.App.Configuration;
 /// </summary>
 internal static class UserDataPaths
 {
+    internal const string ConfigFileName = "config.kdl";
+
+    private const string LinuxDirectoryName = "gbc-net";
+    private const string DesktopDirectoryName = "GbcNet";
     private const string SaveDirectoryName = "saves";
 
     /// <summary>
@@ -19,58 +23,42 @@ internal static class UserDataPaths
 
     private static string GetConfigFilePath()
     {
-        if (OperatingSystem.IsMacOS())
+        if (OperatingSystem.IsMacOS() || OperatingSystem.IsWindows())
         {
             return Path.Combine(
-                GetUserProfilePath(),
-                "Library",
-                "Application Support",
-                ApplicationDirectoryNames.Desktop,
-                ApplicationDirectoryNames.ConfigFile
-            );
-        }
-
-        if (OperatingSystem.IsWindows())
-        {
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                ApplicationDirectoryNames.Desktop,
-                ApplicationDirectoryNames.ConfigFile
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder.ApplicationData,
+                    Environment.SpecialFolderOption.Create
+                ),
+                DesktopDirectoryName,
+                ConfigFileName
             );
         }
 
         return Path.Combine(
             GetXdgDirectoryPath("XDG_CONFIG_HOME", ".config"),
-            ApplicationDirectoryNames.Linux,
-            ApplicationDirectoryNames.ConfigFile
+            LinuxDirectoryName,
+            ConfigFileName
         );
     }
 
     private static string GetSaveDirectoryPath()
     {
-        if (OperatingSystem.IsMacOS())
+        if (OperatingSystem.IsMacOS() || OperatingSystem.IsWindows())
         {
             return Path.Combine(
-                GetUserProfilePath(),
-                "Library",
-                "Application Support",
-                ApplicationDirectoryNames.Desktop,
-                SaveDirectoryName
-            );
-        }
-
-        if (OperatingSystem.IsWindows())
-        {
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                ApplicationDirectoryNames.Desktop,
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder.LocalApplicationData,
+                    Environment.SpecialFolderOption.Create
+                ),
+                DesktopDirectoryName,
                 SaveDirectoryName
             );
         }
 
         return Path.Combine(
             GetXdgDirectoryPath("XDG_DATA_HOME", Path.Combine(".local", "share")),
-            ApplicationDirectoryNames.Linux,
+            LinuxDirectoryName,
             SaveDirectoryName
         );
     }

@@ -15,7 +15,7 @@ public sealed class AppConfigurationIntegrationTests
     public void Load_CreatesDefaultConfigFileAndBuildsInputMap()
     {
         var tempDirectory = TestDirectories.CreateTemporaryDirectory();
-        var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
+        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
         {
@@ -60,7 +60,7 @@ public sealed class AppConfigurationIntegrationTests
     public void Load_ReadsBootRomFilesFromConfig()
     {
         var tempDirectory = TestDirectories.CreateTemporaryDirectory();
-        var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
+        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
         {
@@ -99,7 +99,7 @@ public sealed class AppConfigurationIntegrationTests
     public void Load_ReportsInvalidBootRomSizeAndFallsBackToEmptyBootRoms()
     {
         var tempDirectory = TestDirectories.CreateTemporaryDirectory();
-        var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
+        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
         {
@@ -127,7 +127,7 @@ public sealed class AppConfigurationIntegrationTests
     public void Load_ReportsMissingBootRomFileAndFallsBackToEmptyBootRoms()
     {
         var tempDirectory = TestDirectories.CreateTemporaryDirectory();
-        var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
+        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
         {

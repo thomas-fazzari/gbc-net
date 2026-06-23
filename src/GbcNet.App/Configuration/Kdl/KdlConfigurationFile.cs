@@ -15,24 +15,8 @@ internal static class KdlConfigurationFile
     /// </summary>
     public static Result<KdlDocument> LoadOrCreate(string path)
     {
-        if (!File.Exists(path))
-        {
-            var created = CreateDefaultFile(path);
-
-            if (created.IsFailed)
-            {
-                return created.ToResult<KdlDocument>();
-            }
-        }
-
-        try
-        {
-            return Parse(File.ReadAllText(path));
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            return Result.Fail($"Config file could not be read: {exception.Message}");
-        }
+        var text = LoadTextOrCreate(path);
+        return text.IsSuccess ? Parse(text.Value) : text.ToResult<KdlDocument>();
     }
 
     public static Result<string> LoadTextOrCreate(string path)
@@ -148,7 +132,7 @@ internal static class KdlConfigurationFile
         return reader.ReadToEnd();
     }
 
-    private static Result<KdlDocument> Parse(string text)
+    public static Result<KdlDocument> Parse(string text)
     {
         if (KdlDocument.TryParse(text, out var document, out var exception))
         {

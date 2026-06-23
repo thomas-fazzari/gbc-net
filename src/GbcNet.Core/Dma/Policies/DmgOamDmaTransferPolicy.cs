@@ -28,14 +28,10 @@ internal sealed class DmgOamDmaTransferPolicy : ITransferPolicy
         Video = 1,
     }
 
-    public bool TryMapSourceAddress(ushort sourceAddress, out ushort mappedAddress)
-    {
-        mappedAddress =
-            sourceAddress >= AddressMap.EchoRamStart
-                ? (ushort)(sourceAddress & HighSourceMirrorMask)
-                : sourceAddress;
-        return true;
-    }
+    public ushort MapSourceAddress(ushort sourceAddress) =>
+        sourceAddress >= AddressMap.EchoRamStart
+            ? (ushort)(sourceAddress & HighSourceMirrorMask)
+            : sourceAddress;
 
     public bool IsCpuAddressBlocked(ushort address, ushort sourceAddress)
     {

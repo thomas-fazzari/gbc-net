@@ -8,7 +8,7 @@ internal interface ITransferPolicy
     /// <summary>
     /// Maps an OAM DMA source address to the memory address read by this hardware model.
     /// </summary>
-    bool TryMapSourceAddress(ushort sourceAddress, out ushort mappedAddress);
+    ushort MapSourceAddress(ushort sourceAddress);
 
     /// <summary>
     /// Returns whether a CPU access conflicts with the active OAM DMA source bus.

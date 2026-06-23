@@ -1,4 +1,4 @@
-using GbcNet.App;
+using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.BootRom;
 
 namespace GbcNet.Tests.App.Configuration.Sections.BootRom;
@@ -9,7 +9,7 @@ public sealed class BootRomConfigWriterTests
     public void Write_ReplacesExistingBootRomNodeAndKeepsInputNode()
     {
         var tempDirectory = TestDirectories.CreateTemporaryDirectory();
-        var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
+        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
         {
@@ -53,7 +53,7 @@ public sealed class BootRomConfigWriterTests
     public void Write_PreservesCommentsOutsideBootRomNode()
     {
         var tempDirectory = TestDirectories.CreateTemporaryDirectory();
-        var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
+        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
         {
@@ -98,7 +98,7 @@ public sealed class BootRomConfigWriterTests
     public void Write_AppendsBootRomNodeWhenMissing()
     {
         var tempDirectory = TestDirectories.CreateTemporaryDirectory();
-        var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
+        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
         {
@@ -122,7 +122,7 @@ public sealed class BootRomConfigWriterTests
     public void Write_ClearsPathsWhenConfigIsEmpty()
     {
         var tempDirectory = TestDirectories.CreateTemporaryDirectory();
-        var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
+        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
         {
@@ -157,7 +157,7 @@ public sealed class BootRomConfigWriterTests
     public void Write_EscapesKdlStringPaths()
     {
         var tempDirectory = TestDirectories.CreateTemporaryDirectory();
-        var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
+        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
         const string path = "dir\\boot\"rom.bin";
 
         try
@@ -187,7 +187,7 @@ public sealed class BootRomConfigWriterTests
     public void Write_RejectsDuplicateBootRomSections()
     {
         var tempDirectory = TestDirectories.CreateTemporaryDirectory();
-        var configPath = Path.Combine(tempDirectory, ApplicationDirectoryNames.ConfigFile);
+        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
         {

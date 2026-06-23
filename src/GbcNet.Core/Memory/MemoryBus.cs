@@ -288,10 +288,7 @@ internal sealed class MemoryBus
 
     private byte ReadOamDmaSourceByte(ushort address)
     {
-        if (!_oamDmaTransferPolicy.TryMapSourceAddress(address, out var mappedAddress))
-        {
-            return 0xFF;
-        }
+        var mappedAddress = _oamDmaTransferPolicy.MapSourceAddress(address);
 
         return mappedAddress switch
         {

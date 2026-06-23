@@ -11,7 +11,13 @@ internal static class BootRomConfigWriter
 {
     public static Result Write(string configPath, BootRomConfig config)
     {
-        var document = KdlConfigurationFile.LoadOrCreate(configPath);
+        var text = KdlConfigurationFile.LoadTextOrCreate(configPath);
+        if (text.IsFailed)
+        {
+            return text.ToResult();
+        }
+
+        var document = KdlConfigurationFile.Parse(text.Value);
         if (document.IsFailed)
         {
             return document.ToResult();
@@ -21,12 +27,6 @@ internal static class BootRomConfigWriter
         if (section.IsFailed)
         {
             return section.ToResult();
-        }
-
-        var text = KdlConfigurationFile.LoadTextOrCreate(configPath);
-        if (text.IsFailed)
-        {
-            return text.ToResult();
         }
 
         var replacement = KdlSectionTextEditor.ReplaceTopLevelSection(
