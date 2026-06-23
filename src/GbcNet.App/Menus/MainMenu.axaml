@@ -1,53 +1,48 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="GbcNet.App.Menus.MainMenu">
-    <Border Background="#181818"
-            BorderBrush="#2A2A2A"
-            BorderThickness="0,0,0,1">
-        <Menu Background="Transparent">
-            <MenuItem Header="_File">
-                <MenuItem x:Name="OpenRomMenuItem"
-                          Header="_Open ROM..."
-                          InputGesture="Ctrl+O" />
-                <Separator />
-                <MenuItem x:Name="CloseWindowMenuItem"
-                          Header="_Close"
-                          InputGesture="Ctrl+W" />
-            </MenuItem>
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  x:Class="GbcNet.App.Menus.MainMenu"
+>
+  <Border Background="#181818" BorderBrush="#2A2A2A" BorderThickness="0,0,0,1">
+    <Menu Background="Transparent">
+      <MenuItem Header="_File">
+        <MenuItem x:Name="OpenRomMenuItem" Header="_Open ROM..." InputGesture="Ctrl+O" />
+        <Separator />
+        <MenuItem x:Name="CloseWindowMenuItem" Header="_Close" InputGesture="Ctrl+W" />
+      </MenuItem>
 
-            <MenuItem Header="_Settings">
-                <MenuItem x:Name="ConfigurationMenuItem"
-                          Header="_Configuration..."
-                          InputGesture="Meta+C" />
-            </MenuItem>
+      <MenuItem Header="_Settings">
+        <MenuItem x:Name="ConfigurationMenuItem" Header="_Configuration..." InputGesture="Meta+C" />
+      </MenuItem>
 
-            <MenuItem Header="_Emulation">
-                <MenuItem x:Name="PauseEmulationMenuItem"
-                          Header="_Pause"
-                          InputGesture="Space"
-                          IsEnabled="False" />
-                <MenuItem x:Name="ResetEmulationMenuItem"
-                          Header="_Reset"
-                          InputGesture="Ctrl+R"
-                          IsEnabled="False" />
-                <Separator />
-                <MenuItem x:Name="FastForwardMenuItem"
-                          Header="_Fast Forward"
-                          ToggleType="CheckBox" />
-                <MenuItem x:Name="FastForwardSpeedMenuItem"
-                          Header="Fast Forward _Speed" />
-            </MenuItem>
+      <MenuItem Header="_Emulation">
+        <MenuItem
+          x:Name="PauseEmulationMenuItem"
+          Header="_Pause"
+          InputGesture="Space"
+          IsEnabled="False"
+        />
+        <MenuItem
+          x:Name="ResetEmulationMenuItem"
+          Header="_Reset"
+          InputGesture="Ctrl+R"
+          IsEnabled="False"
+        />
+        <Separator />
+        <MenuItem x:Name="FastForwardMenuItem" Header="_Fast Forward" ToggleType="CheckBox" />
+        <MenuItem x:Name="FastForwardSpeedMenuItem" Header="Fast Forward _Speed" />
+      </MenuItem>
 
-            <MenuItem Header="_View">
-                <MenuItem x:Name="FullscreenMenuItem"
-                          Header="_Fullscreen"
-                          ToggleType="CheckBox" />
-                <Separator />
-                <MenuItem x:Name="StatusBarMenuItem"
-                          Header="_Status Bar"
-                          ToggleType="CheckBox"
-                          IsChecked="True" />
-            </MenuItem>
-        </Menu>
-    </Border>
+      <MenuItem Header="_View">
+        <MenuItem x:Name="FullscreenMenuItem" Header="_Fullscreen" ToggleType="CheckBox" />
+        <Separator />
+        <MenuItem
+          x:Name="StatusBarMenuItem"
+          Header="_Status Bar"
+          ToggleType="CheckBox"
+          IsChecked="True"
+        />
+      </MenuItem>
+    </Menu>
+  </Border>
 </UserControl>

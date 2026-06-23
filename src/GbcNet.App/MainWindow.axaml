@@ -1,56 +1,56 @@
 <Window
-    xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:menus="clr-namespace:GbcNet.App.Menus"
-    x:Class="GbcNet.App.MainWindow"
-    Title="GbcNet"
-    Width="960"
-    Height="576"
-    MinWidth="640"
-    MinHeight="576"
-    WindowStartupLocation="CenterScreen"
-    Background="#101010">
-    <Grid RowDefinitions="Auto,*,Auto">
-        <menus:MainMenu x:Name="MainMenu" Grid.Row="0" />
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:menus="clr-namespace:GbcNet.App.Menus"
+  x:Class="GbcNet.App.MainWindow"
+  Title="GbcNet"
+  Width="960"
+  Height="576"
+  MinWidth="640"
+  MinHeight="576"
+  WindowStartupLocation="CenterScreen"
+  Background="#101010"
+>
+  <Grid RowDefinitions="Auto,*,Auto">
+    <menus:MainMenu x:Name="MainMenu" Grid.Row="0" />
 
-        <Border Background="#050505" Padding="24" Grid.Row="1">
-            <Viewbox Stretch="Uniform">
-                <Border
-                    Width="160"
-                    Height="144"
-                    Background="#050505"
-                    RenderOptions.BitmapInterpolationMode="None">
-                    <Image
-                        x:Name="ScreenImage"
-                        Width="160"
-                        Height="144"
-                        Stretch="Fill" />
-                </Border>
-            </Viewbox>
-        </Border>
-
+    <Border Background="#050505" Padding="24" Grid.Row="1">
+      <Viewbox Stretch="Uniform">
         <Border
-            x:Name="StatusBar"
-            Grid.Row="2"
-            Background="#101013"
-            BorderBrush="#1f1f25"
-            BorderThickness="0,1,0,0"
-            Padding="18,8">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                <TextBlock
-                    x:Name="StatusTextBlock"
-                    Foreground="#a1a1aa"
-                    FontSize="12"
-                    Text="Ready"
-                    TextTrimming="CharacterEllipsis" />
-                <TextBlock
-                    x:Name="StatusMetricsTextBlock"
-                    Grid.Column="1"
-                    Foreground="#a1a1aa"
-                    FontSize="12"
-                    TextTrimming="CharacterEllipsis" />
-            </Grid>
+          Width="160"
+          Height="144"
+          Background="#050505"
+          RenderOptions.BitmapInterpolationMode="None"
+        >
+          <Image x:Name="ScreenImage" Width="160" Height="144" Stretch="Fill" />
         </Border>
-    </Grid>
-</Window>
+      </Viewbox>
+    </Border>
 
+    <Border
+      x:Name="StatusBar"
+      Grid.Row="2"
+      Background="#101013"
+      BorderBrush="#1f1f25"
+      BorderThickness="0,1,0,0"
+      Padding="18,8"
+    >
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <TextBlock
+          x:Name="StatusTextBlock"
+          Foreground="#a1a1aa"
+          FontSize="12"
+          Text="Ready"
+          TextTrimming="CharacterEllipsis"
+        />
+        <TextBlock
+          x:Name="StatusMetricsTextBlock"
+          Grid.Column="1"
+          Foreground="#a1a1aa"
+          FontSize="12"
+          TextTrimming="CharacterEllipsis"
+        />
+      </Grid>
+    </Border>
+  </Grid>
+</Window>
