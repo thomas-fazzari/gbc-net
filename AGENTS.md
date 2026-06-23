@@ -8,6 +8,7 @@
 ## Code style
 
 - Avoid unnecessary abstractions, indirections, wrappers/helper methods and intermediate variables: inline simple expressions and one-off construction unless naming significantly improves correctness, readability, reuse, or test diagnostics.
+- Avoid unnecessary fallbacks and backward compatibility layers: write code for the current, explicit requirements. Do not support legacy behaviors, deprecated APIs, or "just in case" edge cases unless explicitly requested.
 
 ## Tests
 
