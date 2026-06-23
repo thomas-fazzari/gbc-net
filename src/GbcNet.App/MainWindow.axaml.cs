@@ -142,13 +142,13 @@ internal sealed partial class MainWindow : Window, IDisposable
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
-        ApplyKeyboardInput(e, pressed: true);
+        ApplyKeyboardEvent(e, pressed: true);
     }
 
     protected override void OnKeyUp(KeyEventArgs e)
     {
         base.OnKeyUp(e);
-        ApplyKeyboardInput(e, pressed: false);
+        ApplyKeyboardEvent(e, pressed: false);
     }
 
     private static void DragDrop_OnDragOver(object? sender, DragEventArgs e)
@@ -343,12 +343,10 @@ internal sealed partial class MainWindow : Window, IDisposable
         MainMenu.SetStatusBarState(StatusBar.IsVisible);
     }
 
-    private void ApplyKeyboardInput(KeyEventArgs e, bool pressed)
+    private void ApplyKeyboardEvent(KeyEventArgs e, bool pressed)
     {
-        if (pressed && e.Key is Key.Enter && e.KeyModifiers.HasFlag(KeyModifiers.Alt))
+        if (pressed && TryHandleAppShortcut(e))
         {
-            ToggleFullscreen();
-            e.Handled = true;
             return;
         }
 
@@ -365,6 +363,28 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
 
         e.Handled = _inputRouter.Apply(e.Key, pressed);
+    }
+
+    private bool TryHandleAppShortcut(KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Enter when e.KeyModifiers.HasFlag(KeyModifiers.Alt):
+                ToggleFullscreen();
+                e.Handled = true;
+                return true;
+
+            case Key.I
+                when e.KeyModifiers.HasFlag(
+                    OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control
+                ):
+                ToggleStatusBar();
+                e.Handled = true;
+                return true;
+
+            default:
+                return false;
+        }
     }
 
     private void OnFrameCompleted(FrameCompletedEventArgs e)

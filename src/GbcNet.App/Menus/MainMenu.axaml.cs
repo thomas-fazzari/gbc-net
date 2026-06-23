@@ -8,6 +8,9 @@ internal sealed partial class MainMenu : UserControl
 {
     private static readonly KeyGesture _fullscreenGesture = KeyGesture.Parse("Alt+Enter");
     private static readonly KeyGesture _fastForwardGesture = KeyGesture.Parse("Tab");
+    private static readonly KeyGesture _statusBarGesture = KeyGesture.Parse(
+        OperatingSystem.IsMacOS() ? "Meta+I" : "Ctrl+I"
+    );
 
     private readonly NativeMenuItem _nativePauseMenuItem = new("Pause")
     {
@@ -35,6 +38,7 @@ internal sealed partial class MainMenu : UserControl
 
     private readonly NativeMenuItem _nativeStatusBarMenuItem = new("Status Bar")
     {
+        Gesture = _statusBarGesture,
         ToggleType = MenuItemToggleType.CheckBox,
         IsChecked = true,
     };
@@ -170,6 +174,7 @@ internal sealed partial class MainMenu : UserControl
     {
         FullscreenMenuItem.InputGesture = _fullscreenGesture;
         FullscreenMenuItem.Click += (_, _) => FullscreenRequested?.Invoke(this, EventArgs.Empty);
+        StatusBarMenuItem.InputGesture = _statusBarGesture;
         StatusBarMenuItem.Click += (_, _) => StatusBarRequested?.Invoke(this, EventArgs.Empty);
     }
 
