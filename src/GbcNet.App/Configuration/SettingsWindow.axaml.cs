@@ -47,8 +47,13 @@ internal sealed partial class SettingsWindow : Window
                 Spacing = 6,
                 Children =
                 {
-                    CreateSidebarItem("Boot ROMs", Icons.FileCog, isSelected: true),
-                    CreateSidebarItem("Inputs", Icons.Gamepad, isSelected: false),
+                    CreateSidebarItem(
+                        "Boot ROMs",
+                        Icons.Settings,
+                        isSelected: true,
+                        sourceSize: 28
+                    ),
+                    CreateSidebarItem("Inputs", Icons.Games, isSelected: false),
                 },
             },
         };
@@ -105,9 +110,14 @@ internal sealed partial class SettingsWindow : Window
         return root;
     }
 
-    private static Border CreateSidebarItem(string text, string iconAsset, bool isSelected)
+    private static Border CreateSidebarItem(
+        string text,
+        string iconAsset,
+        bool isSelected,
+        double sourceSize = 24
+    )
     {
-        var icon = Icons.Make(iconAsset, size: 15);
+        var icon = Icons.Make(iconAsset, size: 15, sourceSize: sourceSize);
         var label = AppChrome.TextBlock(
             text,
             isSelected ? AppChrome.Text : AppChrome.Muted,

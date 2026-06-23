@@ -40,7 +40,7 @@ internal sealed class PpuStatInterruptState
 
         _statInterruptLine = statInterruptLine;
 
-        return requestLcdInterrupt ? PpuInterruptRequest.Lcd : PpuInterruptRequest.None;
+        return requestLcdInterrupt ? PpuInterruptRequest.LcdStat : PpuInterruptRequest.None;
     }
 
     internal bool ShouldSuppressStableLycInterrupt(

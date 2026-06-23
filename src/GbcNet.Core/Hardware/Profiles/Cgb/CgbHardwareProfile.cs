@@ -7,7 +7,9 @@ using GbcNet.Core.Sm83;
 
 namespace GbcNet.Core.Hardware.Profiles;
 
-/// Selects retail CGB ABC/DE hardware behavior and records the boot-selected operating mode.
+/// <summary>
+/// Provides retail CGB ABC/DE hardware behavior and records the boot-selected operating mode.
+/// </summary>
 internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHardwareProfile
 {
     public CgbOperatingMode OperatingMode { get; } =

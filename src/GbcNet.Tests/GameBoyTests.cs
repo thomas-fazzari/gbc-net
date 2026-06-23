@@ -67,12 +67,12 @@ public sealed class GameBoyTests
         );
         var gameBoy = new GameBoy(cartridge, HardwareModel.Cgb);
 
-        Assert.Equal(GbTiming.NormalCpuHz, gameBoy.CpuMachineCyclesPerSecond);
+        Assert.Equal(GameBoyTiming.NormalCpuHz, gameBoy.CpuMachineCyclesPerSecond);
 
         gameBoy.Bus.WriteByte(AddressMap.Key1Register, 0x01);
         gameBoy.Step();
 
-        Assert.Equal(GbTiming.DoubleCpuHz, gameBoy.CpuMachineCyclesPerSecond);
+        Assert.Equal(GameBoyTiming.DoubleCpuHz, gameBoy.CpuMachineCyclesPerSecond);
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public sealed class GameBoyTests
         );
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         byte? transferredByte = null;
-        gameBoy.SerialByteTransferred += (_, e) => transferredByte = e.Value;
+        gameBoy.SerialByteTransferred += (_, e) => transferredByte = e.TransferredByte;
         gameBoy.Bus.WriteByte(AddressMap.SerialTransferDataRegister, 0x41);
         gameBoy.Bus.WriteByte(AddressMap.SerialTransferControlRegister, 0x81);
 
@@ -157,7 +157,7 @@ public sealed class GameBoyTests
     {
         var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
 
-        var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg, new GameBoyOptions());
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg, new BootRomOptions());
 
         Assert.Equal(0x0100, gameBoy.Cpu.Registers.PC);
         Assert.Equal(0xAB, gameBoy.Bus.ReadByte(AddressMap.DividerRegister));
@@ -172,7 +172,7 @@ public sealed class GameBoyTests
         var gameBoy = new GameBoy(
             cartridge,
             HardwareModel.Dmg,
-            new GameBoyOptions { DmgBootRom = bootRom }
+            new BootRomOptions { DmgBootRom = bootRom }
         );
 
         Assert.Equal(0x0000, gameBoy.Cpu.Registers.PC);
@@ -193,7 +193,7 @@ public sealed class GameBoyTests
             new GameBoy(
                 cartridge,
                 HardwareModel.Dmg,
-                new GameBoyOptions { DmgBootRom = new byte[255] }
+                new BootRomOptions { DmgBootRom = new byte[255] }
             )
         );
 
@@ -223,7 +223,7 @@ public sealed class GameBoyTests
         var gameBoy = new GameBoy(
             cartridge,
             HardwareModel.Dmg,
-            new GameBoyOptions { DmgBootRom = bootRom }
+            new BootRomOptions { DmgBootRom = bootRom }
         );
 
         Assert.Equal(LoadAImmediate8Opcode, gameBoy.Bus.ReadByte(0x0000));
@@ -250,7 +250,7 @@ public sealed class GameBoyTests
         var gameBoy = new GameBoy(
             cartridge,
             HardwareModel.Cgb,
-            new GameBoyOptions { DmgBootRom = dmgBootRom, CgbBootRom = cgbBootRom }
+            new BootRomOptions { DmgBootRom = dmgBootRom, CgbBootRom = cgbBootRom }
         );
 
         Assert.Equal(HardwareModel.Cgb, gameBoy.HardwareModel);

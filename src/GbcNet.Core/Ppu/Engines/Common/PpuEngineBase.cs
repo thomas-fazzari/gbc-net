@@ -126,7 +126,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
                 && !_statInterruptState.IsInterruptLineAsserted
             )
             {
-                requests |= PpuInterruptRequest.Lcd;
+                requests |= PpuInterruptRequest.LcdStat;
             }
 
             enteredVisibleHBlank |=
@@ -318,7 +318,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
 
         if (shouldRequestMode2Interrupt && LcdYCoordinate is 0 or PpuGeometry.VBlankStartLine)
         {
-            requests |= PpuInterruptRequest.Lcd;
+            requests |= PpuInterruptRequest.LcdStat;
         }
 
         requests |= RefreshPpuState(inputs, requestInterrupt: true);

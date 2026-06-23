@@ -8,7 +8,7 @@ namespace GbcNet.App.Saves;
 /// <summary>
 /// Persists cartridge battery-backed save data under the configured save directory.
 /// </summary>
-internal sealed class CartridgeSaveFileService
+internal sealed class CartridgeBatterySaveFileService
 {
     private const string SaveFileExtension = ".sav";
     private const int ShortHashHexLength = 8;
@@ -16,7 +16,7 @@ internal sealed class CartridgeSaveFileService
 
     private readonly string _saveDirectoryPath;
 
-    internal CartridgeSaveFileService(string saveDirectoryPath)
+    internal CartridgeBatterySaveFileService(string saveDirectoryPath)
     {
         _saveDirectoryPath = saveDirectoryPath;
     }
@@ -28,7 +28,7 @@ internal sealed class CartridgeSaveFileService
             return Result.Ok();
         }
 
-        var path = GetSavePath(cartridge, rom);
+        var path = GetBatterySavePath(cartridge, rom);
         if (!File.Exists(path))
         {
             return Result.Ok();
@@ -62,7 +62,7 @@ internal sealed class CartridgeSaveFileService
         try
         {
             Directory.CreateDirectory(_saveDirectoryPath);
-            var savePath = GetSavePath(cartridge, rom);
+            var savePath = GetBatterySavePath(cartridge, rom);
             var temporaryPath = $"{savePath}.{Guid.NewGuid():N}.tmp";
 
             File.WriteAllBytes(temporaryPath, cartridge.ExportBatterySave());
@@ -76,7 +76,7 @@ internal sealed class CartridgeSaveFileService
         }
     }
 
-    internal string GetSavePath(Cartridge cartridge, ReadOnlySpan<byte> rom)
+    internal string GetBatterySavePath(Cartridge cartridge, ReadOnlySpan<byte> rom)
     {
         var hash = SHA256.HashData(rom);
         var fileName = string.Concat(

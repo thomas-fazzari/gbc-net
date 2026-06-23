@@ -3,7 +3,7 @@ using GbcNet.Core.Memory;
 namespace GbcNet.Core.Dma;
 
 /// <summary>
-/// Stores CGB VRAM DMA registers and transfers GP/visible-HBlank blocks into the selected VRAM bank.
+/// Stores CGB HDMA registers and transfers General Purpose DMA / visible-HBlank blocks into the selected VRAM bank.
 /// </summary>
 internal sealed class CgbVramDmaController(
     bool isRegisterEnabled,
@@ -38,7 +38,7 @@ internal sealed class CgbVramDmaController(
     /// <summary>
     /// Reads CPU-visible HDMA registers. HDMA1-HDMA4 are write-only.
     /// </summary>
-    public byte ReadRegister(ushort address) =>
+    public byte ReadHdmaRegister(ushort address) =>
         isRegisterEnabled && address is AddressMap.VideoRamDmaLengthModeStartRegister
             ? _lengthModeReadValue
             : CompletedReadValue;
@@ -46,7 +46,7 @@ internal sealed class CgbVramDmaController(
     /// <summary>
     /// Writes a CPU-visible HDMA register and starts General Purpose DMA through HDMA5.
     /// </summary>
-    public void WriteRegister(ushort address, byte value)
+    public void WriteHdmaRegister(ushort address, byte value)
     {
         if (!isRegisterEnabled)
         {
@@ -59,7 +59,7 @@ internal sealed class CgbVramDmaController(
     /// <summary>
     /// Seeds an HDMA register without starting a transfer.
     /// </summary>
-    public void SetRegisterState(ushort address, byte value)
+    public void SetHdmaRegisterState(ushort address, byte value)
     {
         if (!isRegisterEnabled)
         {

@@ -58,7 +58,7 @@ internal sealed class PpuController(
     private ObjectPriorityMode _objectPriorityMode;
 
     /// <summary>
-    /// Returns whether an address is owned by the LCD/PPU register block.
+    /// True for CPU-visible LCD/PPU register addresses FF40-FF4B, excluding OAM DMA at FF46.
     /// </summary>
     internal static bool ContainsRegister(ushort address) =>
         address
@@ -93,12 +93,12 @@ internal sealed class PpuController(
         };
 
     /// <summary>
-    /// Indicates whether LCD/PPU timing is running.
+    /// Indicates whether the LCD controller is enabled.
     /// </summary>
     public bool IsLcdEnabled => (_control & PpuLcdControlRegister.LcdEnableMask) != 0;
 
     /// <summary>
-    /// Controls whether the PPU materializes host-visible frames.
+    /// Controls whether the PPU emits completed frames for the host.
     /// </summary>
     public bool VideoRenderingEnabled { get; set; } = true;
 
@@ -331,7 +331,7 @@ internal sealed class PpuController(
                     _objectPriorityMode =
                         (value & 0x01) == 0
                             ? ObjectPriorityMode.OamOrder
-                            : ObjectPriorityMode.XCoordinate;
+                            : ObjectPriorityMode.LowerXWins;
                 }
 
                 return;
@@ -364,9 +364,9 @@ internal sealed class PpuController(
             interrupts.Request(InterruptSource.VBlank);
         }
 
-        if ((requests & PpuInterruptRequest.Lcd) is not PpuInterruptRequest.None)
+        if ((requests & PpuInterruptRequest.LcdStat) is not PpuInterruptRequest.None)
         {
-            interrupts.Request(InterruptSource.Lcd);
+            interrupts.Request(InterruptSource.LcdStat);
         }
     }
 

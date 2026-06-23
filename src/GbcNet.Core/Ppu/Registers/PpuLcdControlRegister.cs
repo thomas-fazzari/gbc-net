@@ -41,7 +41,7 @@ internal static class PpuLcdControlRegister
     public const byte WindowTileMapSelectMask = 0x40;
 
     /// <summary>
-    /// LCDC bit 7 enables LCD/PPU timing.
+    /// LCDC bit 7 enables the LCD controller.
     /// </summary>
     public const byte LcdEnableMask = 0x80;
 }

@@ -119,8 +119,8 @@ public sealed class Mbc1CartridgeTests
             bytes =>
             {
                 bytes[0x0147] = (byte)CartridgeType.Mbc1;
-                bytes[AddressMap.CartridgeEntryPointStart] = 0x00;
-                bytes[(bank20 * RomBankSize) + AddressMap.CartridgeEntryPointStart] = 0x20;
+                bytes[AddressMap.CartridgeEntryPointAddress] = 0x00;
+                bytes[(bank20 * RomBankSize) + AddressMap.CartridgeEntryPointAddress] = 0x20;
             }
         );
         var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
@@ -128,7 +128,7 @@ public sealed class Mbc1CartridgeTests
         cartridge.WriteRom(0x4000, 0x01);
         cartridge.WriteRom(0x6000, 0x01);
 
-        Assert.Equal(0x20, cartridge.ReadRom(AddressMap.CartridgeEntryPointStart));
+        Assert.Equal(0x20, cartridge.ReadRom(AddressMap.CartridgeEntryPointAddress));
     }
 
     [Fact]

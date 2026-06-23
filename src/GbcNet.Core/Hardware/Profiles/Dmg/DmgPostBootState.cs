@@ -5,7 +5,7 @@ using GbcNet.Core.Sm83;
 namespace GbcNet.Core.Hardware.Profiles;
 
 /// <summary>
-/// DMG post-boot-ROM hand-off state.
+/// DMG register state after boot ROM execution.
 /// </summary>
 internal static class DmgPostBootState
 {
@@ -92,7 +92,7 @@ internal static class DmgPostBootState
             RegisterBc,
             RegisterDe,
             RegisterHl,
-            AddressMap.CartridgeEntryPointStart,
+            AddressMap.CartridgeEntryPointAddress,
             AddressMap.HighRamEnd
         );
 

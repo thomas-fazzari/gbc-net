@@ -2,7 +2,7 @@ using GbcNet.Tests.RomTesting.Utils;
 
 namespace GbcNet.Tests.RomTesting.Blargg;
 
-[Collection<RomTestingGroup>]
+[Collection<RomTestSuite>]
 public sealed class BlarggCpuInstructionRomTests
 {
     private const string RomDirectory = "RomTesting/Resources/Blargg/cpu_instrs/individual";
@@ -20,8 +20,6 @@ public sealed class BlarggCpuInstructionRomTests
         "08-misc instrs.gb",
         "09-op r,r.gb",
         "10-bit ops.gb",
-        // This rom is slow, ignored by default
-        // "11-op a,(hl).gb",
     ];
 
     public static TheoryData<string> RomFileNameRows =>

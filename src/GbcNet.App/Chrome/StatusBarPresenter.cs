@@ -6,7 +6,7 @@ namespace GbcNet.App.Chrome;
 
 internal sealed class StatusBarPresenter(TextBlock message, TextBlock metrics)
 {
-    private const int RomNameMaxLength = 72;
+    private const int RomFileNameMaxLength = 72;
 
     public void ShowStatus(string text)
     {
@@ -22,27 +22,27 @@ internal sealed class StatusBarPresenter(TextBlock message, TextBlock metrics)
         metrics.Text = string.Empty;
     }
 
-    public void ShowRom(string romName)
+    public void ShowRomFileName(string romFileName)
     {
-        ShowStatus(FormatRomName(romName));
+        ShowStatus(FormatRomFileName(romFileName));
     }
 
-    public void ShowMetrics(double targetSpeed, double displayFramesPerSecond)
+    public void ShowMetrics(double speedMultiplier, double renderedFramesPerSecond)
     {
-        metrics.Text = FormatMetrics(targetSpeed, displayFramesPerSecond);
+        metrics.Text = FormatMetrics(speedMultiplier, renderedFramesPerSecond);
     }
 
     public static string FormatErrors(IEnumerable<IError> errors) =>
         string.Join(Environment.NewLine, errors.Select(static error => error.Message));
 
-    internal static string FormatMetrics(double targetSpeed, double displayFramesPerSecond) =>
+    internal static string FormatMetrics(double speedMultiplier, double renderedFramesPerSecond) =>
         string.Create(
             CultureInfo.InvariantCulture,
-            $"{targetSpeed:0.#}x | {displayFramesPerSecond:0} fps"
+            $"{speedMultiplier:0.#}x | {renderedFramesPerSecond:0} fps"
         );
 
-    internal static string FormatRomName(string romName) =>
-        romName.Length <= RomNameMaxLength
-            ? romName
-            : $"{romName.AsSpan(0, RomNameMaxLength - 3)}...";
+    internal static string FormatRomFileName(string romFileName) =>
+        romFileName.Length <= RomFileNameMaxLength
+            ? romFileName
+            : $"{romFileName.AsSpan(0, RomFileNameMaxLength - 3)}...";
 }

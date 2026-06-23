@@ -8,7 +8,7 @@ public sealed class BootRomConfigWriterTests
     [Fact]
     public void Write_ReplacesExistingBootRomNodeAndKeepsInputNode()
     {
-        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
         var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
@@ -45,14 +45,14 @@ public sealed class BootRomConfigWriterTests
         }
         finally
         {
-            TestDirectories.DeleteIfExists(tempDirectory);
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
         }
     }
 
     [Fact]
     public void Write_PreservesCommentsOutsideBootRomNode()
     {
-        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
         var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
@@ -90,14 +90,14 @@ public sealed class BootRomConfigWriterTests
         }
         finally
         {
-            TestDirectories.DeleteIfExists(tempDirectory);
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
         }
     }
 
     [Fact]
     public void Write_AppendsBootRomNodeWhenMissing()
     {
-        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
         var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
@@ -114,14 +114,14 @@ public sealed class BootRomConfigWriterTests
         }
         finally
         {
-            TestDirectories.DeleteIfExists(tempDirectory);
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
         }
     }
 
     [Fact]
     public void Write_ClearsPathsWhenConfigIsEmpty()
     {
-        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
         var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
@@ -149,14 +149,14 @@ public sealed class BootRomConfigWriterTests
         }
         finally
         {
-            TestDirectories.DeleteIfExists(tempDirectory);
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
         }
     }
 
     [Fact]
     public void Write_EscapesKdlStringPaths()
     {
-        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
         var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
         const string path = "dir\\boot\"rom.bin";
 
@@ -179,14 +179,14 @@ public sealed class BootRomConfigWriterTests
         }
         finally
         {
-            TestDirectories.DeleteIfExists(tempDirectory);
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
         }
     }
 
     [Fact]
     public void Write_RejectsDuplicateBootRomSections()
     {
-        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
         var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
@@ -221,7 +221,7 @@ public sealed class BootRomConfigWriterTests
         }
         finally
         {
-            TestDirectories.DeleteIfExists(tempDirectory);
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
         }
     }
 }

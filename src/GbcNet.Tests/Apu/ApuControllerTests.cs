@@ -148,7 +148,7 @@ public sealed class ApuControllerTests
         do
         {
             events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
-        } while (!events.Sweep);
+        } while (!events.SweepClock);
 
         Assert.Equal(0x0200, apu.Channel1Period);
         Assert.Equal(0xF1, apu.ReadRegister(0xFF26));
@@ -169,7 +169,7 @@ public sealed class ApuControllerTests
         do
         {
             events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
-        } while (!events.Sweep);
+        } while (!events.SweepClock);
 
         Assert.Equal(0x0600, apu.Channel1Period);
         Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
@@ -190,7 +190,7 @@ public sealed class ApuControllerTests
         do
         {
             events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
-        } while (!events.Sweep);
+        } while (!events.SweepClock);
 
         Assert.Equal(0x0400, apu.Channel1Period);
         Assert.Equal(0xF1, apu.ReadRegister(0xFF26));
@@ -293,7 +293,9 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF19, 0xC0);
         for (var lengthEvents = 0; lengthEvents < 63; )
         {
-            if (apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).Length)
+            if (
+                apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).LengthClock
+            )
             {
                 lengthEvents++;
             }
@@ -305,7 +307,7 @@ public sealed class ApuControllerTests
         do
         {
             events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
-        } while (!events.Length);
+        } while (!events.LengthClock);
 
         Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
     }
@@ -333,7 +335,11 @@ public sealed class ApuControllerTests
 
         for (var envelopeEvents = 0; envelopeEvents < 2; )
         {
-            if (apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).Envelope)
+            if (
+                apu.TickSystemCounter(
+                    new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)
+                ).EnvelopeClock
+            )
             {
                 envelopeEvents++;
             }
@@ -355,7 +361,7 @@ public sealed class ApuControllerTests
         do
         {
             events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
-        } while (!events.Envelope);
+        } while (!events.EnvelopeClock);
 
         Assert.Equal(1, apu.Channel2Volume);
     }
@@ -371,7 +377,11 @@ public sealed class ApuControllerTests
 
         for (var envelopeEvents = 0; envelopeEvents < 2; )
         {
-            if (apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).Envelope)
+            if (
+                apu.TickSystemCounter(
+                    new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)
+                ).EnvelopeClock
+            )
             {
                 envelopeEvents++;
             }
@@ -398,7 +408,7 @@ public sealed class ApuControllerTests
         do
         {
             events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
-        } while (!events.Envelope);
+        } while (!events.EnvelopeClock);
 
         Assert.Equal(expectedVolume, apu.Channel2Volume);
     }
@@ -492,7 +502,7 @@ public sealed class ApuControllerTests
     }
 
     [Fact]
-    public void GetRawStereoSample_MixesChannel1UsingNr50AndNr51()
+    public void GetMixedStereoSample_MixesChannel1UsingNr50AndNr51()
     {
         ApuController apu = new(new DmgApuHardwareProfile());
 
@@ -505,11 +515,11 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, 0x00);
         apu.WriteRegister(0xFF25, 0x11);
 
-        Assert.Equal(new ApuRawStereoSample(4, 4), apu.GetRawStereoSample());
+        Assert.Equal(new ApuMixedStereoSample(4, 4), apu.GetMixedStereoSample());
     }
 
     [Fact]
-    public void GetRawStereoSample_MixesChannel1AndChannel2Independently()
+    public void GetMixedStereoSample_MixesChannel1AndChannel2Independently()
     {
         ApuController apu = new(new DmgApuHardwareProfile());
 
@@ -526,11 +536,11 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, 0x00);
         apu.WriteRegister(0xFF25, 0x03);
 
-        Assert.Equal(new ApuRawStereoSample(0, 10), apu.GetRawStereoSample());
+        Assert.Equal(new ApuMixedStereoSample(0, 10), apu.GetMixedStereoSample());
     }
 
     [Fact]
-    public void GetRawStereoSample_ReturnsSilenceWhenChannel2IsInactive()
+    public void GetMixedStereoSample_ReturnsSilenceWhenChannel2IsInactive()
     {
         ApuController apu = new(new DmgApuHardwareProfile());
 
@@ -538,11 +548,11 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, 0x77);
         apu.WriteRegister(0xFF25, 0x22);
 
-        Assert.Equal(new ApuRawStereoSample(0, 0), apu.GetRawStereoSample());
+        Assert.Equal(new ApuMixedStereoSample(0, 0), apu.GetMixedStereoSample());
     }
 
     [Fact]
-    public void GetRawStereoSample_ReturnsSilenceWhenChannel2IsNotRouted()
+    public void GetMixedStereoSample_ReturnsSilenceWhenChannel2IsNotRouted()
     {
         ApuController apu = new(new DmgApuHardwareProfile());
 
@@ -555,7 +565,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, 0x77);
         apu.WriteRegister(0xFF25, 0x00);
 
-        Assert.Equal(new ApuRawStereoSample(0, 0), apu.GetRawStereoSample());
+        Assert.Equal(new ApuMixedStereoSample(0, 0), apu.GetMixedStereoSample());
     }
 
     [Theory]
@@ -564,7 +574,7 @@ public sealed class ApuControllerTests
     [InlineData(0x70, 0x22, 80, 10)]
     [InlineData(0x06, 0x02, 0, 70)]
     [InlineData(0x60, 0x20, 70, 0)]
-    public void GetRawStereoSample_MixesChannel2UsingNr50AndNr51(
+    public void GetMixedStereoSample_MixesChannel2UsingNr50AndNr51(
         byte masterVolume,
         byte panning,
         int expectedLeft,
@@ -582,7 +592,10 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, masterVolume);
         apu.WriteRegister(0xFF25, panning);
 
-        Assert.Equal(new ApuRawStereoSample(expectedLeft, expectedRight), apu.GetRawStereoSample());
+        Assert.Equal(
+            new ApuMixedStereoSample(expectedLeft, expectedRight),
+            apu.GetMixedStereoSample()
+        );
     }
 
     [Fact]
@@ -793,7 +806,7 @@ public sealed class ApuControllerTests
     [InlineData(0x70, 0x44, 32, 4)]
     [InlineData(0x06, 0x04, 0, 28)]
     [InlineData(0x60, 0x40, 28, 0)]
-    public void GetRawStereoSample_MixesChannel3UsingNr50AndNr51(
+    public void GetMixedStereoSample_MixesChannel3UsingNr50AndNr51(
         byte masterVolume,
         byte panning,
         int expectedLeft,
@@ -812,7 +825,10 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, masterVolume);
         apu.WriteRegister(0xFF25, panning);
 
-        Assert.Equal(new ApuRawStereoSample(expectedLeft, expectedRight), apu.GetRawStereoSample());
+        Assert.Equal(
+            new ApuMixedStereoSample(expectedLeft, expectedRight),
+            apu.GetMixedStereoSample()
+        );
     }
 
     [Fact]
@@ -905,7 +921,11 @@ public sealed class ApuControllerTests
 
         for (var envelopeEvents = 0; envelopeEvents < 2; )
         {
-            if (apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).Envelope)
+            if (
+                apu.TickSystemCounter(
+                    new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)
+                ).EnvelopeClock
+            )
             {
                 envelopeEvents++;
             }
@@ -927,7 +947,7 @@ public sealed class ApuControllerTests
         do
         {
             events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
-        } while (!events.Envelope);
+        } while (!events.EnvelopeClock);
 
         Assert.Equal(1, apu.Channel4Volume);
     }
@@ -943,7 +963,11 @@ public sealed class ApuControllerTests
 
         for (var envelopeEvents = 0; envelopeEvents < 2; )
         {
-            if (apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).Envelope)
+            if (
+                apu.TickSystemCounter(
+                    new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)
+                ).EnvelopeClock
+            )
             {
                 envelopeEvents++;
             }
@@ -968,7 +992,11 @@ public sealed class ApuControllerTests
 
         for (var envelopeEvents = 0; envelopeEvents < 2; )
         {
-            if (apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).Envelope)
+            if (
+                apu.TickSystemCounter(
+                    new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)
+                ).EnvelopeClock
+            )
             {
                 envelopeEvents++;
             }
@@ -1041,7 +1069,7 @@ public sealed class ApuControllerTests
     [InlineData(0x70, 0x88, 120, 15)]
     [InlineData(0x06, 0x08, 0, 105)]
     [InlineData(0x60, 0x80, 105, 0)]
-    public void GetRawStereoSample_MixesChannel4UsingNr50AndNr51(
+    public void GetMixedStereoSample_MixesChannel4UsingNr50AndNr51(
         byte masterVolume,
         byte panning,
         int expectedLeft,
@@ -1057,7 +1085,10 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, masterVolume);
         apu.WriteRegister(0xFF25, panning);
 
-        Assert.Equal(new ApuRawStereoSample(expectedLeft, expectedRight), apu.GetRawStereoSample());
+        Assert.Equal(
+            new ApuMixedStereoSample(expectedLeft, expectedRight),
+            apu.GetMixedStereoSample()
+        );
     }
 
     [Fact]
@@ -1142,9 +1173,9 @@ public sealed class ApuControllerTests
         var events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
 
         Assert.Equal(1, apu.DivApuStep);
-        Assert.True(events.Length);
-        Assert.False(events.Sweep);
-        Assert.False(events.Envelope);
+        Assert.True(events.LengthClock);
+        Assert.False(events.SweepClock);
+        Assert.False(events.EnvelopeClock);
     }
 
     [Fact]
@@ -1155,9 +1186,9 @@ public sealed class ApuControllerTests
         var events = apu.TickSystemCounter(new ApuTickInputs(1 << 13, CgbDoubleSpeed: true));
 
         Assert.Equal(1, apu.DivApuStep);
-        Assert.True(events.Length);
-        Assert.False(events.Sweep);
-        Assert.False(events.Envelope);
+        Assert.True(events.LengthClock);
+        Assert.False(events.SweepClock);
+        Assert.False(events.EnvelopeClock);
     }
 
     [Fact]
@@ -1208,9 +1239,9 @@ public sealed class ApuControllerTests
         }
 
         Assert.Equal(expectedStep, apu.DivApuStep);
-        Assert.Equal(expectedLength, events.Length);
-        Assert.Equal(expectedSweep, events.Sweep);
-        Assert.Equal(expectedEnvelope, events.Envelope);
+        Assert.Equal(expectedLength, events.LengthClock);
+        Assert.Equal(expectedSweep, events.SweepClock);
+        Assert.Equal(expectedEnvelope, events.EnvelopeClock);
     }
 
     [Theory]

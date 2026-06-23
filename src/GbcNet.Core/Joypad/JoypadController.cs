@@ -53,7 +53,7 @@ internal sealed class JoypadController(InterruptController interrupts)
     /// <summary>
     /// Indicates that at least one selected button line is pulled low.
     /// </summary>
-    internal bool HasSelectedButtonPressed => ReadLowNibble() != ReleasedLowNibble;
+    internal bool HasSelectedLineLow => ReadLowNibble() != ReleasedLowNibble;
 
     /// <summary>
     /// Writes JOYP selection bits, ignoring read-only button state bits.
@@ -87,7 +87,7 @@ internal sealed class JoypadController(InterruptController interrupts)
         byte pressedLowNibble = 0;
         if ((_selectedGroups & DirectionButtonsNotSelectedBit) == 0)
         {
-            pressedLowNibble = (byte)(pressedLowNibble | (_pressedButtons & DirectionButtonMask));
+            pressedLowNibble = (byte)(_pressedButtons & DirectionButtonMask);
         }
 
         if ((_selectedGroups & ActionButtonsNotSelectedBit) == 0)
@@ -101,6 +101,7 @@ internal sealed class JoypadController(InterruptController interrupts)
     private void RequestInterruptOnHighToLowTransition(byte previousValue, byte currentValue)
     {
         var newlyPressedVisibleBits = (byte)(previousValue & ~currentValue & ReleasedLowNibble);
+
         if (newlyPressedVisibleBits != 0)
         {
             interrupts.Request(InterruptSource.Joypad);

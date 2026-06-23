@@ -13,7 +13,7 @@ internal static class AddressMap
     /// <summary>
     /// Address where the boot ROM hands execution to the cartridge entry point.
     /// </summary>
-    public const ushort CartridgeEntryPointStart = 0x0100;
+    public const ushort CartridgeEntryPointAddress = 0x0100;
 
     /// <summary>
     /// Last address of the cartridge ROM window.

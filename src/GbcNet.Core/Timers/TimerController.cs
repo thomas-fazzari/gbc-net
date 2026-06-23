@@ -55,18 +55,21 @@ internal sealed class TimerController(
 
     private byte _timerCounter;
     private byte _timerControl;
-    private TimerReloadState _reloadState;
+    private TimerOverflowReloadState _reloadState;
 
     /// <summary>
     /// TIMA register at FF05, incremented by the selected timer clock.
     /// </summary>
     public byte TimerCounter
     {
-        get => _reloadState is TimerReloadState.Reloading ? (byte)0 : _timerCounter;
+        get =>
+            _reloadState is TimerOverflowReloadState.OverflowReloadPending
+                ? (byte)0
+                : _timerCounter;
         internal set
         {
             _timerCounter = value;
-            _reloadState = TimerReloadState.Running;
+            _reloadState = TimerOverflowReloadState.Running;
         }
     }
 
@@ -85,13 +88,13 @@ internal sealed class TimerController(
     /// </summary>
     internal void WriteTimerCounter(byte value)
     {
-        if (_reloadState is TimerReloadState.Reloaded)
+        if (_reloadState is TimerOverflowReloadState.OverflowReloadWriteBlocked)
         {
             return;
         }
 
         _timerCounter = value;
-        _reloadState = TimerReloadState.Running;
+        _reloadState = TimerOverflowReloadState.Running;
     }
 
     /// <summary>
@@ -101,7 +104,7 @@ internal sealed class TimerController(
     {
         TimerModulo = value;
 
-        if (_reloadState is not TimerReloadState.Running)
+        if (_reloadState is not TimerOverflowReloadState.Running)
         {
             _timerCounter = value;
         }
@@ -114,8 +117,8 @@ internal sealed class TimerController(
     {
         var oldTimerControl = _timerControl;
         var newTimerControl = (byte)(value & TimerControlWriteMask);
-        var wasTimerInputHigh = IsTimerInputHigh(oldTimerControl, systemCounter.Value);
-        var isTimerInputHigh = IsTimerInputHigh(newTimerControl, systemCounter.Value);
+        var wasTimerInputHigh = IsTimerInputHigh(oldTimerControl, systemCounter.DividerCounter);
+        var isTimerInputHigh = IsTimerInputHigh(newTimerControl, systemCounter.DividerCounter);
         _timerControl = newTimerControl;
 
         if (
@@ -128,7 +131,7 @@ internal sealed class TimerController(
                 ticksOnTacEnableWhenInputHigh
                 && !IsTimerEnabled(oldTimerControl)
                 && IsTimerEnabled(newTimerControl)
-                && IsSelectedCounterBitHigh(newTimerControl, systemCounter.Value)
+                && IsSelectedCounterBitHigh(newTimerControl, systemCounter.DividerCounter)
             )
         )
         {
@@ -145,20 +148,20 @@ internal sealed class TimerController(
     }
 
     /// <summary>
-    /// Advances the delayed TIMA overflow reload pipeline by one CPU machine cycle.
+    /// Advances the delayed TIMA overflow reload by one CPU machine cycle.
     /// </summary>
-    public void AdvanceReloadPipeline()
+    public void AdvanceOverflowReload()
     {
         switch (_reloadState)
         {
-            // The interrupt is delayed one M-cycle after TIMA overflows and reloads from TMA
-            case TimerReloadState.Reloading:
+            // The interrupt is delayed one M-cycle after TIMA overflows and reloads from TMA.
+            case TimerOverflowReloadState.OverflowReloadPending:
                 interrupts.Request(InterruptSource.Timer);
-                _reloadState = TimerReloadState.Reloaded;
+                _reloadState = TimerOverflowReloadState.OverflowReloadWriteBlocked;
                 return;
-            // CPU writes to TIMA during the reload M-cycle are ignored, then normal writes resume
-            case TimerReloadState.Reloaded:
-                _reloadState = TimerReloadState.Running;
+            // CPU writes to TIMA during the reload M-cycle are ignored, then normal writes resume.
+            case TimerOverflowReloadState.OverflowReloadWriteBlocked:
+                _reloadState = TimerOverflowReloadState.Running;
                 return;
         }
     }
@@ -204,13 +207,13 @@ internal sealed class TimerController(
         }
 
         _timerCounter = TimerModulo;
-        _reloadState = TimerReloadState.Reloading;
+        _reloadState = TimerOverflowReloadState.OverflowReloadPending;
     }
 
-    private enum TimerReloadState
+    private enum TimerOverflowReloadState
     {
         Running = 0,
-        Reloading = 1,
-        Reloaded = 2,
+        OverflowReloadPending = 1,
+        OverflowReloadWriteBlocked = 2,
     }
 }

@@ -13,7 +13,7 @@ internal sealed class InputConfig
     public int Version { get; set; } = SupportedVersion;
 
     /// <summary>
-    /// Profile selected by the GUI.
+    /// Profile activated on startup.
     /// </summary>
     public string ActiveProfile { get; set; } = InputConfigSchema.DefaultProfileName;
 

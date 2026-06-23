@@ -98,7 +98,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     internal byte Channel4DigitalOutput => _channel4.DigitalOutput;
 
     /// <summary>
-    /// Returns whether an address is owned by the APU register block.
+    /// True for CPU-visible APU register addresses FF10-FF3F, excluding unmapped FF15 and FF1F.
     /// </summary>
     internal static bool ContainsRegister(ushort address) =>
         address
@@ -130,12 +130,12 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
         DivApuStep = (byte)((DivApuStep + 1) & DivApuStepMask);
         // Events are based on the frame sequencer step reached after this DIV-APU tick
         var events = new ApuFrameSequencerEvents(
-            Length: DivApuStep is 1 or 3 or 5 or 7,
-            Sweep: DivApuStep is 3 or 7,
-            Envelope: DivApuStep is 7
+            LengthClock: DivApuStep is 1 or 3 or 5 or 7,
+            SweepClock: DivApuStep is 3 or 7,
+            EnvelopeClock: DivApuStep is 7
         );
 
-        if (events.Length)
+        if (events.LengthClock)
         {
             _channel1.ClockLength();
             _channel2.ClockLength();
@@ -148,7 +148,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
             UpdateChannelStatus(AudioChannel4StatusMask, _channel4.IsActive);
         }
 
-        if (events.Sweep)
+        if (events.SweepClock)
         {
             var sweepResult = _channel1Sweep.Clock();
             if (sweepResult.PeriodChanged)
@@ -170,7 +170,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
             }
         }
 
-        if (!events.Envelope)
+        if (!events.EnvelopeClock)
         {
             return events;
         }
@@ -201,7 +201,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     /// <summary>
     /// Returns the current channel stereo mix using NR50 and NR51 routing.
     /// </summary>
-    internal ApuRawStereoSample GetRawStereoSample()
+    internal ApuMixedStereoSample GetMixedStereoSample()
     {
         var masterVolume = _registers[MasterVolumeRegister - RegisterStart];
         var panning = _registers[SoundPanningRegister - RegisterStart];
@@ -218,7 +218,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
             + ((panning & Channel3RightRouteMask) != 0 ? _channel3.DigitalOutput : 0)
             + ((panning & Channel4RightRouteMask) != 0 ? _channel4.DigitalOutput : 0);
 
-        return new ApuRawStereoSample(
+        return new ApuMixedStereoSample(
             Left: leftInput * (((masterVolume & LeftVolumeMask) >> LeftVolumeShift) + 1),
             Right: rightInput * ((masterVolume & RightVolumeMask) + 1)
         );

@@ -56,7 +56,7 @@ internal sealed class DmgObjectLayer
                 inputs,
                 lcdYCoordinate,
                 oamScanComplete,
-                ObjectPriorityMode.XCoordinate
+                ObjectPriorityMode.LowerXWins
             )
         )
         {

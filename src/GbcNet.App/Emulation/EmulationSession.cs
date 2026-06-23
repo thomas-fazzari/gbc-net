@@ -14,7 +14,7 @@ namespace GbcNet.App.Emulation;
 /// </summary>
 internal sealed class EmulationSession
 {
-    private const int MachineCyclesPerSaveFlush = 5 * GbTiming.NormalCpuHz;
+    private const int MachineCyclesPerSaveFlush = 5 * GameBoyTiming.NormalCpuHz;
     private const int AudioDrainSampleCapacity = 512;
     private static readonly long _fastForwardFrameIntervalTimestamp = Stopwatch.Frequency / 60;
     private static readonly TimeSpan _stoppedCpuSleepInterval = TimeSpan.FromMilliseconds(1);
@@ -274,9 +274,9 @@ internal sealed class EmulationSession
         }
 
         var completedFrameCount = _completedFrameCount;
-        var displayFramesPerSecond = (completedFrameCount - metricsFrameCount) / elapsedSeconds;
+        var renderedFramesPerSecond = (completedFrameCount - metricsFrameCount) / elapsedSeconds;
 
-        _handleMetrics(new EmulationMetrics(speedMultiplier, displayFramesPerSecond));
+        _handleMetrics(new EmulationMetrics(speedMultiplier, renderedFramesPerSecond));
 
         metricsTimestamp = timestamp;
         metricsFrameCount = completedFrameCount;

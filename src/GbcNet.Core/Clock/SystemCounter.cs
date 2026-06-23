@@ -10,21 +10,21 @@ internal sealed class SystemCounter
     /// <summary>
     /// Full 16-bit divider counter that feeds DIV, timer, and serial edge detection.
     /// </summary>
-    public ushort Value { get; private set; }
+    public ushort DividerCounter { get; private set; }
 
     /// <summary>
     /// Reads the CPU-visible DIV register value from the high byte of the counter.
     /// </summary>
-    public byte ReadDivider() => (byte)(Value >> DividerVisibleShift);
+    public byte ReadDivider() => (byte)(DividerCounter >> DividerVisibleShift);
 
     /// <summary>
     /// Advances the counter by one machine cycle and returns bits that changed from high to low.
     /// </summary>
     public ushort AdvanceMachineCycle()
     {
-        var previousValue = Value;
-        Value = unchecked((ushort)(Value + HardwareTiming.MachineCycleTCycles));
-        return GetFallingEdges(previousValue, Value);
+        var previousValue = DividerCounter;
+        DividerCounter = unchecked((ushort)(DividerCounter + HardwareTiming.MachineCycleTCycles));
+        return GetFallingEdges(previousValue, DividerCounter);
     }
 
     /// <summary>
@@ -32,19 +32,19 @@ internal sealed class SystemCounter
     /// </summary>
     public ushort Reset()
     {
-        var previousValue = Value;
-        Value = 0;
-        return GetFallingEdges(previousValue, Value);
+        var previousValue = DividerCounter;
+        DividerCounter = 0;
+        return GetFallingEdges(previousValue, DividerCounter);
     }
 
     internal void SetDivider(byte value)
     {
-        Value = (ushort)(value << DividerVisibleShift);
+        DividerCounter = (ushort)(value << DividerVisibleShift);
     }
 
     internal void SetCounter(ushort value)
     {
-        Value = value;
+        DividerCounter = value;
     }
 
     private static ushort GetFallingEdges(ushort previousValue, ushort value) =>

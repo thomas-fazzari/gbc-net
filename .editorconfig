@@ -33,6 +33,9 @@ dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = false
 csharp_style_namespace_declarations = file_scoped:warning
 
+# Braces
+csharp_prefer_braces = true:error
+
 # Qualification preferences
 dotnet_style_qualification_for_field = false:suggestion
 dotnet_style_qualification_for_property = false:suggestion
@@ -147,6 +150,7 @@ dotnet_diagnostic.RCS1181.severity = suggestion
 dotnet_diagnostic.RCS1241.severity = suggestion
 dotnet_diagnostic.RCS1242.severity = suggestion
 dotnet_diagnostic.RCS1001.severity = warning
+dotnet_diagnostic.RCS1007.severity = warning
 dotnet_diagnostic.RCS1018.severity = warning
 dotnet_diagnostic.RCS1033.severity = warning
 dotnet_diagnostic.RCS1036.severity = warning

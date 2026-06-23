@@ -41,7 +41,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         InputMap inputMap,
         StartupConfiguration startupConfiguration,
         AppConfigurationService configurationService,
-        CartridgeSaveFileService cartridgeSaveFileService,
+        CartridgeBatterySaveFileService cartridgeSaveFileService,
         IAudioOutput audioOutput,
         ILogger<MainWindow> logger
     )
@@ -57,7 +57,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             logger
         );
         _emulationController = new EmulationController(
-            startupConfiguration.GameBoyOptions,
+            startupConfiguration.BootRomOptions,
             audioOutput,
             cartridgeSaveFileService,
             OnFrameCompleted,
@@ -70,9 +70,9 @@ internal sealed partial class MainWindow : Window, IDisposable
         ConfigureDragDrop();
         SyncEmulationMenuState();
 
-        if (startupConfiguration.StartupMessage is not null)
+        if (startupConfiguration.StartupErrorMessage is not null)
         {
-            _statusBar.ShowError(startupConfiguration.StartupMessage);
+            _statusBar.ShowError(startupConfiguration.StartupErrorMessage);
         }
     }
 
@@ -83,7 +83,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         MainMenu.CloseRequested += (_, _) => Close();
         MainMenu.ConfigurationRequested += (_, _) => _operationRunner.Run(OpenConfigurationAsync);
         MainMenu.ConfigurationFileLocationRequested += (_, _) =>
-            _operationRunner.Run(OpenConfigurationFileLocationAsync);
+            _operationRunner.Run(OpenConfigurationDirectoryAsync);
         MainMenu.PauseRequested += (_, _) => TogglePause();
         MainMenu.ResetRequested += (_, _) => _operationRunner.Run(ResetRomAsync);
         MainMenu.FastForwardRequested += (_, _) => ToggleFastForward();
@@ -217,10 +217,10 @@ internal sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
-        ReloadGameBoyOptions();
+        ReloadBootRomOptions();
     }
 
-    private Task OpenConfigurationFileLocationAsync()
+    private Task OpenConfigurationDirectoryAsync()
     {
         var directoryPath = Path.GetDirectoryName(_configurationPath);
 
@@ -240,17 +240,17 @@ internal sealed partial class MainWindow : Window, IDisposable
         return Task.CompletedTask;
     }
 
-    private void ReloadGameBoyOptions()
+    private void ReloadBootRomOptions()
     {
-        var gameBoyOptions = _configurationService.LoadGameBoyOptions();
-        if (gameBoyOptions.IsFailed)
+        var bootRomOptions = _configurationService.LoadBootRomOptions();
+        if (bootRomOptions.IsFailed)
         {
-            _emulationController.SetGameBoyOptions(new GameBoyOptions());
-            _statusBar.ShowError(StatusBarPresenter.FormatErrors(gameBoyOptions.Errors));
+            _emulationController.SetBootRomOptions(new BootRomOptions());
+            _statusBar.ShowError(StatusBarPresenter.FormatErrors(bootRomOptions.Errors));
             return;
         }
 
-        _emulationController.SetGameBoyOptions(gameBoyOptions.Value);
+        _emulationController.SetBootRomOptions(bootRomOptions.Value);
         _statusBar.ShowStatus("Configuration saved.");
     }
 
@@ -284,7 +284,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
-        _statusBar.ShowRom(result.Value.LoadedRomName);
+        _statusBar.ShowRomFileName(result.Value.LoadedRomFileName);
         SyncEmulationMenuState();
     }
 
@@ -301,7 +301,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         if (result.Value.HasSession)
         {
-            _statusBar.ShowRom(result.Value.LoadedRomName);
+            _statusBar.ShowRomFileName(result.Value.LoadedRomFileName);
         }
         SyncEmulationMenuState();
     }
@@ -403,7 +403,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         {
             if (_emulationController.State.HasSession)
             {
-                _statusBar.ShowMetrics(metrics.TargetSpeed, metrics.DisplayFramesPerSecond);
+                _statusBar.ShowMetrics(metrics.SpeedMultiplier, metrics.RenderedFramesPerSecond);
             }
         });
     }

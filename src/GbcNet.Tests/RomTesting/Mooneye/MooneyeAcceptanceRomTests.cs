@@ -2,7 +2,7 @@ using GbcNet.Tests.RomTesting.Utils;
 
 namespace GbcNet.Tests.RomTesting.Mooneye;
 
-[Collection<RomTestingGroup>]
+[Collection<RomTestSuite>]
 public sealed class MooneyeAcceptanceRomTests
 {
     private const string RomDirectory = "RomTesting/Resources/Mooneye/acceptance";

@@ -6,7 +6,7 @@ using GbcNet.Tests.RomTesting.Utils;
 
 namespace GbcNet.Tests.RomTesting.Visual;
 
-[Collection<RomTestingGroup>]
+[Collection<RomTestSuite>]
 public sealed class DmgAcid2VisualRomTests
 {
     private const string RomPath = "RomTesting/Resources/Visual/dmg-acid2/dmg-acid2.gb";

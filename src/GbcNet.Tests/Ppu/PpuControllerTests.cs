@@ -420,7 +420,7 @@ public sealed class PpuControllerTests
         ppu.Tick(252);
         Assert.Equal(LcdInterruptMask, interrupts.InterruptFlag);
 
-        interrupts.Clear(InterruptSource.Lcd);
+        interrupts.Clear(InterruptSource.LcdStat);
         ppu.Tick(10);
 
         Assert.Equal(0x00, interrupts.InterruptFlag);

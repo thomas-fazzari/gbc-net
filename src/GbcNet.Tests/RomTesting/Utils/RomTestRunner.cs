@@ -24,11 +24,11 @@ internal static class RomTestRunner
             RomTestProtocol.Blargg =>
             [
                 new BlarggSerialResultObserver(gameBoy),
-                new BlarggMemoryResultObserver(gameBoy),
+                new BlarggExternalRamResultObserver(gameBoy),
             ],
             RomTestProtocol.Mooneye =>
             [
-                new MooneyeBreakpointResultObserver(gameBoy),
+                new MooneyeRegisterSnapshotResultObserver(gameBoy),
                 new MooneyeSerialResultObserver(gameBoy),
             ],
             _ => throw new ArgumentOutOfRangeException(nameof(protocol), protocol, message: null),

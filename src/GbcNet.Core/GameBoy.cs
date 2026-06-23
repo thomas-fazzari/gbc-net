@@ -12,9 +12,9 @@ using GbcNet.Core.Sm83;
 namespace GbcNet.Core;
 
 /// <summary>
-/// Shared constants used by core and host.
+/// Game Boy CPU timing constants used by core and host.
 /// </summary>
-public static class GbTiming
+public static class GameBoyTiming
 {
     /// <summary>
     /// CPU machine-cycle rate in normal-speed mode.
@@ -35,15 +35,15 @@ public sealed class GameBoy
     private readonly MachineClock _clock;
 
     /// <summary>
-    /// Creates a Game Boy instance using the supplied cartridge and post-boot hand-off state.
+    /// Creates a Game Boy instance using the supplied cartridge and hardware model.
     /// </summary>
     public GameBoy(Cartridge cartridge, HardwareModel hardwareModel)
-        : this(cartridge, hardwareModel, new GameBoyOptions()) { }
+        : this(cartridge, hardwareModel, new BootRomOptions()) { }
 
     /// <summary>
     /// Creates a Game Boy instance using optional model-specific boot ROM images.
     /// </summary>
-    public GameBoy(Cartridge cartridge, HardwareModel hardwareModel, GameBoyOptions options)
+    public GameBoy(Cartridge cartridge, HardwareModel hardwareModel, BootRomOptions options)
     {
         ArgumentNullException.ThrowIfNull(cartridge);
         ArgumentNullException.ThrowIfNull(options);
@@ -127,7 +127,7 @@ public sealed class GameBoy
     /// Current CPU machine-cycle rate, doubled while CGB double-speed mode is active.
     /// </summary>
     public int CpuMachineCyclesPerSecond =>
-        Bus.Clock.CgbDoubleSpeed ? GbTiming.DoubleCpuHz : GbTiming.NormalCpuHz;
+        Bus.Clock.CgbDoubleSpeed ? GameBoyTiming.DoubleCpuHz : GameBoyTiming.NormalCpuHz;
 
     internal MemoryBus Bus { get; }
 

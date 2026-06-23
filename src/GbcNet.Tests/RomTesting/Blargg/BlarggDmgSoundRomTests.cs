@@ -2,7 +2,7 @@ using GbcNet.Tests.RomTesting.Utils;
 
 namespace GbcNet.Tests.RomTesting.Blargg;
 
-[Collection<RomTestingGroup>]
+[Collection<RomTestSuite>]
 public sealed class BlarggDmgSoundRomTests
 {
     private const string RomDirectory = "RomTesting/Resources/Blargg/dmg_sound";

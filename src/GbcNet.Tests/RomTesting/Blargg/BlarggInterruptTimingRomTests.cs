@@ -3,7 +3,7 @@ using GbcNet.Tests.RomTesting.Utils;
 
 namespace GbcNet.Tests.RomTesting.Blargg;
 
-[Collection<RomTestingGroup>]
+[Collection<RomTestSuite>]
 public sealed class BlarggInterruptTimingRomTests
 {
     private const string RomPath = "RomTesting/Resources/Blargg/interrupt_time/interrupt_time.gb";

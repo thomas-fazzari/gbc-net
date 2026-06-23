@@ -8,9 +8,9 @@ namespace GbcNet.App.Configuration;
 
 internal sealed record StartupConfiguration(
     InputConfig InputConfig,
-    GameBoyOptions GameBoyOptions,
+    BootRomOptions BootRomOptions,
     string ConfigPath,
-    string? StartupMessage
+    string? StartupErrorMessage
 );
 
 /// <summary>
@@ -26,25 +26,25 @@ internal static class StartupConfigurationLoader
             ? InputConfigReader.Read(document.Value)
             : document.ToResult<InputConfig>();
 
-        var loadedGameBoyOptions = document.IsSuccess
-            ? BootRomConfigReader.ReadGameBoyOptions(
+        var loadedBootRomOptions = document.IsSuccess
+            ? BootRomConfigReader.ReadBootRomOptions(
                 document.Value,
                 Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory
             )
-            : Result.Ok(new GameBoyOptions());
+            : Result.Ok(new BootRomOptions());
 
         var inputConfig = loadedInputConfig.IsSuccess
             ? loadedInputConfig.Value
             : LoadTemplateInputConfig();
 
-        var gameBoyOptions = loadedGameBoyOptions.IsSuccess
-            ? loadedGameBoyOptions.Value
-            : new GameBoyOptions();
+        var bootRomOptions = loadedBootRomOptions.IsSuccess
+            ? loadedBootRomOptions.Value
+            : new BootRomOptions();
 
-        var startupMessages = new List<string>();
+        var startupErrors = new List<string>();
 
-        AddErrors(startupMessages, loadedInputConfig);
-        AddErrors(startupMessages, loadedGameBoyOptions);
+        AddErrors(startupErrors, loadedInputConfig);
+        AddErrors(startupErrors, loadedBootRomOptions);
 
         var validation = InputConfigValidator.Validate(inputConfig);
 
@@ -52,35 +52,35 @@ internal static class StartupConfigurationLoader
         {
             return new StartupConfiguration(
                 inputConfig,
-                gameBoyOptions,
+                bootRomOptions,
                 configPath,
-                ToStartupMessage(startupMessages)
+                ToStartupErrorMessage(startupErrors)
             );
         }
 
-        startupMessages.AddRange(validation);
+        startupErrors.AddRange(validation);
         inputConfig = LoadTemplateInputConfig();
 
         ValidateFallbackConfig(inputConfig);
 
         return new StartupConfiguration(
             inputConfig,
-            gameBoyOptions,
+            bootRomOptions,
             configPath,
-            ToStartupMessage(startupMessages)
+            ToStartupErrorMessage(startupErrors)
         );
     }
 
-    private static void AddErrors<T>(List<string> messages, Result<T> result)
+    private static void AddErrors<T>(List<string> startupErrors, Result<T> result)
     {
         if (result.IsFailed)
         {
-            messages.AddRange(result.Errors.Select(error => error.Message));
+            startupErrors.AddRange(result.Errors.Select(error => error.Message));
         }
     }
 
-    private static string? ToStartupMessage(List<string> messages) =>
-        messages.Count == 0 ? null : string.Join(Environment.NewLine, messages);
+    private static string? ToStartupErrorMessage(List<string> startupErrors) =>
+        startupErrors.Count == 0 ? null : string.Join(Environment.NewLine, startupErrors);
 
     private static void ValidateFallbackConfig(InputConfig inputConfig)
     {

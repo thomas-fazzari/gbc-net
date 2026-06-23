@@ -6,7 +6,7 @@ using GbcNet.Core.Sm83;
 namespace GbcNet.Core;
 
 /// <summary>
-/// Applies the hardware state observed after skipping the boot ROM hand-off.
+/// Applies hardware register state used when boot ROM execution is skipped.
 /// </summary>
 internal static class PostBootState
 {
@@ -43,7 +43,7 @@ internal static class PostBootState
     {
         foreach (var registerState in registerStates)
         {
-            bus.SetHardwareRegisterState(registerState.Address, registerState.Value);
+            bus.SetHardwareRegisterState(registerState.Address, registerState.RegisterValue);
         }
     }
 }
@@ -58,4 +58,4 @@ internal readonly record struct PostBootCpuRegisterState(
     ushort SP
 );
 
-internal readonly record struct PostBootHardwareRegisterState(ushort Address, byte Value);
+internal readonly record struct PostBootHardwareRegisterState(ushort Address, byte RegisterValue);

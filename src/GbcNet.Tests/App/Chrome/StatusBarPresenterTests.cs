@@ -6,15 +6,15 @@ namespace GbcNet.Tests.App.Chrome;
 public sealed class StatusBarPresenterTests
 {
     [Fact]
-    public void FormatRomName_KeepsShortNames()
+    public void FormatRomFileName_KeepsShortNames()
     {
-        Assert.Equal("Tetris.gb", StatusBarPresenter.FormatRomName("Tetris.gb"));
+        Assert.Equal("Tetris.gb", StatusBarPresenter.FormatRomFileName("Tetris.gb"));
     }
 
     [Fact]
-    public void FormatRomName_TruncatesLongNamesToStatusLimit()
+    public void FormatRomFileName_TruncatesLongNamesToStatusLimit()
     {
-        var formatted = StatusBarPresenter.FormatRomName(new string('A', 80));
+        var formatted = StatusBarPresenter.FormatRomFileName(new string('A', 80));
 
         Assert.Equal(72, formatted.Length);
         Assert.EndsWith("...", formatted, StringComparison.Ordinal);
@@ -29,7 +29,7 @@ public sealed class StatusBarPresenterTests
     }
 
     [Fact]
-    public void FormatMetrics_UsesInvariantDisplay()
+    public void FormatMetrics_UsesInvariantCulture()
     {
         Assert.Equal("1.5x | 60 fps", StatusBarPresenter.FormatMetrics(1.5, 59.8));
     }

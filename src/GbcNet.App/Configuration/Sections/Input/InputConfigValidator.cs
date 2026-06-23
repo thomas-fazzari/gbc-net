@@ -41,19 +41,19 @@ internal static class InputConfigValidator
 
         foreach (var binding in profile.Keyboard)
         {
-            if (!Enum.TryParse(binding.Button, ignoreCase: true, out JoypadButton _))
+            if (!Enum.TryParse(binding.ButtonName, ignoreCase: true, out JoypadButton _))
             {
-                return [$"Unknown joypad button '{binding.Button}'."];
+                return [$"Unknown joypad button '{binding.ButtonName}'."];
             }
 
-            if (!Enum.TryParse(binding.Key, ignoreCase: false, out Key key))
+            if (!Enum.TryParse(binding.KeyName, ignoreCase: false, out Key key))
             {
-                return [$"Unknown keyboard key '{binding.Key}'."];
+                return [$"Unknown keyboard key '{binding.KeyName}'."];
             }
 
             if (!usedKeys.Add(key))
             {
-                return [$"Keyboard key '{binding.Key}' is bound more than once."];
+                return [$"Keyboard key '{binding.KeyName}' is bound more than once."];
             }
         }
 

@@ -6,7 +6,7 @@ namespace GbcNet.Tests.Sm83;
 // Pan Docs: STOP enters standby until a selected joypad line goes low, executing STOP resets DIV
 public sealed class StopInstructionTests
 {
-    private const ushort EntryPoint = AddressMap.CartridgeEntryPointStart;
+    private const ushort EntryPoint = AddressMap.CartridgeEntryPointAddress;
     private const byte StopOpcode = 0x10;
     private const byte NopOpcode = 0x00;
     private const byte IncBOpcode = 0x04;

@@ -8,7 +8,7 @@ using GbcNet.Core.Sm83;
 namespace GbcNet.Core.Hardware.Profiles;
 
 /// <summary>
-/// Selects model-specific component profiles, policies, and boot hand-off state.
+/// Provides model-specific component profiles, policies, and post-boot state.
 /// </summary>
 internal interface IHardwareProfile
 {

@@ -41,7 +41,7 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     /// Mutable SM83 register file.
     /// </summary>
     public Registers Registers { get; } =
-        new() { PC = AddressMap.CartridgeEntryPointStart, SP = AddressMap.HighRamEnd };
+        new() { PC = AddressMap.CartridgeEntryPointAddress, SP = AddressMap.HighRamEnd };
 
     /// <summary>
     /// Optional instrumentation sink for debugger breakpoint tooling.
@@ -235,7 +235,7 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
 
     private int StepStopped()
     {
-        if (bus.Joypad.HasSelectedButtonPressed)
+        if (bus.Joypad.HasSelectedLineLow)
         {
             Stopped = false;
         }

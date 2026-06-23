@@ -1,7 +1,7 @@
 namespace GbcNet.Core.Ppu;
 
 /// <summary>
-/// Hardware-visible results produced by one PPU engine tick.
+/// PPU engine outputs: requested interrupts, completed frame, and visible HBlank entry.
 /// </summary>
 internal readonly record struct PpuEngineTickResult(
     PpuInterruptRequest Interrupts,

@@ -339,7 +339,7 @@ internal sealed class MemoryBus
             case <= AddressMap.NotUsableEnd:
                 return;
             case AddressMap.BootRomDisableRegister:
-                _bootRom?.Disable(value);
+                _bootRom?.WriteDisableRegister(value);
                 return;
             case <= AddressMap.IoRegistersEnd:
                 _ioRegisters.WriteCpu(address, value);

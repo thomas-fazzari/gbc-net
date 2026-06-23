@@ -45,7 +45,7 @@ internal sealed class ScanlineObjectSelector
         }
 
         SelectObjects(inputs, lcdYCoordinate);
-        if (priorityMode is ObjectPriorityMode.XCoordinate)
+        if (priorityMode is ObjectPriorityMode.LowerXWins)
         {
             _objects
                 .AsSpan(0, _objectCount)

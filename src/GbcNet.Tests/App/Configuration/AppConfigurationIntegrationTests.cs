@@ -14,14 +14,14 @@ public sealed class AppConfigurationIntegrationTests
     [Fact]
     public void Load_CreatesDefaultConfigFileAndBuildsInputMap()
     {
-        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
         var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
         {
             var startupConfiguration = StartupConfigurationLoader.Load(configPath);
 
-            Assert.Null(startupConfiguration.StartupMessage);
+            Assert.Null(startupConfiguration.StartupErrorMessage);
             Assert.True(File.Exists(configPath));
             var configText = File.ReadAllText(configPath);
             Assert.Contains(
@@ -47,19 +47,19 @@ public sealed class AppConfigurationIntegrationTests
                 inputMap.Bindings,
                 binding => binding is { Button: JoypadButton.Start, Key: Key.Enter }
             );
-            Assert.True(startupConfiguration.GameBoyOptions.DmgBootRom.IsEmpty);
-            Assert.True(startupConfiguration.GameBoyOptions.CgbBootRom.IsEmpty);
+            Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
+            Assert.True(startupConfiguration.BootRomOptions.CgbBootRom.IsEmpty);
         }
         finally
         {
-            TestDirectories.DeleteIfExists(tempDirectory);
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
         }
     }
 
     [Fact]
     public void Load_ReadsBootRomFilesFromConfig()
     {
-        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
         var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
@@ -67,38 +67,38 @@ public sealed class AppConfigurationIntegrationTests
             Directory.CreateDirectory(tempDirectory);
             File.WriteAllBytes(
                 Path.Combine(tempDirectory, "dmg.bin"),
-                CreateBootRom(GameBoyOptions.DmgBootRomSize, 0xD0)
+                CreateBootRom(BootRomOptions.DmgBootRomSize, 0xD0)
             );
             File.WriteAllBytes(
                 Path.Combine(tempDirectory, "cgb.bin"),
-                CreateBootRom(GameBoyOptions.CgbBootRomSize, 0xC0)
+                CreateBootRom(BootRomOptions.CgbBootRomSize, 0xC0)
             );
             File.WriteAllText(configPath, CreateConfig("dmg.bin", "cgb.bin"));
 
             var startupConfiguration = StartupConfigurationLoader.Load(configPath);
 
-            Assert.Null(startupConfiguration.StartupMessage);
+            Assert.Null(startupConfiguration.StartupErrorMessage);
             Assert.Equal(
-                GameBoyOptions.DmgBootRomSize,
-                startupConfiguration.GameBoyOptions.DmgBootRom.Length
+                BootRomOptions.DmgBootRomSize,
+                startupConfiguration.BootRomOptions.DmgBootRom.Length
             );
             Assert.Equal(
-                GameBoyOptions.CgbBootRomSize,
-                startupConfiguration.GameBoyOptions.CgbBootRom.Length
+                BootRomOptions.CgbBootRomSize,
+                startupConfiguration.BootRomOptions.CgbBootRom.Length
             );
-            Assert.Equal(0xD0, startupConfiguration.GameBoyOptions.DmgBootRom.Span[0]);
-            Assert.Equal(0xC0, startupConfiguration.GameBoyOptions.CgbBootRom.Span[0]);
+            Assert.Equal(0xD0, startupConfiguration.BootRomOptions.DmgBootRom.Span[0]);
+            Assert.Equal(0xC0, startupConfiguration.BootRomOptions.CgbBootRom.Span[0]);
         }
         finally
         {
-            TestDirectories.DeleteIfExists(tempDirectory);
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
         }
     }
 
     [Fact]
     public void Load_ReportsInvalidBootRomSizeAndFallsBackToEmptyBootRoms()
     {
-        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
         var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
@@ -111,22 +111,22 @@ public sealed class AppConfigurationIntegrationTests
 
             Assert.Contains(
                 "DMG boot ROM must be 256 bytes",
-                startupConfiguration.StartupMessage,
+                startupConfiguration.StartupErrorMessage,
                 StringComparison.Ordinal
             );
-            Assert.True(startupConfiguration.GameBoyOptions.DmgBootRom.IsEmpty);
-            Assert.True(startupConfiguration.GameBoyOptions.CgbBootRom.IsEmpty);
+            Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
+            Assert.True(startupConfiguration.BootRomOptions.CgbBootRom.IsEmpty);
         }
         finally
         {
-            TestDirectories.DeleteIfExists(tempDirectory);
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
         }
     }
 
     [Fact]
     public void Load_ReportsMissingBootRomFileAndFallsBackToEmptyBootRoms()
     {
-        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
         var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
 
         try
@@ -138,15 +138,15 @@ public sealed class AppConfigurationIntegrationTests
 
             Assert.Contains(
                 "DMG boot ROM file could not be read",
-                startupConfiguration.StartupMessage,
+                startupConfiguration.StartupErrorMessage,
                 StringComparison.Ordinal
             );
-            Assert.True(startupConfiguration.GameBoyOptions.DmgBootRom.IsEmpty);
-            Assert.True(startupConfiguration.GameBoyOptions.CgbBootRom.IsEmpty);
+            Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
+            Assert.True(startupConfiguration.BootRomOptions.CgbBootRom.IsEmpty);
         }
         finally
         {
-            TestDirectories.DeleteIfExists(tempDirectory);
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
         }
     }
 

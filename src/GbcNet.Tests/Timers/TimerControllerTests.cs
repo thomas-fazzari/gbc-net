@@ -272,7 +272,7 @@ public sealed class TimerControllerTests
     {
         for (var cycle = 0; cycle < machineCycles; cycle++)
         {
-            timers.AdvanceReloadPipeline();
+            timers.AdvanceOverflowReload();
             timers.TickSystemCounter(counter.AdvanceMachineCycle());
         }
     }

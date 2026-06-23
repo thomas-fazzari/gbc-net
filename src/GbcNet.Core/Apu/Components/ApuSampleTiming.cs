@@ -11,7 +11,7 @@ internal static class ApuSampleTiming
     internal const int DefaultSampleRate = 48_000;
 
     /// <summary>
-    /// Default bounded sample buffer capacity, currently 100 ms at the default sample rate.
+    /// Default bounded sample buffer capacity in stereo samples.
     /// </summary>
-    internal const int DefaultCapacity = DefaultSampleRate / 10;
+    internal const int DefaultSampleBufferCapacity = DefaultSampleRate / 10;
 }

@@ -19,5 +19,5 @@ internal enum PpuInterruptRequest : byte
     /// <summary>
     /// Request the LCD STAT interrupt.
     /// </summary>
-    Lcd = 1 << 1,
+    LcdStat = 1 << 1,
 }

@@ -30,7 +30,6 @@
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
     <PackageReference Include="SoundFlow" />
-    <PackageReference Include="Svg.Controls.Avalonia" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,7 +38,6 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\Fonts\HankenGrotesk.ttf" />
-    <AvaloniaResource Include="Assets\Icons\*.svg" />
     <EmbeddedResource
       Include="Configuration\Templates\config.kdl"
       LogicalName="GbcNet.App.Configuration.Templates.config.kdl"

@@ -17,8 +17,8 @@ internal sealed class InputMap(IReadOnlyList<InputBinding> bindings)
 
         return new InputMap([
             .. profile.Keyboard.Select(binding => new InputBinding(
-                Enum.Parse<Key>(binding.Key),
-                Enum.Parse<JoypadButton>(binding.Button, ignoreCase: true)
+                Enum.Parse<Key>(binding.KeyName),
+                Enum.Parse<JoypadButton>(binding.ButtonName, ignoreCase: true)
             )),
         ]);
     }

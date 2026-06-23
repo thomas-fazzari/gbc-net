@@ -13,5 +13,5 @@ internal enum ObjectPriorityMode : byte
     /// <summary>
     /// Lower X coordinate wins, with OAM order breaking ties, matching DMG OBJ priority.
     /// </summary>
-    XCoordinate = 1,
+    LowerXWins = 1,
 }

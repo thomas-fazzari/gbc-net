@@ -10,7 +10,7 @@ namespace GbcNet.App.Configuration.Sections.BootRom;
 /// </summary>
 internal static class BootRomConfigReader
 {
-    public static Result<GameBoyOptions> ReadGameBoyOptions(
+    public static Result<BootRomOptions> ReadBootRomOptions(
         KdlDocument document,
         string configDirectoryPath
     )
@@ -18,11 +18,11 @@ internal static class BootRomConfigReader
         var bootRomNode = document.ReadOptionalSection(BootRomConfigSchema.BootRomNodeName);
         if (bootRomNode.IsFailed)
         {
-            return bootRomNode.ToResult<GameBoyOptions>();
+            return bootRomNode.ToResult<BootRomOptions>();
         }
 
         return bootRomNode.Value is null
-            ? new GameBoyOptions()
+            ? new BootRomOptions()
             : ReadBootRomNode(bootRomNode.Value, configDirectoryPath);
     }
 
@@ -37,7 +37,7 @@ internal static class BootRomConfigReader
         return bootRomNode.Value is null ? new BootRomConfig() : ReadConfigNode(bootRomNode.Value);
     }
 
-    private static Result<GameBoyOptions> ReadBootRomNode(
+    private static Result<BootRomOptions> ReadBootRomNode(
         KdlNode bootRomNode,
         string configDirectoryPath
     )
@@ -64,11 +64,11 @@ internal static class BootRomConfigReader
                         node,
                         configDirectoryPath,
                         BootRomConfigSchema.DmgNodeName.ToUpperInvariant(),
-                        GameBoyOptions.DmgBootRomSize
+                        BootRomOptions.DmgBootRomSize
                     );
                     if (dmg.IsFailed)
                     {
-                        return dmg.ToResult<GameBoyOptions>();
+                        return dmg.ToResult<BootRomOptions>();
                     }
 
                     dmgBootRom = dmg.Value;
@@ -84,11 +84,11 @@ internal static class BootRomConfigReader
                         node,
                         configDirectoryPath,
                         BootRomConfigSchema.CgbNodeName.ToUpperInvariant(),
-                        GameBoyOptions.CgbBootRomSize
+                        BootRomOptions.CgbBootRomSize
                     );
                     if (cgb.IsFailed)
                     {
-                        return cgb.ToResult<GameBoyOptions>();
+                        return cgb.ToResult<BootRomOptions>();
                     }
 
                     cgbBootRom = cgb.Value;
@@ -101,7 +101,7 @@ internal static class BootRomConfigReader
             }
         }
 
-        return new GameBoyOptions { DmgBootRom = dmgBootRom, CgbBootRom = cgbBootRom };
+        return new BootRomOptions { DmgBootRom = dmgBootRom, CgbBootRom = cgbBootRom };
     }
 
     private static Result<BootRomConfig> ReadConfigNode(KdlNode bootRomNode)

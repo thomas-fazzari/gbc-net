@@ -5,7 +5,7 @@ using GbcNet.Core.Sm83;
 namespace GbcNet.Core.Hardware.Profiles;
 
 /// <summary>
-/// CGB post-boot-ROM hand-off state for CGB and DMG compatibility modes.
+/// CGB register state after boot ROM execution in CGB and DMG compatibility modes.
 /// </summary>
 internal static class CgbPostBootState
 {
@@ -20,7 +20,7 @@ internal static class CgbPostBootState
     private const ushort AudioRegistersStart = 0xFF10;
 
     /// <summary>
-    /// Retail CGB ABC/DE boot ROM hand-off divider phase at PC=$0100, validated against Mooneye boot_div-cgbABCDE.
+    /// Retail CGB ABC/DE divider phase at PC=$0100 after boot ROM execution, validated against Mooneye boot_div-cgbABCDE.
     /// </summary>
     private const ushort RetailCgbAbcdeDividerCounter = 0x2678;
 
@@ -151,7 +151,7 @@ internal static class CgbPostBootState
             CgbRegisterBc,
             CgbRegisterDe,
             CgbRegisterHl,
-            AddressMap.CartridgeEntryPointStart,
+            AddressMap.CartridgeEntryPointAddress,
             AddressMap.HighRamEnd
         );
 
@@ -169,7 +169,7 @@ internal static class CgbPostBootState
             (ushort)(compatibilityPaletteSelection.TitleChecksum << 8),
             DmgCompatibilityRegisterDe,
             registerHl,
-            AddressMap.CartridgeEntryPointStart,
+            AddressMap.CartridgeEntryPointAddress,
             AddressMap.HighRamEnd
         );
     }

@@ -6,9 +6,11 @@ using GbcNet.Core.Sm83;
 
 namespace GbcNet.Tests.RomTesting.Utils.ResultObservers;
 
-internal sealed class MooneyeBreakpointResultObserver : IRomResultObserver, ICpuInstructionObserver
+internal sealed class MooneyeRegisterSnapshotResultObserver
+    : IRomResultObserver,
+        ICpuInstructionObserver
 {
-    private const string Source = "Mooneye breakpoint";
+    private const string Source = "Mooneye register snapshot";
     private const byte LoadBFromBOpcode = 0x40;
     private const byte FailureByte = 0x42;
     private const ushort DiagnosticHramStart = AddressMap.HighRamStart;
@@ -17,7 +19,7 @@ internal sealed class MooneyeBreakpointResultObserver : IRomResultObserver, ICpu
     private static readonly byte[] _passReport = [0x03, 0x05, 0x08, 0x0D, 0x15, 0x22];
     private readonly GameBoy _gameBoy;
 
-    public MooneyeBreakpointResultObserver(GameBoy gameBoy)
+    public MooneyeRegisterSnapshotResultObserver(GameBoy gameBoy)
     {
         _gameBoy = gameBoy;
         gameBoy.Cpu.InstructionObserver = this;

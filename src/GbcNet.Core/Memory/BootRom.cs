@@ -23,7 +23,7 @@ internal sealed class BootRom
         _bytes = bytes.ToArray();
     }
 
-    internal static BootRom? Create(HardwareModel hardwareModel, GameBoyOptions options)
+    internal static BootRom? Create(HardwareModel hardwareModel, BootRomOptions options)
     {
         var bytes = hardwareModel switch
         {
@@ -43,8 +43,8 @@ internal sealed class BootRom
 
         var expectedLength =
             hardwareModel is HardwareModel.Dmg
-                ? GameBoyOptions.DmgBootRomSize
-                : GameBoyOptions.CgbBootRomSize;
+                ? BootRomOptions.DmgBootRomSize
+                : BootRomOptions.CgbBootRomSize;
 
         if (bytes.Length != expectedLength)
         {
@@ -87,7 +87,7 @@ internal sealed class BootRom
         return false;
     }
 
-    internal void Disable(byte value)
+    internal void WriteDisableRegister(byte value)
     {
         if (value != 0)
         {

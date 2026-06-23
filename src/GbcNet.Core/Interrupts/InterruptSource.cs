@@ -13,7 +13,7 @@ internal enum InterruptSource : byte
     /// <summary>
     /// LCD STAT interrupt, bit 1, vector 0048.
     /// </summary>
-    Lcd = 1,
+    LcdStat = 1,
 
     /// <summary>
     /// Timer interrupt, bit 2, vector 0050.

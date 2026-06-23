@@ -8,7 +8,7 @@ using GbcNet.Core.Sm83;
 namespace GbcNet.Core.Hardware.Profiles;
 
 /// <summary>
-/// Selects DMG implementations for model-specific hardware behavior.
+/// Provides DMG model-specific hardware behavior.
 /// </summary>
 internal sealed class DmgHardwareProfile : IHardwareProfile
 {

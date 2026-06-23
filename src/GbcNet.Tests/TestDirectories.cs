@@ -2,10 +2,10 @@ namespace GbcNet.Tests;
 
 internal static class TestDirectories
 {
-    public static string CreateTemporaryDirectory() =>
+    public static string GetTemporaryDirectoryPath() =>
         Path.Combine(Path.GetTempPath(), "gbc-net-tests", Guid.NewGuid().ToString("N"));
 
-    public static void DeleteIfExists(string path)
+    public static void DeleteDirectoryIfExists(string path)
     {
         if (Directory.Exists(path))
         {

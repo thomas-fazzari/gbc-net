@@ -1,12 +1,12 @@
 namespace GbcNet.Core.Ppu.Engines;
 
 /// <summary>
-/// Owns currently shared LCD scanline dot timing, LY progression, and CPU-visible STAT mode timing.
+/// Owns implemented LCD scanline dot timing, LY progression, and CPU-visible STAT mode timing.
 /// </summary>
 internal sealed class PpuTiming
 {
     /// <summary>
-    /// The first scanline after enabling the LCD is four dots shorter in the current timing model.
+    /// First scanline after LCD enable is four dots shorter in the implemented scanline model.
     /// </summary>
     private const int FirstScanlineAfterLcdEnableDots = 452;
 
@@ -21,7 +21,7 @@ internal sealed class PpuTiming
     private const int FirstScanlineAfterLcdEnableDrawingEndDots = OamScanDots + 172;
 
     /// <summary>
-    /// STAT mode changes lag the start of normal visible scanlines by four dots in the current timing model.
+    /// STAT mode changes lag normal visible scanline start by four dots in the implemented scanline model.
     /// </summary>
     private const int NormalScanlineStatusModeDelayDots = 4;
 

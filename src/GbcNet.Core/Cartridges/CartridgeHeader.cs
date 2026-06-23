@@ -63,8 +63,11 @@ public sealed record CartridgeHeader(
     public static Result<CartridgeHeader> Parse(ReadOnlySpan<byte> rom)
     {
         var headerValidation = ValidateHeaderRangeAndChecksum(rom);
+
         if (headerValidation.IsFailed)
+        {
             return Result.Fail<CartridgeHeader>(headerValidation.Errors);
+        }
 
         var romSizeResult = DecodeRomSize(rom[RomSizeAddress]);
         if (romSizeResult.IsFailed)
@@ -105,8 +108,11 @@ public sealed record CartridgeHeader(
 
         var expectedChecksum = CalculateHeaderChecksum(rom);
         var actualChecksum = rom[HeaderChecksumAddress];
+
         if (actualChecksum == expectedChecksum)
+        {
             return Result.Ok();
+        }
 
         return Result.Fail(
             new CartridgeLoadError(

@@ -1,9 +1,9 @@
 namespace GbcNet.Core;
 
 /// <summary>
-/// Optional model-specific boot ROM images used to start execution at the hardware reset vector.
+/// Model-specific boot ROM images used to start execution at the hardware reset vector.
 /// </summary>
-public sealed class GameBoyOptions
+public sealed class BootRomOptions
 {
     /// <summary>
     /// Required byte length of a DMG boot ROM image.
@@ -19,7 +19,7 @@ public sealed class GameBoyOptions
     /// Optional 256-byte DMG boot ROM image.
     /// </summary>
     /// <remarks>
-    /// Empty keeps the post-boot hand-off seed path.
+    /// Leave empty to skip the boot ROM and seed post-boot state directly.
     /// </remarks>
     public ReadOnlyMemory<byte> DmgBootRom { get; init; }
 
@@ -27,7 +27,7 @@ public sealed class GameBoyOptions
     /// Optional 2048-byte CGB boot ROM image.
     /// </summary>
     /// <remarks>
-    /// Empty keeps the post-boot hand-off seed path.
+    /// Leave empty to skip the boot ROM and seed post-boot state directly.
     /// </remarks>
     public ReadOnlyMemory<byte> CgbBootRom { get; init; }
 }

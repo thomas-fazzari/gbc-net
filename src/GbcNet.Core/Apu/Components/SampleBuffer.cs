@@ -14,7 +14,7 @@ internal sealed class SampleBuffer<TSample>
     public SampleBuffer(
         int sourceClockHz,
         int sampleRate = ApuSampleTiming.DefaultSampleRate,
-        int capacity = ApuSampleTiming.DefaultCapacity
+        int capacity = ApuSampleTiming.DefaultSampleBufferCapacity
     )
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sourceClockHz);

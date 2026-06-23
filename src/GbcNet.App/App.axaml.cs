@@ -32,7 +32,7 @@ internal sealed class GbcNetApplication : Application, IDisposable
             );
             var inputMap = InputMap.FromConfig(startupConfiguration.InputConfig);
             var configurationService = new AppConfigurationService(startupConfiguration.ConfigPath);
-            var cartridgeSaveFileService = new CartridgeSaveFileService(
+            var cartridgeSaveFileService = new CartridgeBatterySaveFileService(
                 UserDataPaths.SaveDirectoryPath
             );
 

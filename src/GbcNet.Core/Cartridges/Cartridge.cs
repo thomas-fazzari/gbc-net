@@ -6,7 +6,7 @@ using GbcNet.Core.Memory;
 namespace GbcNet.Core.Cartridges;
 
 /// <summary>
-/// Immutable loaded Game Boy cartridge ROM.
+/// Loaded Game Boy cartridge image with mutable MBC/RAM state.
 /// </summary>
 public sealed class Cartridge
 {

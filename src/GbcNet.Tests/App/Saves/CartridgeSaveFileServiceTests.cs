@@ -6,14 +6,14 @@ using GbcNet.Tests.Cartridges;
 
 namespace GbcNet.Tests.App.Saves;
 
-public sealed class CartridgeSaveFileServiceTests
+public sealed class CartridgeBatterySaveFileServiceTests
 {
     [Fact]
     public void SaveAndLoad_PersistsBatterySaveByTitleAndRomHash()
     {
-        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
         var rom = CreateBatteryBackedMbc1Rom();
-        CartridgeSaveFileService saveFiles = new(tempDirectory);
+        CartridgeBatterySaveFileService saveFiles = new(tempDirectory);
 
         try
         {
@@ -25,7 +25,7 @@ public sealed class CartridgeSaveFileServiceTests
 
             AssertSuccess(save);
             Assert.False(cartridge.IsBatterySaveDirty);
-            var savePath = saveFiles.GetSavePath(cartridge, rom);
+            var savePath = saveFiles.GetBatterySavePath(cartridge, rom);
             Assert.True(File.Exists(savePath));
             Assert.StartsWith("TEST_ROM-", Path.GetFileName(savePath), StringComparison.Ordinal);
 
@@ -40,22 +40,22 @@ public sealed class CartridgeSaveFileServiceTests
         }
         finally
         {
-            TestDirectories.DeleteIfExists(tempDirectory);
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
         }
     }
 
     [Fact]
     public void Load_RejectsInvalidSaveSize()
     {
-        var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
         var rom = CreateBatteryBackedMbc1Rom();
-        CartridgeSaveFileService saveFiles = new(tempDirectory);
+        CartridgeBatterySaveFileService saveFiles = new(tempDirectory);
 
         try
         {
             Directory.CreateDirectory(tempDirectory);
             var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
-            File.WriteAllBytes(saveFiles.GetSavePath(cartridge, rom), [0x42]);
+            File.WriteAllBytes(saveFiles.GetBatterySavePath(cartridge, rom), [0x42]);
 
             var load = saveFiles.Load(cartridge, rom);
 
@@ -63,7 +63,7 @@ public sealed class CartridgeSaveFileServiceTests
         }
         finally
         {
-            TestDirectories.DeleteIfExists(tempDirectory);
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
         }
     }
 

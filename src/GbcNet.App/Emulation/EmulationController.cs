@@ -14,18 +14,18 @@ namespace GbcNet.App.Emulation;
 /// Owns the emulation session lifecycle, loaded ROM state, saves, pause, and fast-forward.
 /// </summary>
 internal sealed class EmulationController(
-    GameBoyOptions gameBoyOptions,
+    BootRomOptions bootRomOptions,
     IAudioOutput audioOutput,
-    CartridgeSaveFileService cartridgeSaveFileService,
+    CartridgeBatterySaveFileService cartridgeSaveFileService,
     Action<FrameCompletedEventArgs> handleFrame,
     Action<EmulationMetrics> handleMetrics,
     Action<Exception> handleFault
 )
 {
     private EmulationSession? _session;
-    private GameBoyOptions _gameBoyOptions = gameBoyOptions;
+    private BootRomOptions _bootRomOptions = bootRomOptions;
     private byte[]? _loadedRom;
-    private string _loadedRomName = string.Empty;
+    private string _loadedRomFileName = string.Empty;
     private bool _fastForwardEnabled;
     private EmulationSpeed _fastForwardSpeed = EmulationSpeed.Two;
 
@@ -35,12 +35,12 @@ internal sealed class EmulationController(
             IsPaused: _session?.IsPaused ?? false,
             FastForwardEnabled: _fastForwardEnabled,
             FastForwardSpeed: _fastForwardSpeed,
-            LoadedRomName: _loadedRomName
+            LoadedRomFileName: _loadedRomFileName
         );
 
-    public void SetGameBoyOptions(GameBoyOptions options)
+    public void SetBootRomOptions(BootRomOptions options)
     {
-        _gameBoyOptions = options;
+        _bootRomOptions = options;
     }
 
     public void SetButtonState(JoypadButton button, bool pressed)
@@ -76,7 +76,7 @@ internal sealed class EmulationController(
         }
 
         _loadedRom = rom;
-        _loadedRomName = file.Name;
+        _loadedRomFileName = file.Name;
         Start(cartridge.Value, rom);
         return State;
     }
@@ -144,7 +144,7 @@ internal sealed class EmulationController(
             : HardwareModel.Dmg;
 
         _session = new EmulationSession(
-            new GameBoy(cartridge, hardwareModel, _gameBoyOptions),
+            new GameBoy(cartridge, hardwareModel, _bootRomOptions),
             audioOutput,
             handleFrame,
             handleMetrics,
@@ -165,5 +165,5 @@ internal readonly record struct EmulationControllerState(
     bool IsPaused,
     bool FastForwardEnabled,
     EmulationSpeed FastForwardSpeed,
-    string LoadedRomName
+    string LoadedRomFileName
 );

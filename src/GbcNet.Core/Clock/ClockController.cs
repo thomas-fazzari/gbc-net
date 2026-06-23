@@ -159,7 +159,7 @@ internal sealed class ClockController
     /// </summary>
     public void TickMachineCycle()
     {
-        Timers.AdvanceReloadPipeline();
+        Timers.AdvanceOverflowReload();
         DispatchSystemCounterFallingEdges(_systemCounter.AdvanceMachineCycle());
     }
 
@@ -177,7 +177,7 @@ internal sealed class ClockController
     internal void SetDivider(byte value)
     {
         _systemCounter.SetDivider(value);
-        _serial.SetMasterClockStateFromCounter(_systemCounter.Value);
+        _serial.SetMasterClockStateFromCounter(_systemCounter.DividerCounter);
     }
 
     /// <summary>
@@ -186,7 +186,7 @@ internal sealed class ClockController
     internal void SetCounter(ushort value)
     {
         _systemCounter.SetCounter(value);
-        _serial.SetMasterClockStateFromCounter(_systemCounter.Value);
+        _serial.SetMasterClockStateFromCounter(_systemCounter.DividerCounter);
     }
 
     private void DispatchSystemCounterFallingEdges(ushort fallingEdges)

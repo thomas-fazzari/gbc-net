@@ -15,12 +15,12 @@ internal sealed class AppConfigurationService(string configPath)
             : BootRomConfigReader.ReadConfig(document.Value);
     }
 
-    public Result<GameBoyOptions> LoadGameBoyOptions()
+    public Result<BootRomOptions> LoadBootRomOptions()
     {
         var document = KdlConfigurationFile.LoadOrCreate(configPath);
         return document.IsFailed
-            ? Result.Fail<GameBoyOptions>(document.Errors)
-            : BootRomConfigReader.ReadGameBoyOptions(
+            ? Result.Fail<BootRomOptions>(document.Errors)
+            : BootRomConfigReader.ReadBootRomOptions(
                 document.Value,
                 Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory
             );
