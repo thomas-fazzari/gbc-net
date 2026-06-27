@@ -1,0 +1,19 @@
+* text=auto eol=lf
+
+# C#
+*.cs text diff=csharp
+*.csx text diff=csharp
+
+# Project files
+*.csproj text
+*.slnx text
+*.props text
+*.targets text
+
+# Misc
+*.png binary
+*.json text
+*.md text
+*.config text
+*.runsettings text
+Makefile text eol=lf
