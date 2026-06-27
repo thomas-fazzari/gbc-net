@@ -85,6 +85,11 @@ internal sealed partial class MainWindow : Window, IDisposable
         MainMenu.AttachNativeMenu(this);
         MainMenu.OpenRomRequested += (_, _) =>
             _operationRunner.Run(() => _emulationSession.OpenRomAsync(StorageProvider));
+        MainMenu.RecentRomsRequested += (_, _) => _emulationSession.SyncRecentRoms();
+        MainMenu.RecentRomSelected += (_, e) =>
+            _operationRunner.Run(() =>
+                _emulationSession.OpenRecentRomAsync(StorageProvider, e.Path)
+            );
         MainMenu.CloseRequested += (_, _) => Close();
         MainMenu.ConfigurationRequested += (_, _) =>
             _operationRunner.Run(() => _configurationPresenter.OpenAsync(this));
@@ -99,6 +104,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         MainMenu.StatusBarRequested += (_, _) => _windowChrome.ToggleStatusBar();
         _windowChrome.SyncMenuState();
         _emulationSession.SyncMenuState();
+        _emulationSession.SyncRecentRoms();
     }
 
     protected override void OnClosing(WindowClosingEventArgs e)

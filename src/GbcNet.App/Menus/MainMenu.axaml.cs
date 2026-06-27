@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using GbcNet.App.Emulation;
+using GbcNet.App.Library.Entities;
 
 namespace GbcNet.App.Menus;
 
@@ -49,6 +50,8 @@ internal sealed partial class MainMenu : UserControl
     )> _nativeFastForwardSpeedMenuItems = [];
     private readonly List<(MenuItem Item, EmulationSpeed Speed)> _windowFastForwardSpeedMenuItems =
     [];
+    private readonly NativeMenu _nativeOpenRecentMenu = [];
+    private readonly NativeMenuItem _nativeOpenRecentMenuItem;
     private readonly NativeMenu _nativeMenu;
 
     public MainMenu()
@@ -56,11 +59,20 @@ internal sealed partial class MainMenu : UserControl
         InitializeComponent();
 
         IsVisible = !OperatingSystem.IsMacOS();
+        _nativeOpenRecentMenuItem = new NativeMenuItem("Open Recent")
+        {
+            IsEnabled = false,
+            Menu = _nativeOpenRecentMenu,
+        };
         _nativeMenu = CreateNativeMenu();
         ConfigureWindowMenu();
     }
 
     public event EventHandler? OpenRomRequested;
+
+    public event EventHandler? RecentRomsRequested;
+
+    public event EventHandler<RecentRomSelectedEventArgs>? RecentRomSelected;
 
     public event EventHandler? CloseRequested;
 
@@ -134,6 +146,22 @@ internal sealed partial class MainMenu : UserControl
         StatusBarMenuItem.IsChecked = isVisible;
     }
 
+    public void SetRecentRoms(IReadOnlyList<LibraryEntry> entries)
+    {
+        OpenRecentMenuItem.Items.Clear();
+        _nativeOpenRecentMenu.Items.Clear();
+
+        var hasEntries = entries.Count > 0;
+        OpenRecentMenuItem.IsEnabled = hasEntries;
+        _nativeOpenRecentMenuItem.IsEnabled = hasEntries;
+
+        foreach (var entry in entries)
+        {
+            OpenRecentMenuItem.Items.Add(CreateWindowRecentRomMenuItem(entry));
+            _nativeOpenRecentMenu.Add(CreateNativeRecentRomMenuItem(entry));
+        }
+    }
+
     #region Window menu
     private void ConfigureWindowMenu()
     {
@@ -145,6 +173,7 @@ internal sealed partial class MainMenu : UserControl
 
     private void ConfigureWindowFileMenu()
     {
+        FileMenuItem.SubmenuOpened += (_, _) => RecentRomsRequested?.Invoke(this, EventArgs.Empty);
         OpenRomMenuItem.Click += (_, _) => OpenRomRequested?.Invoke(this, EventArgs.Empty);
         CloseWindowMenuItem.Click += (_, _) => CloseRequested?.Invoke(this, EventArgs.Empty);
     }
@@ -190,6 +219,14 @@ internal sealed partial class MainMenu : UserControl
         return item;
     }
 
+    private MenuItem CreateWindowRecentRomMenuItem(LibraryEntry entry)
+    {
+        var item = new MenuItem { Header = entry.FileName };
+        item.Click += (_, _) =>
+            RecentRomSelected?.Invoke(this, new RecentRomSelectedEventArgs(entry.LastKnownPath));
+        return item;
+    }
+
     #endregion Window menu
 
     #region Native menu
@@ -206,10 +243,19 @@ internal sealed partial class MainMenu : UserControl
         var openItem = new NativeMenuItem("Open ROM...") { Gesture = KeyGesture.Parse("Meta+O") };
         openItem.Click += (_, _) => OpenRomRequested?.Invoke(this, EventArgs.Empty);
 
+        var fileMenu = new NativeMenu
+        {
+            openItem,
+            _nativeOpenRecentMenuItem,
+            new NativeMenuItemSeparator(),
+        };
+        fileMenu.NeedsUpdate += (_, _) => RecentRomsRequested?.Invoke(this, EventArgs.Empty);
+
         var closeItem = new NativeMenuItem("Close") { Gesture = KeyGesture.Parse("Meta+W") };
         closeItem.Click += (_, _) => CloseRequested?.Invoke(this, EventArgs.Empty);
+        fileMenu.Add(closeItem);
 
-        return [openItem, new NativeMenuItemSeparator(), closeItem];
+        return fileMenu;
     }
 
     private NativeMenu CreateNativeSettingsMenu()
@@ -277,7 +323,20 @@ internal sealed partial class MainMenu : UserControl
             FastForwardSpeedSelected?.Invoke(this, new FastForwardSpeedSelectedEventArgs(speed));
         return item;
     }
+
+    private NativeMenuItem CreateNativeRecentRomMenuItem(LibraryEntry entry)
+    {
+        NativeMenuItem item = new(entry.FileName);
+        item.Click += (_, _) =>
+            RecentRomSelected?.Invoke(this, new RecentRomSelectedEventArgs(entry.LastKnownPath));
+        return item;
+    }
     #endregion Native menu
+
+    internal sealed class RecentRomSelectedEventArgs(string path) : EventArgs
+    {
+        public string Path { get; } = path;
+    }
 
     internal sealed class FastForwardSpeedSelectedEventArgs(EmulationSpeed speed) : EventArgs
     {

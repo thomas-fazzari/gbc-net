@@ -31,6 +31,6 @@ public sealed class StatusBarPresenterTests
     [Fact]
     public void FormatMetrics_UsesInvariantCulture()
     {
-        Assert.Equal("1.5x | 60 fps", StatusBarPresenter.FormatMetrics(1.5, 59.8));
+        Assert.Equal("Speed 1.5x | 60 FPS", StatusBarPresenter.FormatMetrics(1.5, 59.8));
     }
 }

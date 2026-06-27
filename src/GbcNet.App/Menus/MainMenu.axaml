@@ -5,8 +5,9 @@
 >
   <Border Background="#181818" BorderBrush="#2A2A2A" BorderThickness="0,0,0,1">
     <Menu Background="Transparent">
-      <MenuItem Header="_File">
+      <MenuItem x:Name="FileMenuItem" Header="_File">
         <MenuItem x:Name="OpenRomMenuItem" Header="_Open ROM..." InputGesture="Ctrl+O" />
+        <MenuItem x:Name="OpenRecentMenuItem" Header="Open _Recent" IsEnabled="False" />
         <Separator />
         <MenuItem x:Name="CloseWindowMenuItem" Header="_Close" InputGesture="Ctrl+W" />
       </MenuItem>

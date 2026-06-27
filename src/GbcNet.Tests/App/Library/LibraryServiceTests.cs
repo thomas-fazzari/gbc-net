@@ -1,5 +1,4 @@
 using System.Globalization;
-using FluentResults;
 using GbcNet.App.Library;
 using GbcNet.Tests.Cartridges;
 
@@ -13,7 +12,7 @@ public sealed class LibraryServiceTests
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
 
-        AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
+        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
 
         Assert.Equal(1, GetAppliedMigrationVersion(test.DatabasePath));
     }
@@ -26,11 +25,13 @@ public sealed class LibraryServiceTests
         var firstPath = await test.WriteRomAsync("first.gb", rom);
         var secondPath = await test.WriteRomAsync("second.gb", rom);
 
-        AssertSuccess(await test.Library.RecordOpenedRomAsync(firstPath));
+        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(firstPath));
         test.TimeProvider.Advance(TimeSpan.FromMinutes(1));
-        AssertSuccess(await test.Library.RecordOpenedRomAsync(secondPath));
+        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(secondPath));
 
-        var entry = Assert.Single(test.Library.GetRecentRoms(limit: 10));
+        var entry = Assert.Single(
+            ResultAssertions.AssertSuccess(test.Library.GetRecentRoms(limit: 10))
+        );
         Assert.Equal(Path.GetFullPath(secondPath), entry.LastKnownPath);
         Assert.Equal("second.gb", entry.FileName);
         Assert.Equal("TEST ROM", entry.CartridgeTitle);
@@ -44,15 +45,17 @@ public sealed class LibraryServiceTests
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
-        AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
+        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
         await test.WriteRomAsync(
             "game.gb",
             TestRomFactory.Create(bytes => "SECOND ROM"u8.CopyTo(bytes.AsSpan(0x0134)))
         );
 
-        AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
+        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
 
-        var entry = Assert.Single(test.Library.GetRecentRoms(limit: 10));
+        var entry = Assert.Single(
+            ResultAssertions.AssertSuccess(test.Library.GetRecentRoms(limit: 10))
+        );
         Assert.Equal(Path.GetFullPath(romPath), entry.LastKnownPath);
         Assert.Equal("SECOND ROM", entry.CartridgeTitle);
         Assert.Equal(1, entry.LaunchCount);
@@ -75,7 +78,7 @@ public sealed class LibraryServiceTests
             "2026-10-25T02:15:00.0000000+01:00"
         );
 
-        var entries = test.Library.GetRecentRoms(limit: 10);
+        var entries = ResultAssertions.AssertSuccess(test.Library.GetRecentRoms(limit: 10));
 
         Assert.Collection(
             entries,
@@ -127,14 +130,6 @@ public sealed class LibraryServiceTests
         command.Parameters.AddWithValue("$fileName", fileName);
         command.Parameters.AddWithValue("$lastOpenedAt", lastOpenedAt);
         command.ExecuteNonQuery();
-    }
-
-    private static void AssertSuccess(Result result)
-    {
-        Assert.True(
-            result.IsSuccess,
-            string.Join(Environment.NewLine, result.Errors.Select(static error => error.Message))
-        );
     }
 
     private sealed class LibraryTestContext : IDisposable

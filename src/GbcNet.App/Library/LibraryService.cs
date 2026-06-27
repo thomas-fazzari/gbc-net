@@ -27,59 +27,60 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
             RecordOpenedRom(fullPath, rom, cartridge.Value);
             return Result.Ok();
         }
-        catch (Exception exception)
-            when (exception
-                    is IOException
-                        or UnauthorizedAccessException
-                        or InvalidOperationException
-                        or SqliteException
-            )
+        catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
             return Result.Fail(exception.Message);
         }
     }
 
-    public IReadOnlyList<LibraryEntry> GetRecentRoms(int limit)
+    public Result<IReadOnlyList<LibraryEntry>> GetRecentRoms(int limit)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
 
-        using var connection = database.OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            select
-              rom_hash,
-              last_known_path,
-              file_name,
-              cartridge_title,
-              added_at,
-              last_opened_at,
-              launch_count,
-              cover_path
-            from roms
-            order by unixepoch(last_opened_at) desc
-            limit $limit;
-            """;
-        command.Parameters.AddWithValue("$limit", limit);
-
-        using var reader = command.ExecuteReader();
-        var entries = new List<LibraryEntry>();
-        while (reader.Read())
+        try
         {
-            entries.Add(
-                new LibraryEntry(
-                    reader.GetString(0),
-                    reader.GetString(1),
-                    reader.GetString(2),
-                    reader.IsDBNull(3) ? null : reader.GetString(3),
-                    reader.GetString(4),
-                    reader.GetString(5),
-                    reader.GetInt32(6),
-                    reader.IsDBNull(7) ? null : reader.GetString(7)
-                )
-            );
-        }
+            using var connection = database.OpenConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText = """
+                select
+                  rom_hash,
+                  last_known_path,
+                  file_name,
+                  cartridge_title,
+                  added_at,
+                  last_opened_at,
+                  launch_count,
+                  cover_path
+                from roms
+                order by unixepoch(last_opened_at) desc
+                limit $limit;
+                """;
+            command.Parameters.AddWithValue("$limit", limit);
 
-        return entries;
+            using var reader = command.ExecuteReader();
+            var entries = new List<LibraryEntry>();
+            while (reader.Read())
+            {
+                entries.Add(
+                    new LibraryEntry(
+                        reader.GetString(0),
+                        reader.GetString(1),
+                        reader.GetString(2),
+                        reader.IsDBNull(3) ? null : reader.GetString(3),
+                        reader.GetString(4),
+                        reader.GetString(5),
+                        reader.GetInt32(6),
+                        reader.IsDBNull(7) ? null : reader.GetString(7)
+                    )
+                );
+            }
+
+            return Result.Ok<IReadOnlyList<LibraryEntry>>(entries);
+        }
+        catch (Exception exception) when (IsExpectedLibraryException(exception))
+        {
+            return Result.Fail(exception.Message);
+        }
     }
 
     private void RecordOpenedRom(string fullPath, byte[] rom, Cartridge cartridge)
@@ -138,4 +139,11 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
 
     private static string ComputeRomHash(ReadOnlySpan<byte> rom) =>
         Convert.ToHexString(SHA256.HashData(rom));
+
+    private static bool IsExpectedLibraryException(Exception exception) =>
+        exception
+            is IOException
+                or UnauthorizedAccessException
+                or InvalidOperationException
+                or SqliteException;
 }

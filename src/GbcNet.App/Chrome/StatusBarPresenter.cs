@@ -38,7 +38,7 @@ internal sealed class StatusBarPresenter(TextBlock message, TextBlock metrics)
     internal static string FormatMetrics(double speedMultiplier, double renderedFramesPerSecond) =>
         string.Create(
             CultureInfo.InvariantCulture,
-            $"{speedMultiplier:0.#}x | {renderedFramesPerSecond:0} fps"
+            $"Speed {speedMultiplier:0.#}x | {renderedFramesPerSecond:0} FPS"
         );
 
     internal static string FormatRomFileName(string romFileName) =>

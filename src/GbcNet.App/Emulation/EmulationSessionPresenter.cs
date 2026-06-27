@@ -20,6 +20,8 @@ internal sealed class EmulationSessionPresenter(
     ShellOperationRunner operationRunner
 )
 {
+    private const int RecentRomLimit = 5;
+
     private static readonly FilePickerFileType _gameBoyRomFileType = new("Game Boy ROM")
     {
         Patterns = ["*.gb", "*.gbc"],
@@ -74,7 +76,23 @@ internal sealed class EmulationSessionPresenter(
             {
                 statusBar.ShowError(StatusBarPresenter.FormatErrors(recorded.Errors));
             }
+            else
+            {
+                SyncRecentRoms();
+            }
         }
+    }
+
+    public async Task OpenRecentRomAsync(IStorageProvider storageProvider, string path)
+    {
+        var file = await storageProvider.TryGetFileFromPathAsync(path).ConfigureAwait(true);
+        if (file is null)
+        {
+            statusBar.ShowError($"Recent ROM not found: {path}");
+            return;
+        }
+
+        await OpenRomFileAsync(file).ConfigureAwait(true);
     }
 
     public async Task ResetAsync()
@@ -146,6 +164,19 @@ internal sealed class EmulationSessionPresenter(
         menu.SetEmulationActionsEnabled(state.HasSession);
         menu.SetPauseState(state.HasSession, state.IsPaused);
         menu.SetFastForwardState(state.FastForwardEnabled, state.FastForwardSpeed);
+    }
+
+    public void SyncRecentRoms()
+    {
+        var recentRoms = libraryService.GetRecentRoms(RecentRomLimit);
+        if (recentRoms.IsFailed)
+        {
+            statusBar.ShowError(StatusBarPresenter.FormatErrors(recentRoms.Errors));
+            menu.SetRecentRoms([]);
+            return;
+        }
+
+        menu.SetRecentRoms(recentRoms.Value);
     }
 
     private static void DragDrop_OnDragOver(object? sender, DragEventArgs e)

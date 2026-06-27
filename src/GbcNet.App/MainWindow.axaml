@@ -30,23 +30,22 @@
     <Border
       x:Name="StatusBar"
       Grid.Row="2"
-      Background="#101013"
-      BorderBrush="#1f1f25"
+      Background="#050505"
+      BorderBrush="#141414"
       BorderThickness="0,1,0,0"
-      Padding="18,8"
+      Padding="14,6"
     >
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
         <TextBlock
           x:Name="StatusTextBlock"
-          Foreground="#a1a1aa"
+          Foreground="#71717a"
           FontSize="12"
-          Text="Ready"
           TextTrimming="CharacterEllipsis"
         />
         <TextBlock
           x:Name="StatusMetricsTextBlock"
           Grid.Column="1"
-          Foreground="#a1a1aa"
+          Foreground="#5f5f66"
           FontSize="12"
           TextTrimming="CharacterEllipsis"
         />
