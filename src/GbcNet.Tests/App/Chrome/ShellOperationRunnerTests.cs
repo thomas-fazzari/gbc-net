@@ -23,25 +23,53 @@ public sealed class ShellOperationRunnerTests
     [Fact]
     public async Task RunAsync_SerializesOperations()
     {
+        var releaseFirstOperation = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        var firstOperationStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        var secondOperationStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+
         var activeCount = 0;
         var maxActiveCount = 0;
 
         ShellOperationRunner runner = new(_ => { }, NullLogger<ShellOperationRunner>.Instance);
 
-        await Task.WhenAll(
-            runner.RunAsync(RunTrackedOperation),
-            runner.RunAsync(RunTrackedOperation)
-        );
+        var firstOperation = runner.RunAsync(async () =>
+        {
+            TrackOperationStart();
+            firstOperationStarted.SetResult();
+            await releaseFirstOperation.Task.ConfigureAwait(false);
+            Interlocked.Decrement(ref activeCount);
+        });
+
+        await firstOperationStarted.Task;
+
+        var secondOperation = runner.RunAsync(() =>
+        {
+            TrackOperationStart();
+            secondOperationStarted.SetResult();
+            Interlocked.Decrement(ref activeCount);
+            return Task.CompletedTask;
+        });
+
+        Assert.False(secondOperationStarted.Task.IsCompleted);
+
+        releaseFirstOperation.SetResult();
+
+        await Task.WhenAll(firstOperation, secondOperation);
 
         Assert.Equal(1, maxActiveCount);
+        Assert.True(secondOperationStarted.Task.IsCompletedSuccessfully);
         return;
 
-        async Task RunTrackedOperation()
+        void TrackOperationStart()
         {
             var current = Interlocked.Increment(ref activeCount);
             maxActiveCount = Math.Max(maxActiveCount, current);
-            await Task.Delay(10, CancellationToken.None).ConfigureAwait(false);
-            Interlocked.Decrement(ref activeCount);
         }
     }
 

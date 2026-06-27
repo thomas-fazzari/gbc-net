@@ -16,6 +16,11 @@
 			"version": "4.8.1",
 			"commands": ["dotnet-outdated"],
 			"rollForward": false
+		},
+		"slopwatch.cmd": {
+			"version": "0.4.2",
+			"commands": ["slopwatch"],
+			"rollForward": false
 		}
 	}
 }
