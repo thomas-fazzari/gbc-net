@@ -23,6 +23,10 @@ test:
 aot-check:
 	dotnet publish $(APP) --configuration Release --runtime $(AOT_RUNTIME) -p:PublishAot=true
 
+.PHONY: app-bundle
+app-bundle:
+	packaging/package.sh "$(APP)" "$(AOT_RUNTIME)"
+
 .PHONY: run
 run:
 	dotnet run --project $(APP) --configuration $(RUN_CONFIGURATION)
