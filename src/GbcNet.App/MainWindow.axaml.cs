@@ -1,16 +1,13 @@
-using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using GbcNet.App.Audio;
 using GbcNet.App.Chrome;
 using GbcNet.App.Configuration;
-using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Emulation;
 using GbcNet.App.Input;
 using GbcNet.App.Rendering;
 using GbcNet.App.Saves;
-using GbcNet.Core;
 using GbcNet.Core.Ppu;
 using Microsoft.Extensions.Logging;
 
@@ -18,8 +15,7 @@ namespace GbcNet.App;
 
 internal sealed partial class MainWindow : Window, IDisposable
 {
-    private readonly AppConfigurationService _configurationService;
-    private readonly string _configurationPath;
+    private readonly ConfigurationPresenter _configurationPresenter;
     private readonly EmulationSessionPresenter _emulationSession;
     private readonly LcdFramePresenter _framePresenter;
     private readonly ShellOperationRunner _operationRunner;
@@ -38,14 +34,14 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         InitializeComponent();
 
-        _configurationService = configurationService;
-        _configurationPath = startupConfiguration.ConfigPath;
         _framePresenter = new LcdFramePresenter(ScreenImage);
+
         _statusBar = new StatusBarPresenter(StatusTextBlock, StatusMetricsTextBlock);
         _operationRunner = new ShellOperationRunner(
             exception => _statusBar.ShowError(exception.Message),
             logger
         );
+
         var emulationController = new EmulationController(
             startupConfiguration.BootRomOptions,
             audioOutput,
@@ -60,6 +56,13 @@ internal sealed partial class MainWindow : Window, IDisposable
             _statusBar,
             MainMenu,
             _operationRunner
+        );
+
+        _configurationPresenter = new ConfigurationPresenter(
+            configurationService,
+            startupConfiguration.ConfigPath,
+            _statusBar,
+            _emulationSession.SetBootRomOptions
         );
 
         ConfigureMenu();
@@ -77,9 +80,10 @@ internal sealed partial class MainWindow : Window, IDisposable
         MainMenu.OpenRomRequested += (_, _) =>
             _operationRunner.Run(() => _emulationSession.OpenRomAsync(StorageProvider));
         MainMenu.CloseRequested += (_, _) => Close();
-        MainMenu.ConfigurationRequested += (_, _) => _operationRunner.Run(OpenConfigurationAsync);
+        MainMenu.ConfigurationRequested += (_, _) =>
+            _operationRunner.Run(() => _configurationPresenter.OpenAsync(this));
         MainMenu.ConfigurationFileLocationRequested += (_, _) =>
-            _operationRunner.Run(OpenConfigurationDirectoryAsync);
+            _operationRunner.Run(_configurationPresenter.OpenConfigurationDirectoryAsync);
         MainMenu.PauseRequested += (_, _) => _emulationSession.TogglePause();
         MainMenu.ResetRequested += (_, _) => _operationRunner.Run(_emulationSession.ResetAsync);
         MainMenu.FastForwardRequested += (_, _) => _emulationSession.ToggleFastForward();
@@ -162,67 +166,6 @@ internal sealed partial class MainWindow : Window, IDisposable
             _statusBar.ShowError(exception.Message);
             Volatile.Write(ref _closeStopStarted, 0);
         }
-    }
-
-    private async Task OpenConfigurationAsync()
-    {
-        var bootRomConfig = _configurationService.LoadBootRomConfig();
-        if (bootRomConfig.IsFailed)
-        {
-            _statusBar.ShowError(StatusBarPresenter.FormatErrors(bootRomConfig.Errors));
-            return;
-        }
-
-        var savedConfig = await new SettingsWindow(bootRomConfig.Value)
-            .ShowDialog<BootRomConfig?>(this)
-            .ConfigureAwait(true);
-        if (savedConfig is null)
-        {
-            return;
-        }
-
-        var saved = _configurationService.SaveBootRomConfig(savedConfig.Value);
-        if (saved.IsFailed)
-        {
-            _statusBar.ShowError(StatusBarPresenter.FormatErrors(saved.Errors));
-            return;
-        }
-
-        ReloadBootRomOptions();
-    }
-
-    private Task OpenConfigurationDirectoryAsync()
-    {
-        var directoryPath = Path.GetDirectoryName(_configurationPath);
-
-        if (string.IsNullOrWhiteSpace(directoryPath))
-        {
-            throw new InvalidOperationException("Configuration file path has no directory.");
-        }
-
-        Directory.CreateDirectory(directoryPath);
-
-        using var process =
-            Process.Start(new ProcessStartInfo { FileName = directoryPath, UseShellExecute = true })
-            ?? throw new InvalidOperationException(
-                "Configuration file location could not be opened."
-            );
-
-        return Task.CompletedTask;
-    }
-
-    private void ReloadBootRomOptions()
-    {
-        var bootRomOptions = _configurationService.LoadBootRomOptions();
-        if (bootRomOptions.IsFailed)
-        {
-            _emulationSession.SetBootRomOptions(new BootRomOptions());
-            _statusBar.ShowError(StatusBarPresenter.FormatErrors(bootRomOptions.Errors));
-            return;
-        }
-
-        _emulationSession.SetBootRomOptions(bootRomOptions.Value);
-        _statusBar.ShowStatus("Configuration saved.");
     }
 
     private void ToggleFullscreen()
