@@ -10,6 +10,7 @@ internal static class UserDataPaths
     private const string LinuxDirectoryName = "gbc-net";
     private const string DesktopDirectoryName = "GbcNet";
     private const string SaveDirectoryName = "saves";
+    private const string LibraryDatabaseFileName = "library.sqlite";
 
     /// <summary>
     /// Per-user configuration file path for the current OS.
@@ -21,47 +22,41 @@ internal static class UserDataPaths
     /// </summary>
     public static string SaveDirectoryPath { get; } = GetSaveDirectoryPath();
 
-    private static string GetConfigFilePath()
-    {
-        if (OperatingSystem.IsMacOS() || OperatingSystem.IsWindows())
-        {
-            return Path.Combine(
-                Environment.GetFolderPath(
-                    Environment.SpecialFolder.ApplicationData,
-                    Environment.SpecialFolderOption.Create
-                ),
-                DesktopDirectoryName,
-                ConfigFileName
+    /// <summary>
+    /// ROM library SQLite database path for the current OS.
+    /// </summary>
+    public static string LibraryDatabasePath { get; } = GetLibraryDatabasePath();
+
+    private static string GetConfigFilePath() =>
+        Path.Combine(GetConfigDirectoryPath(), ConfigFileName);
+
+    private static string GetSaveDirectoryPath() =>
+        Path.Combine(GetDataDirectoryPath(), SaveDirectoryName);
+
+    private static string GetLibraryDatabasePath() =>
+        Path.Combine(GetDataDirectoryPath(), LibraryDatabaseFileName);
+
+    private static string GetConfigDirectoryPath() =>
+        OperatingSystem.IsMacOS() || OperatingSystem.IsWindows()
+            ? Path.Combine(
+                GetKnownFolder(Environment.SpecialFolder.ApplicationData),
+                DesktopDirectoryName
+            )
+            : Path.Combine(GetXdgDirectoryPath("XDG_CONFIG_HOME", ".config"), LinuxDirectoryName);
+
+    private static string GetDataDirectoryPath() =>
+        OperatingSystem.IsMacOS() || OperatingSystem.IsWindows()
+            ? Path.Combine(
+                GetKnownFolder(Environment.SpecialFolder.LocalApplicationData),
+                DesktopDirectoryName
+            )
+            : Path.Combine(
+                GetXdgDirectoryPath("XDG_DATA_HOME", Path.Combine(".local", "share")),
+                LinuxDirectoryName
             );
-        }
 
-        return Path.Combine(
-            GetXdgDirectoryPath("XDG_CONFIG_HOME", ".config"),
-            LinuxDirectoryName,
-            ConfigFileName
-        );
-    }
-
-    private static string GetSaveDirectoryPath()
-    {
-        if (OperatingSystem.IsMacOS() || OperatingSystem.IsWindows())
-        {
-            return Path.Combine(
-                Environment.GetFolderPath(
-                    Environment.SpecialFolder.LocalApplicationData,
-                    Environment.SpecialFolderOption.Create
-                ),
-                DesktopDirectoryName,
-                SaveDirectoryName
-            );
-        }
-
-        return Path.Combine(
-            GetXdgDirectoryPath("XDG_DATA_HOME", Path.Combine(".local", "share")),
-            LinuxDirectoryName,
-            SaveDirectoryName
-        );
-    }
+    private static string GetKnownFolder(Environment.SpecialFolder folder) =>
+        Environment.GetFolderPath(folder, Environment.SpecialFolderOption.Create);
 
     private static string GetXdgDirectoryPath(
         string environmentVariableName,

@@ -6,6 +6,7 @@ using GbcNet.App.Chrome;
 using GbcNet.App.Configuration;
 using GbcNet.App.Emulation;
 using GbcNet.App.Input;
+using GbcNet.App.Library;
 using GbcNet.App.Rendering;
 using GbcNet.App.Saves;
 using GbcNet.Core.Ppu;
@@ -29,6 +30,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         StartupConfiguration startupConfiguration,
         AppConfigurationService configurationService,
         CartridgeBatterySaveFileService cartridgeSaveFileService,
+        LibraryService libraryService,
         IAudioOutput audioOutput,
         ILogger<MainWindow> logger
     )
@@ -56,6 +58,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         _emulationSession = new EmulationSessionPresenter(
             emulationController,
             new InputRouter(inputMap.Bindings, emulationController.SetButtonState),
+            libraryService,
             _statusBar,
             MainMenu,
             _operationRunner
@@ -119,7 +122,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         base.OnPropertyChanged(change);
 
-        _windowChrome.SyncFullscreenState(change);
+        _windowChrome?.SyncFullscreenState(change);
     }
 
     protected override void OnClosed(EventArgs e)

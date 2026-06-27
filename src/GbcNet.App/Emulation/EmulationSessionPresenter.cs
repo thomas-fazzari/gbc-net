@@ -5,6 +5,7 @@ using Avalonia.Threading;
 using FluentResults;
 using GbcNet.App.Chrome;
 using GbcNet.App.Input;
+using GbcNet.App.Library;
 using GbcNet.App.Menus;
 using GbcNet.Core;
 
@@ -13,6 +14,7 @@ namespace GbcNet.App.Emulation;
 internal sealed class EmulationSessionPresenter(
     EmulationController controller,
     InputRouter inputRouter,
+    LibraryService libraryService,
     StatusBarPresenter statusBar,
     MainMenu menu,
     ShellOperationRunner operationRunner
@@ -59,7 +61,20 @@ internal sealed class EmulationSessionPresenter(
     public async Task OpenRomFileAsync(IStorageFile file)
     {
         inputRouter.Clear();
-        ApplyRomActionResult(await controller.OpenRomFileAsync(file).ConfigureAwait(true));
+        var result = await controller.OpenRomFileAsync(file).ConfigureAwait(true);
+
+        ApplyRomActionResult(result);
+
+        if (result.IsSuccess && file.Path.IsFile)
+        {
+            var recorded = await libraryService
+                .RecordOpenedRomAsync(file.Path.LocalPath)
+                .ConfigureAwait(true);
+            if (recorded.IsFailed)
+            {
+                statusBar.ShowError(StatusBarPresenter.FormatErrors(recorded.Errors));
+            }
+        }
     }
 
     public async Task ResetAsync()

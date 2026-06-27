@@ -5,6 +5,7 @@ using Avalonia.Styling;
 using GbcNet.App.Audio;
 using GbcNet.App.Configuration;
 using GbcNet.App.Input;
+using GbcNet.App.Library;
 using GbcNet.App.Saves;
 using Microsoft.Extensions.Logging;
 
@@ -30,20 +31,29 @@ internal sealed class GbcNetApplication : Application, IDisposable
             var startupConfiguration = StartupConfigurationLoader.Load(
                 UserDataPaths.ConfigFilePath
             );
+
             var inputMap = InputMap.FromConfig(startupConfiguration.InputConfig);
+
             var configurationService = new AppConfigurationService(startupConfiguration.ConfigPath);
+
             var cartridgeSaveFileService = new CartridgeBatterySaveFileService(
                 UserDataPaths.SaveDirectoryPath
+            );
+
+            LibraryService libraryService = new(
+                new LibraryDatabase(UserDataPaths.LibraryDatabasePath)
             );
 
             _audioOutput = new SoundFlowAudioOutput(
                 _loggerFactory.CreateLogger<SoundFlowAudioOutput>()
             );
+
             desktop.MainWindow = new MainWindow(
                 inputMap,
                 startupConfiguration,
                 configurationService,
                 cartridgeSaveFileService,
+                libraryService,
                 _audioOutput,
                 _loggerFactory.CreateLogger<MainWindow>()
             );
