@@ -20,6 +20,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     private readonly LcdFramePresenter _framePresenter;
     private readonly ShellOperationRunner _operationRunner;
     private readonly StatusBarPresenter _statusBar;
+    private readonly WindowChromePresenter _windowChrome;
     private bool _closeAfterAsyncStop;
     private int _closeStopStarted;
 
@@ -41,6 +42,8 @@ internal sealed partial class MainWindow : Window, IDisposable
             exception => _statusBar.ShowError(exception.Message),
             logger
         );
+
+        _windowChrome = new WindowChromePresenter(this, StatusBar, MainMenu);
 
         var emulationController = new EmulationController(
             startupConfiguration.BootRomOptions,
@@ -89,10 +92,9 @@ internal sealed partial class MainWindow : Window, IDisposable
         MainMenu.FastForwardRequested += (_, _) => _emulationSession.ToggleFastForward();
         MainMenu.FastForwardSpeedSelected += (_, e) =>
             _emulationSession.SetFastForwardSpeed(e.Speed);
-        MainMenu.FullscreenRequested += (_, _) => ToggleFullscreen();
-        MainMenu.StatusBarRequested += (_, _) => ToggleStatusBar();
-        MainMenu.SetFullscreenState(isFullscreen: false);
-        MainMenu.SetStatusBarState(isVisible: true);
+        MainMenu.FullscreenRequested += (_, _) => _windowChrome.ToggleFullscreen();
+        MainMenu.StatusBarRequested += (_, _) => _windowChrome.ToggleStatusBar();
+        _windowChrome.SyncMenuState();
         _emulationSession.SyncMenuState();
     }
 
@@ -117,10 +119,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         base.OnPropertyChanged(change);
 
-        if (change.Property == WindowStateProperty && MainMenu is not null)
-        {
-            MainMenu.SetFullscreenState(WindowState is WindowState.FullScreen);
-        }
+        _windowChrome.SyncFullscreenState(change);
     }
 
     protected override void OnClosed(EventArgs e)
@@ -168,46 +167,14 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
     }
 
-    private void ToggleFullscreen()
-    {
-        WindowState =
-            WindowState is WindowState.FullScreen ? WindowState.Normal : WindowState.FullScreen;
-    }
-
-    private void ToggleStatusBar()
-    {
-        StatusBar.IsVisible = !StatusBar.IsVisible;
-        MainMenu.SetStatusBarState(StatusBar.IsVisible);
-    }
-
     private void ApplyKeyboardEvent(KeyEventArgs e, bool pressed)
     {
         if (
-            (pressed && TryHandleAppShortcut(e))
+            (pressed && _windowChrome.TryHandleShortcut(e.Key, e.KeyModifiers))
             || _emulationSession.ApplyKeyboardInput(e.Key, pressed)
         )
         {
             e.Handled = true;
-        }
-    }
-
-    private bool TryHandleAppShortcut(KeyEventArgs e)
-    {
-        switch (e.Key)
-        {
-            case Key.Enter when e.KeyModifiers.HasFlag(KeyModifiers.Alt):
-                ToggleFullscreen();
-                return true;
-
-            case Key.I
-                when e.KeyModifiers.HasFlag(
-                    OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control
-                ):
-                ToggleStatusBar();
-                return true;
-
-            default:
-                return false;
         }
     }
 
