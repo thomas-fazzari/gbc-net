@@ -2,8 +2,6 @@ using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Platform.Storage;
-using Avalonia.Threading;
 using GbcNet.App.Audio;
 using GbcNet.App.Chrome;
 using GbcNet.App.Configuration;
@@ -20,18 +18,10 @@ namespace GbcNet.App;
 
 internal sealed partial class MainWindow : Window, IDisposable
 {
-    private static readonly FilePickerFileType _gameBoyRomFileType = new("Game Boy ROM")
-    {
-        Patterns = ["*.gb", "*.gbc"],
-        AppleUniformTypeIdentifiers = ["public.data"],
-        MimeTypes = ["application/x-gameboy-rom", "application/x-gameboy-color-rom"],
-    };
-
     private readonly AppConfigurationService _configurationService;
     private readonly string _configurationPath;
-    private readonly EmulationController _emulationController;
+    private readonly EmulationSessionPresenter _emulationSession;
     private readonly LcdFramePresenter _framePresenter;
-    private readonly InputRouter _inputRouter;
     private readonly ShellOperationRunner _operationRunner;
     private readonly StatusBarPresenter _statusBar;
     private bool _closeAfterAsyncStop;
@@ -56,7 +46,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             exception => _statusBar.ShowError(exception.Message),
             logger
         );
-        _emulationController = new EmulationController(
+        var emulationController = new EmulationController(
             startupConfiguration.BootRomOptions,
             audioOutput,
             cartridgeSaveFileService,
@@ -64,11 +54,16 @@ internal sealed partial class MainWindow : Window, IDisposable
             OnEmulationMetricsUpdated,
             OnEmulationFaulted
         );
-        _inputRouter = new InputRouter(inputMap.Bindings, _emulationController.SetButtonState);
+        _emulationSession = new EmulationSessionPresenter(
+            emulationController,
+            new InputRouter(inputMap.Bindings, emulationController.SetButtonState),
+            _statusBar,
+            MainMenu,
+            _operationRunner
+        );
 
         ConfigureMenu();
-        ConfigureDragDrop();
-        SyncEmulationMenuState();
+        _emulationSession.AttachDragDrop(this);
 
         if (startupConfiguration.StartupErrorMessage is not null)
         {
@@ -79,26 +74,22 @@ internal sealed partial class MainWindow : Window, IDisposable
     private void ConfigureMenu()
     {
         MainMenu.AttachNativeMenu(this);
-        MainMenu.OpenRomRequested += (_, _) => _operationRunner.Run(OpenRomAsync);
+        MainMenu.OpenRomRequested += (_, _) =>
+            _operationRunner.Run(() => _emulationSession.OpenRomAsync(StorageProvider));
         MainMenu.CloseRequested += (_, _) => Close();
         MainMenu.ConfigurationRequested += (_, _) => _operationRunner.Run(OpenConfigurationAsync);
         MainMenu.ConfigurationFileLocationRequested += (_, _) =>
             _operationRunner.Run(OpenConfigurationDirectoryAsync);
-        MainMenu.PauseRequested += (_, _) => TogglePause();
-        MainMenu.ResetRequested += (_, _) => _operationRunner.Run(ResetRomAsync);
-        MainMenu.FastForwardRequested += (_, _) => ToggleFastForward();
-        MainMenu.FastForwardSpeedSelected += (_, e) => SetFastForwardSpeed(e.Speed);
+        MainMenu.PauseRequested += (_, _) => _emulationSession.TogglePause();
+        MainMenu.ResetRequested += (_, _) => _operationRunner.Run(_emulationSession.ResetAsync);
+        MainMenu.FastForwardRequested += (_, _) => _emulationSession.ToggleFastForward();
+        MainMenu.FastForwardSpeedSelected += (_, e) =>
+            _emulationSession.SetFastForwardSpeed(e.Speed);
         MainMenu.FullscreenRequested += (_, _) => ToggleFullscreen();
         MainMenu.StatusBarRequested += (_, _) => ToggleStatusBar();
         MainMenu.SetFullscreenState(isFullscreen: false);
         MainMenu.SetStatusBarState(isVisible: true);
-    }
-
-    private void ConfigureDragDrop()
-    {
-        DragDrop.SetAllowDrop(this, true);
-        DragDrop.AddDragOverHandler(this, DragDrop_OnDragOver);
-        DragDrop.AddDropHandler(this, DragDrop_OnDrop);
+        _emulationSession.SyncMenuState();
     }
 
     protected override void OnClosing(WindowClosingEventArgs e)
@@ -151,31 +142,11 @@ internal sealed partial class MainWindow : Window, IDisposable
         ApplyKeyboardEvent(e, pressed: false);
     }
 
-    private static void DragDrop_OnDragOver(object? sender, DragEventArgs e)
-    {
-        e.DragEffects = RomFileFilter.GetDragEffects(e.DataTransfer.Formats);
-        e.Handled = true;
-    }
-
-    private void DragDrop_OnDrop(object? sender, DragEventArgs e)
-    {
-        e.Handled = true;
-
-        var file = RomFileFilter.GetFirstDroppedRom(e.DataTransfer.TryGetFiles());
-        if (file is null)
-        {
-            _statusBar.ShowError(RomFileFilter.UnsupportedDroppedFileMessage);
-            return;
-        }
-
-        _operationRunner.Run(() => OpenRomFileAsync(file));
-    }
-
     private async Task StopAndCloseAsync()
     {
         try
         {
-            await StopEmulationSessionAsync().ConfigureAwait(true);
+            await _emulationSession.StopAsync().ConfigureAwait(true);
             _closeAfterAsyncStop = true;
             Close();
         }
@@ -245,90 +216,13 @@ internal sealed partial class MainWindow : Window, IDisposable
         var bootRomOptions = _configurationService.LoadBootRomOptions();
         if (bootRomOptions.IsFailed)
         {
-            _emulationController.SetBootRomOptions(new BootRomOptions());
+            _emulationSession.SetBootRomOptions(new BootRomOptions());
             _statusBar.ShowError(StatusBarPresenter.FormatErrors(bootRomOptions.Errors));
             return;
         }
 
-        _emulationController.SetBootRomOptions(bootRomOptions.Value);
+        _emulationSession.SetBootRomOptions(bootRomOptions.Value);
         _statusBar.ShowStatus("Configuration saved.");
-    }
-
-    private async Task OpenRomAsync()
-    {
-        var files = await StorageProvider
-            .OpenFilePickerAsync(
-                new FilePickerOpenOptions
-                {
-                    Title = "Open Game Boy ROM",
-                    AllowMultiple = false,
-                    FileTypeFilter = [_gameBoyRomFileType],
-                }
-            )
-            .ConfigureAwait(true);
-
-        if (files.Count > 0)
-        {
-            await OpenRomFileAsync(files[0]).ConfigureAwait(true);
-        }
-    }
-
-    private async Task OpenRomFileAsync(IStorageFile file)
-    {
-        _inputRouter.Clear();
-        var result = await _emulationController.OpenRomFileAsync(file).ConfigureAwait(true);
-        if (result.IsFailed)
-        {
-            _statusBar.ShowError(StatusBarPresenter.FormatErrors(result.Errors));
-            SyncEmulationMenuState();
-            return;
-        }
-
-        _statusBar.ShowRomFileName(result.Value.LoadedRomFileName);
-        SyncEmulationMenuState();
-    }
-
-    private async Task ResetRomAsync()
-    {
-        _inputRouter.Clear();
-        var result = await _emulationController.ResetAsync().ConfigureAwait(true);
-        if (result.IsFailed)
-        {
-            _statusBar.ShowError(StatusBarPresenter.FormatErrors(result.Errors));
-            SyncEmulationMenuState();
-            return;
-        }
-
-        if (result.Value.HasSession)
-        {
-            _statusBar.ShowRomFileName(result.Value.LoadedRomFileName);
-        }
-        SyncEmulationMenuState();
-    }
-
-    private async Task StopEmulationSessionAsync()
-    {
-        await _emulationController.StopAsync().ConfigureAwait(true);
-        _inputRouter.Clear();
-        SyncEmulationMenuState();
-    }
-
-    private void TogglePause()
-    {
-        _emulationController.TogglePause();
-        SyncEmulationMenuState();
-    }
-
-    private void ToggleFastForward()
-    {
-        _emulationController.ToggleFastForward();
-        SyncEmulationMenuState();
-    }
-
-    private void SetFastForwardSpeed(EmulationSpeed speed)
-    {
-        _emulationController.SetFastForwardSpeed(speed);
-        SyncEmulationMenuState();
     }
 
     private void ToggleFullscreen()
@@ -345,24 +239,13 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private void ApplyKeyboardEvent(KeyEventArgs e, bool pressed)
     {
-        if (pressed && TryHandleAppShortcut(e))
+        if (
+            (pressed && TryHandleAppShortcut(e))
+            || _emulationSession.ApplyKeyboardInput(e.Key, pressed)
+        )
         {
-            return;
-        }
-
-        if (!_emulationController.State.HasSession)
-        {
-            return;
-        }
-
-        if (pressed && e.Key is Key.Tab)
-        {
-            ToggleFastForward();
             e.Handled = true;
-            return;
         }
-
-        e.Handled = _inputRouter.Apply(e.Key, pressed);
     }
 
     private bool TryHandleAppShortcut(KeyEventArgs e)
@@ -371,7 +254,6 @@ internal sealed partial class MainWindow : Window, IDisposable
         {
             case Key.Enter when e.KeyModifiers.HasFlag(KeyModifiers.Alt):
                 ToggleFullscreen();
-                e.Handled = true;
                 return true;
 
             case Key.I
@@ -379,7 +261,6 @@ internal sealed partial class MainWindow : Window, IDisposable
                     OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control
                 ):
                 ToggleStatusBar();
-                e.Handled = true;
                 return true;
 
             default:
@@ -394,25 +275,11 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private void OnEmulationFaulted(Exception e)
     {
-        Dispatcher.UIThread.Post(() => _statusBar.ShowError(e.Message));
+        _emulationSession.ShowFault(e);
     }
 
     private void OnEmulationMetricsUpdated(EmulationMetrics metrics)
     {
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (_emulationController.State.HasSession)
-            {
-                _statusBar.ShowMetrics(metrics.SpeedMultiplier, metrics.RenderedFramesPerSecond);
-            }
-        });
-    }
-
-    private void SyncEmulationMenuState()
-    {
-        var state = _emulationController.State;
-        MainMenu.SetEmulationActionsEnabled(state.HasSession);
-        MainMenu.SetPauseState(state.HasSession, state.IsPaused);
-        MainMenu.SetFastForwardState(state.FastForwardEnabled, state.FastForwardSpeed);
+        _emulationSession.ShowMetrics(metrics);
     }
 }
