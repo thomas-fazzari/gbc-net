@@ -21,9 +21,13 @@ internal sealed class SgbController(bool commandsEnabled)
     private const byte AttrDivCommand = 0x06;
     private const byte AttrChrCommand = 0x07;
     private const byte MltReqCommand = 0x11;
+    private const byte MaskEnCommand = 0x17;
     private const int AttributeMapWidth = 20;
     private const int AttributeMapHeight = 18;
     private const int Rgb555BytesPerPixel = 2;
+    private const byte MaskFreeze = 1;
+    private const byte MaskBlack = 2;
+    private const byte MaskColor0 = 3;
 
     private readonly byte[] _command = new byte[MaxCommandSizeBytes];
     private readonly ushort[] _palettes =
@@ -52,6 +56,8 @@ internal sealed class SgbController(bool commandsEnabled)
     private bool _readyForStop;
     private int _playerCount = 1;
     private int _currentPlayer;
+    private byte _maskMode;
+    private byte[]? _visibleFramePixels;
 
     public void Write(byte value, byte previousSelectedGroups)
     {
@@ -105,27 +111,14 @@ internal sealed class SgbController(bool commandsEnabled)
             return frame;
         }
 
-        var source = frame.Pixels.Span;
-        var target = new byte[
-            PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * Rgb555BytesPerPixel
-        ];
-        for (var pixel = 0; pixel < source.Length; pixel++)
+        var colorizedPixels = ColorizeFrame(frame);
+        return _maskMode switch
         {
-            var x = pixel % PpuGeometry.FrameWidth;
-            var y = pixel / PpuGeometry.FrameWidth;
-            var palette = _attributeMap[(x / 8) + ((y / 8) * AttributeMapWidth)];
-            var color = _palettes[(palette * 4) + (source[pixel] & 0x03)];
-            var targetOffset = pixel * Rgb555BytesPerPixel;
-            target[targetOffset] = (byte)color;
-            target[targetOffset + 1] = (byte)(color >> 8);
-        }
-
-        return new LcdFrame(
-            PpuGeometry.FrameWidth,
-            PpuGeometry.FrameHeight,
-            LcdPixelFormat.Rgb555Le,
-            target
-        );
+            MaskFreeze => CreateRgb555Frame(_visibleFramePixels ?? colorizedPixels),
+            MaskBlack => CreateSolidRgb555Frame(0x0000, colorizedPixels),
+            MaskColor0 => CreateSolidRgb555Frame(_palettes[0], colorizedPixels),
+            _ => CreateVisibleRgb555Frame(colorizedPixels),
+        };
     }
 
     private int GetCommandSizeBits()
@@ -233,8 +226,51 @@ internal sealed class SgbController(bool commandsEnabled)
             case MltReqCommand:
                 SetPlayerCount(_command[1] & 0x03);
                 return;
+            case MaskEnCommand:
+                _maskMode = (byte)(_command[1] & 0x03);
+                return;
         }
     }
+
+    private byte[] ColorizeFrame(LcdFrame frame)
+    {
+        var source = frame.Pixels.Span;
+        var target = new byte[
+            PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * Rgb555BytesPerPixel
+        ];
+        for (var pixel = 0; pixel < source.Length; pixel++)
+        {
+            var x = pixel % PpuGeometry.FrameWidth;
+            var y = pixel / PpuGeometry.FrameWidth;
+            var palette = _attributeMap[(x / 8) + ((y / 8) * AttributeMapWidth)];
+            WriteRgb555(target, pixel, _palettes[(palette * 4) + (source[pixel] & 0x03)]);
+        }
+
+        return target;
+    }
+
+    private LcdFrame CreateVisibleRgb555Frame(byte[] pixels)
+    {
+        _visibleFramePixels = pixels;
+        return CreateRgb555Frame(pixels);
+    }
+
+    private LcdFrame CreateSolidRgb555Frame(ushort color, byte[] visiblePixels)
+    {
+        _visibleFramePixels = visiblePixels;
+        var pixels = new byte[
+            PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * Rgb555BytesPerPixel
+        ];
+        for (var pixel = 0; pixel < PpuGeometry.FrameWidth * PpuGeometry.FrameHeight; pixel++)
+        {
+            WriteRgb555(pixels, pixel, color);
+        }
+
+        return CreateRgb555Frame(pixels);
+    }
+
+    private static LcdFrame CreateRgb555Frame(ReadOnlySpan<byte> pixels) =>
+        new(PpuGeometry.FrameWidth, PpuGeometry.FrameHeight, LcdPixelFormat.Rgb555Le, pixels);
 
     private void SetPalettes(int firstPalette, int secondPalette)
     {
@@ -457,4 +493,11 @@ internal sealed class SgbController(bool commandsEnabled)
 
     private ushort ReadUInt16(int offset) =>
         (ushort)(_command[offset] | (_command[offset + 1] << 8));
+
+    private static void WriteRgb555(Span<byte> pixels, int pixelIndex, ushort color)
+    {
+        var offset = pixelIndex * Rgb555BytesPerPixel;
+        pixels[offset] = (byte)color;
+        pixels[offset + 1] = (byte)(color >> 8);
+    }
 }

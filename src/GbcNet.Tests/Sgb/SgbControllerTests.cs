@@ -38,6 +38,38 @@ public sealed class SgbControllerTests
         AssertRgb555(colorized, pixelIndex: 16, expected: 0x4444);
     }
 
+    [Fact]
+    public void ApplyPalettes_MaskFreezeKeepsPreviousVisibleFrame()
+    {
+        var sgb = new SgbController(commandsEnabled: true);
+        WriteSgbPacket(sgb, command: 0x00, Pal01Payload);
+
+        var firstFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 1));
+        WriteSgbPacket(sgb, command: 0x17, [0x01]);
+        var frozenFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 2));
+        WriteSgbPacket(sgb, command: 0x17, [0x00]);
+        var currentFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 2));
+
+        AssertRgb555(firstFrame, pixelIndex: 0, expected: 0x2222);
+        AssertRgb555(frozenFrame, pixelIndex: 0, expected: 0x2222);
+        AssertRgb555(currentFrame, pixelIndex: 0, expected: 0x3333);
+    }
+
+    [Fact]
+    public void ApplyPalettes_MaskBlankOutputsBlackOrColorZero()
+    {
+        var sgb = new SgbController(commandsEnabled: true);
+        WriteSgbPacket(sgb, command: 0x00, Pal01Payload);
+
+        WriteSgbPacket(sgb, command: 0x17, [0x02]);
+        var blackFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 1));
+        WriteSgbPacket(sgb, command: 0x17, [0x03]);
+        var colorZeroFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 1));
+
+        AssertRgb555(blackFrame, pixelIndex: 0, expected: 0x0000);
+        AssertRgb555(colorZeroFrame, pixelIndex: 0, expected: 0x1111);
+    }
+
     private static LcdFrame CreateDmgFrame(byte shade)
     {
         var pixels = new byte[160 * 144];
