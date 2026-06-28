@@ -2,16 +2,25 @@ using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App.Shell;
 
+/// <summary>
+/// Runs shell-level UI operations one at a time and reports expected failures.
+/// </summary>
 internal sealed class ShellOperationRunner(Action<Exception> handleError, ILogger logger)
 {
     private readonly Lock _gate = new();
     private Task _tail = Task.CompletedTask;
 
+    /// <summary>
+    /// Starts an operation without forcing event handlers to become async void.
+    /// </summary>
     public void Run(Func<Task> action)
     {
         _ = RunAsync(action);
     }
 
+    /// <summary>
+    /// Queues an operation after the previous shell operation has completed.
+    /// </summary>
     public Task RunAsync(Func<Task> action)
     {
         lock (_gate)
