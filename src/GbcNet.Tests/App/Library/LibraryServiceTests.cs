@@ -36,8 +36,15 @@ public sealed class LibraryServiceTests
         Assert.Equal("second.gb", entry.FileName);
         Assert.Equal("TEST ROM", entry.CartridgeTitle);
         Assert.Equal(2, entry.LaunchCount);
-        Assert.Equal("2026-06-27T14:00:00.0000000+02:00", entry.AddedAt);
-        Assert.Equal("2026-06-27T14:01:00.0000000+02:00", entry.LastOpenedAt);
+        Assert.Equal(
+            new DateTimeOffset(2026, 6, 27, 14, 0, 0, TimeSpan.FromHours(2)),
+            entry.AddedAt
+        );
+        Assert.Equal(
+            new DateTimeOffset(2026, 6, 27, 14, 1, 0, TimeSpan.FromHours(2)),
+            entry.LastOpenedAt
+        );
+        Assert.Null(entry.CoverPath);
     }
 
     [Fact]
@@ -59,6 +66,18 @@ public sealed class LibraryServiceTests
         Assert.Equal(Path.GetFullPath(romPath), entry.LastKnownPath);
         Assert.Equal("SECOND ROM", entry.CartridgeTitle);
         Assert.Equal(1, entry.LaunchCount);
+    }
+
+    [Fact]
+    public async Task RemoveRomPath_RemovesEntryByLastKnownPath()
+    {
+        using var test = new LibraryTestContext();
+        var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
+        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
+
+        ResultAssertions.AssertSuccess(test.Library.RemoveRomPath(romPath));
+
+        Assert.Empty(ResultAssertions.AssertSuccess(test.Library.GetRecentRoms(limit: 10)));
     }
 
     [Fact]

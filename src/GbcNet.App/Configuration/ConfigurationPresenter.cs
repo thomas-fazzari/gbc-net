@@ -75,6 +75,5 @@ internal sealed class ConfigurationPresenter(
         }
 
         setBootRomOptions(bootRomOptions.Value);
-        statusBar.ShowStatus("Configuration saved.");
     }
 }

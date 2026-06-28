@@ -67,8 +67,8 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
                         reader.GetString(1),
                         reader.GetString(2),
                         reader.IsDBNull(3) ? null : reader.GetString(3),
-                        reader.GetString(4),
-                        reader.GetString(5),
+                        ParseTimestamp(reader.GetString(4)),
+                        ParseTimestamp(reader.GetString(5)),
                         reader.GetInt32(6),
                         reader.IsDBNull(7) ? null : reader.GetString(7)
                     )
@@ -76,6 +76,23 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
             }
 
             return Result.Ok<IReadOnlyList<LibraryEntry>>(entries);
+        }
+        catch (Exception exception) when (IsExpectedLibraryException(exception))
+        {
+            return Result.Fail(exception.Message);
+        }
+    }
+
+    public Result RemoveRomPath(string path)
+    {
+        try
+        {
+            using var connection = database.OpenConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText = "delete from roms where last_known_path = $lastKnownPath;";
+            command.Parameters.AddWithValue("$lastKnownPath", Path.GetFullPath(path));
+            command.ExecuteNonQuery();
+            return Result.Ok();
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
@@ -140,10 +157,14 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
     private static string ComputeRomHash(ReadOnlySpan<byte> rom) =>
         Convert.ToHexString(SHA256.HashData(rom));
 
+    private static DateTimeOffset ParseTimestamp(string value) =>
+        DateTimeOffset.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+
     private static bool IsExpectedLibraryException(Exception exception) =>
         exception
             is IOException
                 or UnauthorizedAccessException
                 or InvalidOperationException
+                or FormatException
                 or SqliteException;
 }

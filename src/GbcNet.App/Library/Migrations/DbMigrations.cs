@@ -9,7 +9,9 @@ internal readonly record struct DbMigration(
 
 internal static class DbMigrations
 {
-    public static readonly DbMigration[] All = [V1CreateRoms.Migration];
+    private static readonly DbMigration[] _all = [V1CreateRoms.Migration];
+
+    public static ReadOnlySpan<DbMigration> All => _all;
 
     public const int LatestVersion = 1;
 }

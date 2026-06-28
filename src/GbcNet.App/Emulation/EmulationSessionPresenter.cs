@@ -89,6 +89,14 @@ internal sealed class EmulationSessionPresenter(
         if (file is null)
         {
             statusBar.ShowError($"Recent ROM not found: {path}");
+
+            var removed = libraryService.RemoveRomPath(path);
+            if (removed.IsFailed)
+            {
+                statusBar.ShowError(StatusBarPresenter.FormatErrors(removed.Errors));
+            }
+
+            SyncRecentRoms();
             return;
         }
 
