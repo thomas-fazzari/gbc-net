@@ -31,6 +31,7 @@ internal sealed class MemoryBus
     private readonly Action<ushort, byte> _writeOamByteForDma;
     private readonly IoRegisters _ioRegisters;
     private readonly BootRom? _bootRom;
+    private readonly SgbController? _sgb;
 
     /// <summary>
     /// Interrupt request and enable registers routed through FF0F and FFFF.
@@ -102,11 +103,11 @@ internal sealed class MemoryBus
         _oamDmaTransferPolicy = hardwareProfile.CreateOamDmaTransferPolicy();
 
         Interrupts = new InterruptController();
-        var sgb =
+        _sgb =
             hardwareProfile.Model is HardwareModel.Sgb
                 ? new SgbController(cartridge.Header.HardwareKind is CartridgeHardwareKind.SGB)
                 : null;
-        Joypad = new JoypadController(Interrupts, sgb);
+        Joypad = new JoypadController(Interrupts, _sgb);
 
         Serial = new SerialController(Interrupts, hardwareProfile.IsSerialHighSpeedClockEnabled);
 
@@ -215,6 +216,17 @@ internal sealed class MemoryBus
     public void TickDma(int machineCycles)
     {
         OamDma.Tick(machineCycles, _readByteForOamDma, _writeOamByteForDma);
+    }
+
+    public PpuTickResult TickPpu(int tCycles)
+    {
+        var result = Ppu.Tick(tCycles);
+        return result.CompletedFrame is { } frame && _sgb is not null
+            ? result with
+            {
+                CompletedFrame = _sgb.ApplyPalettes(frame),
+            }
+            : result;
     }
 
     private bool IsCpuWriteBlocked(ushort address) =>

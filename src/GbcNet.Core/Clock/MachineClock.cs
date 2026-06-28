@@ -34,7 +34,7 @@ internal sealed class MachineClock(MemoryBus bus)
         var tCycles = bus.Clock.VideoAndAudioTCyclesPerMachineCycle;
         bus.Apu.Tick(tCycles);
 
-        var ppuResult = bus.Ppu.Tick(tCycles);
+        var ppuResult = bus.TickPpu(tCycles);
         if (ppuResult.EnteredVisibleHBlank)
         {
             bus.VramDma.TransferHBlankBlock();

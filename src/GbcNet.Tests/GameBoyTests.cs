@@ -317,6 +317,40 @@ public sealed class GameBoyTests
     }
 
     [Fact]
+    public void TickPpu_SgbAppliesPaletteToCompletedFrame()
+    {
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(CreateSgbRom()));
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Sgb);
+        WriteSgbPacket(
+            gameBoy,
+            0x00,
+            [
+                0x34,
+                0x12,
+                0x22,
+                0x22,
+                0x33,
+                0x33,
+                0x44,
+                0x44,
+                0x55,
+                0x55,
+                0x66,
+                0x66,
+                0x77,
+                0x77,
+                0x00,
+            ]
+        );
+
+        var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 144).CompletedFrame);
+
+        Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
+        Assert.Equal(160 * 144 * 2, frame.Pixels.Length);
+        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x1234);
+    }
+
+    [Fact]
     public void DrainAudioSamples_ReturnsProducedSamples()
     {
         var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
@@ -450,5 +484,13 @@ public sealed class GameBoyTests
     {
         gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x30);
         gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, value ? (byte)0x10 : (byte)0x20);
+    }
+
+    private static void AssertRgb555Pixel(LcdFrame frame, int pixelIndex, ushort expected)
+    {
+        var pixels = frame.Pixels.Span;
+        var offset = pixelIndex * 2;
+        var actual = (ushort)(pixels[offset] | (pixels[offset + 1] << 8));
+        Assert.Equal(expected, actual);
     }
 }
