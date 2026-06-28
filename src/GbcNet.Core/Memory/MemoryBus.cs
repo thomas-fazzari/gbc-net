@@ -19,6 +19,8 @@ namespace GbcNet.Core.Memory;
 /// </summary>
 internal sealed class MemoryBus
 {
+    private const int SgbVramTransferSizeBytes = 4096;
+
     /// <summary>
     /// Plain backing store for HRAM at FF80-FFFE.
     /// </summary>
@@ -221,12 +223,34 @@ internal sealed class MemoryBus
     public PpuTickResult TickPpu(int tCycles)
     {
         var result = Ppu.Tick(tCycles);
-        return result.CompletedFrame is { } frame && _sgb is not null
-            ? result with
-            {
-                CompletedFrame = _sgb.ApplyPalettes(frame),
-            }
-            : result;
+        if (result.CompletedFrame is not { } frame || _sgb is null)
+        {
+            return result;
+        }
+
+        if (_sgb.HasPendingVramTransfer)
+        {
+            ApplySgbVramTransfer();
+        }
+
+        return result with
+        {
+            CompletedFrame = _sgb.ApplyPalettes(frame),
+        };
+    }
+
+    private void ApplySgbVramTransfer()
+    {
+        var transferData = new byte[SgbVramTransferSizeBytes];
+        for (var offset = 0; offset < transferData.Length; offset++)
+        {
+            transferData[offset] = Ppu.VideoRam.ReadBank(
+                0,
+                (ushort)(AddressMap.VideoRamStart + offset)
+            );
+        }
+
+        _sgb?.ApplyPendingVramTransfer(transferData);
     }
 
     private bool IsCpuWriteBlocked(ushort address) =>

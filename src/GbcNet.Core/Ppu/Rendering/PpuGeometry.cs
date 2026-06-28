@@ -1,7 +1,7 @@
 namespace GbcNet.Core.Ppu;
 
 /// <summary>
-/// Game Boy LCD dimensions and scanline geometry shared by DMG and CGB PPU models.
+/// Game Boy LCD dimensions and scanline geometry shared by DMG, SGB, and CGB PPU models.
 /// </summary>
 internal static class PpuGeometry
 {

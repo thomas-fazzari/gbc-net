@@ -70,11 +70,85 @@ public sealed class SgbControllerTests
         AssertRgb555(colorZeroFrame, pixelIndex: 0, expected: 0x1111);
     }
 
+    [Fact]
+    public void ApplyPendingVramTransfer_LoadsSystemPalettesUsedByPalSet()
+    {
+        var sgb = new SgbController(commandsEnabled: true);
+        var transferData = new byte[4096];
+        WriteSystemPalette(transferData, paletteId: 5, 0x1111, 0x2222, 0x3333, 0x4444);
+
+        WriteSgbPacket(sgb, command: 0x0B, []);
+        Assert.True(sgb.HasPendingVramTransfer);
+        sgb.ApplyPendingVramTransfer(transferData);
+        WriteSgbPacket(sgb, command: 0x0A, CreatePalSetPayload(5, 5, 5, 5));
+
+        var colorized = sgb.ApplyPalettes(CreateDmgFrame(shade: 2));
+
+        Assert.False(sgb.HasPendingVramTransfer);
+        AssertRgb555(colorized, pixelIndex: 0, expected: 0x3333);
+    }
+
+    [Fact]
+    public void ApplyPalettes_PalSetCanCancelMask()
+    {
+        var sgb = new SgbController(commandsEnabled: true);
+        var transferData = new byte[4096];
+        WriteSystemPalette(transferData, paletteId: 7, 0x1111, 0x2222, 0x3333, 0x4444);
+
+        WriteSgbPacket(sgb, command: 0x0B, []);
+        sgb.ApplyPendingVramTransfer(transferData);
+        WriteSgbPacket(sgb, command: 0x17, [0x02]);
+        WriteSgbPacket(sgb, command: 0x0A, CreatePalSetPayload(7, 7, 7, 7, flags: 0x40));
+
+        var colorized = sgb.ApplyPalettes(CreateDmgFrame(shade: 1));
+
+        AssertRgb555(colorized, pixelIndex: 0, expected: 0x2222);
+    }
+
     private static LcdFrame CreateDmgFrame(byte shade)
     {
         var pixels = new byte[160 * 144];
         Array.Fill(pixels, shade);
         return new LcdFrame(160, 144, LcdPixelFormat.DmgShadeIndex8, pixels);
+    }
+
+    private static byte[] CreatePalSetPayload(
+        ushort palette0,
+        ushort palette1,
+        ushort palette2,
+        ushort palette3,
+        byte flags = 0
+    )
+    {
+        var payload = new byte[15];
+        WriteUInt16(payload, offset: 0, palette0);
+        WriteUInt16(payload, offset: 2, palette1);
+        WriteUInt16(payload, offset: 4, palette2);
+        WriteUInt16(payload, offset: 6, palette3);
+        payload[8] = flags;
+        return payload;
+    }
+
+    private static void WriteSystemPalette(
+        byte[] transferData,
+        int paletteId,
+        ushort color0,
+        ushort color1,
+        ushort color2,
+        ushort color3
+    )
+    {
+        var offset = paletteId * 8;
+        WriteUInt16(transferData, offset, color0);
+        WriteUInt16(transferData, offset + 2, color1);
+        WriteUInt16(transferData, offset + 4, color2);
+        WriteUInt16(transferData, offset + 6, color3);
+    }
+
+    private static void WriteUInt16(byte[] bytes, int offset, ushort value)
+    {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
     }
 
     private static void AssertRgb555(LcdFrame frame, int pixelIndex, ushort expected)

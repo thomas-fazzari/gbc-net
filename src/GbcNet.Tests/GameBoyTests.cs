@@ -351,6 +351,23 @@ public sealed class GameBoyTests
     }
 
     [Fact]
+    public void TickPpu_SgbCapturesPaletteTransferFromVram()
+    {
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(CreateSgbRom()));
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Sgb);
+        WriteSgbPaletteTransfer(gameBoy, paletteId: 9, 0x1234, 0x2345, 0x3456, 0x4567);
+
+        WriteSgbPacket(gameBoy, command: 0x0B, []);
+        gameBoy.Bus.TickPpu(456 * 144);
+        WriteSgbPacket(gameBoy, command: 0x0A, CreateSgbPalSetPayload(9, 9, 9, 9));
+
+        var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
+
+        Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
+        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x1234);
+    }
+
+    [Fact]
     public void DrainAudioSamples_ReturnsProducedSamples()
     {
         var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
@@ -484,6 +501,49 @@ public sealed class GameBoyTests
     {
         gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x30);
         gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, value ? (byte)0x10 : (byte)0x20);
+    }
+
+    private static byte[] CreateSgbPalSetPayload(
+        ushort palette0,
+        ushort palette1,
+        ushort palette2,
+        ushort palette3
+    )
+    {
+        var payload = new byte[15];
+        WriteUInt16(payload, offset: 0, palette0);
+        WriteUInt16(payload, offset: 2, palette1);
+        WriteUInt16(payload, offset: 4, palette2);
+        WriteUInt16(payload, offset: 6, palette3);
+        return payload;
+    }
+
+    private static void WriteSgbPaletteTransfer(
+        GameBoy gameBoy,
+        int paletteId,
+        ushort color0,
+        ushort color1,
+        ushort color2,
+        ushort color3
+    )
+    {
+        var address = AddressMap.VideoRamStart + (paletteId * 8);
+        WriteVramUInt16(gameBoy, address, color0);
+        WriteVramUInt16(gameBoy, address + 2, color1);
+        WriteVramUInt16(gameBoy, address + 4, color2);
+        WriteVramUInt16(gameBoy, address + 6, color3);
+    }
+
+    private static void WriteVramUInt16(GameBoy gameBoy, int address, ushort value)
+    {
+        gameBoy.Bus.Ppu.VideoRam.Write((ushort)address, (byte)value);
+        gameBoy.Bus.Ppu.VideoRam.Write((ushort)(address + 1), (byte)(value >> 8));
+    }
+
+    private static void WriteUInt16(byte[] bytes, int offset, ushort value)
+    {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
     }
 
     private static void AssertRgb555Pixel(LcdFrame frame, int pixelIndex, ushort expected)

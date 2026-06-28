@@ -20,16 +20,20 @@ internal sealed class SgbController(bool commandsEnabled)
     private const byte AttrLinCommand = 0x05;
     private const byte AttrDivCommand = 0x06;
     private const byte AttrChrCommand = 0x07;
+    private const byte PalSetCommand = 0x0A;
+    private const byte PalTrnCommand = 0x0B;
     private const byte MltReqCommand = 0x11;
     private const byte MaskEnCommand = 0x17;
     private const int AttributeMapWidth = 20;
     private const int AttributeMapHeight = 18;
     private const int Rgb555BytesPerPixel = 2;
+    private const int VramTransferSizeBytes = 4096;
     private const byte MaskFreeze = 1;
     private const byte MaskBlack = 2;
     private const byte MaskColor0 = 3;
 
     private readonly byte[] _command = new byte[MaxCommandSizeBytes];
+    private readonly ushort[] _systemPalettes = new ushort[512 * 4];
     private readonly ushort[] _palettes =
     [
         0x7FFF,
@@ -57,7 +61,10 @@ internal sealed class SgbController(bool commandsEnabled)
     private int _playerCount = 1;
     private int _currentPlayer;
     private byte _maskMode;
+    private bool _pendingPaletteTransfer;
     private byte[]? _visibleFramePixels;
+
+    public bool HasPendingVramTransfer => _pendingPaletteTransfer;
 
     public void Write(byte value, byte previousSelectedGroups)
     {
@@ -119,6 +126,29 @@ internal sealed class SgbController(bool commandsEnabled)
             MaskColor0 => CreateSolidRgb555Frame(_palettes[0], colorizedPixels),
             _ => CreateVisibleRgb555Frame(colorizedPixels),
         };
+    }
+
+    public void ApplyPendingVramTransfer(ReadOnlySpan<byte> transferData)
+    {
+        if (!_pendingPaletteTransfer)
+        {
+            return;
+        }
+
+        if (transferData.Length < VramTransferSizeBytes)
+        {
+            throw new ArgumentException(
+                "SGB VRAM transfer data must be 4096 bytes.",
+                nameof(transferData)
+            );
+        }
+
+        for (var offset = 0; offset < VramTransferSizeBytes; offset += 2)
+        {
+            _systemPalettes[offset / 2] = ReadUInt16(transferData, offset);
+        }
+
+        _pendingPaletteTransfer = false;
     }
 
     private int GetCommandSizeBits()
@@ -223,6 +253,12 @@ internal sealed class SgbController(bool commandsEnabled)
             case AttrChrCommand:
                 SetCharacterAttributes();
                 return;
+            case PalSetCommand:
+                SetSystemPalettes();
+                return;
+            case PalTrnCommand:
+                _pendingPaletteTransfer = true;
+                return;
             case MltReqCommand:
                 SetPlayerCount(_command[1] & 0x03);
                 return;
@@ -284,6 +320,32 @@ internal sealed class SgbController(bool commandsEnabled)
         {
             _palettes[(firstPalette * 4) + color] = ReadUInt16(3 + ((color - 1) * 2));
             _palettes[(secondPalette * 4) + color] = ReadUInt16(9 + ((color - 1) * 2));
+        }
+    }
+
+    private void SetSystemPalettes()
+    {
+        CopySystemPalette(commandOffset: 1, paletteIndex: 0);
+        CopySystemPalette(commandOffset: 3, paletteIndex: 1);
+        CopySystemPalette(commandOffset: 5, paletteIndex: 2);
+        CopySystemPalette(commandOffset: 7, paletteIndex: 3);
+        _palettes[4] = _palettes[0];
+        _palettes[8] = _palettes[0];
+        _palettes[12] = _palettes[0];
+        if ((_command[9] & 0x40) != 0)
+        {
+            _maskMode = 0;
+        }
+    }
+
+    private void CopySystemPalette(int commandOffset, int paletteIndex)
+    {
+        var systemPaletteId = _command[commandOffset] | ((_command[commandOffset + 1] & 0x01) << 8);
+        var sourceOffset = systemPaletteId * 4;
+        var targetOffset = paletteIndex * 4;
+        for (var color = 0; color < 4; color++)
+        {
+            _palettes[targetOffset + color] = _systemPalettes[sourceOffset + color];
         }
     }
 
@@ -493,6 +555,9 @@ internal sealed class SgbController(bool commandsEnabled)
 
     private ushort ReadUInt16(int offset) =>
         (ushort)(_command[offset] | (_command[offset + 1] << 8));
+
+    private static ushort ReadUInt16(ReadOnlySpan<byte> bytes, int offset) =>
+        (ushort)(bytes[offset] | (bytes[offset + 1] << 8));
 
     private static void WriteRgb555(Span<byte> pixels, int pixelIndex, ushort color)
     {
