@@ -25,6 +25,11 @@ public static class GameBoyTiming
     /// CPU machine-cycle rate in CGB double-speed mode.
     /// </summary>
     public const int DoubleCpuHz = NormalCpuHz * 2;
+
+    /// <summary>
+    /// CPU machine-cycle rate on NTSC Super Game Boy hardware.
+    /// </summary>
+    public const int SgbCpuHz = 1_073_864;
 }
 
 /// <summary>
@@ -56,6 +61,10 @@ public sealed class GameBoy
         _clock = new MachineClock(Bus);
         Cpu = new Cpu(Bus, _clock.TickMachineCycle);
         HardwareModel = hardwareProfile.Model;
+        CpuMachineCyclesPerSecond =
+            hardwareProfile.Model is HardwareModel.Sgb
+                ? GameBoyTiming.SgbCpuHz
+                : GameBoyTiming.NormalCpuHz;
 
         if (bootRom is null)
         {
@@ -127,7 +136,7 @@ public sealed class GameBoy
     /// Current CPU machine-cycle rate, doubled while CGB double-speed mode is active.
     /// </summary>
     public int CpuMachineCyclesPerSecond =>
-        Bus.Clock.CgbDoubleSpeed ? GameBoyTiming.DoubleCpuHz : GameBoyTiming.NormalCpuHz;
+        Bus.Clock.CgbDoubleSpeed ? GameBoyTiming.DoubleCpuHz : field;
 
     internal MemoryBus Bus { get; }
 

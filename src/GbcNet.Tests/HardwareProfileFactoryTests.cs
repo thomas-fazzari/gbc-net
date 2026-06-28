@@ -1,3 +1,4 @@
+using GbcNet.Core;
 using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Dma.Policies;
@@ -109,6 +110,41 @@ public sealed class HardwareProfileFactoryTests
         Assert.IsType<CgbOamDmaTransferPolicy>(cgbProfile.CreateOamDmaTransferPolicy());
         Assert.Equal(ApuModelSpec.Cgb, cgbProfile.CreateApuModelSpec());
         Assert.Equal(8, cgbProfile.WorkRamBankCount);
+    }
+
+    [Fact]
+    public void Create_ReturnsSgbProfileForSgbHardwareWhenCartridgeAllowsDmg()
+    {
+        var header = CreateHeader(CgbSupport.None);
+
+        var profile = HardwareProfileFactory.Create(HardwareModel.Sgb, header);
+
+        Assert.Same(SgbHardwareProfile.Instance, profile);
+        Assert.Equal(HardwareModel.Sgb, profile.Model);
+        Assert.Equal(1, profile.VideoRamBankCount);
+        Assert.False(profile.IsVideoRamBankRegisterEnabled);
+        Assert.False(profile.IsKey1RegisterEnabled);
+        Assert.False(profile.IsSerialHighSpeedClockEnabled);
+        Assert.False(profile.IsColorPaletteRamEnabled);
+        Assert.False(profile.IsColorPaletteIndexRegisterEnabled);
+        Assert.True(profile.TicksTimerOnTacDisableWhenInputHigh);
+        Assert.False(profile.TicksTimerOnTacEnableWhenInputHigh);
+        Assert.IsType<DmgPpuEngine>(profile.CreatePpuEngine());
+        Assert.IsType<DmgOamDmaTransferPolicy>(profile.CreateOamDmaTransferPolicy());
+        Assert.Equal(ApuModelSpec.Sgb, profile.CreateApuModelSpec());
+        Assert.Equal(2, profile.WorkRamBankCount);
+    }
+
+    [Fact]
+    public void Create_RejectsCgbRequiredCartridgeForSgbHardware()
+    {
+        var header = CreateHeader(CgbSupport.Required);
+
+        var exception = Assert.Throws<NotSupportedException>(() =>
+            HardwareProfileFactory.Create(HardwareModel.Sgb, header)
+        );
+
+        Assert.Contains("CGB-required", exception.Message, StringComparison.Ordinal);
     }
 
     private static CartridgeHeader CreateHeader(CgbSupport cgbSupport)

@@ -30,6 +30,13 @@ internal static class HardwareProfileFactory
             (HardwareModel.Cgb, CgbSupport.Enhanced or CgbSupport.Required) =>
                 new CgbHardwareProfile(CgbOperatingMode.Cgb),
 
+            (HardwareModel.Sgb, CgbSupport.None or CgbSupport.Enhanced) =>
+                SgbHardwareProfile.Instance,
+
+            (HardwareModel.Sgb, CgbSupport.Required) => throw new NotSupportedException(
+                "CGB-required cartridges cannot run on SGB hardware."
+            ),
+
             (_, CgbSupport.None or CgbSupport.Enhanced or CgbSupport.Required) =>
                 throw new ArgumentOutOfRangeException(
                     nameof(hardwareModel),

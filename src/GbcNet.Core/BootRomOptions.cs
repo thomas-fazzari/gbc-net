@@ -16,6 +16,11 @@ public sealed class BootRomOptions
     public const int CgbBootRomSize = 2048;
 
     /// <summary>
+    /// Required byte length of an SGB boot ROM image.
+    /// </summary>
+    public const int SgbBootRomSize = 256;
+
+    /// <summary>
     /// Optional 256-byte DMG boot ROM image.
     /// </summary>
     /// <remarks>
@@ -30,4 +35,12 @@ public sealed class BootRomOptions
     /// Leave empty to skip the boot ROM and seed post-boot state directly.
     /// </remarks>
     public ReadOnlyMemory<byte> CgbBootRom { get; init; }
+
+    /// <summary>
+    /// Optional 256-byte SGB boot ROM image.
+    /// </summary>
+    /// <remarks>
+    /// Leave empty to skip the boot ROM and seed post-boot state directly.
+    /// </remarks>
+    public ReadOnlyMemory<byte> SgbBootRom { get; init; }
 }

@@ -59,6 +59,7 @@ public sealed record CartridgeHeader(
     private const int OldLicenseeCodeAddress = 0x014B;
     private const int HeaderChecksumAddress = 0x014D;
     private const byte SgbEnhancedFlag = 0x03;
+    private const byte SgbLicenseeCode = 0x33;
 
     /// <summary>
     /// Parses cartridge header fields and validates the header checksum.
@@ -144,7 +145,7 @@ public sealed record CartridgeHeader(
         new(
             ReadTitle(rom, cgbSupport),
             cgbSupport,
-            DecodeHardwareKind(cgbSupport, rom[SgbFlagAddress]),
+            DecodeHardwareKind(cgbSupport, rom[SgbFlagAddress], rom[OldLicenseeCodeAddress]),
             (CartridgeType)rom[CartridgeTypeAddress],
             romSizeBytes,
             romBankCount,
@@ -199,14 +200,20 @@ public sealed record CartridgeHeader(
             _ => CgbSupport.None,
         };
 
-    private static CartridgeHardwareKind DecodeHardwareKind(CgbSupport cgbSupport, byte sgbFlag)
+    private static CartridgeHardwareKind DecodeHardwareKind(
+        CgbSupport cgbSupport,
+        byte sgbFlag,
+        byte oldLicenseeCode
+    )
     {
         if (cgbSupport is CgbSupport.Enhanced or CgbSupport.Required)
         {
             return CartridgeHardwareKind.GBC;
         }
 
-        return sgbFlag == SgbEnhancedFlag ? CartridgeHardwareKind.SGB : CartridgeHardwareKind.GB;
+        return sgbFlag == SgbEnhancedFlag && oldLicenseeCode == SgbLicenseeCode
+            ? CartridgeHardwareKind.SGB
+            : CartridgeHardwareKind.GB;
     }
 
     private static int GetTitleEndAddress(ReadOnlySpan<byte> rom, CgbSupport cgbSupport)

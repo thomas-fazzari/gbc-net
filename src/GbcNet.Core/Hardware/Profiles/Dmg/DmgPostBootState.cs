@@ -76,20 +76,28 @@ internal static class DmgPostBootState
 
     public static void Apply(Cartridge cartridge, Cpu cpu, MemoryBus bus)
     {
-        PostBootState.SetCpuRegisters(cpu.Registers, CreateCpuRegisterState(cartridge));
+        Apply(cartridge, cpu, bus, RegisterBc);
+    }
+
+    internal static void Apply(Cartridge cartridge, Cpu cpu, MemoryBus bus, ushort registerBc)
+    {
+        PostBootState.SetCpuRegisters(cpu.Registers, CreateCpuRegisterState(cartridge, registerBc));
         bus.Clock.SetCounter(DividerCounter);
         PostBootState.SetHardwareRegisterStates(bus, _registerStatesBeforeAudio);
         ApplyAudioRegisters(bus);
         PostBootState.SetHardwareRegisterStates(bus, _registerStatesAfterAudio);
     }
 
-    private static PostBootCpuRegisterState CreateCpuRegisterState(Cartridge cartridge) =>
+    private static PostBootCpuRegisterState CreateCpuRegisterState(
+        Cartridge cartridge,
+        ushort registerBc
+    ) =>
         new(
             Accumulator,
             cartridge.Header.HeaderChecksum is 0x00
                 ? FlagsBase
                 : (byte)(FlagsBase | FlagsChecksumNonZero),
-            RegisterBc,
+            registerBc,
             RegisterDe,
             RegisterHl,
             AddressMap.CartridgeEntryPointAddress,

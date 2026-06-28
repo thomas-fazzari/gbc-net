@@ -19,6 +19,7 @@ internal sealed partial class SettingsWindow : Window
 
     private readonly TextBox _dmgBootRomPathTextBox;
     private readonly TextBox _cgbBootRomPathTextBox;
+    private readonly TextBox _sgbBootRomPathTextBox;
 
     public SettingsWindow(BootRomConfig bootRomConfig)
     {
@@ -26,6 +27,7 @@ internal sealed partial class SettingsWindow : Window
 
         _dmgBootRomPathTextBox = CreatePathBox(bootRomConfig.DmgPath);
         _cgbBootRomPathTextBox = CreatePathBox(bootRomConfig.CgbPath);
+        _sgbBootRomPathTextBox = CreatePathBox(bootRomConfig.SgbPath);
 
         Title = "Configuration";
         Background = AppChrome.Brush(AppChrome.Bg);
@@ -68,7 +70,7 @@ internal sealed partial class SettingsWindow : Window
 
         var form = new Grid
         {
-            RowDefinitions = new RowDefinitions("Auto,Auto"),
+            RowDefinitions = new RowDefinitions("Auto,Auto,Auto"),
             ColumnDefinitions = new ColumnDefinitions("48,*,72,64"),
             RowSpacing = 12,
             ColumnSpacing = 8,
@@ -86,6 +88,13 @@ internal sealed partial class SettingsWindow : Window
             BootRomConfigSchema.CgbNodeName.ToUpperInvariant(),
             _cgbBootRomPathTextBox,
             $"Select {BootRomConfigSchema.CgbNodeName.ToUpperInvariant()} boot ROM"
+        );
+        AddPathRow(
+            form,
+            row: 2,
+            BootRomConfigSchema.SgbNodeName.ToUpperInvariant(),
+            _sgbBootRomPathTextBox,
+            $"Select {BootRomConfigSchema.SgbNodeName.ToUpperInvariant()} boot ROM"
         );
 
         var footer = new StackPanel
@@ -202,7 +211,11 @@ internal sealed partial class SettingsWindow : Window
     }
 
     private BootRomConfig GetBootRomConfig() =>
-        new(NormalizePath(_dmgBootRomPathTextBox.Text), NormalizePath(_cgbBootRomPathTextBox.Text));
+        new(
+            NormalizePath(_dmgBootRomPathTextBox.Text),
+            NormalizePath(_cgbBootRomPathTextBox.Text),
+            NormalizePath(_sgbBootRomPathTextBox.Text)
+        );
 
     private static string? NormalizePath(string? path) =>
         string.IsNullOrWhiteSpace(path) ? null : path;

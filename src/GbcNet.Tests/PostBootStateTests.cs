@@ -40,6 +40,22 @@ public sealed class PostBootStateTests
     }
 
     [Fact]
+    public void Apply_SetsSgbCpuRegistersAfterBootHandoff()
+    {
+        var cartridge = LoadCartridge(CreateSgbRom());
+        var profile = SgbHardwareProfile.Instance;
+        var bus = new MemoryBus(cartridge, profile);
+        var cpu = new Cpu(bus);
+
+        PostBootState.Apply(profile, cartridge, cpu, bus);
+
+        Assert.Equal(0x01, cpu.Registers.A);
+        Assert.Equal(0x0014, cpu.Registers.BC);
+        Assert.Equal(0x0100, cpu.Registers.PC);
+        Assert.Equal(0xFFFE, cpu.Registers.SP);
+    }
+
+    [Fact]
     public void Apply_SetsDmgIoRegistersAfterBootHandoff()
     {
         var cartridge = LoadCartridge(TestRomFactory.Create());
@@ -261,6 +277,13 @@ public sealed class PostBootStateTests
 
     private static Cartridge LoadCartridge(byte[] rom) =>
         ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+
+    private static byte[] CreateSgbRom() =>
+        TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0146] = 0x03;
+            bytes[0x014B] = 0x33;
+        });
 
     private static byte[] CreateRomWithZeroHeaderChecksum()
     {

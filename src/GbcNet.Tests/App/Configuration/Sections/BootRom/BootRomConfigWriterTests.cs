@@ -33,7 +33,7 @@ public sealed class BootRomConfigWriterTests
 
             var result = BootRomConfigWriter.Write(
                 configPath,
-                new BootRomConfig("new-dmg.bin", "new-cgb.bin")
+                new BootRomConfig("new-dmg.bin", "new-cgb.bin", "new-sgb.bin")
             );
 
             Assert.True(result.IsSuccess, string.Join(Environment.NewLine, result.Errors));
@@ -42,6 +42,7 @@ public sealed class BootRomConfigWriterTests
             Assert.DoesNotContain("old-dmg.bin", text, StringComparison.Ordinal);
             Assert.Contains("  dmg \"new-dmg.bin\"", text, StringComparison.Ordinal);
             Assert.Contains("  cgb \"new-cgb.bin\"", text, StringComparison.Ordinal);
+            Assert.Contains("  sgb \"new-sgb.bin\"", text, StringComparison.Ordinal);
         }
         finally
         {
@@ -135,6 +136,7 @@ public sealed class BootRomConfigWriterTests
                 boot_roms {
                   dmg "dmg.bin"
                   cgb "cgb.bin"
+                  sgb "sgb.bin"
                 }
                 """
             );
@@ -146,6 +148,7 @@ public sealed class BootRomConfigWriterTests
             Assert.Contains(BootRomConfigSchema.BootRomNodeName, text, StringComparison.Ordinal);
             Assert.DoesNotContain("dmg.bin", text, StringComparison.Ordinal);
             Assert.DoesNotContain("cgb.bin", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("sgb.bin", text, StringComparison.Ordinal);
         }
         finally
         {
@@ -207,10 +210,7 @@ public sealed class BootRomConfigWriterTests
                 """
             );
 
-            var result = BootRomConfigWriter.Write(
-                configPath,
-                new BootRomConfig("new-dmg.bin", null)
-            );
+            var result = BootRomConfigWriter.Write(configPath, new BootRomConfig("new-dmg.bin"));
 
             Assert.True(result.IsFailed);
             Assert.Contains(

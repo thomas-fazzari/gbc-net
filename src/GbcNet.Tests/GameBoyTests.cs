@@ -260,6 +260,63 @@ public sealed class GameBoyTests
     }
 
     [Fact]
+    public void Constructor_SgbHardwareIgnoresDmgBootRomSlot()
+    {
+        var cartridge = ResultAssertions.AssertSuccess(
+            Cartridge.Load(CreateSgbRom(bytes => bytes[0x0000] = HaltOpcode))
+        );
+        var dmgBootRom = CreateDmgBootRom(bytes => bytes[0x0000] = IncBOpcode);
+
+        var gameBoy = new GameBoy(
+            cartridge,
+            HardwareModel.Sgb,
+            new BootRomOptions { DmgBootRom = dmgBootRom }
+        );
+
+        Assert.Equal(HardwareModel.Sgb, gameBoy.HardwareModel);
+        Assert.Equal(GameBoyTiming.SgbCpuHz, gameBoy.CpuMachineCyclesPerSecond);
+        Assert.Equal(0x0100, gameBoy.Cpu.Registers.PC);
+        Assert.Equal(HaltOpcode, gameBoy.Bus.ReadByte(0x0000));
+    }
+
+    [Fact]
+    public void Constructor_SgbHardwareMapsSgbBootRomSlot()
+    {
+        var cartridge = ResultAssertions.AssertSuccess(
+            Cartridge.Load(CreateSgbRom(bytes => bytes[0x0000] = HaltOpcode))
+        );
+        var dmgBootRom = CreateDmgBootRom(bytes => bytes[0x0000] = HaltOpcode);
+        var sgbBootRom = CreateSgbBootRom(bytes => bytes[0x0000] = IncBOpcode);
+
+        var gameBoy = new GameBoy(
+            cartridge,
+            HardwareModel.Sgb,
+            new BootRomOptions { DmgBootRom = dmgBootRom, SgbBootRom = sgbBootRom }
+        );
+
+        Assert.Equal(HardwareModel.Sgb, gameBoy.HardwareModel);
+        Assert.Equal(IncBOpcode, gameBoy.Bus.ReadByte(0x0000));
+    }
+
+    [Fact]
+    public void Joypad_SgbMltReqEnablesPlayerIdReadback()
+    {
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(CreateSgbRom()));
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Sgb);
+
+        WriteSgbPacket(gameBoy, 0x11, [0x01]);
+
+        gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x30);
+
+        Assert.Equal(0xFF, gameBoy.Bus.ReadByte(AddressMap.JoypadRegister));
+
+        gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x10);
+        gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x30);
+
+        Assert.Equal(0xFE, gameBoy.Bus.ReadByte(AddressMap.JoypadRegister));
+    }
+
+    [Fact]
     public void DrainAudioSamples_ReturnsProducedSamples()
     {
         var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
@@ -338,15 +395,60 @@ public sealed class GameBoyTests
 
     private static byte[] CreateDmgBootRom(Action<byte[]> configure)
     {
-        var bootRom = new byte[256];
+        var bootRom = new byte[BootRomOptions.DmgBootRomSize];
         configure(bootRom);
         return bootRom;
     }
 
     private static byte[] CreateCgbBootRom(Action<byte[]> configure)
     {
-        var bootRom = new byte[2048];
+        var bootRom = new byte[BootRomOptions.CgbBootRomSize];
         configure(bootRom);
         return bootRom;
+    }
+
+    private static byte[] CreateSgbBootRom(Action<byte[]> configure)
+    {
+        var bootRom = new byte[BootRomOptions.SgbBootRomSize];
+        configure(bootRom);
+        return bootRom;
+    }
+
+    private static byte[] CreateSgbRom(Action<byte[]>? configure = null) =>
+        TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0146] = 0x03;
+            bytes[0x014B] = 0x33;
+            configure?.Invoke(bytes);
+        });
+
+    private static void WriteSgbPacket(GameBoy gameBoy, byte command, ReadOnlySpan<byte> payload)
+    {
+        Span<byte> packet = stackalloc byte[16];
+        packet[0] = (byte)((command << 3) | 0x01);
+        payload.CopyTo(packet[1..]);
+
+        WriteSgbStartPulse(gameBoy);
+        foreach (var value in packet)
+        {
+            for (var bit = 0; bit < 8; bit++)
+            {
+                WriteSgbBit(gameBoy, (value & (1 << bit)) != 0);
+            }
+        }
+
+        WriteSgbBit(gameBoy, value: false);
+    }
+
+    private static void WriteSgbStartPulse(GameBoy gameBoy)
+    {
+        gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x30);
+        gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x00);
+    }
+
+    private static void WriteSgbBit(GameBoy gameBoy, bool value)
+    {
+        gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x30);
+        gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, value ? (byte)0x10 : (byte)0x20);
     }
 }

@@ -49,6 +49,7 @@ public sealed class AppConfigurationIntegrationTests
             );
             Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
             Assert.True(startupConfiguration.BootRomOptions.CgbBootRom.IsEmpty);
+            Assert.True(startupConfiguration.BootRomOptions.SgbBootRom.IsEmpty);
         }
         finally
         {
@@ -73,7 +74,11 @@ public sealed class AppConfigurationIntegrationTests
                 Path.Combine(tempDirectory, "cgb.bin"),
                 CreateBootRom(BootRomOptions.CgbBootRomSize, 0xC0)
             );
-            File.WriteAllText(configPath, CreateConfig("dmg.bin", "cgb.bin"));
+            File.WriteAllBytes(
+                Path.Combine(tempDirectory, "sgb.bin"),
+                CreateBootRom(BootRomOptions.SgbBootRomSize, 0x50)
+            );
+            File.WriteAllText(configPath, CreateConfig("dmg.bin", "cgb.bin", "sgb.bin"));
 
             var startupConfiguration = StartupConfigurationLoader.Load(configPath);
 
@@ -86,8 +91,13 @@ public sealed class AppConfigurationIntegrationTests
                 BootRomOptions.CgbBootRomSize,
                 startupConfiguration.BootRomOptions.CgbBootRom.Length
             );
+            Assert.Equal(
+                BootRomOptions.SgbBootRomSize,
+                startupConfiguration.BootRomOptions.SgbBootRom.Length
+            );
             Assert.Equal(0xD0, startupConfiguration.BootRomOptions.DmgBootRom.Span[0]);
             Assert.Equal(0xC0, startupConfiguration.BootRomOptions.CgbBootRom.Span[0]);
+            Assert.Equal(0x50, startupConfiguration.BootRomOptions.SgbBootRom.Span[0]);
         }
         finally
         {
@@ -105,7 +115,7 @@ public sealed class AppConfigurationIntegrationTests
         {
             Directory.CreateDirectory(tempDirectory);
             File.WriteAllBytes(Path.Combine(tempDirectory, "dmg.bin"), new byte[255]);
-            File.WriteAllText(configPath, CreateConfig("dmg.bin", null));
+            File.WriteAllText(configPath, CreateConfig("dmg.bin", null, null));
 
             var startupConfiguration = StartupConfigurationLoader.Load(configPath);
 
@@ -116,6 +126,7 @@ public sealed class AppConfigurationIntegrationTests
             );
             Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
             Assert.True(startupConfiguration.BootRomOptions.CgbBootRom.IsEmpty);
+            Assert.True(startupConfiguration.BootRomOptions.SgbBootRom.IsEmpty);
         }
         finally
         {
@@ -132,7 +143,7 @@ public sealed class AppConfigurationIntegrationTests
         try
         {
             Directory.CreateDirectory(tempDirectory);
-            File.WriteAllText(configPath, CreateConfig("missing-dmg.bin", null));
+            File.WriteAllText(configPath, CreateConfig("missing-dmg.bin", null, null));
 
             var startupConfiguration = StartupConfigurationLoader.Load(configPath);
 
@@ -143,6 +154,7 @@ public sealed class AppConfigurationIntegrationTests
             );
             Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
             Assert.True(startupConfiguration.BootRomOptions.CgbBootRom.IsEmpty);
+            Assert.True(startupConfiguration.BootRomOptions.SgbBootRom.IsEmpty);
         }
         finally
         {
@@ -178,22 +190,16 @@ public sealed class AppConfigurationIntegrationTests
         return bytes;
     }
 
-    private static string CreateConfig(string? dmgBootRomPath, string? cgbBootRomPath)
+    private static string CreateConfig(
+        string? dmgBootRomPath,
+        string? cgbBootRomPath,
+        string? sgbBootRomPath
+    )
     {
         var bootRomLines = new List<string>();
-        if (dmgBootRomPath is not null)
-        {
-            bootRomLines.Add(
-                "  " + BootRomConfigSchema.DmgNodeName + " \"" + dmgBootRomPath + "\""
-            );
-        }
-
-        if (cgbBootRomPath is not null)
-        {
-            bootRomLines.Add(
-                "  " + BootRomConfigSchema.CgbNodeName + " \"" + cgbBootRomPath + "\""
-            );
-        }
+        AddBootRomLine(BootRomConfigSchema.DmgNodeName, dmgBootRomPath);
+        AddBootRomLine(BootRomConfigSchema.CgbNodeName, cgbBootRomPath);
+        AddBootRomLine(BootRomConfigSchema.SgbNodeName, sgbBootRomPath);
 
         return $$"""
             {{InputConfigSchema.InputNodeName}} {{InputConfigSchema.VersionPropertyName}}=1 {
@@ -215,6 +221,14 @@ public sealed class AppConfigurationIntegrationTests
             {{string.Join(Environment.NewLine, bootRomLines)}}
             }
             """;
+
+        void AddBootRomLine(string nodeName, string? path)
+        {
+            if (path is not null)
+            {
+                bootRomLines.Add("  " + nodeName + " \"" + path + "\"");
+            }
+        }
     }
 
     private static void AssertInputConfigIsValid(InputConfig config)

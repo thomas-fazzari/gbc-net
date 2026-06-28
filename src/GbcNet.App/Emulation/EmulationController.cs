@@ -137,11 +137,12 @@ internal sealed class EmulationController(
 
     private void Start(Cartridge cartridge, byte[] rom)
     {
-        var hardwareModel = cartridge.Header.CgbSupport
-            is CgbSupport.Required
-                or CgbSupport.Enhanced
-            ? HardwareModel.Cgb
-            : HardwareModel.Dmg;
+        var hardwareModel = cartridge.Header.HardwareKind switch
+        {
+            CartridgeHardwareKind.GBC => HardwareModel.Cgb,
+            CartridgeHardwareKind.SGB => HardwareModel.Sgb,
+            _ => HardwareModel.Dmg,
+        };
 
         _session = new EmulationSession(
             new GameBoy(cartridge, hardwareModel, _bootRomOptions),

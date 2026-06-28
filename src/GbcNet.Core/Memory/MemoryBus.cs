@@ -3,11 +3,13 @@ using GbcNet.Core.Cartridges;
 using GbcNet.Core.Clock;
 using GbcNet.Core.Dma;
 using GbcNet.Core.Dma.Policies;
+using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Ppu;
 using GbcNet.Core.Serial;
+using GbcNet.Core.Sgb;
 using GbcNet.Core.Timers;
 
 namespace GbcNet.Core.Memory;
@@ -100,7 +102,11 @@ internal sealed class MemoryBus
         _oamDmaTransferPolicy = hardwareProfile.CreateOamDmaTransferPolicy();
 
         Interrupts = new InterruptController();
-        Joypad = new JoypadController(Interrupts);
+        var sgb =
+            hardwareProfile.Model is HardwareModel.Sgb
+                ? new SgbController(cartridge.Header.HardwareKind is CartridgeHardwareKind.SGB)
+                : null;
+        Joypad = new JoypadController(Interrupts, sgb);
 
         Serial = new SerialController(Interrupts, hardwareProfile.IsSerialHighSpeedClockEnabled);
 

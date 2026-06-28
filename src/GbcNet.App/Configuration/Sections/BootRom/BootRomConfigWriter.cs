@@ -45,6 +45,7 @@ internal static class BootRomConfigWriter
         var bootRomNode = new KdlNode(BootRomConfigSchema.BootRomNodeName);
         AddPath(bootRomNode, BootRomConfigSchema.DmgNodeName, config.DmgPath);
         AddPath(bootRomNode, BootRomConfigSchema.CgbNodeName, config.CgbPath);
+        AddPath(bootRomNode, BootRomConfigSchema.SgbNodeName, config.SgbPath);
         return bootRomNode;
     }
 
@@ -57,4 +58,8 @@ internal static class BootRomConfigWriter
     }
 }
 
-internal readonly record struct BootRomConfig(string? DmgPath, string? CgbPath);
+internal readonly record struct BootRomConfig(
+    string? DmgPath = null,
+    string? CgbPath = null,
+    string? SgbPath = null
+);

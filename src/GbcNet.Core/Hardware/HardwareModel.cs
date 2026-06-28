@@ -17,4 +17,9 @@ public enum HardwareModel
     /// Early CGB0 differences are modeled separately only when explicit revision support exists.
     /// </remarks>
     Cgb = 1,
+
+    /// <summary>
+    /// Super Game Boy hardware using high-level emulation for the SNES-side features.
+    /// </summary>
+    Sgb = 2,
 }

@@ -29,6 +29,7 @@ internal sealed class BootRom
         {
             HardwareModel.Dmg => options.DmgBootRom,
             HardwareModel.Cgb => options.CgbBootRom,
+            HardwareModel.Sgb => options.SgbBootRom,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(hardwareModel),
                 hardwareModel,
@@ -41,10 +42,17 @@ internal sealed class BootRom
             return null;
         }
 
-        var expectedLength =
-            hardwareModel is HardwareModel.Dmg
-                ? BootRomOptions.DmgBootRomSize
-                : BootRomOptions.CgbBootRomSize;
+        var expectedLength = hardwareModel switch
+        {
+            HardwareModel.Dmg => BootRomOptions.DmgBootRomSize,
+            HardwareModel.Cgb => BootRomOptions.CgbBootRomSize,
+            HardwareModel.Sgb => BootRomOptions.SgbBootRomSize,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(hardwareModel),
+                hardwareModel,
+                "Unsupported hardware model."
+            ),
+        };
 
         if (bytes.Length != expectedLength)
         {

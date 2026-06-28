@@ -44,6 +44,7 @@ internal static class BootRomConfigReader
     {
         ReadOnlyMemory<byte> dmgBootRom = default;
         ReadOnlyMemory<byte> cgbBootRom = default;
+        ReadOnlyMemory<byte> sgbBootRom = default;
 
         foreach (var node in bootRomNode.Children)
         {
@@ -94,6 +95,26 @@ internal static class BootRomConfigReader
                     cgbBootRom = cgb.Value;
                     break;
 
+                case BootRomConfigSchema.SgbNodeName:
+                    if (!sgbBootRom.IsEmpty)
+                    {
+                        return Result.Fail("Boot ROM config has duplicate sgb node.");
+                    }
+
+                    var sgb = ReadBootRom(
+                        node,
+                        configDirectoryPath,
+                        BootRomConfigSchema.SgbNodeName.ToUpperInvariant(),
+                        BootRomOptions.SgbBootRomSize
+                    );
+                    if (sgb.IsFailed)
+                    {
+                        return sgb.ToResult<BootRomOptions>();
+                    }
+
+                    sgbBootRom = sgb.Value;
+                    break;
+
                 default:
                     return Result.Fail(
                         $"Boot ROM config node '{BootRomConfigSchema.BootRomNodeName}' does not allow child '{node.Name}'."
@@ -101,13 +122,19 @@ internal static class BootRomConfigReader
             }
         }
 
-        return new BootRomOptions { DmgBootRom = dmgBootRom, CgbBootRom = cgbBootRom };
+        return new BootRomOptions
+        {
+            DmgBootRom = dmgBootRom,
+            CgbBootRom = cgbBootRom,
+            SgbBootRom = sgbBootRom,
+        };
     }
 
     private static Result<BootRomConfig> ReadConfigNode(KdlNode bootRomNode)
     {
         string? dmgPath = null;
         string? cgbPath = null;
+        string? sgbPath = null;
 
         foreach (var node in bootRomNode.Children)
         {
@@ -148,6 +175,21 @@ internal static class BootRomConfigReader
                     cgbPath = cgb.Value;
                     break;
 
+                case BootRomConfigSchema.SgbNodeName:
+                    if (sgbPath is not null)
+                    {
+                        return Result.Fail("Boot ROM config has duplicate sgb node.");
+                    }
+
+                    var sgb = KdlNodeReader.ReadRequiredStringArgument(node);
+                    if (sgb.IsFailed)
+                    {
+                        return sgb.ToResult<BootRomConfig>();
+                    }
+
+                    sgbPath = sgb.Value;
+                    break;
+
                 default:
                     return Result.Fail(
                         $"Boot ROM config node '{BootRomConfigSchema.BootRomNodeName}' does not allow child '{node.Name}'."
@@ -155,7 +197,7 @@ internal static class BootRomConfigReader
             }
         }
 
-        return new BootRomConfig(dmgPath, cgbPath);
+        return new BootRomConfig(dmgPath, cgbPath, sgbPath);
     }
 
     private static Result<byte[]> ReadBootRom(

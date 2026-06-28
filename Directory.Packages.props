@@ -2,20 +2,8 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
-  <ItemGroup Label="Analyzers">
-    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.27.0.140913" />
-    <PackageVersion Include="Roslynator.Analyzers" Version="4.15.0" />
-    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.110" />
-  </ItemGroup>
-  <ItemGroup Label="Testing">
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
-    <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
-  </ItemGroup>
-  <ItemGroup Label="Core">
+  <ItemGroup>
     <PackageVersion Include="FluentResults" Version="4.0.0" />
-  </ItemGroup>
-  <ItemGroup Label="App">
     <PackageVersion Include="Avalonia" Version="12.0.5" />
     <PackageVersion Include="Avalonia.Desktop" Version="12.0.5" />
     <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.0.5" />
@@ -26,5 +14,15 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="10.0.9" />
     <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
     <PackageVersion Include="SoundFlow" Version="1.4.1" />
+  </ItemGroup>
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
+    <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+  </ItemGroup>
+  <ItemGroup Label="Analyzers">
+    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.27.0.140913" />
+    <PackageVersion Include="Roslynator.Analyzers" Version="4.15.0" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.110" />
   </ItemGroup>
 </Project>

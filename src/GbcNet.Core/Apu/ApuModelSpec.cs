@@ -43,6 +43,17 @@ internal readonly record struct ApuModelSpec
         );
 
     /// <summary>
+    /// SGB APU register visibility, faster NTSC clock, and DMG-style analog high-pass filter behavior.
+    /// </summary>
+    public static ApuModelSpec Sgb { get; } =
+        new(
+            isPcmOutputRegisterEnabled: false,
+            outputClockHz: 4_295_454,
+            highPassChargeFactorPerTCycle: 0.999958,
+            divApuDoubleSpeedFallingEdgeMask: DivApuNormalSpeedFallingEdgeMask
+        );
+
+    /// <summary>
     /// Indicates whether CGB PCM output registers FF76-FF77 are enabled.
     /// </summary>
     public bool IsPcmOutputRegisterEnabled { get; }

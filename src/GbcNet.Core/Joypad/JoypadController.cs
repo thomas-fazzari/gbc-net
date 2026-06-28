@@ -1,11 +1,12 @@
 using GbcNet.Core.Interrupts;
+using GbcNet.Core.Sgb;
 
 namespace GbcNet.Core.Joypad;
 
 /// <summary>
 /// Emulates the DMG P1/JOYP button matrix register.
 /// </summary>
-internal sealed class JoypadController(InterruptController interrupts)
+internal sealed class JoypadController(InterruptController interrupts, SgbController? sgb = null)
 {
     /// <summary>
     /// JOYP bits 7-6 read back as set on DMG hardware.
@@ -48,7 +49,12 @@ internal sealed class JoypadController(InterruptController interrupts)
     /// <summary>
     /// Reads JOYP with selected pressed buttons pulled low.
     /// </summary>
-    public byte Read() => (byte)(HighBitsReadMask | _selectedGroups | ReadLowNibble());
+    public byte Read()
+    {
+        var lowNibble = ReadLowNibble();
+        var selectedLowNibble = sgb?.ReadLowNibble(_selectedGroups, lowNibble) ?? lowNibble;
+        return (byte)(HighBitsReadMask | _selectedGroups | selectedLowNibble);
+    }
 
     /// <summary>
     /// Indicates that at least one selected button line is pulled low.
@@ -61,7 +67,13 @@ internal sealed class JoypadController(InterruptController interrupts)
     public void Write(byte value, bool requestInterruptOnTransition)
     {
         var previousValue = Read();
+        var previousSelectedGroups = _selectedGroups;
         _selectedGroups = (byte)(value & SelectBitsMask);
+
+        if (requestInterruptOnTransition)
+        {
+            sgb?.Write(value, previousSelectedGroups);
+        }
 
         if (requestInterruptOnTransition)
         {
