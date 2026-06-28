@@ -35,7 +35,9 @@ publish_root="$project_dir/bin/Release/$target_framework/$runtime"
 publish_dir="$publish_root/publish"
 bundle_dir="$publish_root/$display_name.app"
 
-dotnet publish "$app_project" --configuration Release --runtime "$runtime" -p:PublishAot=true
+dotnet restore "$app_project" --runtime "$runtime" -p:PublishAot=true -p:SelfContained=true
+rm -rf "$publish_dir"
+dotnet publish "$app_project" --configuration Release --runtime "$runtime" --self-contained true -p:PublishAot=true --no-restore
 
 rm -rf "$bundle_dir"
 mkdir -p "$bundle_dir/Contents/MacOS" "$bundle_dir/Contents/Resources"
