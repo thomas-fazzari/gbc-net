@@ -1,3 +1,5 @@
+using GbcNet.Core.Cartridges;
+
 namespace GbcNet.App.Library.Entities;
 
 /// <summary>
@@ -8,6 +10,7 @@ internal sealed record LibraryEntry(
     string LastKnownPath,
     string FileName,
     string? CartridgeTitle,
+    CartridgeHardwareKind HardwareKind,
     DateTimeOffset AddedAt,
     DateTimeOffset LastOpenedAt,
     int LaunchCount,

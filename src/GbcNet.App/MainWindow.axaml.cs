@@ -9,6 +9,7 @@ using GbcNet.App.Input;
 using GbcNet.App.Library;
 using GbcNet.App.Rendering;
 using GbcNet.App.Saves;
+using GbcNet.App.Shell;
 using GbcNet.Core.Ppu;
 using Microsoft.Extensions.Logging;
 
@@ -37,7 +38,11 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         InitializeComponent();
 
-        _framePresenter = new LcdFramePresenter(ScreenImage);
+        var libraryView = new LibraryView();
+        var emulationView = new EmulationView();
+        ContentHost.Content = libraryView;
+
+        _framePresenter = new LcdFramePresenter(emulationView.Screen);
 
         _statusBar = new StatusBarPresenter(StatusTextBlock, StatusMetricsTextBlock);
         _operationRunner = new ShellOperationRunner(
@@ -46,6 +51,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         );
 
         _windowChrome = new WindowChromePresenter(this, StatusBar, MainMenu);
+        _windowChrome.SetStatusBarAvailable(false);
 
         var emulationController = new EmulationController(
             startupConfiguration.BootRomOptions,
@@ -64,6 +70,25 @@ internal sealed partial class MainWindow : Window, IDisposable
             _operationRunner
         );
 
+        var libraryPresenter = new LibraryPresenter(
+            libraryView,
+            libraryService,
+            _operationRunner,
+            path => _emulationSession.OpenRecentRomAsync(StorageProvider, path)
+        );
+
+        _emulationSession.SessionOpened += (_, _) =>
+        {
+            ContentHost.Content = emulationView;
+            _windowChrome.SetStatusBarAvailable(true);
+        };
+        _emulationSession.SessionClosed += (_, _) =>
+        {
+            ContentHost.Content = libraryView;
+            _windowChrome.SetStatusBarAvailable(false);
+            libraryPresenter.Refresh();
+        };
+
         _configurationPresenter = new ConfigurationPresenter(
             configurationService,
             startupConfiguration.ConfigPath,
@@ -73,6 +98,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         ConfigureMenu();
         _emulationSession.AttachDragDrop(this);
+        libraryPresenter.Refresh();
 
         if (startupConfiguration.StartupErrorMessage is not null)
         {
@@ -90,7 +116,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             _operationRunner.Run(() =>
                 _emulationSession.OpenRecentRomAsync(StorageProvider, e.Path)
             );
-        MainMenu.CloseRequested += (_, _) => Close();
+        MainMenu.CloseRequested += (_, _) => _operationRunner.Run(_emulationSession.StopAsync);
         MainMenu.ConfigurationRequested += (_, _) =>
             _operationRunner.Run(() => _configurationPresenter.OpenAsync(this));
         MainMenu.ConfigurationFileLocationRequested += (_, _) =>

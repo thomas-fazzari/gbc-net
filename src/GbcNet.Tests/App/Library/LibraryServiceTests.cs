@@ -7,14 +7,14 @@ namespace GbcNet.Tests.App.Library;
 public sealed class LibraryServiceTests
 {
     [Fact]
-    public async Task RecordOpenedRomAsync_AppliesSchemaVersionOneMigration()
+    public async Task RecordOpenedRomAsync_AppliesLatestSchemaMigration()
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
 
         ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
 
-        Assert.Equal(1, GetAppliedMigrationVersion(test.DatabasePath));
+        Assert.Equal(2, GetAppliedMigrationVersion(test.DatabasePath));
     }
 
     [Fact]
@@ -29,9 +29,7 @@ public sealed class LibraryServiceTests
         test.TimeProvider.Advance(TimeSpan.FromMinutes(1));
         ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(secondPath));
 
-        var entry = Assert.Single(
-            ResultAssertions.AssertSuccess(test.Library.GetRecentRoms(limit: 10))
-        );
+        var entry = Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)));
         Assert.Equal(Path.GetFullPath(secondPath), entry.LastKnownPath);
         Assert.Equal("second.gb", entry.FileName);
         Assert.Equal("TEST ROM", entry.CartridgeTitle);
@@ -60,9 +58,7 @@ public sealed class LibraryServiceTests
 
         ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
 
-        var entry = Assert.Single(
-            ResultAssertions.AssertSuccess(test.Library.GetRecentRoms(limit: 10))
-        );
+        var entry = Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)));
         Assert.Equal(Path.GetFullPath(romPath), entry.LastKnownPath);
         Assert.Equal("SECOND ROM", entry.CartridgeTitle);
         Assert.Equal(1, entry.LaunchCount);
@@ -77,11 +73,11 @@ public sealed class LibraryServiceTests
 
         ResultAssertions.AssertSuccess(test.Library.RemoveRomPath(romPath));
 
-        Assert.Empty(ResultAssertions.AssertSuccess(test.Library.GetRecentRoms(limit: 10)));
+        Assert.Empty(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)));
     }
 
     [Fact]
-    public void GetRecentRoms_OrdersByInstantWhenLocalOffsetChanges()
+    public void GetRoms_OrdersByInstantWhenLocalOffsetChanges()
     {
         using var test = new LibraryTestContext();
         InsertLibraryEntry(
@@ -97,7 +93,7 @@ public sealed class LibraryServiceTests
             "2026-10-25T02:15:00.0000000+01:00"
         );
 
-        var entries = ResultAssertions.AssertSuccess(test.Library.GetRecentRoms(limit: 10));
+        var entries = ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10));
 
         Assert.Collection(
             entries,

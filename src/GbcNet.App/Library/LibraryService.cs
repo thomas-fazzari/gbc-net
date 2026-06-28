@@ -33,10 +33,9 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
         }
     }
 
-    public Result<IReadOnlyList<LibraryEntry>> GetRecentRoms(int limit)
+    public Result<IReadOnlyList<LibraryEntry>> GetRoms(int limit = int.MaxValue)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
-
         try
         {
             using var connection = database.OpenConnection();
@@ -50,7 +49,8 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
                   added_at,
                   last_opened_at,
                   launch_count,
-                  cover_path
+                  cover_path,
+                  hardware_kind
                 from roms
                 order by unixepoch(last_opened_at) desc
                 limit $limit;
@@ -67,6 +67,7 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
                         reader.GetString(1),
                         reader.GetString(2),
                         reader.IsDBNull(3) ? null : reader.GetString(3),
+                        ParseHardwareKind(reader.GetString(8)),
                         ParseTimestamp(reader.GetString(4)),
                         ParseTimestamp(reader.GetString(5)),
                         reader.GetInt32(6),
@@ -126,7 +127,8 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
               added_at,
               last_opened_at,
               launch_count,
-              cover_path
+              cover_path,
+              hardware_kind
             ) values (
               $romHash,
               $lastKnownPath,
@@ -135,12 +137,14 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
               $openedAt,
               $openedAt,
               1,
-              null
+              null,
+              $hardwareKind
             )
             on conflict(rom_hash) do update set
               last_known_path = excluded.last_known_path,
               file_name = excluded.file_name,
               cartridge_title = excluded.cartridge_title,
+              hardware_kind = excluded.hardware_kind,
               last_opened_at = excluded.last_opened_at,
               launch_count = roms.launch_count + 1;
             """;
@@ -148,6 +152,10 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
         upsertCommand.Parameters.AddWithValue("$lastKnownPath", fullPath);
         upsertCommand.Parameters.AddWithValue("$fileName", Path.GetFileName(fullPath));
         upsertCommand.Parameters.AddWithValue("$cartridgeTitle", cartridge.Header.Title);
+        upsertCommand.Parameters.AddWithValue(
+            "$hardwareKind",
+            cartridge.Header.HardwareKind.ToString()
+        );
         upsertCommand.Parameters.AddWithValue("$openedAt", openedAt);
         upsertCommand.ExecuteNonQuery();
 
@@ -159,6 +167,15 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
 
     private static DateTimeOffset ParseTimestamp(string value) =>
         DateTimeOffset.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+
+    private static CartridgeHardwareKind ParseHardwareKind(string value) =>
+        value switch
+        {
+            nameof(CartridgeHardwareKind.GB) => CartridgeHardwareKind.GB,
+            nameof(CartridgeHardwareKind.GBC) => CartridgeHardwareKind.GBC,
+            nameof(CartridgeHardwareKind.SGB) => CartridgeHardwareKind.SGB,
+            _ => throw new FormatException($"Unknown cartridge hardware kind '{value}'."),
+        };
 
     private static bool IsExpectedLibraryException(Exception exception) =>
         exception

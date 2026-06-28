@@ -7,9 +7,13 @@ namespace GbcNet.App.Chrome;
 
 internal sealed class WindowChromePresenter(Window window, Control statusBar, MainMenu menu)
 {
+    private bool _statusBarAvailable = true;
+    private bool _statusBarVisibleWhenAvailable = true;
+
     public void SyncMenuState()
     {
         menu.SetFullscreenState(window.WindowState is WindowState.FullScreen);
+        menu.SetStatusBarAvailability(_statusBarAvailable);
         menu.SetStatusBarState(statusBar.IsVisible);
     }
 
@@ -31,7 +35,25 @@ internal sealed class WindowChromePresenter(Window window, Control statusBar, Ma
 
     public void ToggleStatusBar()
     {
-        statusBar.IsVisible = !statusBar.IsVisible;
+        if (!_statusBarAvailable)
+        {
+            return;
+        }
+
+        _statusBarVisibleWhenAvailable = !_statusBarVisibleWhenAvailable;
+        ApplyStatusBarVisibility();
+    }
+
+    public void SetStatusBarAvailable(bool isAvailable)
+    {
+        _statusBarAvailable = isAvailable;
+        ApplyStatusBarVisibility();
+    }
+
+    private void ApplyStatusBarVisibility()
+    {
+        statusBar.IsVisible = _statusBarAvailable && _statusBarVisibleWhenAvailable;
+        menu.SetStatusBarAvailability(_statusBarAvailable);
         menu.SetStatusBarState(statusBar.IsVisible);
     }
 

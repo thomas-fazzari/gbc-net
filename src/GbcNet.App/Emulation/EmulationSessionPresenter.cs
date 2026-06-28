@@ -7,6 +7,7 @@ using GbcNet.App.Chrome;
 using GbcNet.App.Input;
 using GbcNet.App.Library;
 using GbcNet.App.Menus;
+using GbcNet.App.Shell;
 using GbcNet.Core;
 
 namespace GbcNet.App.Emulation;
@@ -28,6 +29,9 @@ internal sealed class EmulationSessionPresenter(
         AppleUniformTypeIdentifiers = ["public.data"],
         MimeTypes = ["application/x-gameboy-rom", "application/x-gameboy-color-rom"],
     };
+
+    public event EventHandler? SessionClosed;
+    public event EventHandler? SessionOpened;
 
     public void AttachDragDrop(Control target)
     {
@@ -74,7 +78,7 @@ internal sealed class EmulationSessionPresenter(
                 .ConfigureAwait(true);
             if (recorded.IsFailed)
             {
-                statusBar.ShowError(StatusBarPresenter.FormatErrors(recorded.Errors));
+                statusBar.ShowError(ResultErrors.Format(recorded.Errors));
             }
             else
             {
@@ -93,7 +97,7 @@ internal sealed class EmulationSessionPresenter(
             var removed = libraryService.RemoveRomPath(path);
             if (removed.IsFailed)
             {
-                statusBar.ShowError(StatusBarPresenter.FormatErrors(removed.Errors));
+                statusBar.ShowError(ResultErrors.Format(removed.Errors));
             }
 
             SyncRecentRoms();
@@ -114,6 +118,7 @@ internal sealed class EmulationSessionPresenter(
         await controller.StopAsync().ConfigureAwait(true);
         inputRouter.Clear();
         SyncMenuState();
+        SessionClosed?.Invoke(this, EventArgs.Empty);
     }
 
     public void TogglePause()
@@ -176,10 +181,10 @@ internal sealed class EmulationSessionPresenter(
 
     public void SyncRecentRoms()
     {
-        var recentRoms = libraryService.GetRecentRoms(RecentRomLimit);
+        var recentRoms = libraryService.GetRoms(RecentRomLimit);
         if (recentRoms.IsFailed)
         {
-            statusBar.ShowError(StatusBarPresenter.FormatErrors(recentRoms.Errors));
+            statusBar.ShowError(ResultErrors.Format(recentRoms.Errors));
             menu.SetRecentRoms([]);
             return;
         }
@@ -211,7 +216,7 @@ internal sealed class EmulationSessionPresenter(
     {
         if (result.IsFailed)
         {
-            statusBar.ShowError(StatusBarPresenter.FormatErrors(result.Errors));
+            statusBar.ShowError(ResultErrors.Format(result.Errors));
             SyncMenuState();
             return;
         }
@@ -219,6 +224,7 @@ internal sealed class EmulationSessionPresenter(
         if (result.Value.HasSession)
         {
             statusBar.ShowRomFileName(result.Value.LoadedRomFileName);
+            SessionOpened?.Invoke(this, EventArgs.Empty);
         }
         SyncMenuState();
     }

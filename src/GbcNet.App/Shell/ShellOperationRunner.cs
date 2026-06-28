@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace GbcNet.App.Chrome;
+namespace GbcNet.App.Shell;
 
 internal sealed class ShellOperationRunner(Action<Exception> handleError, ILogger logger)
 {

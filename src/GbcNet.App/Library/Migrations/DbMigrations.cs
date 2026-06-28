@@ -4,15 +4,19 @@ namespace GbcNet.App.Library.Migrations;
 
 internal readonly record struct DbMigration(
     int Version,
-    Action<SqliteConnection, SqliteTransaction> Apply
+    Action<SqliteConnection, SqliteTransaction> Up
 );
 
 internal static class DbMigrations
 {
     // Migrations are explicit instead of reflection-based for AOT compatibility
-    private static readonly DbMigration[] _all = [V1CreateRoms.Migration];
+    private static readonly DbMigration[] _all =
+    [
+        V1CreateRoms.Migration,
+        V2AddHardwareKindToRoms.Migration,
+    ];
 
     public static ReadOnlySpan<DbMigration> All => _all;
 
-    public const int LatestVersion = 1;
+    public const int LatestVersion = 2;
 }

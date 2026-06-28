@@ -50,7 +50,7 @@ internal sealed class LibraryDatabase(string databasePath)
                 continue;
             }
 
-            migration.Apply(connection, transaction);
+            migration.Up(connection, transaction);
         }
 
         transaction.Commit();

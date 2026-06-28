@@ -1,7 +1,7 @@
-using GbcNet.App.Chrome;
+using GbcNet.App.Shell;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace GbcNet.Tests.App.Chrome;
+namespace GbcNet.Tests.App.Shell;
 
 public sealed class ShellOperationRunnerTests
 {

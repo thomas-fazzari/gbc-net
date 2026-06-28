@@ -1,6 +1,5 @@
 using System.Globalization;
 using Avalonia.Controls;
-using FluentResults;
 
 namespace GbcNet.App.Chrome;
 
@@ -31,9 +30,6 @@ internal sealed class StatusBarPresenter(TextBlock message, TextBlock metrics)
     {
         metrics.Text = FormatMetrics(speedMultiplier, renderedFramesPerSecond);
     }
-
-    public static string FormatErrors(IEnumerable<IError> errors) =>
-        string.Join(Environment.NewLine, errors.Select(static error => error.Message));
 
     internal static string FormatMetrics(double speedMultiplier, double renderedFramesPerSecond) =>
         string.Create(

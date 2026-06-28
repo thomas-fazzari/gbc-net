@@ -14,18 +14,7 @@
   <Grid RowDefinitions="Auto,*,Auto">
     <menus:MainMenu x:Name="MainMenu" Grid.Row="0" />
 
-    <Border Background="#050505" Padding="24" Grid.Row="1">
-      <Viewbox Stretch="Uniform">
-        <Border
-          Width="160"
-          Height="144"
-          Background="#050505"
-          RenderOptions.BitmapInterpolationMode="None"
-        >
-          <Image x:Name="ScreenImage" Width="160" Height="144" Stretch="Fill" />
-        </Border>
-      </Viewbox>
-    </Border>
+    <ContentControl x:Name="ContentHost" Grid.Row="1" />
 
     <Border
       x:Name="StatusBar"

@@ -1,4 +1,3 @@
-using FluentResults;
 using GbcNet.App.Chrome;
 
 namespace GbcNet.Tests.App.Chrome;
@@ -18,14 +17,6 @@ public sealed class StatusBarPresenterTests
 
         Assert.Equal(72, formatted.Length);
         Assert.EndsWith("...", formatted, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void FormatErrors_JoinsErrorMessages()
-    {
-        var formatted = StatusBarPresenter.FormatErrors([new Error("first"), new Error("second")]);
-
-        Assert.Equal($"first{Environment.NewLine}second", formatted);
     }
 
     [Fact]

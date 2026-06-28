@@ -1,0 +1,26 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  x:Class="GbcNet.App.Library.LibraryView"
+>
+  <Border Background="#101010" Padding="32">
+    <Grid>
+      <ScrollViewer x:Name="LibraryScrollViewer" VerticalScrollBarVisibility="Auto">
+        <WrapPanel x:Name="RomTilesPanel" Orientation="Horizontal" />
+      </ScrollViewer>
+
+      <Grid x:Name="EmptyState">
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+          <TextBlock
+            x:Name="EmptyStateText"
+            Text="No ROMs yet"
+            Foreground="#f2f2f3"
+            FontSize="16"
+            FontWeight="SemiBold"
+            HorizontalAlignment="Center"
+          />
+        </StackPanel>
+      </Grid>
+    </Grid>
+  </Border>
+</UserControl>

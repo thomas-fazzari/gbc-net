@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Avalonia.Controls;
 using GbcNet.App.Chrome;
 using GbcNet.App.Configuration.Sections.BootRom;
+using GbcNet.App.Shell;
 using GbcNet.Core;
 
 namespace GbcNet.App.Configuration;
@@ -19,7 +20,7 @@ internal sealed class ConfigurationPresenter(
 
         if (bootRomConfig.IsFailed)
         {
-            statusBar.ShowError(StatusBarPresenter.FormatErrors(bootRomConfig.Errors));
+            statusBar.ShowError(ResultErrors.Format(bootRomConfig.Errors));
             return;
         }
 
@@ -36,7 +37,7 @@ internal sealed class ConfigurationPresenter(
 
         if (saved.IsFailed)
         {
-            statusBar.ShowError(StatusBarPresenter.FormatErrors(saved.Errors));
+            statusBar.ShowError(ResultErrors.Format(saved.Errors));
             return;
         }
 
@@ -70,7 +71,7 @@ internal sealed class ConfigurationPresenter(
         if (bootRomOptions.IsFailed)
         {
             setBootRomOptions(new BootRomOptions());
-            statusBar.ShowError(StatusBarPresenter.FormatErrors(bootRomOptions.Errors));
+            statusBar.ShowError(ResultErrors.Format(bootRomOptions.Errors));
             return;
         }
 

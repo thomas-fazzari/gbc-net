@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ponytail Audit"
+  short_description: "Find repo-wide over-engineering"
+  default_prompt: "Use $ponytail-audit to find what can be deleted or simplified."

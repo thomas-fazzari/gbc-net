@@ -52,6 +52,11 @@ internal sealed partial class MainMenu : UserControl
     [];
     private readonly NativeMenu _nativeOpenRecentMenu = [];
     private readonly NativeMenuItem _nativeOpenRecentMenuItem;
+    private readonly NativeMenuItem _nativeCloseMenuItem = new("Close")
+    {
+        Gesture = KeyGesture.Parse("Meta+W"),
+        IsEnabled = false,
+    };
     private readonly NativeMenu _nativeMenu;
 
     public MainMenu()
@@ -105,6 +110,8 @@ internal sealed partial class MainMenu : UserControl
         SetPauseState(isEnabled, isPaused: false);
         _nativeResetMenuItem.IsEnabled = isEnabled;
         ResetEmulationMenuItem.IsEnabled = isEnabled;
+        _nativeCloseMenuItem.IsEnabled = isEnabled;
+        CloseWindowMenuItem.IsEnabled = isEnabled;
     }
 
     public void SetPauseState(bool isEnabled, bool isPaused)
@@ -144,6 +151,12 @@ internal sealed partial class MainMenu : UserControl
     {
         _nativeStatusBarMenuItem.IsChecked = isVisible;
         StatusBarMenuItem.IsChecked = isVisible;
+    }
+
+    public void SetStatusBarAvailability(bool isAvailable)
+    {
+        _nativeStatusBarMenuItem.IsEnabled = isAvailable;
+        StatusBarMenuItem.IsEnabled = isAvailable;
     }
 
     public void SetRecentRoms(IReadOnlyList<LibraryEntry> entries)
@@ -251,9 +264,8 @@ internal sealed partial class MainMenu : UserControl
         };
         fileMenu.NeedsUpdate += (_, _) => RecentRomsRequested?.Invoke(this, EventArgs.Empty);
 
-        var closeItem = new NativeMenuItem("Close") { Gesture = KeyGesture.Parse("Meta+W") };
-        closeItem.Click += (_, _) => CloseRequested?.Invoke(this, EventArgs.Empty);
-        fileMenu.Add(closeItem);
+        _nativeCloseMenuItem.Click += (_, _) => CloseRequested?.Invoke(this, EventArgs.Empty);
+        fileMenu.Add(_nativeCloseMenuItem);
 
         return fileMenu;
     }

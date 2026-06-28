@@ -13,6 +13,9 @@ namespace GbcNet.Core.Cartridges;
 /// <param name="CgbSupport">
 /// Declared CGB compatibility from header byte 0143.
 /// </param>
+/// <param name="HardwareKind">
+/// Primary hardware family advertised by CGB and SGB header flags.
+/// </param>
 /// <param name="CartridgeType">
 /// Cartridge hardware type from header byte 0147.
 /// </param>
@@ -34,6 +37,7 @@ namespace GbcNet.Core.Cartridges;
 public sealed record CartridgeHeader(
     string Title,
     CgbSupport CgbSupport,
+    CartridgeHardwareKind HardwareKind,
     CartridgeType CartridgeType,
     int RomSizeBytes,
     int RomBankCount,
@@ -48,11 +52,13 @@ public sealed record CartridgeHeader(
     private const int NewHeaderTitleEndAddress = 0x013E;
     private const int CgbTitleEndAddress = 0x0142;
     private const int CgbFlagAddress = 0x0143;
+    private const int SgbFlagAddress = 0x0146;
     private const int CartridgeTypeAddress = 0x0147;
     private const int RomSizeAddress = 0x0148;
     private const int RamSizeAddress = 0x0149;
     private const int OldLicenseeCodeAddress = 0x014B;
     private const int HeaderChecksumAddress = 0x014D;
+    private const byte SgbEnhancedFlag = 0x03;
 
     /// <summary>
     /// Parses cartridge header fields and validates the header checksum.
@@ -138,6 +144,7 @@ public sealed record CartridgeHeader(
         new(
             ReadTitle(rom, cgbSupport),
             cgbSupport,
+            DecodeHardwareKind(cgbSupport, rom[SgbFlagAddress]),
             (CartridgeType)rom[CartridgeTypeAddress],
             romSizeBytes,
             romBankCount,
@@ -191,6 +198,16 @@ public sealed record CartridgeHeader(
             0xC0 => CgbSupport.Required,
             _ => CgbSupport.None,
         };
+
+    private static CartridgeHardwareKind DecodeHardwareKind(CgbSupport cgbSupport, byte sgbFlag)
+    {
+        if (cgbSupport is CgbSupport.Enhanced or CgbSupport.Required)
+        {
+            return CartridgeHardwareKind.GBC;
+        }
+
+        return sgbFlag == SgbEnhancedFlag ? CartridgeHardwareKind.SGB : CartridgeHardwareKind.GB;
+    }
 
     private static int GetTitleEndAddress(ReadOnlySpan<byte> rom, CgbSupport cgbSupport)
     {
