@@ -1,5 +1,4 @@
 using GbcNet.Core.Apu;
-using GbcNet.Core.Apu.Profiles;
 using GbcNet.Core.Clock;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Serial;
@@ -70,7 +69,7 @@ public sealed class ClockControllerTests
     {
         var interrupts = new InterruptController();
         var serial = new SerialController(interrupts);
-        var apu = new ApuController(new DmgApuHardwareProfile());
+        var apu = new ApuController(ApuModelSpec.Dmg);
         return new ClockController(interrupts, serial, apu, isKey1RegisterEnabled);
     }
 }

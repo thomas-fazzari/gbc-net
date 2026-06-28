@@ -4,7 +4,7 @@ using GbcNet.Core.Memory;
 
 namespace GbcNet.Tests.RomTesting.Utils.ResultObservers;
 
-internal sealed class BlarggExternalRamResultObserver : IRomResultObserver, ICpuMemoryWriteObserver
+internal sealed class BlarggExternalRamResultObserver : IRomResultObserver
 {
     private const string Source = "Blargg external RAM";
     private const byte RunningStatus = 0x80;
@@ -22,7 +22,7 @@ internal sealed class BlarggExternalRamResultObserver : IRomResultObserver, ICpu
 
     public BlarggExternalRamResultObserver(GameBoy gameBoy)
     {
-        gameBoy.Bus.CpuMemoryWriteObserver = this;
+        gameBoy.Bus.CpuMemoryWritten += OnCpuMemoryWritten;
     }
 
     public RomTestObservation Snapshot { get; private set; } = new(Source);
@@ -48,11 +48,11 @@ internal sealed class BlarggExternalRamResultObserver : IRomResultObserver, ICpu
         return status is null ? null : Snapshot;
     }
 
-    void ICpuMemoryWriteObserver.OnCpuMemoryWritten(ushort address, byte value)
+    private void OnCpuMemoryWritten(object? sender, CpuMemoryWrittenEventArgs e)
     {
-        if (address is >= AddressMap.ExternalRamStart and <= AddressMap.ExternalRamEnd)
+        if (e.Address is >= AddressMap.ExternalRamStart and <= AddressMap.ExternalRamEnd)
         {
-            _externalRamWrites[address - AddressMap.ExternalRamStart] = value;
+            _externalRamWrites[e.Address - AddressMap.ExternalRamStart] = e.Value;
         }
     }
 

@@ -44,9 +44,9 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
         new() { PC = AddressMap.CartridgeEntryPointAddress, SP = AddressMap.HighRamEnd };
 
     /// <summary>
-    /// Optional instrumentation sink for debugger breakpoint tooling.
+    /// Raised after an instruction has executed for debugger and breakpoint instrumentation.
     /// </summary>
-    internal ICpuInstructionObserver? InstructionObserver { private get; set; }
+    internal event EventHandler<CpuInstructionExecutedEventArgs>? InstructionExecuted;
 
     /// <summary>
     /// Fetches and executes one instruction.
@@ -229,7 +229,7 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
         var secondOperand = instruction.ByteLength > 2 ? FetchProgramByte() : (byte)0;
 
         instruction.Execute(this, firstOperand, secondOperand);
-        InstructionObserver?.OnInstructionExecuted(opcode, Registers);
+        InstructionExecuted?.Invoke(this, new CpuInstructionExecutedEventArgs(opcode, Registers));
         return _currentInstructionMachineCycles;
     }
 
@@ -359,4 +359,20 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
         tickMachineCycle?.Invoke();
         _currentInstructionMachineCycles++;
     }
+}
+
+/// <summary>
+/// Provides the opcode and register state observed after one completed instruction.
+/// </summary>
+internal sealed class CpuInstructionExecutedEventArgs(byte opcode, Registers registers) : EventArgs
+{
+    /// <summary>
+    /// Opcode byte that was executed.
+    /// </summary>
+    public byte Opcode { get; } = opcode;
+
+    /// <summary>
+    /// Mutable CPU register file after the instruction completed.
+    /// </summary>
+    public Registers Registers { get; } = registers;
 }

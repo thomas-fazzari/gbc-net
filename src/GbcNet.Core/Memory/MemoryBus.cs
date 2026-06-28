@@ -76,9 +76,9 @@ internal sealed class MemoryBus
     public CgbVramDmaController VramDma { get; }
 
     /// <summary>
-    /// Optional instrumentation sink for debugger/watchpoint tooling.
+    /// Raised after a CPU-visible write has been routed by the memory bus.
     /// </summary>
-    internal ICpuMemoryWriteObserver? CpuMemoryWriteObserver { private get; set; }
+    internal event EventHandler<CpuMemoryWrittenEventArgs>? CpuMemoryWritten;
 
     /// <summary>
     /// Creates the CPU-visible bus and model-specific DMA/PPU policies for a cartridge.
@@ -104,7 +104,7 @@ internal sealed class MemoryBus
 
         Serial = new SerialController(Interrupts, hardwareProfile.IsSerialHighSpeedClockEnabled);
 
-        Apu = new ApuController(hardwareProfile.CreateApuHardwareProfile());
+        Apu = new ApuController(hardwareProfile.CreateApuModelSpec());
 
         Clock = new ClockController(
             Interrupts,
@@ -200,7 +200,7 @@ internal sealed class MemoryBus
         }
 
         WriteMappedByte(address, value);
-        CpuMemoryWriteObserver?.OnCpuMemoryWritten(address, value);
+        CpuMemoryWritten?.Invoke(this, new CpuMemoryWrittenEventArgs(address, value));
     }
 
     /// <summary>
@@ -352,4 +352,20 @@ internal sealed class MemoryBus
                 return;
         }
     }
+}
+
+/// <summary>
+/// Provides the address and value from an accepted CPU-visible memory write.
+/// </summary>
+internal sealed class CpuMemoryWrittenEventArgs(ushort address, byte value) : EventArgs
+{
+    /// <summary>
+    /// CPU-visible address written by the bus.
+    /// </summary>
+    public ushort Address { get; } = address;
+
+    /// <summary>
+    /// Value written to the CPU-visible address.
+    /// </summary>
+    public byte Value { get; } = value;
 }

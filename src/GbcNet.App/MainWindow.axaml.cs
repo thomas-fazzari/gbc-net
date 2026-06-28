@@ -154,6 +154,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         base.OnPropertyChanged(change);
 
+        // ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
         _windowChrome?.SyncFullscreenState(change);
     }
 

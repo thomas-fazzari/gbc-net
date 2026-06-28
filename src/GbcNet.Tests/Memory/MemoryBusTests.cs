@@ -1340,15 +1340,15 @@ public sealed class MemoryBusTests
 
     private static MemoryBus CreateBus() => CreateBus(TestRomFactory.Create());
 
-    private static MemoryBus CreateBus(IHardwareProfile hardwareProfile) =>
-        CreateBus(TestRomFactory.Create(), hardwareProfile);
+    private static MemoryBus CreateBus(IHardwareProfile profile) =>
+        CreateBus(TestRomFactory.Create(), profile);
 
     private static MemoryBus CreateBus(byte[] rom) => CreateBus(rom, DmgHardwareProfile.Instance);
 
-    private static MemoryBus CreateBus(byte[] rom, IHardwareProfile hardwareProfile)
+    private static MemoryBus CreateBus(byte[] rom, IHardwareProfile profile)
     {
         var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
-        return new MemoryBus(cartridge, hardwareProfile);
+        return new MemoryBus(cartridge, profile);
     }
 
     private static void TickMachineCycles(MemoryBus bus, int machineCycles)

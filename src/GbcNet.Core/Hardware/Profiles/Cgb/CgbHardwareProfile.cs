@@ -1,4 +1,4 @@
-using GbcNet.Core.Apu.Profiles;
+using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Dma.Policies;
 using GbcNet.Core.Memory;
@@ -60,7 +60,7 @@ internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHard
 
     public ITransferPolicy CreateOamDmaTransferPolicy() => new CgbOamDmaTransferPolicy();
 
-    public IApuHardwareProfile CreateApuHardwareProfile() => new CgbApuHardwareProfile();
+    public ApuModelSpec CreateApuModelSpec() => ApuModelSpec.Cgb;
 
     public void ApplyPostBootState(Cartridge cartridge, Cpu cpu, MemoryBus bus)
     {

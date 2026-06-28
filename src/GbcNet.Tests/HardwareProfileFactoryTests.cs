@@ -1,4 +1,4 @@
-using GbcNet.Core.Apu.Profiles;
+using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Dma.Policies;
 using GbcNet.Core.Hardware;
@@ -34,9 +34,10 @@ public sealed class HardwareProfileFactoryTests
         Assert.IsType<DmgPpuEngine>(profile.CreatePpuEngine());
         Assert.IsType<DmgOamDmaTransferPolicy>(profile.CreateOamDmaTransferPolicy());
 
-        var apuProfile = Assert.IsType<DmgApuHardwareProfile>(profile.CreateApuHardwareProfile());
+        var apuSpec = profile.CreateApuModelSpec();
 
-        Assert.Equal(0.999958, apuProfile.GetOutputHighPassChargeFactor(apuProfile.OutputClockHz));
+        Assert.Equal(ApuModelSpec.Dmg, apuSpec);
+        Assert.Equal(0.999958, apuSpec.GetOutputHighPassChargeFactor(apuSpec.OutputClockHz));
         Assert.Equal(2, profile.WorkRamBankCount);
     }
 
@@ -78,10 +79,9 @@ public sealed class HardwareProfileFactoryTests
         Assert.True(cgbProfile.TicksTimerOnTacEnableWhenInputHigh);
         Assert.IsType<CgbPpuEngine>(cgbProfile.CreatePpuEngine());
         Assert.IsType<CgbOamDmaTransferPolicy>(cgbProfile.CreateOamDmaTransferPolicy());
-        var apuProfile = Assert.IsType<CgbApuHardwareProfile>(
-            cgbProfile.CreateApuHardwareProfile()
-        );
-        Assert.Equal(0.998943, apuProfile.GetOutputHighPassChargeFactor(apuProfile.OutputClockHz));
+        var apuSpec = cgbProfile.CreateApuModelSpec();
+        Assert.Equal(ApuModelSpec.Cgb, apuSpec);
+        Assert.Equal(0.998943, apuSpec.GetOutputHighPassChargeFactor(apuSpec.OutputClockHz));
         Assert.Equal(8, cgbProfile.WorkRamBankCount);
     }
 
@@ -107,7 +107,7 @@ public sealed class HardwareProfileFactoryTests
         Assert.True(cgbProfile.TicksTimerOnTacEnableWhenInputHigh);
         Assert.IsType<CgbDmgCompatibilityPpuEngine>(cgbProfile.CreatePpuEngine());
         Assert.IsType<CgbOamDmaTransferPolicy>(cgbProfile.CreateOamDmaTransferPolicy());
-        Assert.IsType<CgbApuHardwareProfile>(cgbProfile.CreateApuHardwareProfile());
+        Assert.Equal(ApuModelSpec.Cgb, cgbProfile.CreateApuModelSpec());
         Assert.Equal(8, cgbProfile.WorkRamBankCount);
     }
 

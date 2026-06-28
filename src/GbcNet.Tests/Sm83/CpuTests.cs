@@ -49,7 +49,7 @@ public sealed class CpuTests
                 bytes[0x0100] = StopOpcode;
                 bytes[0x0101] = 0x00;
             },
-            hardwareProfile: new CgbHardwareProfile(CgbOperatingMode.Cgb)
+            profile: new CgbHardwareProfile(CgbOperatingMode.Cgb)
         );
         var bus = CpuTestFactory.GetBus(cpu);
         bus.WriteByte(AddressMap.Key1Register, 0x01);
@@ -72,7 +72,7 @@ public sealed class CpuTests
                 bytes[0x0100] = StopOpcode;
                 bytes[0x0101] = 0x00;
             },
-            hardwareProfile: new CgbHardwareProfile(CgbOperatingMode.Cgb)
+            profile: new CgbHardwareProfile(CgbOperatingMode.Cgb)
         );
         var bus = CpuTestFactory.GetBus(cpu);
 

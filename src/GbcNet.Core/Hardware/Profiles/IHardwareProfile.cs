@@ -1,4 +1,4 @@
-using GbcNet.Core.Apu.Profiles;
+using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Dma.Policies;
 using GbcNet.Core.Memory;
@@ -98,9 +98,9 @@ internal interface IHardwareProfile
     ITransferPolicy CreateOamDmaTransferPolicy();
 
     /// <summary>
-    /// Creates the APU profile for this hardware model.
+    /// Creates the APU model spec for this hardware model.
     /// </summary>
-    IApuHardwareProfile CreateApuHardwareProfile();
+    ApuModelSpec CreateApuModelSpec();
 
     /// <summary>
     /// Seeds CPU and hardware registers after skipping the boot ROM.

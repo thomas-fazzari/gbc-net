@@ -6,9 +6,7 @@ using GbcNet.Core.Sm83;
 
 namespace GbcNet.Tests.RomTesting.Utils.ResultObservers;
 
-internal sealed class MooneyeRegisterSnapshotResultObserver
-    : IRomResultObserver,
-        ICpuInstructionObserver
+internal sealed class MooneyeRegisterSnapshotResultObserver : IRomResultObserver
 {
     private const string Source = "Mooneye register snapshot";
     private const byte LoadBFromBOpcode = 0x40;
@@ -22,28 +20,28 @@ internal sealed class MooneyeRegisterSnapshotResultObserver
     public MooneyeRegisterSnapshotResultObserver(GameBoy gameBoy)
     {
         _gameBoy = gameBoy;
-        gameBoy.Cpu.InstructionObserver = this;
+        gameBoy.Cpu.InstructionExecuted += OnInstructionExecuted;
     }
 
     public RomTestObservation Snapshot { get; private set; } = new(Source);
 
     public RomTestObservation? Observe() => Snapshot.Status is null ? null : Snapshot;
 
-    void ICpuInstructionObserver.OnInstructionExecuted(byte opcode, Registers registers)
+    private void OnInstructionExecuted(object? sender, CpuInstructionExecutedEventArgs e)
     {
-        if (opcode is not LoadBFromBOpcode)
+        if (e.Opcode is not LoadBFromBOpcode)
         {
             return;
         }
 
         Span<byte> report =
         [
-            registers.B,
-            registers.C,
-            registers.D,
-            registers.E,
-            registers.H,
-            registers.L,
+            e.Registers.B,
+            e.Registers.C,
+            e.Registers.D,
+            e.Registers.E,
+            e.Registers.H,
+            e.Registers.L,
         ];
         var status = GetStatus(report);
         if (status is { } resultStatus)

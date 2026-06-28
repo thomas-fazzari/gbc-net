@@ -1,5 +1,4 @@
 using GbcNet.Core.Apu;
-using GbcNet.Core.Apu.Profiles;
 
 namespace GbcNet.Tests.Apu;
 
@@ -25,7 +24,7 @@ public sealed class ApuControllerTests
         byte expected
     )
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(address, writeValue);
@@ -36,7 +35,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void SetRegisterState_CanSeedAudioMasterStatusBits()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.SetRegisterState(0xFF26, 0x81);
 
@@ -46,7 +45,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_CannotSetAudioMasterStatusBits()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x81);
 
@@ -56,7 +55,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_IgnoresNonMasterRegistersWhenPoweredOff()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF24, 0x77);
         apu.WriteRegister(0xFF25, 0xFF);
@@ -68,7 +67,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_AcceptsNonMasterRegistersWhenPoweredOn()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF24, 0x77);
@@ -81,7 +80,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_PoweringOffClearsPoweredRegisters()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF24, 0x77);
@@ -98,7 +97,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_PoweringOffClearsChannelStatusBits()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.SetRegisterState(0xFF26, 0x8F);
 
@@ -110,7 +109,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_TriggeringChannel1WithDacEnabledSetsAudioMasterChannel1Status()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF12, 0xF0);
@@ -122,7 +121,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_Channel1SweepImmediateOverflowClearsChannel1Status()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF10, 0x01);
@@ -136,7 +135,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_Channel1SweepWritesValidNewPeriod()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF10, 0x19);
@@ -157,7 +156,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_Channel1SweepOverflowClearsChannel1Status()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF10, 0x11);
@@ -178,7 +177,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_Channel1SweepWithShiftZeroDoesNotWriteBackPeriod()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF10, 0x10);
@@ -199,7 +198,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_TriggeringChannel2WithDacEnabledSetsAudioMasterChannel2Status()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF17, 0xF0);
@@ -211,7 +210,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_TriggeringChannel2WithDacDisabledKeepsChannel2Inactive()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF17, 0x00);
@@ -223,7 +222,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_DisablingChannel2DacClearsChannel2Status()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF17, 0xF0);
@@ -237,7 +236,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_PoweringOffDisablesChannel2()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF17, 0xF0);
@@ -252,7 +251,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_DisablesChannel2WhenLengthExpires()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF16, 0x3F);
@@ -267,7 +266,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_KeepsChannel2ActiveWhenLengthDisabled()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF16, 0x3F);
@@ -282,7 +281,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_TriggeringChannel2ReloadsExpiredLengthCounter()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF16, 0x3F);
@@ -315,7 +314,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_TriggeringChannel2LoadsEnvelopeInitialVolume()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF17, 0xA2);
@@ -327,7 +326,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_IncreasesChannel2VolumeAtEnvelopePace()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF17, 0x1A);
@@ -351,7 +350,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_DecreasesChannel2VolumeAtEnvelopePace()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF17, 0x21);
@@ -369,7 +368,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_DoesNotChangeChannel2VolumeWhenEnvelopePaceIsZero()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF17, 0x58);
@@ -398,7 +397,7 @@ public sealed class ApuControllerTests
         byte expectedVolume
     )
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF17, envelope);
@@ -416,7 +415,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void Channel2DigitalOutput_ReturnsZeroWhenChannel2IsInactive()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF17, 0xA0);
@@ -427,7 +426,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void Channel2DigitalOutput_ReturnsZeroWhenPulseChannelFirstStartsEvenIfDutyStepIsHigh()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF16, 0x40);
@@ -441,7 +440,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void Channel2DigitalOutput_UsesDutyPatternAndVolume()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF16, 0xC0);
@@ -459,14 +458,14 @@ public sealed class ApuControllerTests
     [Fact]
     public void Tick_AdvancesChannel2DutyStepFasterForHigherPeriodValues()
     {
-        ApuController fastApu = new(new DmgApuHardwareProfile());
+        ApuController fastApu = new(ApuModelSpec.Dmg);
         fastApu.WriteRegister(0xFF26, 0x80);
         fastApu.WriteRegister(0xFF16, 0xC0);
         fastApu.WriteRegister(0xFF17, 0xF0);
         fastApu.WriteRegister(0xFF18, 0xFF);
         fastApu.WriteRegister(0xFF19, 0x87);
 
-        ApuController slowApu = new(new DmgApuHardwareProfile());
+        ApuController slowApu = new(ApuModelSpec.Dmg);
         slowApu.WriteRegister(0xFF26, 0x80);
         slowApu.WriteRegister(0xFF16, 0xC0);
         slowApu.WriteRegister(0xFF17, 0xF0);
@@ -487,7 +486,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_TriggeringChannel2DoesNotResetDutyStep()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF16, 0xC0);
@@ -504,7 +503,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void GetMixedStereoSample_MixesChannel1UsingNr50AndNr51()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF11, 0xC0);
@@ -521,7 +520,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void GetMixedStereoSample_MixesChannel1AndChannel2Independently()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF11, 0xC0);
@@ -542,7 +541,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void GetMixedStereoSample_ReturnsSilenceWhenChannel2IsInactive()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF24, 0x77);
@@ -554,7 +553,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void GetMixedStereoSample_ReturnsSilenceWhenChannel2IsNotRouted()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF16, 0xC0);
@@ -581,7 +580,7 @@ public sealed class ApuControllerTests
         int expectedRight
     )
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF16, 0xC0);
@@ -601,7 +600,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_PoweringOffResetsChannel2DutyStep()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF16, 0xC0);
@@ -623,7 +622,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WaveRam_InactiveReadWriteIsNormal()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF30, 0xAB);
         apu.WriteRegister(0xFF3F, 0xCD);
@@ -635,7 +634,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WaveRam_ActiveCpuReadReturnsFfAndWriteIsIgnored()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF30, 0xAB);
         apu.WriteRegister(0xFF26, 0x80);
@@ -652,7 +651,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void SetRegisterState_CanSeedWaveRamWhileChannel3IsActive()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF30, 0xAB);
         apu.WriteRegister(0xFF26, 0x80);
@@ -668,7 +667,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_DisablingChannel3DacClearsChannel3Status()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF1A, 0x80);
@@ -682,7 +681,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_TriggeringChannel3WithDacEnabledSetsAudioMasterChannel3Status()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF1A, 0x80);
@@ -694,7 +693,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_TriggeringChannel3WithDacDisabledKeepsChannel3Inactive()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF1A, 0x00);
@@ -706,7 +705,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_DisablesChannel3WhenLengthExpires()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF1A, 0x80);
@@ -725,7 +724,7 @@ public sealed class ApuControllerTests
     [InlineData(0x60, 3)]
     public void Channel3DigitalOutput_AppliesNr32OutputLevel(byte outputLevel, byte expected)
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF30, 0x0C);
         apu.WriteRegister(0xFF26, 0x80);
@@ -741,7 +740,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_TriggeringChannel3KeepsOldSampleBufferUntilFirstWaveTick()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF30, 0x0C);
         apu.WriteRegister(0xFF26, 0x80);
@@ -756,7 +755,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void Tick_Channel3FirstWaveTickReadsLowerNibbleOfFf30()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF30, 0xAB);
         apu.WriteRegister(0xFF26, 0x80);
@@ -773,7 +772,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void Tick_AdvancesChannel3WaveFasterForHigherPeriodValues()
     {
-        ApuController fastApu = new(new DmgApuHardwareProfile());
+        ApuController fastApu = new(ApuModelSpec.Dmg);
         fastApu.WriteRegister(0xFF30, 0x01);
         fastApu.WriteRegister(0xFF26, 0x80);
         fastApu.WriteRegister(0xFF1A, 0x80);
@@ -781,7 +780,7 @@ public sealed class ApuControllerTests
         fastApu.WriteRegister(0xFF1D, 0xFF);
         fastApu.WriteRegister(0xFF1E, 0x87);
 
-        ApuController slowApu = new(new DmgApuHardwareProfile());
+        ApuController slowApu = new(ApuModelSpec.Dmg);
         slowApu.WriteRegister(0xFF30, 0x01);
         slowApu.WriteRegister(0xFF26, 0x80);
         slowApu.WriteRegister(0xFF1A, 0x80);
@@ -813,7 +812,7 @@ public sealed class ApuControllerTests
         int expectedRight
     )
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF30, 0x04);
         apu.WriteRegister(0xFF26, 0x80);
@@ -834,7 +833,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_PoweringOffClearsChannel3StateButNotWaveRam()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF30, 0x0C);
         apu.WriteRegister(0xFF26, 0x80);
@@ -860,7 +859,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_TriggeringChannel4WithDacEnabledSetsAudioMasterChannel4Status()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF21, 0xF0);
@@ -872,7 +871,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_TriggeringChannel4WithDacDisabledKeepsChannel4Inactive()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF21, 0x00);
@@ -884,7 +883,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void WriteRegister_DisablingChannel4DacClearsChannel4Status()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF21, 0xF0);
@@ -898,7 +897,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_DisablesChannel4WhenLengthExpires()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF20, 0x3F);
@@ -913,7 +912,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_IncreasesChannel4VolumeAtEnvelopePace()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF21, 0x1A);
@@ -937,7 +936,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_DecreasesChannel4VolumeAtEnvelopePace()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF21, 0x21);
@@ -955,7 +954,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_DoesNotChangeChannel4VolumeWhenEnvelopePaceIsZero()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF21, 0x58);
@@ -984,7 +983,7 @@ public sealed class ApuControllerTests
         byte expectedVolume
     )
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF21, envelope);
@@ -1008,7 +1007,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void Tick_Channel4LfsrAdvancesAfterExpectedTimer()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF21, 0xF0);
@@ -1027,13 +1026,13 @@ public sealed class ApuControllerTests
     [Fact]
     public void Tick_Channel4WidthModeUsesSevenBitFeedbackPath()
     {
-        ApuController wideApu = new(new DmgApuHardwareProfile());
+        ApuController wideApu = new(ApuModelSpec.Dmg);
         wideApu.WriteRegister(0xFF26, 0x80);
         wideApu.WriteRegister(0xFF21, 0xF0);
         wideApu.WriteRegister(0xFF22, 0x08);
         wideApu.WriteRegister(0xFF23, 0x80);
 
-        ApuController normalApu = new(new DmgApuHardwareProfile());
+        ApuController normalApu = new(ApuModelSpec.Dmg);
         normalApu.WriteRegister(0xFF26, 0x80);
         normalApu.WriteRegister(0xFF21, 0xF0);
         normalApu.WriteRegister(0xFF22, 0x00);
@@ -1051,7 +1050,7 @@ public sealed class ApuControllerTests
     [InlineData(0xF8)]
     public void Tick_Channel4ShiftFourteenOrFifteenDoesNotClockLfsr(byte frequency)
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF21, 0xF0);
@@ -1076,7 +1075,7 @@ public sealed class ApuControllerTests
         int expectedRight
     )
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF21, 0xF0);
@@ -1094,7 +1093,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void Tick_BuffersApuSamplesThroughSampleBuffer()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         Span<ApuStereoSample> destination = stackalloc ApuStereoSample[1];
 
@@ -1110,7 +1109,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void DrainBufferedSamples_ReturnsSilenceWhenDacEnabledChannelIsNotRouted()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
         var destination = new ApuStereoSample[1];
 
         apu.WriteRegister(0xFF26, 0x80);
@@ -1127,7 +1126,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void DrainBufferedSamples_IgnoresRoutedChannelWithDacDisabled()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
         var destination = new ApuStereoSample[1];
 
         apu.WriteRegister(0xFF26, 0x80);
@@ -1146,7 +1145,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void DrainBufferedSamples_ReturnsCurrentMixerSamplesAndClearsBuffer()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF11, 0xC0);
@@ -1168,7 +1167,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_AdvancesDivApuStepOnNormalSpeedDivBit4FallingEdge()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         var events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
 
@@ -1181,7 +1180,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_AdvancesDivApuStepOnDoubleSpeedDivBit5FallingEdge()
     {
-        ApuController apu = new(new CgbApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Cgb);
 
         var events = apu.TickSystemCounter(new ApuTickInputs(1 << 13, CgbDoubleSpeed: true));
 
@@ -1194,7 +1193,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_IgnoresNormalSpeedDivBit4FallingEdgeInDoubleSpeed()
     {
-        ApuController apu = new(new CgbApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Cgb);
 
         var events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: true));
 
@@ -1205,7 +1204,7 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_IgnoresOtherSystemCounterFallingEdges()
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
 
         var events = apu.TickSystemCounter(new ApuTickInputs(1 << 11, CgbDoubleSpeed: false));
 
@@ -1230,7 +1229,7 @@ public sealed class ApuControllerTests
         bool expectedEnvelope
     )
     {
-        ApuController apu = new(new DmgApuHardwareProfile());
+        ApuController apu = new(ApuModelSpec.Dmg);
         ApuFrameSequencerEvents events = default;
 
         for (var tick = 0; tick < ticks; tick++)

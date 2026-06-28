@@ -81,11 +81,7 @@ public sealed class Cartridge
         }
 
         var romBytes = rom.ToArray();
-        var memoryControllerResult = CartridgeMemoryControllerFactory.Create(
-            romBytes,
-            header,
-            getUnixTimeSeconds
-        );
+        var memoryControllerResult = CreateMemoryController(romBytes, header, getUnixTimeSeconds);
 
         return memoryControllerResult.IsFailed
             ? Result.Fail<Cartridge>(memoryControllerResult.Errors)
@@ -200,6 +196,50 @@ public sealed class Cartridge
     public void ClearBatterySaveDirty()
     {
         _memoryController.SaveData.ClearBatterySaveDirty();
+    }
+
+    private static Result<ICartridgeMemoryController> CreateMemoryController(
+        byte[] rom,
+        CartridgeHeader header,
+        Func<long> getUnixTimeSeconds
+    )
+    {
+        var cartridgeType = header.CartridgeType;
+
+        return cartridgeType switch
+        {
+            _ when cartridgeType.IsNoMbc() => Result.Ok<ICartridgeMemoryController>(
+                new NoMbcMemoryController(rom, header, cartridgeType.HasBatteryBackedExternalRam())
+            ),
+            _ when cartridgeType.IsMbc1() => Result.Ok<ICartridgeMemoryController>(
+                new Mbc1MemoryController(rom, header, cartridgeType.HasBatteryBackedExternalRam())
+            ),
+            _ when cartridgeType.IsMbc2() => Result.Ok<ICartridgeMemoryController>(
+                new Mbc2MemoryController(rom, header, cartridgeType is CartridgeType.Mbc2Battery)
+            ),
+            _ when cartridgeType.IsMbc3() => Result.Ok<ICartridgeMemoryController>(
+                new Mbc3MemoryController(
+                    rom,
+                    header,
+                    cartridgeType.HasBatteryBackedExternalRam(),
+                    cartridgeType.HasRtc(),
+                    getUnixTimeSeconds
+                )
+            ),
+            _ when cartridgeType.IsMbc5() => Result.Ok<ICartridgeMemoryController>(
+                new Mbc5MemoryController(rom, header, cartridgeType.HasBatteryBackedExternalRam())
+            ),
+            _ => Result.Fail<ICartridgeMemoryController>(
+                new CartridgeLoadError(
+                    CartridgeLoadErrorCode.UnsupportedCartridgeType,
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "Cartridge type 0x{0:X2} is not supported yet.",
+                        (int)cartridgeType
+                    )
+                )
+            ),
+        };
     }
 
     private static ushort GetExternalRamOffset(ushort address) =>

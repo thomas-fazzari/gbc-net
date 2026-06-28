@@ -14,13 +14,13 @@ internal static class CpuTestFactory
     public static Cpu CreateCpu(
         Action<byte[]>? configure = null,
         Action? tickMachineCycle = null,
-        IHardwareProfile? hardwareProfile = null
+        IHardwareProfile? profile = null
     )
     {
         var cartridge = ResultAssertions.AssertSuccess(
             Cartridge.Load(TestRomFactory.Create(configure))
         );
-        var bus = new MemoryBus(cartridge, hardwareProfile ?? DmgHardwareProfile.Instance);
+        var bus = new MemoryBus(cartridge, profile ?? DmgHardwareProfile.Instance);
         var cpu = new Cpu(bus, tickMachineCycle);
         Buses.Add(cpu, bus);
         return cpu;

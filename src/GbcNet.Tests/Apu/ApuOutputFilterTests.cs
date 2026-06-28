@@ -1,6 +1,5 @@
 using GbcNet.Core.Apu;
 using GbcNet.Core.Apu.Components;
-using GbcNet.Core.Apu.Profiles;
 
 namespace GbcNet.Tests.Apu;
 
@@ -10,9 +9,7 @@ public sealed class ApuOutputFilterTests
     public void Filter_ConstantInputDecaysTowardZero()
     {
         ApuOutputFilter filter = new(
-            new DmgApuHardwareProfile().GetOutputHighPassChargeFactor(
-                ApuSampleTiming.DefaultSampleRate
-            )
+            ApuModelSpec.Dmg.GetOutputHighPassChargeFactor(ApuSampleTiming.DefaultSampleRate)
         );
 
         var first = filter.Filter(new ApuAnalogStereoSample(1, 1), anyDacEnabled: true).Left;
@@ -29,9 +26,7 @@ public sealed class ApuOutputFilterTests
     public void Filter_AllDacsOffOutputsZeroAndResetsCapacitor()
     {
         ApuOutputFilter filter = new(
-            new DmgApuHardwareProfile().GetOutputHighPassChargeFactor(
-                ApuSampleTiming.DefaultSampleRate
-            )
+            ApuModelSpec.Dmg.GetOutputHighPassChargeFactor(ApuSampleTiming.DefaultSampleRate)
         );
 
         var first = filter.Filter(new ApuAnalogStereoSample(1, 1), anyDacEnabled: true);
@@ -46,9 +41,7 @@ public sealed class ApuOutputFilterTests
     public void Filter_LeftAndRightHighPassStateIsIndependent()
     {
         ApuOutputFilter filter = new(
-            new DmgApuHardwareProfile().GetOutputHighPassChargeFactor(
-                ApuSampleTiming.DefaultSampleRate
-            )
+            ApuModelSpec.Dmg.GetOutputHighPassChargeFactor(ApuSampleTiming.DefaultSampleRate)
         );
 
         var leftOnly = filter.Filter(new ApuAnalogStereoSample(1, 0), anyDacEnabled: true);
@@ -65,9 +58,7 @@ public sealed class ApuOutputFilterTests
     public void Filter_ScalingStaysBoundedForMixerExtremes(double analogSample)
     {
         ApuOutputFilter filter = new(
-            new DmgApuHardwareProfile().GetOutputHighPassChargeFactor(
-                ApuSampleTiming.DefaultSampleRate
-            )
+            ApuModelSpec.Dmg.GetOutputHighPassChargeFactor(ApuSampleTiming.DefaultSampleRate)
         );
 
         var sample = filter.Filter(

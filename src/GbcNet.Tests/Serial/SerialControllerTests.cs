@@ -1,6 +1,5 @@
 using GbcNet.Core;
 using GbcNet.Core.Apu;
-using GbcNet.Core.Apu.Profiles;
 using GbcNet.Core.Clock;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Serial;
@@ -66,7 +65,7 @@ public sealed class SerialControllerTests
         var clock = new ClockController(
             interrupts,
             serial,
-            new ApuController(new CgbApuHardwareProfile()),
+            new ApuController(ApuModelSpec.Cgb),
             isKey1RegisterEnabled: true
         );
         if (doubleSpeed)

@@ -1,13 +1,12 @@
 using GbcNet.Core.Apu.Channels;
 using GbcNet.Core.Apu.Components;
-using GbcNet.Core.Apu.Profiles;
 
 namespace GbcNet.Core.Apu;
 
 /// <summary>
 /// Stores CPU-visible Audio Processing Unit registers and delegates hardware-specific behavior.
 /// </summary>
-internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
+internal sealed class ApuController(ApuModelSpec modelSpec)
 {
     private const ushort RegisterStart = 0xFF10;
     private const ushort RegisterEnd = 0xFF26;
@@ -76,11 +75,9 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
     private readonly PulseChannel _channel2 = new();
     private readonly WaveChannel _channel3 = new();
     private readonly NoiseChannel _channel4 = new();
-    private readonly SampleBuffer<ApuStereoSample> _sampleBuffer = new(
-        hardwareProfile.OutputClockHz
-    );
+    private readonly SampleBuffer<ApuStereoSample> _sampleBuffer = new(modelSpec.OutputClockHz);
     private readonly ApuOutputFilter _outputFilter = new(
-        hardwareProfile.GetOutputHighPassChargeFactor(ApuSampleTiming.DefaultSampleRate)
+        modelSpec.GetOutputHighPassChargeFactor(ApuSampleTiming.DefaultSampleRate)
     );
 
     /// <summary>
@@ -120,7 +117,7 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
         if (
             (
                 inputs.SystemCounterFallingEdges
-                & hardwareProfile.GetDivApuFallingEdgeMask(inputs.CgbDoubleSpeed)
+                & modelSpec.GetDivApuFallingEdgeMask(inputs.CgbDoubleSpeed)
             ) == 0
         )
         {
@@ -295,16 +292,13 @@ internal sealed class ApuController(IApuHardwareProfile hardwareProfile)
             >= WaveChannel.WaveRamStart and <= WaveChannel.WaveRamEnd => _channel3.ReadWaveRam(
                 address
             ),
-            Pcm12Register => hardwareProfile.IsPcmOutputRegisterEnabled
+            Pcm12Register => modelSpec.IsPcmOutputRegisterEnabled
                 ? (byte)((_channel2.DigitalOutput << 4) | _channel1.DigitalOutput)
                 : (byte)0xFF,
-            Pcm34Register => hardwareProfile.IsPcmOutputRegisterEnabled
+            Pcm34Register => modelSpec.IsPcmOutputRegisterEnabled
                 ? (byte)((_channel4.DigitalOutput << 4) | _channel3.DigitalOutput)
                 : (byte)0xFF,
-            _ => hardwareProfile.ApplyRegisterReadMask(
-                address,
-                _registers[address - RegisterStart]
-            ),
+            _ => ApuModelSpec.ApplyRegisterReadMask(address, _registers[address - RegisterStart]),
         };
 
     /// <summary>
