@@ -68,18 +68,7 @@ internal static class KdlConfigurationFile
     {
         try
         {
-            var directoryPath = Path.GetDirectoryName(path);
-            if (!string.IsNullOrEmpty(directoryPath))
-            {
-                Directory.CreateDirectory(directoryPath);
-            }
-
-            var temporaryPath = Path.Combine(
-                directoryPath ?? Environment.CurrentDirectory,
-                $"{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp"
-            );
-            File.WriteAllText(temporaryPath, text);
-            File.Move(temporaryPath, path, overwrite: true);
+            WriteTextAtomically(path, text, overwrite: true);
             return Result.Ok();
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -92,21 +81,7 @@ internal static class KdlConfigurationFile
     {
         try
         {
-            var directoryPath = Path.GetDirectoryName(path);
-
-            if (!string.IsNullOrEmpty(directoryPath))
-            {
-                Directory.CreateDirectory(directoryPath);
-            }
-
-            var temporaryDirectoryPath = directoryPath ?? Environment.CurrentDirectory;
-            var temporaryPath = Path.Combine(
-                temporaryDirectoryPath,
-                $"{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp"
-            );
-
-            File.WriteAllText(temporaryPath, ReadTemplateText());
-            File.Move(temporaryPath, path);
+            WriteTextAtomically(path, ReadTemplateText(), overwrite: false);
             return Result.Ok();
         }
         catch (Exception exception)
@@ -130,6 +105,22 @@ internal static class KdlConfigurationFile
 
         using StreamReader reader = new(stream);
         return reader.ReadToEnd();
+    }
+
+    private static void WriteTextAtomically(string path, string text, bool overwrite)
+    {
+        var directoryPath = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(directoryPath))
+        {
+            Directory.CreateDirectory(directoryPath);
+        }
+
+        var temporaryPath = Path.Combine(
+            directoryPath ?? Environment.CurrentDirectory,
+            $"{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp"
+        );
+        File.WriteAllText(temporaryPath, text);
+        File.Move(temporaryPath, path, overwrite);
     }
 
     public static Result<KdlDocument> Parse(string text)

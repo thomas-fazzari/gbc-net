@@ -1,7 +1,7 @@
 using System.Globalization;
 using Avalonia.Controls;
 
-namespace GbcNet.App.Chrome;
+namespace GbcNet.App.Shell.Chrome;
 
 internal sealed class StatusBarPresenter(TextBlock message, TextBlock metrics)
 {

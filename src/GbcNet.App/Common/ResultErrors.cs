@@ -1,6 +1,6 @@
 using FluentResults;
 
-namespace GbcNet.App.Shell;
+namespace GbcNet.App.Common;
 
 internal static class ResultErrors
 {

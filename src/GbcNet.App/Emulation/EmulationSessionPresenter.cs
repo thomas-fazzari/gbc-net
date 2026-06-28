@@ -3,11 +3,12 @@ using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using FluentResults;
-using GbcNet.App.Chrome;
+using GbcNet.App.Common;
 using GbcNet.App.Input;
 using GbcNet.App.Library;
 using GbcNet.App.Menus;
 using GbcNet.App.Shell;
+using GbcNet.App.Shell.Chrome;
 using GbcNet.Core;
 
 namespace GbcNet.App.Emulation;

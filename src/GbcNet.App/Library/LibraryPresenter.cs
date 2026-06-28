@@ -1,3 +1,4 @@
+using GbcNet.App.Common;
 using GbcNet.App.Shell;
 
 namespace GbcNet.App.Library;

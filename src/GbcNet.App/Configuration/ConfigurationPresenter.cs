@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using Avalonia.Controls;
-using GbcNet.App.Chrome;
+using GbcNet.App.Common;
 using GbcNet.App.Configuration.Sections.BootRom;
-using GbcNet.App.Shell;
+using GbcNet.App.Shell.Chrome;
 using GbcNet.Core;
 
 namespace GbcNet.App.Configuration;

@@ -1,4 +1,4 @@
-using GbcNet.App.Chrome;
+using GbcNet.App.Shell.Chrome;
 
 namespace GbcNet.Tests.App.Chrome;
 

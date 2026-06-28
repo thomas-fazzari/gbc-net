@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-namespace GbcNet.App.Chrome;
+namespace GbcNet.App.Shell.Chrome;
 
 internal static class AppChrome
 {

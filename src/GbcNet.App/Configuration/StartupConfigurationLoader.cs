@@ -1,4 +1,5 @@
 using FluentResults;
+using GbcNet.App.Common;
 using GbcNet.App.Configuration.Kdl;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Input;
@@ -75,7 +76,7 @@ internal static class StartupConfigurationLoader
     {
         if (result.IsFailed)
         {
-            startupErrors.AddRange(result.Errors.Select(error => error.Message));
+            startupErrors.Add(ResultErrors.Format(result.Errors));
         }
     }
 
@@ -100,17 +101,13 @@ internal static class StartupConfigurationLoader
 
         if (template.IsFailed)
         {
-            throw new InvalidOperationException(
-                string.Join(Environment.NewLine, template.Errors.Select(error => error.Message))
-            );
+            throw new InvalidOperationException(ResultErrors.Format(template.Errors));
         }
 
         var inputConfig = InputConfigReader.Read(template.Value);
 
         return inputConfig.IsSuccess
             ? inputConfig.Value
-            : throw new InvalidOperationException(
-                string.Join(Environment.NewLine, inputConfig.Errors.Select(error => error.Message))
-            );
+            : throw new InvalidOperationException(ResultErrors.Format(inputConfig.Errors));
     }
 }

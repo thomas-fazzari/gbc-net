@@ -1,7 +1,7 @@
 using FluentResults;
-using GbcNet.App.Shell;
+using GbcNet.App.Common;
 
-namespace GbcNet.Tests.App.Shell;
+namespace GbcNet.Tests.App.Common;
 
 public sealed class ResultErrorsTests
 {

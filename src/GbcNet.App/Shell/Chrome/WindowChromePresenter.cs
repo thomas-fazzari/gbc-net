@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using GbcNet.App.Menus;
 
-namespace GbcNet.App.Chrome;
+namespace GbcNet.App.Shell.Chrome;
 
 internal sealed class WindowChromePresenter(Window window, Control statusBar, MainMenu menu)
 {

@@ -3,8 +3,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
-using GbcNet.App.Chrome;
 using GbcNet.App.Library.Entities;
+using GbcNet.App.Shell.Chrome;
 using GbcNet.Core.Cartridges;
 
 namespace GbcNet.App.Library;

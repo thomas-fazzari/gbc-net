@@ -3,7 +3,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using AvaloniaPath = Avalonia.Controls.Shapes.Path;
 
-namespace GbcNet.App.Chrome;
+namespace GbcNet.App.Shell.Chrome;
 
 internal static class Icons
 {

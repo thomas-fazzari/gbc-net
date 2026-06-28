@@ -2,7 +2,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using GbcNet.App.Audio;
-using GbcNet.App.Chrome;
 using GbcNet.App.Configuration;
 using GbcNet.App.Emulation;
 using GbcNet.App.Input;
@@ -10,6 +9,7 @@ using GbcNet.App.Library;
 using GbcNet.App.Rendering;
 using GbcNet.App.Saves;
 using GbcNet.App.Shell;
+using GbcNet.App.Shell.Chrome;
 using GbcNet.Core.Ppu;
 using Microsoft.Extensions.Logging;
 
