@@ -9,6 +9,7 @@ internal readonly record struct DbMigration(
 
 internal static class DbMigrations
 {
+    // Migrations are explicit instead of reflection-based for AOT compatibility
     private static readonly DbMigration[] _all = [V1CreateRoms.Migration];
 
     public static ReadOnlySpan<DbMigration> All => _all;
