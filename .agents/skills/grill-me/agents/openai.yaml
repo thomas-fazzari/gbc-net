@@ -1,5 +1,0 @@
-interface:
-  display_name: "Grill Me"
-  short_description: "Clarify risky work before editing."
-  default_prompt: "Use $grill-me to clarify or stress-test a non-trivial feature,
-    refactor, or architecture change before editing."
