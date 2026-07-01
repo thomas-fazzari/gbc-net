@@ -8,6 +8,7 @@ AOT_RUNTIME ?= osx-arm64
 install:
 	dotnet restore $(SOLUTION)
 	dotnet tool restore
+	git config core.hooksPath .githooks
 
 .PHONY: lint
 lint:
