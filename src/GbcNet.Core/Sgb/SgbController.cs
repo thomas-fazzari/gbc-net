@@ -23,9 +23,22 @@ internal sealed class SgbController(bool commandsEnabled)
     private const byte PalSetCommand = 0x0A;
     private const byte PalTrnCommand = 0x0B;
     private const byte MltReqCommand = 0x11;
+    private const byte ChrTrnCommand = 0x13;
+    private const byte PctTrnCommand = 0x14;
     private const byte AttrTrnCommand = 0x15;
     private const byte AttrSetCommand = 0x16;
     private const byte MaskEnCommand = 0x17;
+    private const int SgbScreenWidth = 256;
+    private const int SgbScreenHeight = 224;
+    private const int SgbGameBoyX = 48;
+    private const int SgbGameBoyY = 40;
+    private const int SgbBorderMapWidth = 32;
+    private const int SgbBorderMapHeight = 28;
+    private const int SgbBorderMapEntries = SgbBorderMapWidth * SgbBorderMapHeight;
+    private const int SgbBorderTileBytes = 32;
+    private const int SgbBorderTileTransferBytes = 4096;
+    private const int SgbBorderPaletteOffset = 0x800;
+    private const int SgbBorderPaletteColors = 16 * 3;
     private const int AttributeMapWidth = 20;
     private const int AttributeMapHeight = 18;
     private const int AttributeFilePackedSize = 90;
@@ -36,6 +49,9 @@ internal sealed class SgbController(bool commandsEnabled)
     private const byte NoPendingVramTransfer = 0;
     private const byte PendingPaletteTransfer = 1;
     private const byte PendingAttributeTransfer = 2;
+    private const byte PendingBorderTileLowTransfer = 3;
+    private const byte PendingBorderTileHighTransfer = 4;
+    private const byte PendingBorderMapTransfer = 5;
     private const byte MaskFreeze = 1;
     private const byte MaskBlack = 2;
     private const byte MaskColor0 = 3;
@@ -43,6 +59,9 @@ internal sealed class SgbController(bool commandsEnabled)
     private readonly byte[] _command = new byte[MaxCommandSizeBytes];
     private readonly ushort[] _systemPalettes = new ushort[512 * 4];
     private readonly byte[] _attributeFiles = new byte[AttributeFileTransferSizeBytes];
+    private readonly byte[] _borderTiles = new byte[256 * SgbBorderTileBytes];
+    private readonly ushort[] _borderMap = new ushort[SgbBorderMapEntries];
+    private readonly ushort[] _borderPalettes = new ushort[16 * 4];
     private readonly ushort[] _palettes =
     [
         0x7FFF,
@@ -128,13 +147,15 @@ internal sealed class SgbController(bool commandsEnabled)
         }
 
         var colorizedPixels = ColorizeFrame(frame);
-        return _maskMode switch
+        var gameBoyPixels = _maskMode switch
         {
-            MaskFreeze => CreateRgb555Frame(_visibleFramePixels ?? colorizedPixels),
-            MaskBlack => CreateSolidRgb555Frame(0x0000, colorizedPixels),
-            MaskColor0 => CreateSolidRgb555Frame(_palettes[0], colorizedPixels),
-            _ => CreateVisibleRgb555Frame(colorizedPixels),
+            MaskFreeze => _visibleFramePixels ?? colorizedPixels,
+            MaskBlack => CreateSolidRgb555Pixels(0x0000, colorizedPixels),
+            MaskColor0 => CreateSolidRgb555Pixels(_palettes[0], colorizedPixels),
+            _ => SetVisibleRgb555Pixels(colorizedPixels),
         };
+
+        return CreateSgbFrame(gameBoyPixels);
     }
 
     public void ApplyPendingVramTransfer(ReadOnlySpan<byte> transferData)
@@ -152,16 +173,44 @@ internal sealed class SgbController(bool commandsEnabled)
             );
         }
 
-        if (_pendingVramTransfer == PendingPaletteTransfer)
+        switch (_pendingVramTransfer)
         {
-            for (var offset = 0; offset < VramTransferSizeBytes; offset += 2)
-            {
-                _systemPalettes[offset / 2] = ReadUInt16(transferData, offset);
-            }
-        }
-        else
-        {
-            transferData[..AttributeFileTransferSizeBytes].CopyTo(_attributeFiles);
+            case PendingPaletteTransfer:
+                for (var offset = 0; offset < VramTransferSizeBytes; offset += 2)
+                {
+                    _systemPalettes[offset / 2] = ReadUInt16(transferData, offset);
+                }
+
+                break;
+
+            case PendingAttributeTransfer:
+                transferData[..AttributeFileTransferSizeBytes].CopyTo(_attributeFiles);
+                break;
+
+            case PendingBorderTileLowTransfer:
+                transferData[..SgbBorderTileTransferBytes].CopyTo(_borderTiles);
+                break;
+
+            case PendingBorderTileHighTransfer:
+                transferData[..SgbBorderTileTransferBytes]
+                    .CopyTo(_borderTiles.AsSpan(SgbBorderTileTransferBytes));
+                break;
+
+            case PendingBorderMapTransfer:
+                for (var entry = 0; entry < SgbBorderMapEntries; entry++)
+                {
+                    _borderMap[entry] = ReadUInt16(transferData, entry * 2);
+                }
+
+                for (var color = 0; color < SgbBorderPaletteColors; color++)
+                {
+                    _borderPalettes[color] = ReadUInt16(
+                        transferData,
+                        SgbBorderPaletteOffset + (color * 2)
+                    );
+                }
+
+                break;
         }
 
         _pendingVramTransfer = NoPendingVramTransfer;
@@ -278,6 +327,15 @@ internal sealed class SgbController(bool commandsEnabled)
             case MltReqCommand:
                 SetPlayerCount(_command[1] & 0x03);
                 return;
+            case ChrTrnCommand:
+                _pendingVramTransfer =
+                    (_command[1] & 0x01) == 0
+                        ? PendingBorderTileLowTransfer
+                        : PendingBorderTileHighTransfer;
+                return;
+            case PctTrnCommand:
+                _pendingVramTransfer = PendingBorderMapTransfer;
+                return;
             case AttrTrnCommand:
                 _pendingVramTransfer = PendingAttributeTransfer;
                 return;
@@ -307,13 +365,13 @@ internal sealed class SgbController(bool commandsEnabled)
         return target;
     }
 
-    private LcdFrame CreateVisibleRgb555Frame(byte[] pixels)
+    private byte[] SetVisibleRgb555Pixels(byte[] pixels)
     {
         _visibleFramePixels = pixels;
-        return CreateRgb555Frame(pixels);
+        return pixels;
     }
 
-    private LcdFrame CreateSolidRgb555Frame(ushort color, byte[] visiblePixels)
+    private byte[] CreateSolidRgb555Pixels(ushort color, byte[] visiblePixels)
     {
         _visibleFramePixels = visiblePixels;
         var pixels = new byte[
@@ -324,11 +382,92 @@ internal sealed class SgbController(bool commandsEnabled)
             WriteRgb555(pixels, pixel, color);
         }
 
-        return CreateRgb555Frame(pixels);
+        return pixels;
     }
 
-    private static LcdFrame CreateRgb555Frame(ReadOnlySpan<byte> pixels) =>
-        new(PpuGeometry.FrameWidth, PpuGeometry.FrameHeight, LcdPixelFormat.Rgb555Le, pixels);
+    private LcdFrame CreateSgbFrame(ReadOnlySpan<byte> gameBoyPixels)
+    {
+        var pixels = new byte[SgbScreenWidth * SgbScreenHeight * Rgb555BytesPerPixel];
+        for (var pixel = 0; pixel < SgbScreenWidth * SgbScreenHeight; pixel++)
+        {
+            WriteRgb555(pixels, pixel, _palettes[0]);
+        }
+
+        CopyGameBoyFrame(pixels, gameBoyPixels);
+        RenderBorder(pixels);
+
+        return new LcdFrame(SgbScreenWidth, SgbScreenHeight, LcdPixelFormat.Rgb555Le, pixels);
+    }
+
+    private static void CopyGameBoyFrame(Span<byte> target, ReadOnlySpan<byte> source)
+    {
+        for (var y = 0; y < PpuGeometry.FrameHeight; y++)
+        {
+            source
+                .Slice(
+                    y * PpuGeometry.FrameWidth * Rgb555BytesPerPixel,
+                    PpuGeometry.FrameWidth * Rgb555BytesPerPixel
+                )
+                .CopyTo(
+                    target.Slice(
+                        (((SgbGameBoyY + y) * SgbScreenWidth) + SgbGameBoyX) * Rgb555BytesPerPixel,
+                        PpuGeometry.FrameWidth * Rgb555BytesPerPixel
+                    )
+                );
+        }
+    }
+
+    private void RenderBorder(Span<byte> pixels)
+    {
+        for (var tileY = 0; tileY < SgbBorderMapHeight; tileY++)
+        {
+            for (var tileX = 0; tileX < SgbBorderMapWidth; tileX++)
+            {
+                RenderBorderTile(pixels, tileX, tileY);
+            }
+        }
+    }
+
+    private void RenderBorderTile(Span<byte> pixels, int tileX, int tileY)
+    {
+        var tile = _borderMap[tileX + (tileY * SgbBorderMapWidth)];
+        if ((tile & 0x0300) != 0)
+        {
+            return;
+        }
+
+        var tileBase = (tile & 0x00FF) * SgbBorderTileBytes;
+        var paletteBase = ((tile >> 10) & 0x03) * 16;
+        var coversGameBoyArea = tileX is >= 6 and < 26 && tileY is >= 5 and < 23;
+        var yFlip = (tile & 0x8000) != 0;
+        var xFlip = (tile & 0x4000) != 0;
+
+        for (var y = 0; y < 8; y++)
+        {
+            var sourceY = yFlip ? 7 - y : y;
+            var rowOffset = tileBase + (sourceY * 2);
+            for (var x = 0; x < 8; x++)
+            {
+                var bit = 1 << (xFlip ? x : 7 - x);
+                var color =
+                    ((_borderTiles[rowOffset] & bit) == 0 ? 0 : 1)
+                    | ((_borderTiles[rowOffset + 1] & bit) == 0 ? 0 : 2)
+                    | ((_borderTiles[rowOffset + 16] & bit) == 0 ? 0 : 4)
+                    | ((_borderTiles[rowOffset + 17] & bit) == 0 ? 0 : 8);
+                if (color == 0 && coversGameBoyArea)
+                {
+                    continue;
+                }
+
+                var pixel = (((tileY * 8) + y) * SgbScreenWidth) + (tileX * 8) + x;
+                WriteRgb555(
+                    pixels,
+                    pixel,
+                    color == 0 ? _palettes[0] : _borderPalettes[paletteBase + color]
+                );
+            }
+        }
+    }
 
     private void SetPalettes(int firstPalette, int secondPalette)
     {

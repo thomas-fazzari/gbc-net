@@ -5,12 +5,7 @@
 >
   <Border Background="#050505" Padding="24">
     <Viewbox Stretch="Uniform">
-      <Border
-        Width="160"
-        Height="144"
-        Background="#050505"
-        RenderOptions.BitmapInterpolationMode="None"
-      >
+      <Border Background="#050505" RenderOptions.BitmapInterpolationMode="None">
         <Image x:Name="ScreenImage" Width="160" Height="144" Stretch="Fill" />
       </Border>
     </Viewbox>

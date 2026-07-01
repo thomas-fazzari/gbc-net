@@ -19,8 +19,10 @@ public sealed class SgbControllerTests
         var colorized = sgb.ApplyPalettes(frame);
 
         Assert.Equal(LcdPixelFormat.Rgb555Le, colorized.PixelFormat);
-        AssertRgb555(colorized, pixelIndex: 0, expected: 0x6666);
-        AssertRgb555(colorized, pixelIndex: 160 * 8, expected: 0x3333);
+        Assert.Equal(256, colorized.Width);
+        Assert.Equal(224, colorized.Height);
+        AssertRgb555(colorized, GameBoyPixelIndex(x: 0, y: 0), expected: 0x6666);
+        AssertRgb555(colorized, GameBoyPixelIndex(x: 0, y: 8), expected: 0x3333);
     }
 
     [Fact]
@@ -33,9 +35,9 @@ public sealed class SgbControllerTests
         var frame = CreateDmgFrame(shade: 3);
         var colorized = sgb.ApplyPalettes(frame);
 
-        AssertRgb555(colorized, pixelIndex: 0, expected: 0x4444);
-        AssertRgb555(colorized, pixelIndex: 8, expected: 0x7777);
-        AssertRgb555(colorized, pixelIndex: 16, expected: 0x4444);
+        AssertRgb555(colorized, GameBoyPixelIndex(x: 0, y: 0), expected: 0x4444);
+        AssertRgb555(colorized, GameBoyPixelIndex(x: 8, y: 0), expected: 0x7777);
+        AssertRgb555(colorized, GameBoyPixelIndex(x: 16, y: 0), expected: 0x4444);
     }
 
     [Fact]
@@ -50,9 +52,9 @@ public sealed class SgbControllerTests
         WriteSgbPacket(sgb, command: 0x17, [0x00]);
         var currentFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 2));
 
-        AssertRgb555(firstFrame, pixelIndex: 0, expected: 0x2222);
-        AssertRgb555(frozenFrame, pixelIndex: 0, expected: 0x2222);
-        AssertRgb555(currentFrame, pixelIndex: 0, expected: 0x3333);
+        AssertRgb555(firstFrame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x2222);
+        AssertRgb555(frozenFrame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x2222);
+        AssertRgb555(currentFrame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x3333);
     }
 
     [Fact]
@@ -66,8 +68,8 @@ public sealed class SgbControllerTests
         WriteSgbPacket(sgb, command: 0x17, [0x03]);
         var colorZeroFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 1));
 
-        AssertRgb555(blackFrame, pixelIndex: 0, expected: 0x0000);
-        AssertRgb555(colorZeroFrame, pixelIndex: 0, expected: 0x1111);
+        AssertRgb555(blackFrame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x0000);
+        AssertRgb555(colorZeroFrame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x1111);
     }
 
     [Fact]
@@ -85,7 +87,7 @@ public sealed class SgbControllerTests
         var colorized = sgb.ApplyPalettes(CreateDmgFrame(shade: 2));
 
         Assert.False(sgb.HasPendingVramTransfer);
-        AssertRgb555(colorized, pixelIndex: 0, expected: 0x3333);
+        AssertRgb555(colorized, GameBoyPixelIndex(x: 0, y: 0), expected: 0x3333);
     }
 
     [Fact]
@@ -102,7 +104,7 @@ public sealed class SgbControllerTests
 
         var colorized = sgb.ApplyPalettes(CreateDmgFrame(shade: 1));
 
-        AssertRgb555(colorized, pixelIndex: 0, expected: 0x2222);
+        AssertRgb555(colorized, GameBoyPixelIndex(x: 0, y: 0), expected: 0x2222);
     }
 
     [Fact]
@@ -121,8 +123,8 @@ public sealed class SgbControllerTests
         var colorized = sgb.ApplyPalettes(CreateDmgFrame(shade: 2));
 
         Assert.False(sgb.HasPendingVramTransfer);
-        AssertRgb555(colorized, pixelIndex: 0, expected: 0x6666);
-        AssertRgb555(colorized, pixelIndex: 8, expected: 0x3333);
+        AssertRgb555(colorized, GameBoyPixelIndex(x: 0, y: 0), expected: 0x6666);
+        AssertRgb555(colorized, GameBoyPixelIndex(x: 8, y: 0), expected: 0x3333);
     }
 
     [Fact]
@@ -143,8 +145,32 @@ public sealed class SgbControllerTests
 
         var colorized = sgb.ApplyPalettes(CreateDmgFrame(shade: 2));
 
-        AssertRgb555(colorized, pixelIndex: 0, expected: 0x7777);
-        AssertRgb555(colorized, pixelIndex: 8, expected: 0x3333);
+        AssertRgb555(colorized, GameBoyPixelIndex(x: 0, y: 0), expected: 0x7777);
+        AssertRgb555(colorized, GameBoyPixelIndex(x: 8, y: 0), expected: 0x3333);
+    }
+
+    [Fact]
+    public void ApplyPendingVramTransfer_LoadsBorderTilesAndMap()
+    {
+        var sgb = new SgbController(commandsEnabled: true);
+        var tileTransfer = new byte[4096];
+        var mapTransfer = new byte[4096];
+        WriteBorderTilePixel(tileTransfer, tileIndex: 1, color: 5);
+        WriteUInt16(mapTransfer, offset: 0, (4 << 10) | 1);
+        WriteUInt16(mapTransfer, offset: 0x800 + (5 * 2), 0x1234);
+
+        WriteSgbPacket(sgb, command: 0x13, [0x00]);
+        Assert.True(sgb.HasPendingVramTransfer);
+        sgb.ApplyPendingVramTransfer(tileTransfer);
+        WriteSgbPacket(sgb, command: 0x14, []);
+        Assert.True(sgb.HasPendingVramTransfer);
+        sgb.ApplyPendingVramTransfer(mapTransfer);
+
+        var colorized = sgb.ApplyPalettes(CreateDmgFrame(shade: 0));
+
+        Assert.False(sgb.HasPendingVramTransfer);
+        AssertRgb555(colorized, pixelIndex: 0, expected: 0x1234);
+        AssertRgb555(colorized, GameBoyPixelIndex(x: 0, y: 0), expected: 0x7FFF);
     }
 
     private static LcdFrame CreateDmgFrame(byte shade)
@@ -196,6 +222,31 @@ public sealed class SgbControllerTests
         transferData[fileIndex * 90] = packedFirstFourTiles;
     }
 
+    private static void WriteBorderTilePixel(byte[] transferData, int tileIndex, byte color)
+    {
+        var offset = tileIndex * 32;
+
+        if ((color & 0x01) != 0)
+        {
+            transferData[offset] = 0x80;
+        }
+
+        if ((color & 0x02) != 0)
+        {
+            transferData[offset + 1] = 0x80;
+        }
+
+        if ((color & 0x04) != 0)
+        {
+            transferData[offset + 16] = 0x80;
+        }
+
+        if ((color & 0x08) != 0)
+        {
+            transferData[offset + 17] = 0x80;
+        }
+    }
+
     private static void WriteUInt16(byte[] bytes, int offset, ushort value)
     {
         bytes[offset] = (byte)value;
@@ -209,6 +260,8 @@ public sealed class SgbControllerTests
         var actual = (ushort)(pixels[offset] | (pixels[offset + 1] << 8));
         Assert.Equal(expected, actual);
     }
+
+    private static int GameBoyPixelIndex(int x, int y) => ((40 + y) * 256) + 48 + x;
 
     private static void WriteSgbPacket(SgbController sgb, byte command, ReadOnlySpan<byte> payload)
     {

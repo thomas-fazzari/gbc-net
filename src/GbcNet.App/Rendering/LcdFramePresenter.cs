@@ -51,6 +51,8 @@ internal sealed class LcdFramePresenter(Image screenImage) : IDisposable
 
         if (frame is not null)
         {
+            screenImage.Width = frame.Width;
+            screenImage.Height = frame.Height;
             screenImage.Source = _renderer.Render(frame);
         }
 

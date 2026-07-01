@@ -346,8 +346,10 @@ public sealed class GameBoyTests
         var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 144).CompletedFrame);
 
         Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        Assert.Equal(160 * 144 * 2, frame.Pixels.Length);
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x1234);
+        Assert.Equal(256, frame.Width);
+        Assert.Equal(224, frame.Height);
+        Assert.Equal(256 * 224 * 2, frame.Pixels.Length);
+        AssertRgb555Pixel(frame, SgbGameBoyPixelIndex(x: 0, y: 0), expected: 0x1234);
     }
 
     [Fact]
@@ -364,7 +366,7 @@ public sealed class GameBoyTests
         var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
 
         Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x1234);
+        AssertRgb555Pixel(frame, SgbGameBoyPixelIndex(x: 0, y: 0), expected: 0x1234);
     }
 
     [Fact]
@@ -403,8 +405,8 @@ public sealed class GameBoyTests
         var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
 
         Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x6666);
-        AssertRgb555Pixel(frame, pixelIndex: 8, expected: 0x3333);
+        AssertRgb555Pixel(frame, SgbGameBoyPixelIndex(x: 0, y: 0), expected: 0x6666);
+        AssertRgb555Pixel(frame, SgbGameBoyPixelIndex(x: 8, y: 0), expected: 0x3333);
     }
 
     [Fact]
@@ -425,8 +427,28 @@ public sealed class GameBoyTests
 
         var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
 
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x7777);
-        AssertRgb555Pixel(frame, pixelIndex: 8, expected: 0x3333);
+        AssertRgb555Pixel(frame, SgbGameBoyPixelIndex(x: 0, y: 0), expected: 0x7777);
+        AssertRgb555Pixel(frame, SgbGameBoyPixelIndex(x: 8, y: 0), expected: 0x3333);
+    }
+
+    [Fact]
+    public void TickPpu_SgbCapturesBorderTransferFromVram()
+    {
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(CreateSgbRom()));
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Sgb);
+        WriteSgbBorderTilePixel(gameBoy, tileIndex: 1, color: 5);
+
+        WriteSgbPacket(gameBoy, command: 0x13, [0x00]);
+        gameBoy.Bus.TickPpu(456 * 144);
+        WriteSgbBorderMapEntry(gameBoy, tileX: 0, tileY: 0, tileIndex: 1, palette: 4);
+        WriteSgbBorderPaletteColor(gameBoy, paletteColor: 5, color: 0x1234);
+        WriteSgbPacket(gameBoy, command: 0x14, []);
+
+        var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
+
+        Assert.Equal(256, frame.Width);
+        Assert.Equal(224, frame.Height);
+        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x1234);
     }
 
     [Fact]
@@ -610,6 +632,50 @@ public sealed class GameBoyTests
         );
     }
 
+    private static void WriteSgbBorderTilePixel(GameBoy gameBoy, int tileIndex, byte color)
+    {
+        var address = AddressMap.VideoRamStart + (tileIndex * 32);
+        if ((color & 0x01) != 0)
+        {
+            gameBoy.Bus.Ppu.VideoRam.Write((ushort)address, 0x80);
+        }
+
+        if ((color & 0x02) != 0)
+        {
+            gameBoy.Bus.Ppu.VideoRam.Write((ushort)(address + 1), 0x80);
+        }
+
+        if ((color & 0x04) != 0)
+        {
+            gameBoy.Bus.Ppu.VideoRam.Write((ushort)(address + 16), 0x80);
+        }
+
+        if ((color & 0x08) != 0)
+        {
+            gameBoy.Bus.Ppu.VideoRam.Write((ushort)(address + 17), 0x80);
+        }
+    }
+
+    private static void WriteSgbBorderMapEntry(
+        GameBoy gameBoy,
+        int tileX,
+        int tileY,
+        int tileIndex,
+        int palette
+    )
+    {
+        WriteVramUInt16(
+            gameBoy,
+            AddressMap.VideoRamStart + (((tileY * 32) + tileX) * 2),
+            (ushort)((palette << 10) | tileIndex)
+        );
+    }
+
+    private static void WriteSgbBorderPaletteColor(GameBoy gameBoy, int paletteColor, ushort color)
+    {
+        WriteVramUInt16(gameBoy, AddressMap.VideoRamStart + 0x800 + (paletteColor * 2), color);
+    }
+
     private static void WriteFirstBackgroundPixelShade2(GameBoy gameBoy)
     {
         gameBoy.Bus.Ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, 0xE4);
@@ -637,4 +703,6 @@ public sealed class GameBoyTests
         var actual = (ushort)(pixels[offset] | (pixels[offset + 1] << 8));
         Assert.Equal(expected, actual);
     }
+
+    private static int SgbGameBoyPixelIndex(int x, int y) => ((40 + y) * 256) + 48 + x;
 }
