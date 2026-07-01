@@ -23,17 +23,26 @@ internal sealed class SgbController(bool commandsEnabled)
     private const byte PalSetCommand = 0x0A;
     private const byte PalTrnCommand = 0x0B;
     private const byte MltReqCommand = 0x11;
+    private const byte AttrTrnCommand = 0x15;
+    private const byte AttrSetCommand = 0x16;
     private const byte MaskEnCommand = 0x17;
     private const int AttributeMapWidth = 20;
     private const int AttributeMapHeight = 18;
+    private const int AttributeFilePackedSize = 90;
+    private const int AttributeFileCount = 45;
+    private const int AttributeFileTransferSizeBytes = AttributeFilePackedSize * AttributeFileCount;
     private const int Rgb555BytesPerPixel = 2;
     private const int VramTransferSizeBytes = 4096;
+    private const byte NoPendingVramTransfer = 0;
+    private const byte PendingPaletteTransfer = 1;
+    private const byte PendingAttributeTransfer = 2;
     private const byte MaskFreeze = 1;
     private const byte MaskBlack = 2;
     private const byte MaskColor0 = 3;
 
     private readonly byte[] _command = new byte[MaxCommandSizeBytes];
     private readonly ushort[] _systemPalettes = new ushort[512 * 4];
+    private readonly byte[] _attributeFiles = new byte[AttributeFileTransferSizeBytes];
     private readonly ushort[] _palettes =
     [
         0x7FFF,
@@ -61,10 +70,10 @@ internal sealed class SgbController(bool commandsEnabled)
     private int _playerCount = 1;
     private int _currentPlayer;
     private byte _maskMode;
-    private bool _pendingPaletteTransfer;
+    private byte _pendingVramTransfer;
     private byte[]? _visibleFramePixels;
 
-    public bool HasPendingVramTransfer => _pendingPaletteTransfer;
+    public bool HasPendingVramTransfer => _pendingVramTransfer != NoPendingVramTransfer;
 
     public void Write(byte value, byte previousSelectedGroups)
     {
@@ -130,7 +139,7 @@ internal sealed class SgbController(bool commandsEnabled)
 
     public void ApplyPendingVramTransfer(ReadOnlySpan<byte> transferData)
     {
-        if (!_pendingPaletteTransfer)
+        if (_pendingVramTransfer == NoPendingVramTransfer)
         {
             return;
         }
@@ -143,12 +152,19 @@ internal sealed class SgbController(bool commandsEnabled)
             );
         }
 
-        for (var offset = 0; offset < VramTransferSizeBytes; offset += 2)
+        if (_pendingVramTransfer == PendingPaletteTransfer)
         {
-            _systemPalettes[offset / 2] = ReadUInt16(transferData, offset);
+            for (var offset = 0; offset < VramTransferSizeBytes; offset += 2)
+            {
+                _systemPalettes[offset / 2] = ReadUInt16(transferData, offset);
+            }
+        }
+        else
+        {
+            transferData[..AttributeFileTransferSizeBytes].CopyTo(_attributeFiles);
         }
 
-        _pendingPaletteTransfer = false;
+        _pendingVramTransfer = NoPendingVramTransfer;
     }
 
     private int GetCommandSizeBits()
@@ -257,10 +273,16 @@ internal sealed class SgbController(bool commandsEnabled)
                 SetSystemPalettes();
                 return;
             case PalTrnCommand:
-                _pendingPaletteTransfer = true;
+                _pendingVramTransfer = PendingPaletteTransfer;
                 return;
             case MltReqCommand:
                 SetPlayerCount(_command[1] & 0x03);
+                return;
+            case AttrTrnCommand:
+                _pendingVramTransfer = PendingAttributeTransfer;
+                return;
+            case AttrSetCommand:
+                SetAttributeFile(_command[1]);
                 return;
             case MaskEnCommand:
                 _maskMode = (byte)(_command[1] & 0x03);
@@ -332,6 +354,12 @@ internal sealed class SgbController(bool commandsEnabled)
         _palettes[4] = _palettes[0];
         _palettes[8] = _palettes[0];
         _palettes[12] = _palettes[0];
+
+        if ((_command[9] & 0x80) != 0)
+        {
+            ApplyAttributeFile(_command[9] & 0x3F);
+        }
+
         if ((_command[9] & 0x40) != 0)
         {
             _maskMode = 0;
@@ -346,6 +374,40 @@ internal sealed class SgbController(bool commandsEnabled)
         for (var color = 0; color < 4; color++)
         {
             _palettes[targetOffset + color] = _systemPalettes[sourceOffset + color];
+        }
+    }
+
+    private void SetAttributeFile(byte control)
+    {
+        ApplyAttributeFile(control & 0x3F);
+        if ((control & 0x40) != 0)
+        {
+            _maskMode = 0;
+        }
+    }
+
+    private void ApplyAttributeFile(int fileIndex)
+    {
+        if (fileIndex >= AttributeFileCount)
+        {
+            return;
+        }
+
+        var sourceOffset = fileIndex * AttributeFilePackedSize;
+        for (var y = 0; y < AttributeMapHeight; y++)
+        {
+            for (var group = 0; group < AttributeMapWidth / 4; group++)
+            {
+                var packedAttributes = _attributeFiles[sourceOffset + (y * 5) + group];
+                for (var xInGroup = 0; xInGroup < 4; xInGroup++)
+                {
+                    SetAttribute(
+                        (group * 4) + xInGroup,
+                        y,
+                        (byte)((packedAttributes >> ((3 - xInGroup) * 2)) & 0x03)
+                    );
+                }
+            }
         }
     }
 

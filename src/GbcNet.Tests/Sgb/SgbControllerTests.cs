@@ -105,6 +105,48 @@ public sealed class SgbControllerTests
         AssertRgb555(colorized, pixelIndex: 0, expected: 0x2222);
     }
 
+    [Fact]
+    public void ApplyPendingVramTransfer_LoadsAttributeFilesUsedByAttrSet()
+    {
+        var sgb = new SgbController(commandsEnabled: true);
+        var transferData = new byte[4096];
+        WriteAttributeFile(transferData, fileIndex: 3, packedFirstFourTiles: 0x40);
+
+        WriteSgbPacket(sgb, command: 0x00, Pal01Payload);
+        WriteSgbPacket(sgb, command: 0x15, []);
+        Assert.True(sgb.HasPendingVramTransfer);
+        sgb.ApplyPendingVramTransfer(transferData);
+        WriteSgbPacket(sgb, command: 0x16, [0x03]);
+
+        var colorized = sgb.ApplyPalettes(CreateDmgFrame(shade: 2));
+
+        Assert.False(sgb.HasPendingVramTransfer);
+        AssertRgb555(colorized, pixelIndex: 0, expected: 0x6666);
+        AssertRgb555(colorized, pixelIndex: 8, expected: 0x3333);
+    }
+
+    [Fact]
+    public void ApplyPalettes_PalSetCanApplyAttributeFile()
+    {
+        var sgb = new SgbController(commandsEnabled: true);
+        var paletteTransfer = new byte[4096];
+        var attributeTransfer = new byte[4096];
+        WriteSystemPalette(paletteTransfer, paletteId: 5, 0x1111, 0x2222, 0x3333, 0x4444);
+        WriteSystemPalette(paletteTransfer, paletteId: 6, 0x5555, 0x6666, 0x7777, 0x7FFF);
+        WriteAttributeFile(attributeTransfer, fileIndex: 4, packedFirstFourTiles: 0x40);
+
+        WriteSgbPacket(sgb, command: 0x0B, []);
+        sgb.ApplyPendingVramTransfer(paletteTransfer);
+        WriteSgbPacket(sgb, command: 0x15, []);
+        sgb.ApplyPendingVramTransfer(attributeTransfer);
+        WriteSgbPacket(sgb, command: 0x0A, CreatePalSetPayload(5, 6, 5, 5, flags: 0x84));
+
+        var colorized = sgb.ApplyPalettes(CreateDmgFrame(shade: 2));
+
+        AssertRgb555(colorized, pixelIndex: 0, expected: 0x7777);
+        AssertRgb555(colorized, pixelIndex: 8, expected: 0x3333);
+    }
+
     private static LcdFrame CreateDmgFrame(byte shade)
     {
         var pixels = new byte[160 * 144];
@@ -143,6 +185,15 @@ public sealed class SgbControllerTests
         WriteUInt16(transferData, offset + 2, color1);
         WriteUInt16(transferData, offset + 4, color2);
         WriteUInt16(transferData, offset + 6, color3);
+    }
+
+    private static void WriteAttributeFile(
+        byte[] transferData,
+        int fileIndex,
+        byte packedFirstFourTiles
+    )
+    {
+        transferData[fileIndex * 90] = packedFirstFourTiles;
     }
 
     private static void WriteUInt16(byte[] bytes, int offset, ushort value)

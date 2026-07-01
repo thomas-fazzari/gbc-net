@@ -368,6 +368,68 @@ public sealed class GameBoyTests
     }
 
     [Fact]
+    public void TickPpu_SgbCapturesAttributeTransferFromVram()
+    {
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(CreateSgbRom()));
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Sgb);
+        WriteSgbPacket(
+            gameBoy,
+            command: 0x00,
+            [
+                0x11,
+                0x11,
+                0x22,
+                0x22,
+                0x33,
+                0x33,
+                0x44,
+                0x44,
+                0x55,
+                0x55,
+                0x66,
+                0x66,
+                0x77,
+                0x77,
+                0x00,
+            ]
+        );
+        WriteSgbAttributeTransfer(gameBoy, fileIndex: 2, packedFirstFourTiles: 0x40);
+
+        WriteSgbPacket(gameBoy, command: 0x15, []);
+        gameBoy.Bus.TickPpu(456 * 144);
+        WriteSgbPacket(gameBoy, command: 0x16, [0x02]);
+        WriteFirstBackgroundPixelShade2(gameBoy);
+
+        var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
+
+        Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
+        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x6666);
+        AssertRgb555Pixel(frame, pixelIndex: 8, expected: 0x3333);
+    }
+
+    [Fact]
+    public void TickPpu_SgbPalSetCanApplyAttributeFile()
+    {
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(CreateSgbRom()));
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Sgb);
+        WriteSgbPaletteTransfer(gameBoy, paletteId: 9, 0x1111, 0x2222, 0x3333, 0x4444);
+        WriteSgbPaletteTransfer(gameBoy, paletteId: 10, 0x5555, 0x6666, 0x7777, 0x7FFF);
+        WriteSgbAttributeTransfer(gameBoy, fileIndex: 3, packedFirstFourTiles: 0x40);
+
+        WriteSgbPacket(gameBoy, command: 0x0B, []);
+        gameBoy.Bus.TickPpu(456 * 144);
+        WriteSgbPacket(gameBoy, command: 0x15, []);
+        gameBoy.Bus.TickPpu(456 * 154);
+        WriteSgbPacket(gameBoy, command: 0x0A, CreateSgbPalSetPayload(9, 10, 9, 9, flags: 0x83));
+        WriteFirstBackgroundPixelShade2(gameBoy);
+
+        var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
+
+        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x7777);
+        AssertRgb555Pixel(frame, pixelIndex: 8, expected: 0x3333);
+    }
+
+    [Fact]
     public void DrainAudioSamples_ReturnsProducedSamples()
     {
         var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
@@ -507,7 +569,8 @@ public sealed class GameBoyTests
         ushort palette0,
         ushort palette1,
         ushort palette2,
-        ushort palette3
+        ushort palette3,
+        byte flags = 0
     )
     {
         var payload = new byte[15];
@@ -515,6 +578,7 @@ public sealed class GameBoyTests
         WriteUInt16(payload, offset: 2, palette1);
         WriteUInt16(payload, offset: 4, palette2);
         WriteUInt16(payload, offset: 6, palette3);
+        payload[8] = flags;
         return payload;
     }
 
@@ -532,6 +596,26 @@ public sealed class GameBoyTests
         WriteVramUInt16(gameBoy, address + 2, color1);
         WriteVramUInt16(gameBoy, address + 4, color2);
         WriteVramUInt16(gameBoy, address + 6, color3);
+    }
+
+    private static void WriteSgbAttributeTransfer(
+        GameBoy gameBoy,
+        int fileIndex,
+        byte packedFirstFourTiles
+    )
+    {
+        gameBoy.Bus.Ppu.VideoRam.Write(
+            (ushort)(AddressMap.VideoRamStart + (fileIndex * 90)),
+            packedFirstFourTiles
+        );
+    }
+
+    private static void WriteFirstBackgroundPixelShade2(GameBoy gameBoy)
+    {
+        gameBoy.Bus.Ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, 0xE4);
+        gameBoy.Bus.Ppu.VideoRam.Write(0x8000, 0x00);
+        gameBoy.Bus.Ppu.VideoRam.Write(0x8001, 0x80);
+        gameBoy.Bus.Ppu.VideoRam.Write(0x9800, 0x00);
     }
 
     private static void WriteVramUInt16(GameBoy gameBoy, int address, ushort value)
