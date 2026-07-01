@@ -353,14 +353,16 @@ public sealed class GameBoyTests
     }
 
     [Fact]
-    public void TickPpu_SgbCapturesPaletteTransferFromVram()
+    public void TickPpu_SgbCapturesPaletteTransferFromScreen()
     {
         var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(CreateSgbRom()));
         var gameBoy = new GameBoy(cartridge, HardwareModel.Sgb);
-        WriteSgbPaletteTransfer(gameBoy, paletteId: 9, 0x1234, 0x2345, 0x3456, 0x4567);
+        var transferData = new byte[4096];
+        WriteSgbPaletteTransfer(transferData, paletteId: 9, 0x1234, 0x2345, 0x3456, 0x4567);
 
+        WriteSgbTransferFrame(gameBoy, transferData, tileCount: 0x100);
         WriteSgbPacket(gameBoy, command: 0x0B, []);
-        gameBoy.Bus.TickPpu(456 * 144);
+        TickSgbTransferFrames(gameBoy);
         WriteSgbPacket(gameBoy, command: 0x0A, CreateSgbPalSetPayload(9, 9, 9, 9));
 
         var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
@@ -370,7 +372,7 @@ public sealed class GameBoyTests
     }
 
     [Fact]
-    public void TickPpu_SgbCapturesAttributeTransferFromVram()
+    public void TickPpu_SgbCapturesAttributeTransferFromScreen()
     {
         var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(CreateSgbRom()));
         var gameBoy = new GameBoy(cartridge, HardwareModel.Sgb);
@@ -395,10 +397,12 @@ public sealed class GameBoyTests
                 0x00,
             ]
         );
-        WriteSgbAttributeTransfer(gameBoy, fileIndex: 2, packedFirstFourTiles: 0x40);
+        var transferData = new byte[4096];
+        WriteSgbAttributeTransfer(transferData, fileIndex: 2, packedFirstFourTiles: 0x40);
 
+        WriteSgbTransferFrame(gameBoy, transferData, tileCount: 0xFE);
         WriteSgbPacket(gameBoy, command: 0x15, []);
-        gameBoy.Bus.TickPpu(456 * 144);
+        TickSgbTransferFrames(gameBoy);
         WriteSgbPacket(gameBoy, command: 0x16, [0x02]);
         WriteFirstBackgroundPixelShade2(gameBoy);
 
@@ -414,14 +418,18 @@ public sealed class GameBoyTests
     {
         var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(CreateSgbRom()));
         var gameBoy = new GameBoy(cartridge, HardwareModel.Sgb);
-        WriteSgbPaletteTransfer(gameBoy, paletteId: 9, 0x1111, 0x2222, 0x3333, 0x4444);
-        WriteSgbPaletteTransfer(gameBoy, paletteId: 10, 0x5555, 0x6666, 0x7777, 0x7FFF);
-        WriteSgbAttributeTransfer(gameBoy, fileIndex: 3, packedFirstFourTiles: 0x40);
+        var paletteTransfer = new byte[4096];
+        var attributeTransfer = new byte[4096];
+        WriteSgbPaletteTransfer(paletteTransfer, paletteId: 9, 0x1111, 0x2222, 0x3333, 0x4444);
+        WriteSgbPaletteTransfer(paletteTransfer, paletteId: 10, 0x5555, 0x6666, 0x7777, 0x7FFF);
+        WriteSgbAttributeTransfer(attributeTransfer, fileIndex: 3, packedFirstFourTiles: 0x40);
 
+        WriteSgbTransferFrame(gameBoy, paletteTransfer, tileCount: 0x100);
         WriteSgbPacket(gameBoy, command: 0x0B, []);
-        gameBoy.Bus.TickPpu(456 * 144);
+        TickSgbTransferFrames(gameBoy);
+        WriteSgbTransferFrame(gameBoy, attributeTransfer, tileCount: 0xFE);
         WriteSgbPacket(gameBoy, command: 0x15, []);
-        gameBoy.Bus.TickPpu(456 * 154);
+        TickSgbTransferFrames(gameBoy);
         WriteSgbPacket(gameBoy, command: 0x0A, CreateSgbPalSetPayload(9, 10, 9, 9, flags: 0x83));
         WriteFirstBackgroundPixelShade2(gameBoy);
 
@@ -432,17 +440,22 @@ public sealed class GameBoyTests
     }
 
     [Fact]
-    public void TickPpu_SgbCapturesBorderTransferFromVram()
+    public void TickPpu_SgbCapturesBorderTransferFromScreen()
     {
         var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(CreateSgbRom()));
         var gameBoy = new GameBoy(cartridge, HardwareModel.Sgb);
-        WriteSgbBorderTilePixel(gameBoy, tileIndex: 1, color: 5);
+        var tileTransfer = new byte[4096];
+        var mapTransfer = new byte[4096];
+        WriteSgbBorderTilePixel(tileTransfer, tileIndex: 1, color: 5);
 
+        WriteSgbTransferFrame(gameBoy, tileTransfer, tileCount: 0x100);
         WriteSgbPacket(gameBoy, command: 0x13, [0x00]);
-        gameBoy.Bus.TickPpu(456 * 144);
-        WriteSgbBorderMapEntry(gameBoy, tileX: 0, tileY: 0, tileIndex: 1, palette: 4);
-        WriteSgbBorderPaletteColor(gameBoy, paletteColor: 5, color: 0x1234);
+        TickSgbTransferFrames(gameBoy);
+        WriteSgbBorderMapEntry(mapTransfer, tileX: 0, tileY: 0, tileIndex: 1, palette: 4);
+        WriteSgbBorderPaletteColor(mapTransfer, paletteColor: 5, color: 0x1234);
+        WriteSgbTransferFrame(gameBoy, mapTransfer, tileCount: 0x88);
         WriteSgbPacket(gameBoy, command: 0x14, []);
+        TickSgbTransferFrames(gameBoy);
 
         var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
 
@@ -605,7 +618,7 @@ public sealed class GameBoyTests
     }
 
     private static void WriteSgbPaletteTransfer(
-        GameBoy gameBoy,
+        byte[] transferData,
         int paletteId,
         ushort color0,
         ushort color1,
@@ -613,67 +626,100 @@ public sealed class GameBoyTests
         ushort color3
     )
     {
-        var address = AddressMap.VideoRamStart + (paletteId * 8);
-        WriteVramUInt16(gameBoy, address, color0);
-        WriteVramUInt16(gameBoy, address + 2, color1);
-        WriteVramUInt16(gameBoy, address + 4, color2);
-        WriteVramUInt16(gameBoy, address + 6, color3);
+        var offset = paletteId * 8;
+        WriteUInt16(transferData, offset, color0);
+        WriteUInt16(transferData, offset + 2, color1);
+        WriteUInt16(transferData, offset + 4, color2);
+        WriteUInt16(transferData, offset + 6, color3);
     }
 
     private static void WriteSgbAttributeTransfer(
-        GameBoy gameBoy,
+        byte[] transferData,
         int fileIndex,
         byte packedFirstFourTiles
     )
     {
-        gameBoy.Bus.Ppu.VideoRam.Write(
-            (ushort)(AddressMap.VideoRamStart + (fileIndex * 90)),
-            packedFirstFourTiles
-        );
+        transferData[fileIndex * 90] = packedFirstFourTiles;
     }
 
-    private static void WriteSgbBorderTilePixel(GameBoy gameBoy, int tileIndex, byte color)
+    private static void WriteSgbBorderTilePixel(byte[] transferData, int tileIndex, byte color)
     {
-        var address = AddressMap.VideoRamStart + (tileIndex * 32);
+        var offset = tileIndex * 32;
         if ((color & 0x01) != 0)
         {
-            gameBoy.Bus.Ppu.VideoRam.Write((ushort)address, 0x80);
+            transferData[offset] = 0x80;
         }
 
         if ((color & 0x02) != 0)
         {
-            gameBoy.Bus.Ppu.VideoRam.Write((ushort)(address + 1), 0x80);
+            transferData[offset + 1] = 0x80;
         }
 
         if ((color & 0x04) != 0)
         {
-            gameBoy.Bus.Ppu.VideoRam.Write((ushort)(address + 16), 0x80);
+            transferData[offset + 16] = 0x80;
         }
 
         if ((color & 0x08) != 0)
         {
-            gameBoy.Bus.Ppu.VideoRam.Write((ushort)(address + 17), 0x80);
+            transferData[offset + 17] = 0x80;
         }
     }
 
     private static void WriteSgbBorderMapEntry(
-        GameBoy gameBoy,
+        byte[] transferData,
         int tileX,
         int tileY,
         int tileIndex,
         int palette
     )
     {
-        WriteVramUInt16(
-            gameBoy,
-            AddressMap.VideoRamStart + (((tileY * 32) + tileX) * 2),
+        WriteUInt16(
+            transferData,
+            ((tileY * 32) + tileX) * 2,
             (ushort)((palette << 10) | tileIndex)
         );
     }
 
-    private static void WriteSgbBorderPaletteColor(GameBoy gameBoy, int paletteColor, ushort color)
+    private static void WriteSgbBorderPaletteColor(
+        byte[] transferData,
+        int paletteColor,
+        ushort color
+    )
     {
-        WriteVramUInt16(gameBoy, AddressMap.VideoRamStart + 0x800 + (paletteColor * 2), color);
+        WriteUInt16(transferData, 0x800 + (paletteColor * 2), color);
+    }
+
+    private static void WriteSgbTransferFrame(
+        GameBoy gameBoy,
+        ReadOnlySpan<byte> transferData,
+        int tileCount
+    )
+    {
+        gameBoy.Bus.Ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, 0xE4);
+        for (var tile = 0; tile < tileCount; tile++)
+        {
+            var tileDataAddress = AddressMap.VideoRamStart + (tile * 16);
+            for (var offset = 0; offset < 16; offset++)
+            {
+                gameBoy.Bus.Ppu.VideoRam.Write(
+                    (ushort)(tileDataAddress + offset),
+                    transferData[(tile * 16) + offset]
+                );
+            }
+
+            gameBoy.Bus.Ppu.VideoRam.Write(
+                (ushort)(0x9800 + (tile / 20 * 32) + (tile % 20)),
+                (byte)tile
+            );
+        }
+    }
+
+    private static void TickSgbTransferFrames(GameBoy gameBoy)
+    {
+        gameBoy.Bus.TickPpu(456 * 154);
+        gameBoy.Bus.TickPpu(456 * 154);
+        gameBoy.Bus.TickPpu(456 * 154);
     }
 
     private static void WriteFirstBackgroundPixelShade2(GameBoy gameBoy)
@@ -682,12 +728,7 @@ public sealed class GameBoyTests
         gameBoy.Bus.Ppu.VideoRam.Write(0x8000, 0x00);
         gameBoy.Bus.Ppu.VideoRam.Write(0x8001, 0x80);
         gameBoy.Bus.Ppu.VideoRam.Write(0x9800, 0x00);
-    }
-
-    private static void WriteVramUInt16(GameBoy gameBoy, int address, ushort value)
-    {
-        gameBoy.Bus.Ppu.VideoRam.Write((ushort)address, (byte)value);
-        gameBoy.Bus.Ppu.VideoRam.Write((ushort)(address + 1), (byte)(value >> 8));
+        gameBoy.Bus.Ppu.VideoRam.Write(0x9801, 0x00);
     }
 
     private static void WriteUInt16(byte[] bytes, int offset, ushort value)

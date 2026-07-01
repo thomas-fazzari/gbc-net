@@ -39,6 +39,10 @@ internal sealed class SgbController(bool commandsEnabled)
     private const int SgbBorderTileTransferBytes = 4096;
     private const int SgbBorderPaletteOffset = 0x800;
     private const int SgbBorderPaletteColors = 16 * 3;
+    private const int PaletteTransferTileCount = 0x100;
+    private const int BorderDataTransferTileCount = 0x88;
+    private const int AttributeTransferTileCount = 0xFE;
+    private const byte VramTransferFrameDelay = 3;
     private const int AttributeMapWidth = 20;
     private const int AttributeMapHeight = 18;
     private const int AttributeFilePackedSize = 90;
@@ -90,6 +94,7 @@ internal sealed class SgbController(bool commandsEnabled)
     private int _currentPlayer;
     private byte _maskMode;
     private byte _pendingVramTransfer;
+    private byte _pendingVramTransferFrameDelay;
     private byte[]? _visibleFramePixels;
 
     public bool HasPendingVramTransfer => _pendingVramTransfer != NoPendingVramTransfer;
@@ -214,6 +219,32 @@ internal sealed class SgbController(bool commandsEnabled)
         }
 
         _pendingVramTransfer = NoPendingVramTransfer;
+        _pendingVramTransferFrameDelay = 0;
+    }
+
+    public void ApplyPendingVramTransfer(LcdFrame transferFrame)
+    {
+        if (_pendingVramTransfer == NoPendingVramTransfer)
+        {
+            return;
+        }
+
+        if (transferFrame.PixelFormat is not LcdPixelFormat.DmgShadeIndex8)
+        {
+            throw new ArgumentException(
+                "SGB VRAM transfer frame must contain DMG shade pixels.",
+                nameof(transferFrame)
+            );
+        }
+
+        if (_pendingVramTransferFrameDelay > 0 && --_pendingVramTransferFrameDelay > 0)
+        {
+            return;
+        }
+
+        var transferData = new byte[VramTransferSizeBytes];
+        DecodeTransferFrame(transferFrame.Pixels.Span, GetPendingTransferTileCount(), transferData);
+        ApplyPendingVramTransfer(transferData);
     }
 
     private int GetCommandSizeBits()
@@ -322,22 +353,23 @@ internal sealed class SgbController(bool commandsEnabled)
                 SetSystemPalettes();
                 return;
             case PalTrnCommand:
-                _pendingVramTransfer = PendingPaletteTransfer;
+                RequestVramTransfer(PendingPaletteTransfer);
                 return;
             case MltReqCommand:
                 SetPlayerCount(_command[1] & 0x03);
                 return;
             case ChrTrnCommand:
-                _pendingVramTransfer =
+                RequestVramTransfer(
                     (_command[1] & 0x01) == 0
                         ? PendingBorderTileLowTransfer
-                        : PendingBorderTileHighTransfer;
+                        : PendingBorderTileHighTransfer
+                );
                 return;
             case PctTrnCommand:
-                _pendingVramTransfer = PendingBorderMapTransfer;
+                RequestVramTransfer(PendingBorderMapTransfer);
                 return;
             case AttrTrnCommand:
-                _pendingVramTransfer = PendingAttributeTransfer;
+                RequestVramTransfer(PendingAttributeTransfer);
                 return;
             case AttrSetCommand:
                 SetAttributeFile(_command[1]);
@@ -363,6 +395,60 @@ internal sealed class SgbController(bool commandsEnabled)
         }
 
         return target;
+    }
+
+    private void RequestVramTransfer(byte transfer)
+    {
+        _pendingVramTransfer = transfer;
+        _pendingVramTransferFrameDelay = VramTransferFrameDelay;
+    }
+
+    private int GetPendingTransferTileCount() =>
+        _pendingVramTransfer switch
+        {
+            PendingPaletteTransfer
+            or PendingBorderTileLowTransfer
+            or PendingBorderTileHighTransfer => PaletteTransferTileCount,
+            PendingBorderMapTransfer => BorderDataTransferTileCount,
+            PendingAttributeTransfer => AttributeTransferTileCount,
+            _ => 0,
+        };
+
+    private static void DecodeTransferFrame(
+        ReadOnlySpan<byte> shades,
+        int tileCount,
+        Span<byte> transferData
+    )
+    {
+        for (var tile = 0; tile < tileCount; tile++)
+        {
+            var tileX = tile % AttributeMapWidth * 8;
+            var tileY = tile / AttributeMapWidth * 8;
+            var targetOffset = tile * 16;
+
+            for (var y = 0; y < 8; y++)
+            {
+                byte low = 0;
+                byte high = 0;
+                for (var x = 0; x < 8; x++)
+                {
+                    var shade = shades[tileX + x + ((tileY + y) * PpuGeometry.FrameWidth)] & 0x03;
+                    var bit = (byte)(0x80 >> x);
+                    if ((shade & 0x01) != 0)
+                    {
+                        low |= bit;
+                    }
+
+                    if ((shade & 0x02) != 0)
+                    {
+                        high |= bit;
+                    }
+                }
+
+                transferData[targetOffset + (y * 2)] = low;
+                transferData[targetOffset + (y * 2) + 1] = high;
+            }
+        }
     }
 
     private byte[] SetVisibleRgb555Pixels(byte[] pixels)
