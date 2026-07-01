@@ -34,14 +34,8 @@ public sealed class LibraryServiceTests
         Assert.Equal("second.gb", entry.FileName);
         Assert.Equal("TEST ROM", entry.CartridgeTitle);
         Assert.Equal(2, entry.LaunchCount);
-        Assert.Equal(
-            new DateTimeOffset(2026, 6, 27, 14, 0, 0, TimeSpan.FromHours(2)),
-            entry.AddedAt
-        );
-        Assert.Equal(
-            new DateTimeOffset(2026, 6, 27, 14, 1, 0, TimeSpan.FromHours(2)),
-            entry.LastOpenedAt
-        );
+        Assert.Equal(new DateTimeOffset(2026, 6, 27, 12, 0, 0, TimeSpan.Zero), entry.AddedAt);
+        Assert.Equal(new DateTimeOffset(2026, 6, 27, 12, 1, 0, TimeSpan.Zero), entry.LastOpenedAt);
         Assert.Null(entry.CoverPath);
     }
 
@@ -77,20 +71,20 @@ public sealed class LibraryServiceTests
     }
 
     [Fact]
-    public void GetRoms_OrdersByInstantWhenLocalOffsetChanges()
+    public void GetRoms_OrdersByUtcTimestampText()
     {
         using var test = new LibraryTestContext();
         InsertLibraryEntry(
             test.DatabasePath,
             "older",
             "older.gb",
-            "2026-10-25T02:30:00.0000000+02:00"
+            "2026-10-25T00:30:00.0000000+00:00"
         );
         InsertLibraryEntry(
             test.DatabasePath,
             "newer",
             "newer.gb",
-            "2026-10-25T02:15:00.0000000+01:00"
+            "2026-10-25T01:15:00.0000000+00:00"
         );
 
         var entries = ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10));

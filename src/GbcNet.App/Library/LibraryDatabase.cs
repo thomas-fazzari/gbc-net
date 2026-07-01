@@ -6,6 +6,9 @@ namespace GbcNet.App.Library;
 
 internal sealed class LibraryDatabase(string databasePath)
 {
+    private readonly Lock _migrationLock = new();
+    private bool _migrated;
+
     public SqliteConnection OpenConnection()
     {
         var connection = new SqliteConnection(CreateConnectionString());
@@ -14,13 +17,32 @@ internal sealed class LibraryDatabase(string databasePath)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(databasePath) ?? ".");
             connection.Open();
-            Migrate(connection);
+            EnsureMigrated(connection);
             return connection;
         }
         catch
         {
             connection.Dispose();
             throw;
+        }
+    }
+
+    private void EnsureMigrated(SqliteConnection connection)
+    {
+        if (_migrated)
+        {
+            return;
+        }
+
+        lock (_migrationLock)
+        {
+            if (_migrated)
+            {
+                return;
+            }
+
+            Migrate(connection);
+            _migrated = true;
         }
     }
 

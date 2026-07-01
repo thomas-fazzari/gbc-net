@@ -52,10 +52,10 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
                   cover_path,
                   hardware_kind
                 from roms
-                order by unixepoch(last_opened_at) desc
+                order by last_opened_at desc
                 limit $limit;
                 """;
-            command.Parameters.AddWithValue("$limit", limit);
+            AddIntegerParameter(command, "$limit", limit);
 
             using var reader = command.ExecuteReader();
             var entries = new List<LibraryEntry>();
@@ -91,7 +91,9 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
             using var connection = database.OpenConnection();
             using var command = connection.CreateCommand();
             command.CommandText = "delete from roms where last_known_path = $lastKnownPath;";
-            command.Parameters.AddWithValue("$lastKnownPath", Path.GetFullPath(path));
+
+            AddTextParameter(command, "$lastKnownPath", Path.GetFullPath(path));
+
             command.ExecuteNonQuery();
             return Result.Ok();
         }
@@ -104,7 +106,7 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
     private void RecordOpenedRom(string fullPath, byte[] rom, Cartridge cartridge)
     {
         var romHash = ComputeRomHash(rom);
-        var openedAt = _timeProvider.GetLocalNow().ToString("O", CultureInfo.InvariantCulture);
+        var openedAt = _timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture);
         using var connection = database.OpenConnection();
         using var transaction = connection.BeginTransaction();
 
@@ -112,8 +114,8 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
         deleteCommand.Transaction = transaction;
         deleteCommand.CommandText =
             "delete from roms where last_known_path = $lastKnownPath and rom_hash <> $romHash;";
-        deleteCommand.Parameters.AddWithValue("$lastKnownPath", fullPath);
-        deleteCommand.Parameters.AddWithValue("$romHash", romHash);
+        AddTextParameter(deleteCommand, "$lastKnownPath", fullPath);
+        AddTextParameter(deleteCommand, "$romHash", romHash);
         deleteCommand.ExecuteNonQuery();
 
         using var upsertCommand = connection.CreateCommand();
@@ -148,15 +150,12 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
               last_opened_at = excluded.last_opened_at,
               launch_count = roms.launch_count + 1;
             """;
-        upsertCommand.Parameters.AddWithValue("$romHash", romHash);
-        upsertCommand.Parameters.AddWithValue("$lastKnownPath", fullPath);
-        upsertCommand.Parameters.AddWithValue("$fileName", Path.GetFileName(fullPath));
-        upsertCommand.Parameters.AddWithValue("$cartridgeTitle", cartridge.Header.Title);
-        upsertCommand.Parameters.AddWithValue(
-            "$hardwareKind",
-            cartridge.Header.HardwareKind.ToString()
-        );
-        upsertCommand.Parameters.AddWithValue("$openedAt", openedAt);
+        AddTextParameter(upsertCommand, "$romHash", romHash);
+        AddTextParameter(upsertCommand, "$lastKnownPath", fullPath);
+        AddTextParameter(upsertCommand, "$fileName", Path.GetFileName(fullPath));
+        AddOptionalTextParameter(upsertCommand, "$cartridgeTitle", cartridge.Header.Title);
+        AddTextParameter(upsertCommand, "$hardwareKind", cartridge.Header.HardwareKind.ToString());
+        AddTextParameter(upsertCommand, "$openedAt", openedAt);
         upsertCommand.ExecuteNonQuery();
 
         transaction.Commit();
@@ -184,4 +183,31 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
                 or InvalidOperationException
                 or FormatException
                 or SqliteException;
+
+    private static void AddTextParameter(SqliteCommand command, string name, string value)
+    {
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = name;
+        parameter.SqliteType = SqliteType.Text;
+        parameter.Value = value;
+        command.Parameters.Add(parameter);
+    }
+
+    private static void AddOptionalTextParameter(SqliteCommand command, string name, string? value)
+    {
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = name;
+        parameter.SqliteType = SqliteType.Text;
+        parameter.Value = value ?? (object)DBNull.Value;
+        command.Parameters.Add(parameter);
+    }
+
+    private static void AddIntegerParameter(SqliteCommand command, string name, int value)
+    {
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = name;
+        parameter.SqliteType = SqliteType.Integer;
+        parameter.Value = value;
+        command.Parameters.Add(parameter);
+    }
 }
