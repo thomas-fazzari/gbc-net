@@ -216,7 +216,15 @@ internal sealed class EmulationSessionPresenter(
 
         if (result.Value.HasSession)
         {
-            statusBar.ShowRomFileName(result.Value.LoadedRomFileName);
+            if (result.Value.HardwareModel is { } hardwareModel)
+            {
+                statusBar.ShowRomFileName(result.Value.LoadedRomFileName, hardwareModel);
+            }
+            else
+            {
+                statusBar.ShowRomFileName(result.Value.LoadedRomFileName);
+            }
+
             SessionOpened?.Invoke(this, EventArgs.Empty);
         }
         SyncMenuState();

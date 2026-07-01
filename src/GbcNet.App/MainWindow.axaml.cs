@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Layout;
+using Avalonia.Media;
 using GbcNet.App.Audio;
 using GbcNet.App.Configuration;
 using GbcNet.App.Emulation;
@@ -44,7 +46,53 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         _framePresenter = new LcdFramePresenter(emulationView.Screen);
 
-        _statusBar = new StatusBarPresenter(StatusTextBlock, StatusSpeedTextBlock);
+        var statusGrid = (Grid)StatusTextBlock.Parent!;
+        statusGrid.ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto");
+        statusGrid.ColumnSpacing = 8;
+
+        var statusHardwareBadgeTextBlock = new TextBlock
+        {
+            Foreground = AppChrome.Brush(AppChrome.Muted),
+            FontSize = 10,
+            FontWeight = FontWeight.SemiBold,
+        };
+        var statusHardwareBadge = new Border
+        {
+            BorderBrush = AppChrome.Brush(AppChrome.Hair),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(7),
+            Padding = new Thickness(5, 1),
+            VerticalAlignment = VerticalAlignment.Center,
+            IsVisible = false,
+            Child = statusHardwareBadgeTextBlock,
+        };
+        Grid.SetColumn(statusHardwareBadge, 1);
+        statusGrid.Children.Add(statusHardwareBadge);
+
+        statusGrid.Children.Remove(StatusSpeedTextBlock);
+        StatusSpeedTextBlock.Foreground = AppChrome.Brush(AppChrome.Muted);
+        StatusSpeedTextBlock.FontSize = 10;
+        StatusSpeedTextBlock.FontWeight = FontWeight.SemiBold;
+        var statusSpeedBadge = new Border
+        {
+            BorderBrush = AppChrome.Brush(AppChrome.Hair),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(7),
+            Padding = new Thickness(5, 1),
+            VerticalAlignment = VerticalAlignment.Center,
+            IsVisible = false,
+            Child = StatusSpeedTextBlock,
+        };
+        Grid.SetColumn(statusSpeedBadge, 2);
+        statusGrid.Children.Add(statusSpeedBadge);
+
+        _statusBar = new StatusBarPresenter(
+            StatusTextBlock,
+            statusHardwareBadge,
+            statusHardwareBadgeTextBlock,
+            statusSpeedBadge,
+            StatusSpeedTextBlock
+        );
         _operationRunner = new ShellOperationRunner(
             exception => _statusBar.ShowError(exception.Message),
             logger

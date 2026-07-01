@@ -4,6 +4,7 @@ using FluentResults;
 using GbcNet.App.Audio;
 using GbcNet.Core;
 using GbcNet.Core.Apu;
+using GbcNet.Core.Hardware;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Ppu;
 
@@ -54,6 +55,8 @@ internal sealed class EmulationSession
             }
         }
     }
+
+    public HardwareModel HardwareModel => _gameBoy.HardwareModel;
 
     public EmulationSession(
         GameBoy gameBoy,

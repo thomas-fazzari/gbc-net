@@ -450,12 +450,17 @@ public sealed class GameBoyTests
 
         WriteSgbTransferFrame(gameBoy, tileTransfer, tileCount: 0x100);
         WriteSgbPacket(gameBoy, command: 0x13, [0x00]);
+
+        gameBoy.VideoRenderingEnabled = false;
+
         TickSgbTransferFrames(gameBoy);
         WriteSgbBorderMapEntry(mapTransfer, tileX: 0, tileY: 0, tileIndex: 1, palette: 4);
         WriteSgbBorderPaletteColor(mapTransfer, paletteColor: 5, color: 0x1234);
         WriteSgbTransferFrame(gameBoy, mapTransfer, tileCount: 0x88);
         WriteSgbPacket(gameBoy, command: 0x14, []);
         TickSgbTransferFrames(gameBoy);
+
+        gameBoy.VideoRenderingEnabled = true;
 
         var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
 

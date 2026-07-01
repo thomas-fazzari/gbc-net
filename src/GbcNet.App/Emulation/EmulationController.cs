@@ -34,7 +34,8 @@ internal sealed class EmulationController(
             IsPaused: _session?.IsPaused ?? false,
             FastForwardEnabled: _fastForwardEnabled,
             FastForwardSpeed: _fastForwardSpeed,
-            LoadedRomFileName: _loadedRomFileName
+            LoadedRomFileName: _loadedRomFileName,
+            HardwareModel: _session?.HardwareModel
         );
 
     public void SetBootRomOptions(BootRomOptions options)
@@ -164,7 +165,8 @@ internal readonly record struct EmulationControllerState(
     bool IsPaused,
     bool FastForwardEnabled,
     EmulationSpeed FastForwardSpeed,
-    string LoadedRomFileName
+    string LoadedRomFileName,
+    HardwareModel? HardwareModel
 )
 {
     public EmulationSpeed EffectiveSpeed =>

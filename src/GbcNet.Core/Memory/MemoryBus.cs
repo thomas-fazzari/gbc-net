@@ -220,7 +220,21 @@ internal sealed class MemoryBus
 
     public PpuTickResult TickPpu(int tCycles)
     {
+        var restoreVideoRendering = false;
+
+        if (_sgb?.HasPendingVramTransfer == true && !Ppu.VideoRenderingEnabled)
+        {
+            Ppu.VideoRenderingEnabled = true;
+            restoreVideoRendering = true;
+        }
+
         var result = Ppu.Tick(tCycles);
+
+        if (restoreVideoRendering)
+        {
+            Ppu.VideoRenderingEnabled = false;
+        }
+
         if (result.CompletedFrame is not { } frame || _sgb is null)
         {
             return result;
