@@ -10,6 +10,8 @@ public sealed class RomFileFilterTests
     [InlineData("game.GB")]
     [InlineData("game.gbc")]
     [InlineData("game.GBC")]
+    [InlineData("game.sgb")]
+    [InlineData("game.SGB")]
     public void IsRomFileName_AcceptsGameBoyExtensions(string fileName)
     {
         Assert.True(RomFileFilter.IsRomFileName(fileName));

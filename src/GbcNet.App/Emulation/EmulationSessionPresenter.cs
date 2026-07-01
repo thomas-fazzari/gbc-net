@@ -26,7 +26,7 @@ internal sealed class EmulationSessionPresenter(
 
     private static readonly FilePickerFileType _gameBoyRomFileType = new("Game Boy ROM")
     {
-        Patterns = ["*.gb", "*.gbc"],
+        Patterns = ["*.gb", "*.gbc", "*.sgb"],
         AppleUniformTypeIdentifiers = ["public.data"],
         MimeTypes = ["application/x-gameboy-rom", "application/x-gameboy-color-rom"],
     };

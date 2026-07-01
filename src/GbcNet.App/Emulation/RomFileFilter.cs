@@ -5,7 +5,7 @@ namespace GbcNet.App.Emulation;
 
 internal static class RomFileFilter
 {
-    public const string UnsupportedDroppedFileMessage = "Drop a .gb or .gbc ROM file.";
+    public const string UnsupportedDroppedFileMessage = "Drop a .gb, .gbc, or .sgb ROM file.";
 
     public static IStorageFile? GetFirstDroppedRom(IEnumerable<IStorageItem>? items) =>
         items?.OfType<IStorageFile>().FirstOrDefault(static file => IsRomFileName(file.Name));
@@ -14,7 +14,8 @@ internal static class RomFileFilter
     {
         var extension = Path.GetExtension(fileName);
         return extension.Equals(".gb", StringComparison.OrdinalIgnoreCase)
-            || extension.Equals(".gbc", StringComparison.OrdinalIgnoreCase);
+            || extension.Equals(".gbc", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".sgb", StringComparison.OrdinalIgnoreCase);
     }
 
     public static DragDropEffects GetDragEffects(IEnumerable<DataFormat> formats) =>
