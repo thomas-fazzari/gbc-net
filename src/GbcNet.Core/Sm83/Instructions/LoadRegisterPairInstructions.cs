@@ -21,9 +21,6 @@ internal static class LoadRegisterPairInstructions
     private const byte LoadHlFromStackPointerPlusImmediate8Opcode = 0xF8;
     private const byte LoadStackPointerFromHlOpcode = 0xF9;
 
-    /// <summary>
-    /// Maps implemented r16 and r16mem load instructions into the opcode table.
-    /// </summary>
     public static void Map(OpcodeTableBuilder builder)
     {
         MapLoadRegisterPairImmediate16(builder, LoadBcImmediate16Opcode, RegisterPair.BC);
@@ -68,9 +65,6 @@ internal static class LoadRegisterPairInstructions
         builder.MapNoOperand(LoadStackPointerFromHlOpcode, ExecuteLoadStackPointerFromHl);
     }
 
-    /// <summary>
-    /// Maps an LD r16, imm16 instruction for the selected 16-bit register pair.
-    /// </summary>
     private static void MapLoadRegisterPairImmediate16(
         OpcodeTableBuilder builder,
         byte opcode,
@@ -84,9 +78,6 @@ internal static class LoadRegisterPairInstructions
         );
     }
 
-    /// <summary>
-    /// Maps an LD [r16], A instruction for BC- and DE-addressed memory writes.
-    /// </summary>
     private static void MapWriteAccumulatorToRegisterPairAddress(
         OpcodeTableBuilder builder,
         byte opcode,
@@ -99,9 +90,6 @@ internal static class LoadRegisterPairInstructions
         );
     }
 
-    /// <summary>
-    /// Maps an LD A, [r16] instruction for BC- and DE-addressed memory reads.
-    /// </summary>
     private static void MapReadAccumulatorFromRegisterPairAddress(
         OpcodeTableBuilder builder,
         byte opcode,
@@ -114,9 +102,6 @@ internal static class LoadRegisterPairInstructions
         );
     }
 
-    /// <summary>
-    /// Executes LD [imm16], SP by writing SP as a little-endian word.
-    /// </summary>
     private static void ExecuteLoadAddressImmediate16FromStackPointer(
         Cpu cpu,
         byte lowByte,
@@ -130,9 +115,6 @@ internal static class LoadRegisterPairInstructions
         );
     }
 
-    /// <summary>
-    /// Executes LD [HL+], A by writing A, then incrementing HL.
-    /// </summary>
     private static void ExecuteLoadAddressHlIncrementFromA(Cpu cpu)
     {
         var address = cpu.Registers.HL;
@@ -140,9 +122,6 @@ internal static class LoadRegisterPairInstructions
         cpu.Registers.HL = unchecked((ushort)(address + 1));
     }
 
-    /// <summary>
-    /// Executes LD A, [HL+] by reading A, then incrementing HL.
-    /// </summary>
     private static void ExecuteLoadAFromAddressHlIncrement(Cpu cpu)
     {
         var address = cpu.Registers.HL;
@@ -150,9 +129,6 @@ internal static class LoadRegisterPairInstructions
         cpu.Registers.HL = unchecked((ushort)(address + 1));
     }
 
-    /// <summary>
-    /// Executes LD [HL-], A by writing A, then decrementing HL.
-    /// </summary>
     private static void ExecuteLoadAddressHlDecrementFromA(Cpu cpu)
     {
         var address = cpu.Registers.HL;
@@ -160,9 +136,6 @@ internal static class LoadRegisterPairInstructions
         cpu.Registers.HL = unchecked((ushort)(address - 1));
     }
 
-    /// <summary>
-    /// Executes LD A, [HL-] by reading A, then decrementing HL.
-    /// </summary>
     private static void ExecuteLoadAFromAddressHlDecrement(Cpu cpu)
     {
         var address = cpu.Registers.HL;
@@ -170,9 +143,6 @@ internal static class LoadRegisterPairInstructions
         cpu.Registers.HL = unchecked((ushort)(address - 1));
     }
 
-    /// <summary>
-    /// Executes LD HL, SP+imm8 using the SP+signed-imm8 flag rules.
-    /// </summary>
     private static void ExecuteLoadHlFromStackPointerPlusImmediate8(Cpu cpu, byte offset)
     {
         var (value, flags) = InstructionOperands.AddSignedImmediate8WithFlags(
@@ -184,18 +154,12 @@ internal static class LoadRegisterPairInstructions
         cpu.IdleCycle();
     }
 
-    /// <summary>
-    /// Executes LD SP, HL by copying HL into the stack pointer without changing flags.
-    /// </summary>
     private static void ExecuteLoadStackPointerFromHl(Cpu cpu)
     {
         cpu.Registers.SP = cpu.Registers.HL;
         cpu.IdleCycle();
     }
 
-    /// <summary>
-    /// Loads an imm16 operand into the selected r16 register pair.
-    /// </summary>
     private static void LoadRegisterPairImmediate16(
         Cpu cpu,
         RegisterPair registerPair,
@@ -209,25 +173,16 @@ internal static class LoadRegisterPairInstructions
         );
     }
 
-    /// <summary>
-    /// Writes A to the address stored in the selected r16 register pair.
-    /// </summary>
     private static void WriteAccumulatorToRegisterPairAddress(Cpu cpu, RegisterPair registerPair)
     {
         cpu.WriteBus(cpu.Registers.GetRegisterPair(registerPair), cpu.Registers.A);
     }
 
-    /// <summary>
-    /// Loads A from the address stored in the selected r16 register pair.
-    /// </summary>
     private static void ReadAccumulatorFromRegisterPairAddress(Cpu cpu, RegisterPair registerPair)
     {
         cpu.Registers.A = cpu.ReadBus(cpu.Registers.GetRegisterPair(registerPair));
     }
 
-    /// <summary>
-    /// Writes a 16-bit value as low byte, then high byte.
-    /// </summary>
     private static void WriteLittleEndianWord(Cpu cpu, ushort address, ushort value)
     {
         cpu.WriteBus(address, (byte)value);

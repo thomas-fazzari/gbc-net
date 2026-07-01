@@ -3,7 +3,7 @@ namespace GbcNet.Core.Sm83.Instructions;
 /// <summary>
 /// Describes one executable SM83 opcode entry.
 /// </summary>
-internal sealed class Instruction(byte byteLength, InstructionExecutor execute)
+internal readonly struct Instruction(byte byteLength, InstructionExecutor execute)
 {
     /// <summary>
     /// Total instruction length in bytes, including the opcode byte.
