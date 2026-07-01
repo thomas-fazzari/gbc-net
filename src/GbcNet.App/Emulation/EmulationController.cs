@@ -18,7 +18,6 @@ internal sealed class EmulationController(
     IAudioOutput audioOutput,
     CartridgeBatterySaveFileService cartridgeSaveFileService,
     Action<FrameCompletedEventArgs> handleFrame,
-    Action<EmulationMetrics> handleMetrics,
     Action<Exception> handleFault
 )
 {
@@ -148,7 +147,6 @@ internal sealed class EmulationController(
             new GameBoy(cartridge, hardwareModel, _bootRomOptions),
             audioOutput,
             handleFrame,
-            handleMetrics,
             handleFault,
             () => cartridgeSaveFileService.Save(cartridge, rom)
         );
@@ -167,4 +165,8 @@ internal readonly record struct EmulationControllerState(
     bool FastForwardEnabled,
     EmulationSpeed FastForwardSpeed,
     string LoadedRomFileName
-);
+)
+{
+    public EmulationSpeed EffectiveSpeed =>
+        FastForwardEnabled ? FastForwardSpeed : EmulationSpeed.Normal;
+}

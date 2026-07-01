@@ -32,7 +32,7 @@
           TextTrimming="CharacterEllipsis"
         />
         <TextBlock
-          x:Name="StatusMetricsTextBlock"
+          x:Name="StatusSpeedTextBlock"
           Grid.Column="1"
           Foreground="#5f5f66"
           FontSize="12"

@@ -161,23 +161,15 @@ internal sealed class EmulationSessionPresenter(
         Dispatcher.UIThread.Post(() => statusBar.ShowError(exception.Message));
     }
 
-    public void ShowMetrics(EmulationMetrics metrics)
-    {
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (controller.State.HasSession)
-            {
-                statusBar.ShowMetrics(metrics.SpeedMultiplier, metrics.RenderedFramesPerSecond);
-            }
-        });
-    }
-
     public void SyncMenuState()
     {
         var state = controller.State;
         menu.SetEmulationActionsEnabled(state.HasSession);
         menu.SetPauseState(state.HasSession, state.IsPaused);
         menu.SetFastForwardState(state.FastForwardEnabled, state.FastForwardSpeed);
+        statusBar.ShowSpeed(
+            state.HasSession ? $"Speed {state.EffectiveSpeed.GetDisplayName()}" : string.Empty
+        );
     }
 
     public void SyncRecentRoms()

@@ -44,7 +44,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         _framePresenter = new LcdFramePresenter(emulationView.Screen);
 
-        _statusBar = new StatusBarPresenter(StatusTextBlock, StatusMetricsTextBlock);
+        _statusBar = new StatusBarPresenter(StatusTextBlock, StatusSpeedTextBlock);
         _operationRunner = new ShellOperationRunner(
             exception => _statusBar.ShowError(exception.Message),
             logger
@@ -58,7 +58,6 @@ internal sealed partial class MainWindow : Window, IDisposable
             audioOutput,
             cartridgeSaveFileService,
             OnFrameCompleted,
-            OnEmulationMetricsUpdated,
             OnEmulationFaulted
         );
         _emulationSession = new EmulationSessionPresenter(
@@ -219,13 +218,5 @@ internal sealed partial class MainWindow : Window, IDisposable
         _framePresenter.Enqueue(e.Frame);
     }
 
-    private void OnEmulationFaulted(Exception e)
-    {
-        _emulationSession.ShowFault(e);
-    }
-
-    private void OnEmulationMetricsUpdated(EmulationMetrics metrics)
-    {
-        _emulationSession.ShowMetrics(metrics);
-    }
+    private void OnEmulationFaulted(Exception e) => _emulationSession.ShowFault(e);
 }

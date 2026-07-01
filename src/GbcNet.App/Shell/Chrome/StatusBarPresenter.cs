@@ -1,9 +1,8 @@
-using System.Globalization;
 using Avalonia.Controls;
 
 namespace GbcNet.App.Shell.Chrome;
 
-internal sealed class StatusBarPresenter(TextBlock message, TextBlock metrics)
+internal sealed class StatusBarPresenter(TextBlock message, TextBlock speed)
 {
     private const int RomFileNameMaxLength = 72;
 
@@ -11,14 +10,12 @@ internal sealed class StatusBarPresenter(TextBlock message, TextBlock metrics)
     {
         message.Foreground = AppChrome.Brush(AppChrome.Status);
         message.Text = text;
-        metrics.Text = string.Empty;
     }
 
     public void ShowError(string text)
     {
         message.Foreground = AppChrome.Brush(AppChrome.Error);
         message.Text = text;
-        metrics.Text = string.Empty;
     }
 
     public void ShowRomFileName(string romFileName)
@@ -26,16 +23,10 @@ internal sealed class StatusBarPresenter(TextBlock message, TextBlock metrics)
         ShowStatus(FormatRomFileName(romFileName));
     }
 
-    public void ShowMetrics(double speedMultiplier, double renderedFramesPerSecond)
+    public void ShowSpeed(string text)
     {
-        metrics.Text = FormatMetrics(speedMultiplier, renderedFramesPerSecond);
+        speed.Text = text;
     }
-
-    internal static string FormatMetrics(double speedMultiplier, double renderedFramesPerSecond) =>
-        string.Create(
-            CultureInfo.InvariantCulture,
-            $"Speed {speedMultiplier:0.#}x | {renderedFramesPerSecond:0} FPS"
-        );
 
     internal static string FormatRomFileName(string romFileName) =>
         romFileName.Length <= RomFileNameMaxLength

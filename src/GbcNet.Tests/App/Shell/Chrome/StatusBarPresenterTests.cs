@@ -18,10 +18,4 @@ public sealed class StatusBarPresenterTests
         Assert.Equal(72, formatted.Length);
         Assert.EndsWith("...", formatted, StringComparison.Ordinal);
     }
-
-    [Fact]
-    public void FormatMetrics_UsesInvariantCulture()
-    {
-        Assert.Equal("Speed 1.5x | 60 FPS", StatusBarPresenter.FormatMetrics(1.5, 59.8));
-    }
 }
