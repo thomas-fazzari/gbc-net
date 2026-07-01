@@ -1,0 +1,4 @@
+interface:
+  display_name: ".NET Native AOT"
+  short_description: "Native AOT reference for desktop apps"
+  default_prompt: "Use native-aot to configure PublishAot, resolve trim/AOT warnings, or package AOT binaries into a desktop app bundle."
