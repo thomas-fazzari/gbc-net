@@ -108,6 +108,16 @@ public sealed class SgbControllerTests
     }
 
     [Fact]
+    public void Write_DataSndDoesNotRequestVramTransfer()
+    {
+        var sgb = new SgbController(commandsEnabled: true);
+
+        WriteSgbPacket(sgb, command: 0x0F, [0x00, 0x18, 0x00, 0x01, 0x42]);
+
+        Assert.False(sgb.HasPendingVramTransfer);
+    }
+
+    [Fact]
     public void ApplyPendingVramTransfer_LoadsAttributeFilesUsedByAttrSet()
     {
         var sgb = new SgbController(commandsEnabled: true);

@@ -22,6 +22,7 @@ internal sealed class SgbController(bool commandsEnabled)
     private const byte AttrChrCommand = 0x07;
     private const byte PalSetCommand = 0x0A;
     private const byte PalTrnCommand = 0x0B;
+    private const byte DataSndCommand = 0x0F;
     private const byte MltReqCommand = 0x11;
     private const byte ChrTrnCommand = 0x13;
     private const byte PctTrnCommand = 0x14;
@@ -354,6 +355,10 @@ internal sealed class SgbController(bool commandsEnabled)
                 return;
             case PalTrnCommand:
                 RequestVramTransfer(PendingPaletteTransfer);
+                return;
+            case DataSndCommand:
+                // DATA_SND writes SNES WRAM for SGB firmware hot patches
+                // This HLE path does not execute SNES code.
                 return;
             case MltReqCommand:
                 SetPlayerCount(_command[1] & 0x03);
