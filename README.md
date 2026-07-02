@@ -1,5 +1,5 @@
 <h1 align="center">
-  👾 ⋆ ✮˚｡𖦹 ⋆. GBC.Net ⋆ 𖦹｡˚✮ ⋆ 👾
+  GBC.Net
   <br/>
   <a href="https://github.com/thomas-fazzari/gbc-net/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/thomas-fazzari/gbc-net/ci.yml?branch=master&style=flat-square&labelColor=11111B&label=CI&logo=githubactions&logoColor=white" alt="CI"></a>
   <a href="https://codecov.io/gh/thomas-fazzari/gbc-net"><img src="https://img.shields.io/codecov/c/github/thomas-fazzari/gbc-net?style=flat-square&labelColor=11111B&logo=codecov&logoColor=white" alt="Coverage"></a>
