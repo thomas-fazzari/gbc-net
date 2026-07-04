@@ -8,8 +8,12 @@ on:
       - "chore/**"
       - "feature/**"
       - "hotfix/**"
+    paths:
+      - "**.cs"
   pull_request:
     branches: [master]
+    paths:
+      - "**.cs"
 jobs:
   build:
     runs-on: ubuntu-latest
