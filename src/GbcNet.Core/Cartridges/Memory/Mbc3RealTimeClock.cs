@@ -1,3 +1,6 @@
+// Copyright (C) 2026 thomas-fazzari
+// SPDX-License-Identifier: GPL-3.0-only
+
 using System.Buffers.Binary;
 
 namespace GbcNet.Core.Cartridges.Memory;

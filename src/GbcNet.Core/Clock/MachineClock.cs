@@ -1,3 +1,6 @@
+// Copyright (C) 2026 thomas-fazzari
+// SPDX-License-Identifier: GPL-3.0-only
+
 using System.Diagnostics.CodeAnalysis;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu;

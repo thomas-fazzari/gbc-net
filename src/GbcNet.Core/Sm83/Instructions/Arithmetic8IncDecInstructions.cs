@@ -1,3 +1,6 @@
+// Copyright (C) 2026 thomas-fazzari
+// SPDX-License-Identifier: GPL-3.0-only
+
 namespace GbcNet.Core.Sm83.Instructions;
 
 internal static partial class Arithmetic8Instructions

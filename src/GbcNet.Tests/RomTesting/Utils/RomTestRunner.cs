@@ -1,3 +1,6 @@
+// Copyright (C) 2026 thomas-fazzari
+// SPDX-License-Identifier: GPL-3.0-only
+
 using System.Collections.Concurrent;
 using GbcNet.Core;
 using GbcNet.Core.Cartridges;

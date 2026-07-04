@@ -35,3 +35,7 @@ run:
 .PHONY: fix
 fix:
 	dotnet tool run csharpier format .
+
+.PHONY: copyrights
+copyrights:
+	scripts/copyrights.sh
