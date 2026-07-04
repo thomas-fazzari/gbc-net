@@ -24,6 +24,7 @@ internal sealed class EmulationController(
     private EmulationSession? _session;
     private BootRomOptions _bootRomOptions = bootRomOptions;
     private byte[]? _loadedRom;
+    private CartridgeHeader? _loadedCartridgeHeader;
     private string _loadedRomFileName = string.Empty;
     private bool _fastForwardEnabled;
     private EmulationSpeed _fastForwardSpeed = EmulationSpeed.Two;
@@ -34,6 +35,8 @@ internal sealed class EmulationController(
             IsPaused: _session?.IsPaused ?? false,
             FastForwardEnabled: _fastForwardEnabled,
             FastForwardSpeed: _fastForwardSpeed,
+            LoadedRom: _loadedRom.AsMemory(),
+            LoadedCartridgeHeader: _loadedCartridgeHeader,
             LoadedRomFileName: _loadedRomFileName,
             HardwareModel: _session?.HardwareModel
         );
@@ -76,6 +79,7 @@ internal sealed class EmulationController(
         }
 
         _loadedRom = rom;
+        _loadedCartridgeHeader = cartridge.Value.Header;
         _loadedRomFileName = file.Name;
         Start(cartridge.Value, rom);
         return State;
@@ -95,6 +99,7 @@ internal sealed class EmulationController(
             return Result.Fail<EmulationControllerState>(cartridge.Errors);
         }
 
+        _loadedCartridgeHeader = cartridge.Value.Header;
         Start(cartridge.Value, _loadedRom);
         return State;
     }
@@ -149,9 +154,16 @@ internal sealed class EmulationController(
             audioOutput,
             handleFrame,
             handleFault,
+            HandleFatalSessionFault,
             () => cartridgeSaveFileService.Save(cartridge, rom)
         );
         ApplyFastForwardSettings();
+    }
+
+    private void HandleFatalSessionFault(Exception exception)
+    {
+        _session = null;
+        handleFault(exception);
     }
 
     private void ApplyFastForwardSettings()
@@ -165,6 +177,8 @@ internal readonly record struct EmulationControllerState(
     bool IsPaused,
     bool FastForwardEnabled,
     EmulationSpeed FastForwardSpeed,
+    ReadOnlyMemory<byte> LoadedRom,
+    CartridgeHeader? LoadedCartridgeHeader,
     string LoadedRomFileName,
     HardwareModel? HardwareModel
 )

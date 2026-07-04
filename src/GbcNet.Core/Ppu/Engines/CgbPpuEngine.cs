@@ -18,13 +18,18 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
     private byte _fetcherTileId;
     private byte _fetcherTileAttributes;
 
-    protected override int ObjectPenaltyDots => 0;
+    protected override int ObjectPenaltyDots => _objects.PenaltyDots;
 
     protected override bool RequestsMode2InterruptBeforeVBlank => true;
 
     protected override void EnsureObjectsSelected(PpuEngineInputs inputs)
     {
-        _objects.EnsureSelected(inputs, LcdYCoordinate, Timing.HasReachedOamScanEnd);
+        _objects.EnsureSelected(
+            inputs,
+            LcdYCoordinate,
+            Timing.HasReachedOamScanEnd,
+            BgWindowFetcher.LatchedScrollXLowBits
+        );
     }
 
     protected override void ClearObjects()

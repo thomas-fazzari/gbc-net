@@ -20,6 +20,7 @@ public sealed class BlarggCpuInstructionRomTests
         "08-misc instrs.gb",
         "09-op r,r.gb",
         "10-bit ops.gb",
+        "11-op a,(hl).gb",
     ];
 
     public static TheoryData<string> RomFileNameRows =>

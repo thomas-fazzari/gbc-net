@@ -127,12 +127,18 @@ internal sealed partial class MainWindow : Window, IDisposable
         _emulationSession.SessionOpened += (_, _) =>
         {
             ContentHost.Content = emulationView;
-            _windowChrome.SetStatusBarAvailable(true);
+            _windowChrome.SetStatusBarAvailable(isAvailable: true);
         };
         _emulationSession.SessionClosed += (_, _) =>
         {
             ContentHost.Content = libraryView;
-            _windowChrome.SetStatusBarAvailable(false);
+            _windowChrome.SetStatusBarAvailable(isAvailable: false);
+            libraryPresenter.Refresh();
+        };
+        _emulationSession.SessionFaulted += (_, _) =>
+        {
+            ContentHost.Content = libraryView;
+            _windowChrome.SetStatusBarAvailable(isAvailable: true);
             libraryPresenter.Refresh();
         };
 

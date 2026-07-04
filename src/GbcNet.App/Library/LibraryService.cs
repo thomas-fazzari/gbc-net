@@ -24,7 +24,23 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
                 return Result.Fail(cartridge.Errors);
             }
 
-            RecordOpenedRom(fullPath, rom, cartridge.Value);
+            return RecordLoadedRom(fullPath, rom, cartridge.Value.Header);
+        }
+        catch (Exception exception) when (IsExpectedLibraryException(exception))
+        {
+            return Result.Fail(exception.Message);
+        }
+    }
+
+    public Result RecordLoadedRom(
+        string path,
+        ReadOnlyMemory<byte> rom,
+        CartridgeHeader cartridgeHeader
+    )
+    {
+        try
+        {
+            RecordOpenedRomCore(Path.GetFullPath(path), rom, cartridgeHeader);
             return Result.Ok();
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
@@ -103,9 +119,13 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
         }
     }
 
-    private void RecordOpenedRom(string fullPath, byte[] rom, Cartridge cartridge)
+    private void RecordOpenedRomCore(
+        string fullPath,
+        ReadOnlyMemory<byte> rom,
+        CartridgeHeader cartridgeHeader
+    )
     {
-        var romHash = ComputeRomHash(rom);
+        var romHash = ComputeRomHash(rom.Span);
         var openedAt = _timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture);
         using var connection = database.OpenConnection();
         using var transaction = connection.BeginTransaction();
@@ -153,8 +173,8 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
         AddTextParameter(upsertCommand, "$romHash", romHash);
         AddTextParameter(upsertCommand, "$lastKnownPath", fullPath);
         AddTextParameter(upsertCommand, "$fileName", Path.GetFileName(fullPath));
-        AddOptionalTextParameter(upsertCommand, "$cartridgeTitle", cartridge.Header.Title);
-        AddTextParameter(upsertCommand, "$hardwareKind", cartridge.Header.HardwareKind.ToString());
+        AddOptionalTextParameter(upsertCommand, "$cartridgeTitle", cartridgeHeader.Title);
+        AddTextParameter(upsertCommand, "$hardwareKind", cartridgeHeader.HardwareKind.ToString());
         AddTextParameter(upsertCommand, "$openedAt", openedAt);
         upsertCommand.ExecuteNonQuery();
 

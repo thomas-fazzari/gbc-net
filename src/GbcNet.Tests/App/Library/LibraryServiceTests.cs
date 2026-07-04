@@ -1,5 +1,6 @@
 using System.Globalization;
 using GbcNet.App.Library;
+using GbcNet.Core.Cartridges;
 using GbcNet.Tests.Cartridges;
 
 namespace GbcNet.Tests.App.Library;
@@ -56,6 +57,21 @@ public sealed class LibraryServiceTests
         Assert.Equal(Path.GetFullPath(romPath), entry.LastKnownPath);
         Assert.Equal("SECOND ROM", entry.CartridgeTitle);
         Assert.Equal(1, entry.LaunchCount);
+    }
+
+    [Fact]
+    public void RecordOpenedRom_UsesProvidedRomBytesAndHeader()
+    {
+        using var test = new LibraryTestContext();
+        var rom = TestRomFactory.Create(bytes => "MEMORY ROM"u8.CopyTo(bytes.AsSpan(0x0134)));
+        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var path = Path.Combine(Path.GetDirectoryName(test.DatabasePath)!, "memory.gb");
+
+        ResultAssertions.AssertSuccess(test.Library.RecordLoadedRom(path, rom, cartridge.Header));
+
+        var entry = Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)));
+        Assert.Equal(Path.GetFullPath(path), entry.LastKnownPath);
+        Assert.Equal("MEMORY ROM", entry.CartridgeTitle);
     }
 
     [Fact]

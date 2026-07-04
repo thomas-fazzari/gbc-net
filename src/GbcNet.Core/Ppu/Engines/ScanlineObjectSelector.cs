@@ -7,6 +7,26 @@ namespace GbcNet.Core.Ppu.Engines;
 /// </summary>
 internal sealed class ScanlineObjectSelector
 {
+    /// <summary>
+    /// OBJ fetch adds a six-dot minimum Mode 3 penalty.
+    /// </summary>
+    private const int ObjectBasePenaltyDots = 6;
+
+    /// <summary>
+    /// Startup penalty for an object fetch session beginning at X mod 8 equal to 0 or 1.
+    /// </summary>
+    private const int SlowObjectSessionStartupDots = 8;
+
+    /// <summary>
+    /// Startup penalty for an object fetch session beginning at X mod 8 equal to 2 or 3.
+    /// </summary>
+    private const int NormalObjectSessionStartupDots = 6;
+
+    /// <summary>
+    /// Startup penalty for an object fetch session beginning at X mod 8 equal to 4, 5, 6, or 7.
+    /// </summary>
+    private const int FastObjectSessionStartupDots = 4;
+
     private readonly ScanlineObject[] _objects = new ScanlineObject[
         PpuObjectAttributes.MaxObjectsPerScanline
     ];
@@ -62,6 +82,72 @@ internal sealed class ScanlineObjectSelector
         return true;
     }
 
+    internal int CalculatePenaltyDots(byte scrollXLowBits)
+    {
+        Span<ScanlineObject> objects = stackalloc ScanlineObject[_objectCount];
+        Objects.CopyTo(objects);
+        objects.Sort(
+            static (x, y) =>
+            {
+                var xComparison = x.X.CompareTo(y.X);
+                return xComparison != 0 ? xComparison : x.Index.CompareTo(y.Index);
+            }
+        );
+
+        var penaltyDots = 0;
+        var index = 0;
+
+        while (index < objects.Length)
+        {
+            var firstObject = objects[index];
+            if (firstObject.X >= PpuObjectAttributes.FirstFullyHiddenRightX)
+            {
+                index++;
+                continue;
+            }
+
+            // Objects that begin in the same tile fetch slot share one fetch session penalty.
+            var tileIndex = GetObjectTileIndex(firstObject.X, scrollXLowBits);
+            var sessionEnd = index + 1;
+            while (
+                sessionEnd < objects.Length
+                && objects[sessionEnd].X < PpuObjectAttributes.FirstFullyHiddenRightX
+                && GetObjectTileIndex(objects[sessionEnd].X, scrollXLowBits) == tileIndex
+            )
+            {
+                sessionEnd++;
+            }
+
+            penaltyDots += (firstObject.X & PpuObjectTile.LowThreeBitsMask) switch
+            {
+                <= 1 => SlowObjectSessionStartupDots,
+                <= 3 => NormalObjectSessionStartupDots,
+                _ => FastObjectSessionStartupDots,
+            };
+            penaltyDots += (sessionEnd - index - 1) * ObjectBasePenaltyDots;
+
+            for (var laterIndex = sessionEnd; laterIndex < objects.Length; laterIndex++)
+            {
+                if (objects[laterIndex].X >= PpuObjectAttributes.FirstFullyHiddenRightX)
+                {
+                    continue;
+                }
+
+                // A later visible fetch session pays a gap penalty based on the previous session.
+                penaltyDots += (objects[sessionEnd - 1].X & PpuObjectTile.LowThreeBitsMask) switch
+                {
+                    0 or 2 or 4 => 3,
+                    _ => 2,
+                };
+                break;
+            }
+
+            index = sessionEnd;
+        }
+
+        return penaltyDots;
+    }
+
     private void SelectObjects(PpuEngineInputs inputs, byte lcdYCoordinate)
     {
         ObjectHeight =
@@ -107,6 +193,12 @@ internal sealed class ScanlineObjectSelector
                 break;
             }
         }
+    }
+
+    private static int GetObjectTileIndex(byte objectX, byte scrollXLowBits)
+    {
+        var pixel = objectX - PpuObjectAttributes.XScreenOffset + scrollXLowBits;
+        return (pixel >> 3) & (PpuTileData.TilesPerMapRow - 1);
     }
 }
 

@@ -22,6 +22,7 @@ internal sealed class EmulationSession
 
     private readonly Func<Result> _flushBatterySave;
     private readonly Action<Exception> _handleFault;
+    private readonly Action<Exception> _handleFatalFault;
     private readonly Action<FrameCompletedEventArgs> _handleFrame;
     private readonly GameBoy _gameBoy;
     private readonly IAudioOutput _audioOutput;
@@ -63,6 +64,7 @@ internal sealed class EmulationSession
         IAudioOutput audioOutput,
         Action<FrameCompletedEventArgs> handleFrame,
         Action<Exception> handleFault,
+        Action<Exception> handleFatalFault,
         Func<Result> flushBatterySave
     )
     {
@@ -71,6 +73,7 @@ internal sealed class EmulationSession
         _audioOutput.Clear();
         _handleFrame = handleFrame;
         _handleFault = handleFault;
+        _handleFatalFault = handleFatalFault;
         _flushBatterySave = flushBatterySave;
         _gameBoy.FrameCompleted += OnFrameCompleted;
         _runTask = Task.Run(RunAsync, CancellationToken.None);
@@ -223,7 +226,7 @@ internal sealed class EmulationSession
         catch (Exception exception)
             when (exception is NotSupportedException or InvalidOperationException)
         {
-            _handleFault(exception);
+            _handleFatalFault(exception);
         }
         finally
         {

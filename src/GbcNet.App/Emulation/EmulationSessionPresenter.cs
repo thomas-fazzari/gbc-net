@@ -32,6 +32,7 @@ internal sealed class EmulationSessionPresenter(
     };
 
     public event EventHandler? SessionClosed;
+    public event EventHandler? SessionFaulted;
     public event EventHandler? SessionOpened;
 
     public void AttachDragDrop(Control target)
@@ -72,11 +73,17 @@ internal sealed class EmulationSessionPresenter(
 
         ApplyRomActionResult(result);
 
-        if (result.IsSuccess && file.Path.IsFile)
+        if (
+            result.IsSuccess
+            && file.Path.IsFile
+            && result.Value.LoadedCartridgeHeader is { } cartridgeHeader
+        )
         {
-            var recorded = await libraryService
-                .RecordOpenedRomAsync(file.Path.LocalPath)
-                .ConfigureAwait(true);
+            var recorded = libraryService.RecordLoadedRom(
+                file.Path.LocalPath,
+                result.Value.LoadedRom,
+                cartridgeHeader
+            );
             if (recorded.IsFailed)
             {
                 statusBar.ShowError(ResultErrors.Format(recorded.Errors));
@@ -158,7 +165,13 @@ internal sealed class EmulationSessionPresenter(
 
     public void ShowFault(Exception exception)
     {
-        Dispatcher.UIThread.Post(() => statusBar.ShowError(exception.Message));
+        Dispatcher.UIThread.Post(() =>
+        {
+            inputRouter.Clear();
+            SessionFaulted?.Invoke(this, EventArgs.Empty);
+            SyncMenuState();
+            statusBar.ShowError(exception.Message);
+        });
     }
 
     public void SyncMenuState()

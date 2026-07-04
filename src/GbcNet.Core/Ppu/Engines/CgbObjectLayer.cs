@@ -7,14 +7,25 @@ internal sealed class CgbObjectLayer
 {
     private readonly ScanlineObjectSelector _selector = new();
 
+    public int PenaltyDots { get; private set; }
+
     public void Clear()
     {
         _selector.Clear();
+        PenaltyDots = 0;
     }
 
-    public void EnsureSelected(PpuEngineInputs inputs, byte lcdYCoordinate, bool oamScanComplete)
+    public void EnsureSelected(
+        PpuEngineInputs inputs,
+        byte lcdYCoordinate,
+        bool oamScanComplete,
+        byte scrollXLowBits
+    )
     {
-        _selector.TrySelect(inputs, lcdYCoordinate, oamScanComplete, inputs.ObjectPriorityMode);
+        if (_selector.TrySelect(inputs, lcdYCoordinate, oamScanComplete, inputs.ObjectPriorityMode))
+        {
+            PenaltyDots = _selector.CalculatePenaltyDots(scrollXLowBits);
+        }
     }
 
     public CgbObjectPixel? SelectPixel(int screenX, byte lcdYCoordinate, PpuEngineInputs inputs)

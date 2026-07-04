@@ -940,6 +940,20 @@ public sealed class PpuControllerTests
     }
 
     [Fact]
+    public void Tick_CgbObjectPenaltyExtendsDrawingMode()
+    {
+        var ppu = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        WriteObjectAttributes(ppu, index: 0, y: 16, x: 8, tile: 0, flags: 0);
+        ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable | ObjectEnable);
+
+        ppu.Tick(252);
+        Assert.Equal(0x03, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
+
+        ppu.Tick(8);
+        Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
+    }
+
+    [Fact]
     public void Tick_DisabledVideoRenderingPreservesWindowTiming()
     {
         var ppu = CreatePpu();
