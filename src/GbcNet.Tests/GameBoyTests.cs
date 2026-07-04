@@ -349,10 +349,10 @@ public sealed class GameBoyTests
         var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 144).CompletedFrame);
 
         Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        Assert.Equal(256, frame.Width);
-        Assert.Equal(224, frame.Height);
-        Assert.Equal(256 * 224 * 2, frame.Pixels.Length);
-        AssertRgb555Pixel(frame, SgbGameBoyPixelIndex(x: 0, y: 0), expected: 0x1234);
+        Assert.Equal(160, frame.Width);
+        Assert.Equal(144, frame.Height);
+        Assert.Equal(160 * 144 * 2, frame.Pixels.Length);
+        AssertRgb555Pixel(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x1234);
     }
 
     [Fact]
@@ -371,7 +371,7 @@ public sealed class GameBoyTests
         var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
 
         Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        AssertRgb555Pixel(frame, SgbGameBoyPixelIndex(x: 0, y: 0), expected: 0x1234);
+        AssertRgb555Pixel(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x1234);
     }
 
     [Fact]
@@ -412,8 +412,8 @@ public sealed class GameBoyTests
         var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
 
         Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        AssertRgb555Pixel(frame, SgbGameBoyPixelIndex(x: 0, y: 0), expected: 0x6666);
-        AssertRgb555Pixel(frame, SgbGameBoyPixelIndex(x: 8, y: 0), expected: 0x3333);
+        AssertRgb555Pixel(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x6666);
+        AssertRgb555Pixel(frame, GameBoyPixelIndex(x: 8, y: 0), expected: 0x3333);
     }
 
     [Fact]
@@ -438,8 +438,8 @@ public sealed class GameBoyTests
 
         var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
 
-        AssertRgb555Pixel(frame, SgbGameBoyPixelIndex(x: 0, y: 0), expected: 0x7777);
-        AssertRgb555Pixel(frame, SgbGameBoyPixelIndex(x: 8, y: 0), expected: 0x3333);
+        AssertRgb555Pixel(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x7777);
+        AssertRgb555Pixel(frame, GameBoyPixelIndex(x: 8, y: 0), expected: 0x3333);
     }
 
     [Fact]
@@ -598,8 +598,8 @@ public sealed class GameBoyTests
 
     private static void WriteSgbStartPulse(GameBoy gameBoy)
     {
-        gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x30);
         gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x00);
+        gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x30);
     }
 
     private static void WriteSgbBit(GameBoy gameBoy, bool value)
@@ -753,5 +753,5 @@ public sealed class GameBoyTests
         Assert.Equal(expected, actual);
     }
 
-    private static int SgbGameBoyPixelIndex(int x, int y) => ((40 + y) * 256) + 48 + x;
+    private static int GameBoyPixelIndex(int x, int y) => (y * 160) + x;
 }

@@ -99,6 +99,7 @@ internal sealed class SgbController(bool commandsEnabled)
     private byte _maskMode;
     private byte _pendingVramTransfer;
     private byte _pendingVramTransferFrameDelay;
+    private bool _borderReady;
     private byte[]? _visibleFramePixels;
 
     public bool HasPendingVramTransfer => _pendingVramTransfer != NoPendingVramTransfer;
@@ -164,7 +165,7 @@ internal sealed class SgbController(bool commandsEnabled)
             _ => SetVisibleRgb555Pixels(colorizedPixels),
         };
 
-        return CreateSgbFrame(gameBoyPixels);
+        return _borderReady ? CreateSgbFrame(gameBoyPixels) : CreateGameBoyFrame(gameBoyPixels);
     }
 
     public void ApplyPendingVramTransfer(ReadOnlySpan<byte> transferData)
@@ -219,6 +220,7 @@ internal sealed class SgbController(bool commandsEnabled)
                     );
                 }
 
+                _borderReady = true;
                 break;
         }
 
@@ -264,11 +266,6 @@ internal sealed class SgbController(bool commandsEnabled)
 
     private void PreparePacketWrite()
     {
-        if (!_readyForPulse)
-        {
-            return;
-        }
-
         _readyForWrite = true;
         _readyForPulse = false;
 
@@ -492,6 +489,14 @@ internal sealed class SgbController(bool commandsEnabled)
 
         return new LcdFrame(SgbScreenWidth, SgbScreenHeight, LcdPixelFormat.Rgb555Le, pixels);
     }
+
+    private static LcdFrame CreateGameBoyFrame(ReadOnlySpan<byte> gameBoyPixels) =>
+        new(
+            PpuGeometry.FrameWidth,
+            PpuGeometry.FrameHeight,
+            LcdPixelFormat.Rgb555Le,
+            gameBoyPixels
+        );
 
     private static void CopyGameBoyFrame(Span<byte> target, ReadOnlySpan<byte> source)
     {

@@ -22,8 +22,8 @@ public sealed class SgbControllerTests
         var colorized = sgb.ApplyPalettes(frame);
 
         Assert.Equal(LcdPixelFormat.Rgb555Le, colorized.PixelFormat);
-        Assert.Equal(256, colorized.Width);
-        Assert.Equal(224, colorized.Height);
+        Assert.Equal(160, colorized.Width);
+        Assert.Equal(144, colorized.Height);
         AssertRgb555(colorized, GameBoyPixelIndex(x: 0, y: 0), expected: 0x6666);
         AssertRgb555(colorized, GameBoyPixelIndex(x: 0, y: 8), expected: 0x3333);
     }
@@ -183,7 +183,7 @@ public sealed class SgbControllerTests
 
         Assert.False(sgb.HasPendingVramTransfer);
         AssertRgb555(colorized, pixelIndex: 0, expected: 0x1234);
-        AssertRgb555(colorized, GameBoyPixelIndex(x: 0, y: 0), expected: 0x7FFF);
+        AssertRgb555(colorized, SgbGameBoyPixelIndex(x: 0, y: 0), expected: 0x7FFF);
     }
 
     private static LcdFrame CreateDmgFrame(byte shade)
@@ -274,7 +274,9 @@ public sealed class SgbControllerTests
         Assert.Equal(expected, actual);
     }
 
-    private static int GameBoyPixelIndex(int x, int y) => ((40 + y) * 256) + 48 + x;
+    private static int GameBoyPixelIndex(int x, int y) => (y * 160) + x;
+
+    private static int SgbGameBoyPixelIndex(int x, int y) => ((40 + y) * 256) + 48 + x;
 
     private static void WriteSgbPacket(SgbController sgb, byte command, ReadOnlySpan<byte> payload)
     {
@@ -297,8 +299,8 @@ public sealed class SgbControllerTests
 
     private static void WriteSgbStartPulse(SgbController sgb, ref byte selectedGroups)
     {
-        WriteSgbJoyp(sgb, ref selectedGroups, 0x30);
         WriteSgbJoyp(sgb, ref selectedGroups, 0x00);
+        WriteSgbJoyp(sgb, ref selectedGroups, 0x30);
     }
 
     private static void WriteSgbBit(SgbController sgb, ref byte selectedGroups, bool value)
