@@ -6,7 +6,7 @@ namespace GbcNet.Core.Sm83.Instructions;
 /// <summary>
 /// Describes one executable SM83 opcode entry.
 /// </summary>
-internal readonly struct Instruction(byte byteLength, InstructionExecutor execute)
+internal readonly struct Instruction(byte byteLength, Action<Cpu, byte, byte> execute)
 {
     /// <summary>
     /// Total instruction length in bytes, including the opcode byte.
@@ -16,10 +16,5 @@ internal readonly struct Instruction(byte byteLength, InstructionExecutor execut
     /// <summary>
     /// Instruction body. Operand bytes are passed in program order after the opcode.
     /// </summary>
-    public InstructionExecutor Execute { get; } = execute;
+    public Action<Cpu, byte, byte> Execute { get; } = execute;
 }
-
-/// <summary>
-/// Executes one decoded SM83 instruction by consuming machine cycles through CPU primitives.
-/// </summary>
-internal delegate void InstructionExecutor(Cpu cpu, byte firstOperand, byte secondOperand);

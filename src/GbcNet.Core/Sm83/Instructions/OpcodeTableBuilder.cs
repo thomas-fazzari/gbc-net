@@ -16,7 +16,7 @@ internal readonly struct OpcodeTableBuilder(Instruction?[] instructions)
     /// <summary>
     /// Stores one implemented primary opcode in the instruction table.
     /// </summary>
-    public void Map(byte opcode, byte byteLength, InstructionExecutor execute)
+    public void Map(byte opcode, byte byteLength, Action<Cpu, byte, byte> execute)
     {
         instructions[opcode] = new Instruction(byteLength, execute);
     }
@@ -40,7 +40,7 @@ internal readonly struct OpcodeTableBuilder(Instruction?[] instructions)
     /// <summary>
     /// Stores one opcode that has a low-byte, high-byte immediate word.
     /// </summary>
-    public void MapImmediate16(byte opcode, InstructionExecutor execute)
+    public void MapImmediate16(byte opcode, Action<Cpu, byte, byte> execute)
     {
         Map(opcode, Immediate16ByteLength, execute);
     }
@@ -48,7 +48,7 @@ internal readonly struct OpcodeTableBuilder(Instruction?[] instructions)
     /// <summary>
     /// Stores one CB-prefixed opcode entry.
     /// </summary>
-    public void MapPrefixed(byte opcode, InstructionExecutor execute)
+    public void MapPrefixed(byte opcode, Action<Cpu, byte, byte> execute)
     {
         Map(opcode, PrefixedInstructionByteLength, execute);
     }

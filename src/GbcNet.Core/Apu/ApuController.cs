@@ -198,32 +198,6 @@ internal sealed class ApuController(ApuModelSpec modelSpec)
         }
     }
 
-    /// <summary>
-    /// Returns the current channel stereo mix using NR50 and NR51 routing.
-    /// </summary>
-    internal ApuMixedStereoSample GetMixedStereoSample()
-    {
-        var masterVolume = _registers[MasterVolumeRegister - RegisterStart];
-        var panning = _registers[SoundPanningRegister - RegisterStart];
-
-        var leftInput =
-            ((panning & Channel1LeftRouteMask) != 0 ? _channel1.DigitalOutput : 0)
-            + ((panning & Channel2LeftRouteMask) != 0 ? _channel2.DigitalOutput : 0)
-            + ((panning & Channel3LeftRouteMask) != 0 ? _channel3.DigitalOutput : 0)
-            + ((panning & Channel4LeftRouteMask) != 0 ? _channel4.DigitalOutput : 0);
-
-        var rightInput =
-            ((panning & Channel1RightRouteMask) != 0 ? _channel1.DigitalOutput : 0)
-            + ((panning & Channel2RightRouteMask) != 0 ? _channel2.DigitalOutput : 0)
-            + ((panning & Channel3RightRouteMask) != 0 ? _channel3.DigitalOutput : 0)
-            + ((panning & Channel4RightRouteMask) != 0 ? _channel4.DigitalOutput : 0);
-
-        return new ApuMixedStereoSample(
-            Left: leftInput * (((masterVolume & LeftVolumeMask) >> LeftVolumeShift) + 1),
-            Right: rightInput * ((masterVolume & RightVolumeMask) + 1)
-        );
-    }
-
     private ApuAnalogStereoSample GetAnalogStereoSample()
     {
         var masterVolume = _registers[MasterVolumeRegister - RegisterStart];

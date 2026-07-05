@@ -20,7 +20,7 @@ public sealed class PostBootStateTests
         var cartridge = LoadCartridge(TestRomFactory.Create());
         var (cpu, bus) = CreateHardware(cartridge);
 
-        PostBootState.Apply(DmgHardwareProfile.Instance, cartridge, cpu, bus);
+        DmgHardwareProfile.Instance.ApplyPostBootState(cartridge, cpu, bus);
 
         Assert.Equal(0x01, cpu.Registers.A);
         Assert.Equal(0xB0, cpu.Registers.F);
@@ -37,7 +37,7 @@ public sealed class PostBootStateTests
         var cartridge = LoadCartridge(CreateRomWithZeroHeaderChecksum());
         var (cpu, bus) = CreateHardware(cartridge);
 
-        PostBootState.Apply(DmgHardwareProfile.Instance, cartridge, cpu, bus);
+        DmgHardwareProfile.Instance.ApplyPostBootState(cartridge, cpu, bus);
 
         Assert.Equal(0x80, cpu.Registers.F);
     }
@@ -50,7 +50,7 @@ public sealed class PostBootStateTests
         var bus = new MemoryBus(cartridge, profile);
         var cpu = new Cpu(bus);
 
-        PostBootState.Apply(profile, cartridge, cpu, bus);
+        profile.ApplyPostBootState(cartridge, cpu, bus);
 
         Assert.Equal(0x01, cpu.Registers.A);
         Assert.Equal(0x0014, cpu.Registers.BC);
@@ -64,7 +64,7 @@ public sealed class PostBootStateTests
         var cartridge = LoadCartridge(TestRomFactory.Create());
         var (cpu, bus) = CreateHardware(cartridge);
 
-        PostBootState.Apply(DmgHardwareProfile.Instance, cartridge, cpu, bus);
+        DmgHardwareProfile.Instance.ApplyPostBootState(cartridge, cpu, bus);
 
         Assert.Equal(0xCF, bus.ReadByte(AddressMap.JoypadRegister));
         Assert.Equal(0x00, bus.ReadByte(AddressMap.SerialTransferDataRegister));
@@ -97,7 +97,7 @@ public sealed class PostBootStateTests
         var bus = new MemoryBus(cartridge, profile);
         var cpu = new Cpu(bus);
 
-        PostBootState.Apply(profile, cartridge, cpu, bus);
+        profile.ApplyPostBootState(cartridge, cpu, bus);
 
         Assert.Equal(0x11, cpu.Registers.A);
         Assert.Equal(0x80, cpu.Registers.F);
@@ -116,7 +116,7 @@ public sealed class PostBootStateTests
         var bus = new MemoryBus(cartridge, profile);
         var cpu = new Cpu(bus);
 
-        PostBootState.Apply(profile, cartridge, cpu, bus);
+        profile.ApplyPostBootState(cartridge, cpu, bus);
 
         Assert.Equal(0x11, cpu.Registers.A);
         Assert.Equal(0x80, cpu.Registers.F);
@@ -142,7 +142,7 @@ public sealed class PostBootStateTests
         var bus = new MemoryBus(cartridge, profile);
         var cpu = new Cpu(bus);
 
-        PostBootState.Apply(profile, cartridge, cpu, bus);
+        profile.ApplyPostBootState(cartridge, cpu, bus);
 
         Assert.Equal(0x5800, cpu.Registers.BC);
         Assert.Equal(0x991A, cpu.Registers.HL);
@@ -168,7 +168,7 @@ public sealed class PostBootStateTests
         var bus = new MemoryBus(cartridge, profile);
         var cpu = new Cpu(bus);
 
-        PostBootState.Apply(profile, cartridge, cpu, bus);
+        profile.ApplyPostBootState(cartridge, cpu, bus);
 
         Assert.Equal(0x007C, cpu.Registers.HL);
         Assert.Equal(0x00, bus.Ppu.VideoRam.ReadBank(0, 0x9904));
@@ -186,7 +186,7 @@ public sealed class PostBootStateTests
         var bus = new MemoryBus(cartridge, profile);
         var cpu = new Cpu(bus);
 
-        PostBootState.Apply(profile, cartridge, cpu, bus);
+        profile.ApplyPostBootState(cartridge, cpu, bus);
 
         Assert.Equal(0x00, bus.ReadByte(AddressMap.SerialTransferDataRegister));
         Assert.Equal(0x7E, bus.ReadByte(AddressMap.SerialTransferControlRegister));
@@ -221,7 +221,7 @@ public sealed class PostBootStateTests
         bus.WriteByte(AddressMap.BackgroundPaletteDataRegister, 0x12);
         bus.WriteByte(AddressMap.BackgroundPaletteIndexRegister, 0x85);
 
-        PostBootState.Apply(profile, cartridge, cpu, bus);
+        profile.ApplyPostBootState(cartridge, cpu, bus);
 
         Assert.Equal(0xC5, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
         Assert.Equal(0x7F, bus.ReadByte(AddressMap.BackgroundPaletteDataRegister));
@@ -237,7 +237,7 @@ public sealed class PostBootStateTests
         var bus = new MemoryBus(cartridge, profile);
         var cpu = new Cpu(bus);
 
-        PostBootState.Apply(profile, cartridge, cpu, bus);
+        profile.ApplyPostBootState(cartridge, cpu, bus);
 
         bus.WriteByte(AddressMap.BackgroundPaletteRegister, 0x08);
         bus.Ppu.VideoRam.Write(0x8000, 0x80);
@@ -259,7 +259,7 @@ public sealed class PostBootStateTests
         var bus = new MemoryBus(cartridge, profile);
         var cpu = new Cpu(bus);
 
-        PostBootState.Apply(profile, cartridge, cpu, bus);
+        profile.ApplyPostBootState(cartridge, cpu, bus);
 
         Assert.Equal(0x7E, bus.ReadByte(AddressMap.SerialTransferControlRegister));
         Assert.Equal(0xFE, bus.ReadByte(AddressMap.VideoRamBankRegister));

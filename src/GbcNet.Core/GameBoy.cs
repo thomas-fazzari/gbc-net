@@ -71,7 +71,7 @@ public sealed class GameBoy
 
         if (bootRom is null)
         {
-            PostBootState.Apply(hardwareProfile, cartridge, Cpu, Bus);
+            hardwareProfile.ApplyPostBootState(cartridge, Cpu, Bus);
         }
         else
         {

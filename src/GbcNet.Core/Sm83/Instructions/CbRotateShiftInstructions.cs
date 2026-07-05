@@ -43,9 +43,6 @@ internal static class CbRotateShiftInstructions
         ShiftRightLogical,
     ];
 
-    /// <summary>
-    /// Transforms one r8 operand value and reports the new C flag.
-    /// </summary>
     private delegate byte RotateShiftExecutor(byte value, bool incomingCarry, out bool carry);
 
     /// <summary>

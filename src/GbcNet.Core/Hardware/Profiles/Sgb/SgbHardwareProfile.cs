@@ -3,7 +3,6 @@
 
 using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
-using GbcNet.Core.Dma.Policies;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu.Engines;
 using GbcNet.Core.Sm83;
@@ -51,7 +50,11 @@ internal sealed class SgbHardwareProfile : IHardwareProfile
 
     public IPpuEngine CreatePpuEngine() => new DmgPpuEngine();
 
-    public ITransferPolicy CreateOamDmaTransferPolicy() => new DmgOamDmaTransferPolicy();
+    public ushort MapOamDmaSourceAddress(ushort sourceAddress) =>
+        DmgHardwareProfile.MapOamDmaSourceAddressCore(sourceAddress);
+
+    public bool IsCpuAddressBlockedByOamDma(ushort address, ushort sourceAddress) =>
+        DmgHardwareProfile.IsCpuAddressBlockedByOamDmaCore(address, sourceAddress);
 
     public ApuModelSpec CreateApuModelSpec() => ApuModelSpec.Sgb;
 

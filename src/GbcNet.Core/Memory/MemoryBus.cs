@@ -5,7 +5,6 @@ using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Clock;
 using GbcNet.Core.Dma;
-using GbcNet.Core.Dma.Policies;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Interrupts;
@@ -29,7 +28,7 @@ internal sealed class MemoryBus
 
     private readonly WorkRam _workRam;
     private readonly Cartridge _cartridge;
-    private readonly ITransferPolicy _oamDmaTransferPolicy;
+    private readonly IHardwareProfile _hardwareProfile;
     private readonly Func<ushort, byte> _readByteForOamDma;
     private readonly Action<ushort, byte> _writeOamByteForDma;
     private readonly IoRegisters _ioRegisters;
@@ -103,7 +102,7 @@ internal sealed class MemoryBus
             hardwareProfile.IsCgbUndocumentedFf74RegisterEnabled
         );
 
-        _oamDmaTransferPolicy = hardwareProfile.CreateOamDmaTransferPolicy();
+        _hardwareProfile = hardwareProfile;
 
         Interrupts = new InterruptController();
         _sgb =
@@ -261,7 +260,7 @@ internal sealed class MemoryBus
         (IsObjectAttributeMemory(address) && OamDma.IsCpuOamBlocked)
         || (
             OamDma.TryGetCpuConflictSourceAddress(out var sourceAddress)
-            && _oamDmaTransferPolicy.IsCpuAddressBlocked(address, sourceAddress)
+            && _hardwareProfile.IsCpuAddressBlockedByOamDma(address, sourceAddress)
         );
 
     private bool TryReadDmaConflictedByte(ushort address, out byte value)
@@ -278,7 +277,7 @@ internal sealed class MemoryBus
             return false;
         }
 
-        if (_oamDmaTransferPolicy.IsCpuAddressBlocked(address, sourceAddress))
+        if (_hardwareProfile.IsCpuAddressBlockedByOamDma(address, sourceAddress))
         {
             // During a DMA bus conflict, the CPU sees the byte currently driven by DMA source reads
             value = ReadOamDmaSourceByte(sourceAddress);
@@ -331,7 +330,7 @@ internal sealed class MemoryBus
 
     private byte ReadOamDmaSourceByte(ushort address)
     {
-        var mappedAddress = _oamDmaTransferPolicy.MapSourceAddress(address);
+        var mappedAddress = _hardwareProfile.MapOamDmaSourceAddress(address);
 
         return mappedAddress switch
         {

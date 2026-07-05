@@ -504,7 +504,7 @@ public sealed class ApuControllerTests
     }
 
     [Fact]
-    public void GetMixedStereoSample_MixesChannel1UsingNr50AndNr51()
+    public void DrainBufferedSamples_MixesChannel1UsingNr50AndNr51()
     {
         ApuController apu = new(ApuModelSpec.Dmg);
 
@@ -513,15 +513,14 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF12, 0x40);
         apu.WriteRegister(0xFF13, 0xFF);
         apu.WriteRegister(0xFF14, 0x87);
-        apu.Tick(4);
         apu.WriteRegister(0xFF24, 0x00);
         apu.WriteRegister(0xFF25, 0x11);
 
-        Assert.Equal(new ApuMixedStereoSample(4, 4), apu.GetMixedStereoSample());
+        Assert.Equal(new ApuStereoSample(478, 478), DrainNextSample(apu));
     }
 
     [Fact]
-    public void GetMixedStereoSample_MixesChannel1AndChannel2Independently()
+    public void DrainBufferedSamples_MixesChannel1AndChannel2Independently()
     {
         ApuController apu = new(ApuModelSpec.Dmg);
 
@@ -534,15 +533,14 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF17, 0x60);
         apu.WriteRegister(0xFF18, 0xFF);
         apu.WriteRegister(0xFF19, 0x87);
-        apu.Tick(4);
         apu.WriteRegister(0xFF24, 0x00);
         apu.WriteRegister(0xFF25, 0x03);
 
-        Assert.Equal(new ApuMixedStereoSample(0, 10), apu.GetMixedStereoSample());
+        Assert.Equal(new ApuStereoSample(0, 683), DrainNextSample(apu));
     }
 
     [Fact]
-    public void GetMixedStereoSample_ReturnsSilenceWhenChannel2IsInactive()
+    public void DrainBufferedSamples_ReturnsSilenceWhenChannel2IsInactive()
     {
         ApuController apu = new(ApuModelSpec.Dmg);
 
@@ -550,11 +548,11 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, 0x77);
         apu.WriteRegister(0xFF25, 0x22);
 
-        Assert.Equal(new ApuMixedStereoSample(0, 0), apu.GetMixedStereoSample());
+        Assert.Equal(default, DrainNextSample(apu));
     }
 
     [Fact]
-    public void GetMixedStereoSample_ReturnsSilenceWhenChannel2IsNotRouted()
+    public void DrainBufferedSamples_ReturnsSilenceWhenChannel2IsNotRouted()
     {
         ApuController apu = new(ApuModelSpec.Dmg);
 
@@ -563,20 +561,19 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF17, 0xA0);
         apu.WriteRegister(0xFF18, 0xFF);
         apu.WriteRegister(0xFF19, 0x87);
-        apu.Tick(4);
         apu.WriteRegister(0xFF24, 0x77);
         apu.WriteRegister(0xFF25, 0x00);
 
-        Assert.Equal(new ApuMixedStereoSample(0, 0), apu.GetMixedStereoSample());
+        Assert.Equal(default, DrainNextSample(apu));
     }
 
     [Theory]
-    [InlineData(0x00, 0x22, 10, 10)]
-    [InlineData(0x77, 0x22, 80, 80)]
-    [InlineData(0x70, 0x22, 80, 10)]
-    [InlineData(0x06, 0x02, 0, 70)]
-    [InlineData(0x60, 0x20, 70, 0)]
-    public void GetMixedStereoSample_MixesChannel2UsingNr50AndNr51(
+    [InlineData(0x00, 0x22, -341, -341)]
+    [InlineData(0x77, 0x22, -2731, -2731)]
+    [InlineData(0x70, 0x22, -2731, -341)]
+    [InlineData(0x06, 0x02, 0, -2389)]
+    [InlineData(0x60, 0x20, -2389, 0)]
+    public void DrainBufferedSamples_MixesChannel2UsingNr50AndNr51(
         byte masterVolume,
         byte panning,
         int expectedLeft,
@@ -590,14 +587,10 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF17, 0xA0);
         apu.WriteRegister(0xFF18, 0xFF);
         apu.WriteRegister(0xFF19, 0x87);
-        apu.Tick(4);
         apu.WriteRegister(0xFF24, masterVolume);
         apu.WriteRegister(0xFF25, panning);
 
-        Assert.Equal(
-            new ApuMixedStereoSample(expectedLeft, expectedRight),
-            apu.GetMixedStereoSample()
-        );
+        Assert.Equal(new ApuStereoSample(expectedLeft, expectedRight), DrainNextSample(apu));
     }
 
     [Fact]
@@ -803,12 +796,12 @@ public sealed class ApuControllerTests
     }
 
     [Theory]
-    [InlineData(0x00, 0x44, 4, 4)]
-    [InlineData(0x77, 0x44, 32, 32)]
-    [InlineData(0x70, 0x44, 32, 4)]
-    [InlineData(0x06, 0x04, 0, 28)]
-    [InlineData(0x60, 0x40, 28, 0)]
-    public void GetMixedStereoSample_MixesChannel3UsingNr50AndNr51(
+    [InlineData(0x00, 0x44, 478, 478)]
+    [InlineData(0x77, 0x44, 3823, 3823)]
+    [InlineData(0x70, 0x44, 3823, 478)]
+    [InlineData(0x06, 0x04, 0, 3345)]
+    [InlineData(0x60, 0x40, 3345, 0)]
+    public void DrainBufferedSamples_MixesChannel3UsingNr50AndNr51(
         byte masterVolume,
         byte panning,
         int expectedLeft,
@@ -817,20 +810,16 @@ public sealed class ApuControllerTests
     {
         ApuController apu = new(ApuModelSpec.Dmg);
 
-        apu.WriteRegister(0xFF30, 0x04);
+        FillWaveRam(apu, 0x44);
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF1A, 0x80);
         apu.WriteRegister(0xFF1C, 0x20);
         apu.WriteRegister(0xFF1D, 0xFF);
         apu.WriteRegister(0xFF1E, 0x87);
-        apu.Tick(2);
         apu.WriteRegister(0xFF24, masterVolume);
         apu.WriteRegister(0xFF25, panning);
 
-        Assert.Equal(
-            new ApuMixedStereoSample(expectedLeft, expectedRight),
-            apu.GetMixedStereoSample()
-        );
+        Assert.Equal(new ApuStereoSample(expectedLeft, expectedRight), DrainNextSample(apu));
     }
 
     [Fact]
@@ -1066,12 +1055,12 @@ public sealed class ApuControllerTests
     }
 
     [Theory]
-    [InlineData(0x00, 0x88, 15, 15)]
-    [InlineData(0x77, 0x88, 120, 120)]
-    [InlineData(0x70, 0x88, 120, 15)]
-    [InlineData(0x06, 0x08, 0, 105)]
-    [InlineData(0x60, 0x80, 105, 0)]
-    public void GetMixedStereoSample_MixesChannel4UsingNr50AndNr51(
+    [InlineData(0x00, 0x88, -1024, -1024)]
+    [InlineData(0x77, 0x88, -8192, -8192)]
+    [InlineData(0x70, 0x88, -8192, -1024)]
+    [InlineData(0x06, 0x08, 0, -7168)]
+    [InlineData(0x60, 0x80, -7168, 0)]
+    public void DrainBufferedSamples_MixesChannel4UsingNr50AndNr51(
         byte masterVolume,
         byte panning,
         int expectedLeft,
@@ -1083,13 +1072,12 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF21, 0xF0);
         apu.WriteRegister(0xFF23, 0x80);
-        apu.Tick(128);
         apu.WriteRegister(0xFF24, masterVolume);
         apu.WriteRegister(0xFF25, panning);
 
         Assert.Equal(
-            new ApuMixedStereoSample(expectedLeft, expectedRight),
-            apu.GetMixedStereoSample()
+            new ApuStereoSample(expectedLeft, expectedRight),
+            DrainNextSample(apu, tCycles: 128)
         );
     }
 
@@ -1264,5 +1252,23 @@ public sealed class ApuControllerTests
     public void ContainsRegister_ReturnsFalseForUnusedApuAddresses(ushort address)
     {
         Assert.False(ApuController.ContainsRegister(address));
+    }
+
+    private static ApuStereoSample DrainNextSample(ApuController apu, int tCycles = 88)
+    {
+        var destination = new ApuStereoSample[1];
+
+        apu.Tick(tCycles);
+
+        Assert.Equal(1, apu.DrainBufferedSamples(destination));
+        return destination[0];
+    }
+
+    private static void FillWaveRam(ApuController apu, byte value)
+    {
+        for (ushort address = 0xFF30; address <= 0xFF3F; address++)
+        {
+            apu.WriteRegister(address, value);
+        }
     }
 }

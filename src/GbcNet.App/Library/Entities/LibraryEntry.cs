@@ -17,6 +17,5 @@ internal sealed record LibraryEntry(
     DateTimeOffset AddedAt,
     DateTimeOffset LastOpenedAt,
     int LaunchCount,
-    // TODO: Populate when implementing cover art feature.
     string? CoverPath
 );

@@ -13,21 +13,6 @@ namespace GbcNet.Core;
 /// </summary>
 internal static class PostBootState
 {
-    /// <summary>
-    /// Seeds CPU registers and IO registers through the selected hardware profile.
-    /// </summary>
-    public static void Apply(
-        IHardwareProfile hardwareProfile,
-        Cartridge cartridge,
-        Cpu cpu,
-        MemoryBus bus
-    )
-    {
-        ArgumentNullException.ThrowIfNull(hardwareProfile);
-
-        hardwareProfile.ApplyPostBootState(cartridge, cpu, bus);
-    }
-
     internal static void SetCpuRegisters(Registers registers, PostBootCpuRegisterState state)
     {
         registers.A = state.A;

@@ -13,6 +13,7 @@ internal static class UserDataPaths
     private const string LinuxDirectoryName = "gbc-net";
     private const string DesktopDirectoryName = "GbcNet";
     private const string SaveDirectoryName = "saves";
+    private const string CoverDirectoryName = "covers";
     private const string LibraryDatabaseFileName = "library.sqlite";
 
     /// <summary>
@@ -30,11 +31,19 @@ internal static class UserDataPaths
     /// </summary>
     public static string LibraryDatabasePath { get; } = GetLibraryDatabasePath();
 
+    /// <summary>
+    /// Per-user managed ROM cover image directory path for the current OS.
+    /// </summary>
+    public static string CoverDirectoryPath { get; } = GetCoverDirectoryPath();
+
     private static string GetConfigFilePath() =>
         Path.Combine(GetConfigDirectoryPath(), ConfigFileName);
 
     private static string GetSaveDirectoryPath() =>
         Path.Combine(GetDataDirectoryPath(), SaveDirectoryName);
+
+    private static string GetCoverDirectoryPath() =>
+        Path.Combine(GetDataDirectoryPath(), CoverDirectoryName);
 
     private static string GetLibraryDatabasePath() =>
         Path.Combine(GetDataDirectoryPath(), LibraryDatabaseFileName);

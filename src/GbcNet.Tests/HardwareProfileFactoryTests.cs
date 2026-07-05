@@ -1,10 +1,8 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using GbcNet.Core;
 using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
-using GbcNet.Core.Dma.Policies;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Ppu.Engines;
@@ -36,7 +34,6 @@ public sealed class HardwareProfileFactoryTests
         Assert.True(profile.TicksTimerOnTacDisableWhenInputHigh);
         Assert.False(profile.TicksTimerOnTacEnableWhenInputHigh);
         Assert.IsType<DmgPpuEngine>(profile.CreatePpuEngine());
-        Assert.IsType<DmgOamDmaTransferPolicy>(profile.CreateOamDmaTransferPolicy());
 
         var apuSpec = profile.CreateApuModelSpec();
 
@@ -82,7 +79,6 @@ public sealed class HardwareProfileFactoryTests
         Assert.False(cgbProfile.TicksTimerOnTacDisableWhenInputHigh);
         Assert.True(cgbProfile.TicksTimerOnTacEnableWhenInputHigh);
         Assert.IsType<CgbPpuEngine>(cgbProfile.CreatePpuEngine());
-        Assert.IsType<CgbOamDmaTransferPolicy>(cgbProfile.CreateOamDmaTransferPolicy());
         var apuSpec = cgbProfile.CreateApuModelSpec();
         Assert.Equal(ApuModelSpec.Cgb, apuSpec);
         Assert.Equal(0.998943, apuSpec.GetOutputHighPassChargeFactor(apuSpec.OutputClockHz));
@@ -110,7 +106,6 @@ public sealed class HardwareProfileFactoryTests
         Assert.False(cgbProfile.TicksTimerOnTacDisableWhenInputHigh);
         Assert.True(cgbProfile.TicksTimerOnTacEnableWhenInputHigh);
         Assert.IsType<CgbDmgCompatibilityPpuEngine>(cgbProfile.CreatePpuEngine());
-        Assert.IsType<CgbOamDmaTransferPolicy>(cgbProfile.CreateOamDmaTransferPolicy());
         Assert.Equal(ApuModelSpec.Cgb, cgbProfile.CreateApuModelSpec());
         Assert.Equal(8, cgbProfile.WorkRamBankCount);
     }
@@ -133,7 +128,6 @@ public sealed class HardwareProfileFactoryTests
         Assert.True(profile.TicksTimerOnTacDisableWhenInputHigh);
         Assert.False(profile.TicksTimerOnTacEnableWhenInputHigh);
         Assert.IsType<DmgPpuEngine>(profile.CreatePpuEngine());
-        Assert.IsType<DmgOamDmaTransferPolicy>(profile.CreateOamDmaTransferPolicy());
         Assert.Equal(ApuModelSpec.Sgb, profile.CreateApuModelSpec());
         Assert.Equal(2, profile.WorkRamBankCount);
     }

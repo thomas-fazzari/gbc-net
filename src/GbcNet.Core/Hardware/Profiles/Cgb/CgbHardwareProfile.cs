@@ -3,7 +3,6 @@
 
 using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
-using GbcNet.Core.Dma.Policies;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu.Engines;
 using GbcNet.Core.Sm83;
@@ -25,6 +24,16 @@ internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHard
                 "Unsupported CGB operating mode."
             ),
         };
+
+    private const ushort HighSourceMirrorMask = 0xDFFF;
+
+    private enum OamDmaBus
+    {
+        Cartridge = 0,
+        Video = 1,
+        WorkRam = 2,
+        None = 3,
+    }
 
     public HardwareModel Model => HardwareModel.Cgb;
 
@@ -61,7 +70,34 @@ internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHard
             ? new CgbPpuEngine()
             : new CgbDmgCompatibilityPpuEngine();
 
-    public ITransferPolicy CreateOamDmaTransferPolicy() => new CgbOamDmaTransferPolicy();
+    public ushort MapOamDmaSourceAddress(ushort sourceAddress) =>
+        MapHighOamDmaSourceAddress(sourceAddress);
+
+    public bool IsCpuAddressBlockedByOamDma(ushort address, ushort sourceAddress)
+    {
+        if (address >= AddressMap.ObjectAttributeMemoryStart)
+        {
+            return address <= AddressMap.ObjectAttributeMemoryEnd;
+        }
+
+        var sourceBus = GetOamDmaBus(MapHighOamDmaSourceAddress(sourceAddress));
+        return sourceBus is not OamDmaBus.None && GetOamDmaBus(address) == sourceBus;
+    }
+
+    private static ushort MapHighOamDmaSourceAddress(ushort sourceAddress) =>
+        sourceAddress >= AddressMap.EchoRamStart
+            ? (ushort)(sourceAddress & HighSourceMirrorMask)
+            : sourceAddress;
+
+    private static OamDmaBus GetOamDmaBus(ushort address) =>
+        address switch
+        {
+            <= AddressMap.RomEnd => OamDmaBus.Cartridge,
+            <= AddressMap.VideoRamEnd => OamDmaBus.Video,
+            <= AddressMap.ExternalRamEnd => OamDmaBus.Cartridge,
+            <= AddressMap.EchoRamEnd => OamDmaBus.WorkRam,
+            _ => OamDmaBus.None,
+        };
 
     public ApuModelSpec CreateApuModelSpec() => ApuModelSpec.Cgb;
 

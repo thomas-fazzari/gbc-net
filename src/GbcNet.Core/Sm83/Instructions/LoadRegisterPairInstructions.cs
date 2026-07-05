@@ -111,11 +111,11 @@ internal static class LoadRegisterPairInstructions
         byte highByte
     )
     {
-        WriteLittleEndianWord(
-            cpu,
-            InstructionOperands.ReadImmediate16(lowByte, highByte),
-            cpu.Registers.SP
-        );
+        var address = InstructionOperands.ReadImmediate16(lowByte, highByte);
+        var stackPointer = cpu.Registers.SP;
+
+        cpu.WriteBus(address, (byte)stackPointer);
+        cpu.WriteBus(unchecked((ushort)(address + 1)), (byte)(stackPointer >> 8));
     }
 
     private static void ExecuteLoadAddressHlIncrementFromA(Cpu cpu)
@@ -184,11 +184,5 @@ internal static class LoadRegisterPairInstructions
     private static void ReadAccumulatorFromRegisterPairAddress(Cpu cpu, RegisterPair registerPair)
     {
         cpu.Registers.A = cpu.ReadBus(cpu.Registers.GetRegisterPair(registerPair));
-    }
-
-    private static void WriteLittleEndianWord(Cpu cpu, ushort address, ushort value)
-    {
-        cpu.WriteBus(address, (byte)value);
-        cpu.WriteBus(unchecked((ushort)(address + 1)), (byte)(value >> 8));
     }
 }

@@ -44,7 +44,8 @@ internal sealed class GbcNetApplication : Application, IDisposable
             );
 
             LibraryService libraryService = new(
-                new LibraryDatabase(UserDataPaths.LibraryDatabasePath)
+                new LibraryDatabase(UserDataPaths.LibraryDatabasePath),
+                UserDataPaths.CoverDirectoryPath
             );
 
             _audioOutput = new SoundFlowAudioOutput(

@@ -39,7 +39,7 @@ public sealed class BootRomConfigWriterTests
                 new BootRomConfig("new-dmg.bin", "new-cgb.bin", "new-sgb.bin")
             );
 
-            Assert.True(result.IsSuccess, string.Join(Environment.NewLine, result.Errors));
+            ResultAssertions.AssertSuccess(result);
             var text = File.ReadAllText(configPath);
             Assert.Contains("input version=1", text, StringComparison.Ordinal);
             Assert.DoesNotContain("old-dmg.bin", text, StringComparison.Ordinal);
@@ -84,7 +84,7 @@ public sealed class BootRomConfigWriterTests
                 new BootRomConfig("new-dmg.bin", CgbPath: null)
             );
 
-            Assert.True(result.IsSuccess, string.Join(Environment.NewLine, result.Errors));
+            ResultAssertions.AssertSuccess(result);
             var text = File.ReadAllText(configPath);
             Assert.Contains("// keep top comment", text, StringComparison.Ordinal);
             Assert.Contains("// keep nested comment", text, StringComparison.Ordinal);
@@ -111,7 +111,7 @@ public sealed class BootRomConfigWriterTests
 
             var result = BootRomConfigWriter.Write(configPath, new BootRomConfig(null, "cgb.bin"));
 
-            Assert.True(result.IsSuccess, string.Join(Environment.NewLine, result.Errors));
+            ResultAssertions.AssertSuccess(result);
             var text = File.ReadAllText(configPath);
             Assert.Contains("boot_roms {", text, StringComparison.Ordinal);
             Assert.Contains("    cgb \"cgb.bin\"", text, StringComparison.Ordinal);
@@ -146,7 +146,7 @@ public sealed class BootRomConfigWriterTests
 
             var result = BootRomConfigWriter.Write(configPath, new BootRomConfig());
 
-            Assert.True(result.IsSuccess, string.Join(Environment.NewLine, result.Errors));
+            ResultAssertions.AssertSuccess(result);
             var text = File.ReadAllText(configPath);
             Assert.Contains(BootRomConfigSchema.BootRomNodeName, text, StringComparison.Ordinal);
             Assert.DoesNotContain("dmg.bin", text, StringComparison.Ordinal);
@@ -176,7 +176,7 @@ public sealed class BootRomConfigWriterTests
                 new BootRomConfig(path, CgbPath: null)
             );
 
-            Assert.True(result.IsSuccess, string.Join(Environment.NewLine, result.Errors));
+            ResultAssertions.AssertSuccess(result);
             Assert.Contains(
                 "dmg \"dir\\\\boot\\\"rom.bin\"",
                 File.ReadAllText(configPath),

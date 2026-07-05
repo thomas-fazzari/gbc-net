@@ -1,7 +1,6 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using System.Collections.Concurrent;
 using GbcNet.Core;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware;
@@ -60,14 +59,10 @@ internal static class RomTestRunner
         ArgumentNullException.ThrowIfNull(relativePaths);
         ArgumentNullException.ThrowIfNull(run);
 
-        var results = new ConcurrentDictionary<string, RomTestResult>(StringComparer.Ordinal);
-        Parallel.ForEach(
-            relativePaths,
-            new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
-            relativePath => results[relativePath] = run(relativePath)
-        );
-
-        return results;
+        return relativePaths
+            .AsParallel()
+            .WithDegreeOfParallelism(Environment.ProcessorCount)
+            .ToDictionary(static relativePath => relativePath, run, StringComparer.Ordinal);
     }
 
     public static TheoryData<string> CreateTheoryData(IReadOnlyList<string> relativePaths)

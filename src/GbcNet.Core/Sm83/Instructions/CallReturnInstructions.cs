@@ -87,7 +87,7 @@ internal static class CallReturnInstructions
         {
             var opcodeByte = (byte)opcode;
             var targetAddress = DecodeRestartTarget(opcodeByte);
-            builder.MapNoOperand(opcodeByte, cpu => Restart(cpu, targetAddress));
+            builder.MapNoOperand(opcodeByte, cpu => Call(cpu, targetAddress));
         }
     }
 
@@ -160,14 +160,6 @@ internal static class CallReturnInstructions
 
         cpu.Registers.PC = cpu.PopWord();
         cpu.IdleCycle();
-    }
-
-    /// <summary>
-    /// Executes RST tgt3 by pushing the next PC and jumping to the encoded vector.
-    /// </summary>
-    private static void Restart(Cpu cpu, ushort targetAddress)
-    {
-        Call(cpu, targetAddress);
     }
 
     /// <summary>

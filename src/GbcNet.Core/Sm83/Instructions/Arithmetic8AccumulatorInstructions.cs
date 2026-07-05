@@ -5,8 +5,6 @@ namespace GbcNet.Core.Sm83.Instructions;
 
 internal static partial class Arithmetic8Instructions
 {
-    private delegate void AccumulatorRegisterOperandExecutor(Cpu cpu, Register8Operand source);
-
     private static void AddAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
     {
         var value = Register8Operands.Read(cpu, source);
@@ -152,7 +150,7 @@ internal static partial class Arithmetic8Instructions
         OpcodeTableBuilder builder,
         byte startOpcode,
         byte endOpcode,
-        AccumulatorRegisterOperandExecutor execute
+        Action<Cpu, Register8Operand> execute
     )
     {
         for (int opcode = startOpcode; opcode <= endOpcode; opcode++)

@@ -44,22 +44,34 @@ public sealed class LibraryServiceTests
     }
 
     [Fact]
-    public async Task RecordOpenedRomAsync_ReplacesPreviousHashForSamePath()
+    public async Task RecordOpenedRomAsync_ReplacesPreviousHashForSamePathAndRemovesManagedCover()
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
         ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
+        var oldRomHash = Assert
+            .Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)))
+            .RomHash;
+        var sourceImagePath = await test.WriteImageAsync("old-cover.png", [0x10, 0x11, 0x12]);
+        ResultAssertions.AssertSuccess(test.Library.AssignCoverImage(oldRomHash, sourceImagePath));
+        var oldCoverPath =
+            Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10))).CoverPath
+            ?? throw new InvalidOperationException("Cover path was not stored.");
         await test.WriteRomAsync(
             "game.gb",
             TestRomFactory.Create(bytes => "SECOND ROM"u8.CopyTo(bytes.AsSpan(0x0134)))
         );
 
+        Assert.True(File.Exists(oldCoverPath));
         ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
 
         var entry = Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)));
         Assert.Equal(Path.GetFullPath(romPath), entry.LastKnownPath);
         Assert.Equal("SECOND ROM", entry.CartridgeTitle);
         Assert.Equal(1, entry.LaunchCount);
+        Assert.Null(entry.CoverPath);
+        Assert.NotEqual(oldRomHash, entry.RomHash);
+        Assert.False(File.Exists(oldCoverPath));
     }
 
     [Fact]
@@ -78,15 +90,25 @@ public sealed class LibraryServiceTests
     }
 
     [Fact]
-    public async Task RemoveRomPath_RemovesEntryByLastKnownPath()
+    public async Task RemoveRomPath_RemovesEntryByLastKnownPathAndAssignedManagedCover()
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
         ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
+        var romHash = Assert
+            .Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)))
+            .RomHash;
+        var sourceImagePath = await test.WriteImageAsync("cover.png", [0x13, 0x14, 0x15]);
+        ResultAssertions.AssertSuccess(test.Library.AssignCoverImage(romHash, sourceImagePath));
+        var coverPath =
+            Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10))).CoverPath
+            ?? throw new InvalidOperationException("Cover path was not stored.");
 
+        Assert.True(File.Exists(coverPath));
         ResultAssertions.AssertSuccess(test.Library.RemoveRomPath(romPath));
 
         Assert.Empty(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)));
+        Assert.False(File.Exists(coverPath));
     }
 
     [Fact]
@@ -113,6 +135,87 @@ public sealed class LibraryServiceTests
             entry => Assert.Equal("newer.gb", entry.FileName),
             entry => Assert.Equal("older.gb", entry.FileName)
         );
+    }
+
+    [Fact]
+    public async Task AssignCoverImage_CopiesFileAndStoresCoverPath()
+    {
+        using var test = new LibraryTestContext();
+        var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
+        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
+        var romHash = Assert
+            .Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)))
+            .RomHash;
+        byte[] imageBytes = [0x89, 0x50, 0x4E, 0x47];
+        var sourceImagePath = await test.WriteImageAsync("cover.PNG", imageBytes);
+        var expectedCoverPath = Path.Combine(test.CoverDirectoryPath, $"{romHash}.png");
+
+        ResultAssertions.AssertSuccess(test.Library.AssignCoverImage(romHash, sourceImagePath));
+
+        var copiedImageBytes = await File.ReadAllBytesAsync(
+            expectedCoverPath,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(imageBytes, copiedImageBytes);
+        var entry = Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)));
+        Assert.Equal(expectedCoverPath, entry.CoverPath);
+    }
+
+    [Fact]
+    public async Task RecordOpenedRomAsync_PreservesCoverPathWhenUpsertingSameRom()
+    {
+        using var test = new LibraryTestContext();
+        var rom = TestRomFactory.Create();
+        var firstPath = await test.WriteRomAsync("first.gb", rom);
+        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(firstPath));
+        var romHash = Assert
+            .Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)))
+            .RomHash;
+        var sourceImagePath = await test.WriteImageAsync("cover.png", [0x01, 0x02, 0x03]);
+        ResultAssertions.AssertSuccess(test.Library.AssignCoverImage(romHash, sourceImagePath));
+        var coverPath =
+            Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10))).CoverPath
+            ?? throw new InvalidOperationException("Cover path was not stored.");
+        var secondPath = await test.WriteRomAsync("second.gb", rom);
+
+        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(secondPath));
+
+        var entry = Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)));
+        Assert.Equal(coverPath, entry.CoverPath);
+        Assert.True(File.Exists(coverPath));
+    }
+
+    [Fact]
+    public async Task ClearCover_NullsCoverPathAndRemovesManagedCopy()
+    {
+        using var test = new LibraryTestContext();
+        var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
+        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
+        var romHash = Assert
+            .Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)))
+            .RomHash;
+        var sourceImagePath = await test.WriteImageAsync("cover.png", [0x04, 0x05, 0x06]);
+        ResultAssertions.AssertSuccess(test.Library.AssignCoverImage(romHash, sourceImagePath));
+        var coverPath =
+            Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10))).CoverPath
+            ?? throw new InvalidOperationException("Cover path was not stored.");
+
+        ResultAssertions.AssertSuccess(test.Library.ClearCover(romHash));
+
+        Assert.Null(
+            Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10))).CoverPath
+        );
+        Assert.False(File.Exists(coverPath));
+    }
+
+    [Fact]
+    public async Task CoverOperations_MissingRomHashReturnsFailure()
+    {
+        using var test = new LibraryTestContext();
+        var sourceImagePath = await test.WriteImageAsync("cover.png", [0x07, 0x08, 0x09]);
+
+        Assert.True(test.Library.AssignCoverImage("missing", sourceImagePath).IsFailed);
+        Assert.True(test.Library.ClearCover("missing").IsFailed);
     }
 
     private static int GetAppliedMigrationVersion(string databasePath)
@@ -165,12 +268,18 @@ public sealed class LibraryServiceTests
         public LibraryTestContext()
         {
             Directory.CreateDirectory(DirectoryPath);
-            Library = new LibraryService(new LibraryDatabase(DatabasePath), TimeProvider);
+            Library = new LibraryService(
+                new LibraryDatabase(DatabasePath),
+                CoverDirectoryPath,
+                TimeProvider
+            );
         }
 
         private string DirectoryPath { get; } = TestDirectories.GetTemporaryDirectoryPath();
 
         public string DatabasePath => Path.Combine(DirectoryPath, "library.sqlite");
+
+        public string CoverDirectoryPath => Path.Combine(DirectoryPath, "covers");
 
         public TestTimeProvider TimeProvider { get; } =
             new(new DateTimeOffset(2026, 6, 27, 12, 0, 0, TimeSpan.Zero));
@@ -181,6 +290,14 @@ public sealed class LibraryServiceTests
         {
             var path = Path.Combine(DirectoryPath, fileName);
             await File.WriteAllBytesAsync(path, rom, TestContext.Current.CancellationToken)
+                .ConfigureAwait(false);
+            return path;
+        }
+
+        public async Task<string> WriteImageAsync(string fileName, byte[] image)
+        {
+            var path = Path.Combine(DirectoryPath, fileName);
+            await File.WriteAllBytesAsync(path, image, TestContext.Current.CancellationToken)
                 .ConfigureAwait(false);
             return path;
         }

@@ -1,7 +1,6 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using FluentResults;
 using GbcNet.App.Saves;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Memory;
@@ -26,7 +25,7 @@ public sealed class CartridgeBatterySaveFileServiceTests
 
             var save = saveFiles.Save(cartridge, rom);
 
-            AssertSuccess(save);
+            ResultAssertions.AssertSuccess(save);
             Assert.False(cartridge.IsBatterySaveDirty);
             var savePath = saveFiles.GetBatterySavePath(cartridge, rom);
             Assert.True(File.Exists(savePath));
@@ -35,7 +34,7 @@ public sealed class CartridgeBatterySaveFileServiceTests
             var reloaded = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
             var load = saveFiles.Load(reloaded, rom);
 
-            AssertSuccess(load);
+            ResultAssertions.AssertSuccess(load);
             Assert.False(reloaded.IsBatterySaveDirty);
 
             reloaded.WriteRom(0x0000, 0x0A);
@@ -76,12 +75,4 @@ public sealed class CartridgeBatterySaveFileServiceTests
             bytes[0x0147] = (byte)CartridgeType.Mbc1RamBattery;
             bytes[0x0149] = 0x02;
         });
-
-    private static void AssertSuccess(Result result)
-    {
-        Assert.True(
-            result.IsSuccess,
-            string.Join(Environment.NewLine, result.Errors.Select(static error => error.Message))
-        );
-    }
 }

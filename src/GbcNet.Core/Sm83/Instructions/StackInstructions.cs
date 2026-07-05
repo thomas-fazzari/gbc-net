@@ -19,11 +19,6 @@ internal static class StackInstructions
     private const int StackRegisterPairShift = 4;
 
     /// <summary>
-    /// Executes one stack operation after the r16stk operand has been decoded.
-    /// </summary>
-    private delegate void StackRegisterPairExecutor(Cpu cpu, StackRegisterPair registerPair);
-
-    /// <summary>
     /// Maps implemented stack instructions into the opcode table.
     /// </summary>
     public static void Map(OpcodeTableBuilder builder)
@@ -66,7 +61,7 @@ internal static class StackInstructions
         OpcodeTableBuilder builder,
         byte startOpcode,
         byte endOpcode,
-        StackRegisterPairExecutor execute
+        Action<Cpu, StackRegisterPair> execute
     )
     {
         for (int opcode = startOpcode; opcode <= endOpcode; opcode += StackRegisterPairOpcodeStep)

@@ -3,7 +3,6 @@
 
 using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
-using GbcNet.Core.Dma.Policies;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu.Engines;
 using GbcNet.Core.Sm83;
@@ -96,9 +95,14 @@ internal interface IHardwareProfile
     IPpuEngine CreatePpuEngine();
 
     /// <summary>
-    /// Creates the OAM DMA transfer policy for this hardware model.
+    /// Maps an OAM DMA source address to the memory address read by this hardware model.
     /// </summary>
-    ITransferPolicy CreateOamDmaTransferPolicy();
+    ushort MapOamDmaSourceAddress(ushort sourceAddress);
+
+    /// <summary>
+    /// Returns whether a CPU access conflicts with the active OAM DMA source bus.
+    /// </summary>
+    bool IsCpuAddressBlockedByOamDma(ushort address, ushort sourceAddress);
 
     /// <summary>
     /// Creates the APU model spec for this hardware model.

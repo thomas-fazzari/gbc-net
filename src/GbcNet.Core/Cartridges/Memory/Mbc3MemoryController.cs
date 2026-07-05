@@ -1,12 +1,15 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Globalization;
+using FluentResults;
+
 namespace GbcNet.Core.Cartridges.Memory;
 
 /// <summary>
 /// MBC3 cartridge controller for ROM banking, optional RAM banking, and optional RTC mapping.
 /// </summary>
-internal sealed class Mbc3MemoryController : ICartridgeMemoryController
+internal sealed class Mbc3MemoryController : ICartridgeMemoryController, ICartridgeSaveData
 {
     private const int RomBankSize = Cartridge.FixedRomBankSize;
     private const ushort RomBank0End = 0x3FFF;
@@ -40,12 +43,79 @@ internal sealed class Mbc3MemoryController : ICartridgeMemoryController
         _header = header;
         _externalRam = new CartridgeRamWindow(header.RamSizeBytes, hasBatteryBackedRam);
         _realTimeClock = hasRealTimeClock ? new Mbc3RealTimeClock(getUnixTimeSeconds) : null;
-        SaveData = _realTimeClock is null
-            ? _externalRam.Ram
-            : new Mbc3SaveData(_externalRam.Ram, _realTimeClock);
     }
 
-    public ICartridgeSaveData SaveData { get; }
+    public ICartridgeSaveData SaveData => this;
+
+    public bool HasBatteryBackedSave =>
+        _realTimeClock is not null || _externalRam.Ram.HasBatteryBackedSave;
+
+    public int BatterySaveSize =>
+        _realTimeClock is null
+            ? _externalRam.Ram.BatterySaveSize
+            : _externalRam.Ram.BatterySaveSize + Mbc3RealTimeClock.SaveStateSize;
+
+    public bool IsBatterySaveDirty
+    {
+        get
+        {
+            if (_realTimeClock is null)
+            {
+                return _externalRam.Ram.IsBatterySaveDirty;
+            }
+
+            _realTimeClock.RefreshFromClock();
+            return _externalRam.Ram.IsBatterySaveDirty || _realTimeClock.IsDirty;
+        }
+    }
+
+    public byte[] ExportBatterySave()
+    {
+        if (_realTimeClock is null)
+        {
+            return _externalRam.Ram.ExportBatterySave();
+        }
+
+        var data = new byte[BatterySaveSize];
+        var ramData = _externalRam.Ram.ExportBatterySave();
+        ramData.CopyTo(data.AsSpan(0, ramData.Length));
+        _realTimeClock.ExportState().CopyTo(data.AsSpan(ramData.Length));
+        return data;
+    }
+
+    public Result ImportBatterySave(ReadOnlySpan<byte> data)
+    {
+        if (_realTimeClock is null)
+        {
+            return _externalRam.Ram.ImportBatterySave(data);
+        }
+
+        if (data.Length != BatterySaveSize)
+        {
+            return Result.Fail(
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Save data length is {data.Length} bytes, but cartridge expects {BatterySaveSize} bytes."
+                )
+            );
+        }
+
+        var ramSize = _externalRam.Ram.BatterySaveSize;
+        var ramImport = _externalRam.Ram.ImportBatterySave(data[..ramSize]);
+        if (ramImport.IsFailed)
+        {
+            return ramImport;
+        }
+
+        _realTimeClock.ImportState(data.Slice(ramSize, Mbc3RealTimeClock.SaveStateSize));
+        return Result.Ok();
+    }
+
+    public void ClearBatterySaveDirty()
+    {
+        _externalRam.Ram.ClearBatterySaveDirty();
+        _realTimeClock?.ClearDirty();
+    }
 
     public byte ReadRom(ushort address)
     {

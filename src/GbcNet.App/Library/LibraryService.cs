@@ -10,8 +10,13 @@ using Microsoft.Data.Sqlite;
 
 namespace GbcNet.App.Library;
 
-internal sealed class LibraryService(LibraryDatabase database, TimeProvider? timeProvider = null)
+internal sealed class LibraryService(
+    LibraryDatabase database,
+    string coverDirectoryPath,
+    TimeProvider? timeProvider = null
+)
 {
+    private readonly string _coverDirectoryPath = Path.GetFullPath(coverDirectoryPath);
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
     public async Task<Result> RecordOpenedRomAsync(string path)
@@ -107,13 +112,87 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
     {
         try
         {
+            var fullPath = Path.GetFullPath(path);
             using var connection = database.OpenConnection();
-            using var command = connection.CreateCommand();
-            command.CommandText = "delete from roms where last_known_path = $lastKnownPath;";
+            using var transaction = connection.BeginTransaction();
+            var coverPaths = new List<string>();
 
-            AddTextParameter(command, "$lastKnownPath", Path.GetFullPath(path));
+            using var selectCoverCommand = connection.CreateCommand();
+            selectCoverCommand.Transaction = transaction;
+            selectCoverCommand.CommandText =
+                "select cover_path from roms where last_known_path = $lastKnownPath and cover_path is not null;";
+            AddTextParameter(selectCoverCommand, "$lastKnownPath", fullPath);
+            using (var reader = selectCoverCommand.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    coverPaths.Add(reader.GetString(0));
+                }
+            }
 
-            command.ExecuteNonQuery();
+            using var deleteCommand = connection.CreateCommand();
+            deleteCommand.Transaction = transaction;
+            deleteCommand.CommandText = "delete from roms where last_known_path = $lastKnownPath;";
+            AddTextParameter(deleteCommand, "$lastKnownPath", fullPath);
+            deleteCommand.ExecuteNonQuery();
+
+            transaction.Commit();
+            foreach (var coverPath in coverPaths)
+            {
+                DeleteManagedCoverFile(coverPath);
+            }
+
+            return Result.Ok();
+        }
+        catch (Exception exception) when (IsExpectedLibraryException(exception))
+        {
+            return Result.Fail(exception.Message);
+        }
+    }
+
+    public Result AssignCoverImage(string romHash, string sourceImagePath)
+    {
+        try
+        {
+            var previousCoverPath = GetCoverPath(romHash);
+            if (previousCoverPath.IsFailed)
+            {
+                return Result.Fail(previousCoverPath.Errors);
+            }
+
+            var imageExtension = GetSafeImageExtension(sourceImagePath);
+            if (imageExtension.IsFailed)
+            {
+                return Result.Fail(imageExtension.Errors);
+            }
+
+            Directory.CreateDirectory(_coverDirectoryPath);
+            var destinationPath = Path.Combine(_coverDirectoryPath, romHash + imageExtension.Value);
+            File.Copy(Path.GetFullPath(sourceImagePath), destinationPath, overwrite: true);
+            SetCoverPath(romHash, destinationPath);
+            DeleteManagedCoverFile(previousCoverPath.Value, destinationPath);
+
+            return Result.Ok();
+        }
+        catch (Exception exception) when (IsExpectedLibraryException(exception))
+        {
+            return Result.Fail(exception.Message);
+        }
+    }
+
+    public Result ClearCover(string romHash)
+    {
+        try
+        {
+            var previousCoverPath = GetCoverPath(romHash);
+            if (previousCoverPath.IsFailed)
+            {
+                return Result.Fail(previousCoverPath.Errors);
+            }
+
+            DeleteManagedCoverFile(previousCoverPath.Value);
+            SetCoverPath(romHash, coverPath: null);
+
             return Result.Ok();
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
@@ -132,6 +211,22 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
         var openedAt = _timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture);
         using var connection = database.OpenConnection();
         using var transaction = connection.BeginTransaction();
+
+        var deletedCoverPaths = new List<string>();
+
+        using var selectDeletedCoverCommand = connection.CreateCommand();
+        selectDeletedCoverCommand.Transaction = transaction;
+        selectDeletedCoverCommand.CommandText =
+            "select cover_path from roms where last_known_path = $lastKnownPath and rom_hash <> $romHash and cover_path is not null;";
+        AddTextParameter(selectDeletedCoverCommand, "$lastKnownPath", fullPath);
+        AddTextParameter(selectDeletedCoverCommand, "$romHash", romHash);
+        using (var reader = selectDeletedCoverCommand.ExecuteReader())
+        {
+            while (reader.Read())
+            {
+                deletedCoverPaths.Add(reader.GetString(0));
+            }
+        }
 
         using var deleteCommand = connection.CreateCommand();
         deleteCommand.Transaction = transaction;
@@ -182,7 +277,118 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
         upsertCommand.ExecuteNonQuery();
 
         transaction.Commit();
+        foreach (var coverPath in deletedCoverPaths)
+        {
+            DeleteManagedCoverFile(coverPath);
+        }
     }
+
+    private Result<string?> GetCoverPath(string romHash)
+    {
+        using var connection = database.OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "select cover_path from roms where rom_hash = $romHash;";
+        AddTextParameter(command, "$romHash", romHash);
+
+        var value = command.ExecuteScalar();
+        if (value is null)
+        {
+            return Result.Fail($"ROM not found: {romHash}");
+        }
+
+        return Result.Ok(value == DBNull.Value ? null : (string)value);
+    }
+
+    private void SetCoverPath(string romHash, string? coverPath)
+    {
+        using var connection = database.OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "update roms set cover_path = $coverPath where rom_hash = $romHash;";
+        AddOptionalTextParameter(command, "$coverPath", coverPath);
+        AddTextParameter(command, "$romHash", romHash);
+        command.ExecuteNonQuery();
+    }
+
+    private void DeleteManagedCoverFile(string? coverPath, string? exceptPath = null)
+    {
+        if (coverPath is null || !IsManagedCoverPath(coverPath))
+        {
+            return;
+        }
+
+        var fullCoverPath = Path.GetFullPath(coverPath);
+        if (
+            exceptPath is not null
+            && string.Equals(
+                fullCoverPath,
+                Path.GetFullPath(exceptPath),
+                GetFileSystemPathComparison()
+            )
+        )
+        {
+            return;
+        }
+
+        if (File.Exists(fullCoverPath))
+        {
+            File.Delete(fullCoverPath);
+        }
+    }
+
+    private bool IsManagedCoverPath(string coverPath) =>
+        Path.GetFullPath(coverPath)
+            .StartsWith(
+                EnsureTrailingDirectorySeparator(_coverDirectoryPath),
+                GetFileSystemPathComparison()
+            );
+
+    private static string EnsureTrailingDirectorySeparator(string path) =>
+        path.EndsWith(Path.DirectorySeparatorChar) || path.EndsWith(Path.AltDirectorySeparatorChar)
+            ? path
+            : path + Path.DirectorySeparatorChar;
+
+    private static StringComparison GetFileSystemPathComparison() =>
+        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+    private static Result<string> GetSafeImageExtension(string sourceImagePath)
+    {
+        var extension = Path.GetExtension(sourceImagePath);
+        if (extension.Length is < 2 or > 16)
+        {
+            return Result.Fail("Cover image file name has no safe extension.");
+        }
+
+        for (var index = 1; index < extension.Length; index++)
+        {
+            if (!IsAsciiLetterOrDigit(extension[index]))
+            {
+                return Result.Fail("Cover image file name has no safe extension.");
+            }
+        }
+
+        return Result.Ok(
+            string.Create(
+                extension.Length,
+                extension,
+                static (lowercaseExtension, extension) =>
+                {
+                    lowercaseExtension[0] = '.';
+                    for (var index = 1; index < extension.Length; index++)
+                    {
+                        lowercaseExtension[index] = ToLowerAscii(extension[index]);
+                    }
+                }
+            )
+        );
+    }
+
+    private static bool IsAsciiLetterOrDigit(char value) =>
+        value is (>= '0' and <= '9') or (>= 'A' and <= 'Z') or (>= 'a' and <= 'z');
+
+    private static char ToLowerAscii(char value) =>
+        value is >= 'A' and <= 'Z' ? (char)(value + ('a' - 'A')) : value;
 
     private static string ComputeRomHash(ReadOnlySpan<byte> rom) =>
         Convert.ToHexString(SHA256.HashData(rom));
@@ -205,6 +411,8 @@ internal sealed class LibraryService(LibraryDatabase database, TimeProvider? tim
                 or UnauthorizedAccessException
                 or InvalidOperationException
                 or FormatException
+                or NotSupportedException
+                or ArgumentException
                 or SqliteException;
 
     private static void AddTextParameter(SqliteCommand command, string name, string value)

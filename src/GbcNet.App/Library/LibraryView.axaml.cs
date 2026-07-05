@@ -6,6 +6,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using GbcNet.App.Library.Entities;
 using GbcNet.App.Shell.Chrome;
 using GbcNet.Core.Cartridges;
@@ -15,17 +16,22 @@ namespace GbcNet.App.Library;
 internal sealed partial class LibraryView : UserControl
 {
     private const int TileTitleMaxLength = 34;
+    private readonly List<Bitmap> _coverBitmaps = [];
 
     public LibraryView()
     {
         InitializeComponent();
+        DetachedFromVisualTree += (_, _) => DisposeCoverBitmaps();
     }
 
     public Action<LibraryEntry>? RomSelected { get; set; }
+    public Action<LibraryEntry>? SetCoverRequested { get; set; }
+    public Action<LibraryEntry>? ClearCoverRequested { get; set; }
 
     public void Load(IReadOnlyList<LibraryEntry> entries)
     {
         RomTilesPanel.Children.Clear();
+        DisposeCoverBitmaps();
         LibraryScrollViewer.IsVisible = entries.Count > 0;
         EmptyState.IsVisible = entries.Count == 0;
         EmptyStateText.Text = "No ROMs yet";
@@ -40,6 +46,7 @@ internal sealed partial class LibraryView : UserControl
     public void ShowError(string message)
     {
         RomTilesPanel.Children.Clear();
+        DisposeCoverBitmaps();
         LibraryScrollViewer.IsVisible = false;
         EmptyState.IsVisible = true;
         EmptyStateText.Text = message;
@@ -51,7 +58,7 @@ internal sealed partial class LibraryView : UserControl
         var button = new Button
         {
             Width = 168,
-            Height = 214,
+            Height = 238,
             Margin = new Thickness(0, 0, 18, 18),
             Padding = new Thickness(10),
             Background = AppChrome.Brush(AppChrome.Panel),
@@ -66,17 +73,41 @@ internal sealed partial class LibraryView : UserControl
         return button;
     }
 
-    private static Grid CreateRomTileContent(LibraryEntry entry) =>
+    private Grid CreateRomTileContent(LibraryEntry entry) =>
         new()
         {
-            RowDefinitions = new RowDefinitions("124,52,18"),
-            Children = { CreateCoverPlaceholder(), CreateTitle(entry), CreateFooter(entry) },
+            RowDefinitions = new RowDefinitions("148,52,18"),
+            Children = { CreateCover(entry), CreateTitle(entry), CreateFooter(entry) },
         };
+
+    private Border CreateCover(LibraryEntry entry)
+    {
+        var cover = CreateCoverPlaceholder();
+        Bitmap? bitmap = null;
+        try
+        {
+            bitmap = TryLoadCoverBitmap(entry.CoverPath);
+            if (bitmap is null)
+            {
+                return cover;
+            }
+
+            _coverBitmaps.Add(bitmap);
+            cover.Child = new Image { Source = bitmap, Stretch = Stretch.UniformToFill };
+            bitmap = null;
+            return cover;
+        }
+        finally
+        {
+            bitmap?.Dispose();
+        }
+    }
 
     private static Border CreateCoverPlaceholder() =>
         new()
         {
             Background = AppChrome.Brush(AppChrome.Surface),
+            ClipToBounds = true,
             CornerRadius = new CornerRadius(AppChrome.Radius),
             Child = new TextBlock
             {
@@ -126,11 +157,11 @@ internal sealed partial class LibraryView : UserControl
         return title;
     }
 
-    private static Grid CreateFooter(LibraryEntry entry)
+    private Grid CreateFooter(LibraryEntry entry)
     {
         var footer = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+            ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto"),
             Margin = new Thickness(0),
         };
         footer.Children.Add(
@@ -148,8 +179,86 @@ internal sealed partial class LibraryView : UserControl
         var badge = CreateHardwareKindBadge(entry.HardwareKind);
         Grid.SetColumn(badge, 1);
         footer.Children.Add(badge);
+        var actions = CreateTileActionsButton(entry);
+        Grid.SetColumn(actions, 2);
+        footer.Children.Add(actions);
         Grid.SetRow(footer, 2);
         return footer;
+    }
+
+    private Button CreateTileActionsButton(LibraryEntry entry)
+    {
+        var button = new Button
+        {
+            Content = "⋯",
+            MinWidth = 26,
+            Height = 18,
+            Margin = new Thickness(6, 0, 0, 0),
+            Padding = new Thickness(0),
+            Background = Brushes.Transparent,
+            BorderBrush = AppChrome.Brush(AppChrome.Hair),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(9),
+            Foreground = AppChrome.Brush(AppChrome.Muted),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            Flyout = CreateTileActionsFlyout(entry),
+        };
+        button.Click += (_, e) => e.Handled = true;
+        return button;
+    }
+
+    private MenuFlyout CreateTileActionsFlyout(LibraryEntry entry)
+    {
+        var setCover = new MenuItem { Header = "Set Cover..." };
+        setCover.Click += (_, _) => SetCoverRequested?.Invoke(entry);
+
+        var items = new List<MenuItem> { setCover };
+        if (entry.CoverPath is not null)
+        {
+            var clearCover = new MenuItem { Header = "Clear Cover" };
+            clearCover.Click += (_, _) => ClearCoverRequested?.Invoke(entry);
+            items.Add(clearCover);
+        }
+
+        return new MenuFlyout { ItemsSource = items };
+    }
+
+    private static Bitmap? TryLoadCoverBitmap(string? coverPath)
+    {
+        if (coverPath is null || !File.Exists(coverPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var stream = File.OpenRead(coverPath);
+            return new Bitmap(stream);
+        }
+        catch (Exception exception)
+            when (exception
+                    is IOException
+                        or UnauthorizedAccessException
+                        or InvalidOperationException
+                        or NotSupportedException
+                        or ArgumentException
+            )
+        {
+            return null;
+        }
+    }
+
+    private void DisposeCoverBitmaps()
+    {
+        foreach (var bitmap in _coverBitmaps)
+        {
+            bitmap.Dispose();
+        }
+
+        _coverBitmaps.Clear();
     }
 
     private static string FormatTileTitle(string fileName) =>

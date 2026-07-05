@@ -124,6 +124,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             libraryView,
             libraryService,
             _operationRunner,
+            StorageProvider,
             path => _emulationSession.OpenRecentRomAsync(StorageProvider, path)
         );
 
