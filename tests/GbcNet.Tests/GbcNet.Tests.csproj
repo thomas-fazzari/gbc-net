@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <AssemblyName>GbcNet.Tests</AssemblyName>
+    <RootNamespace>GbcNet.Tests</RootNamespace>
     <IsTestProject>true</IsTestProject>
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
   </PropertyGroup>
@@ -11,8 +13,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GbcNet.Core\GbcNet.Core.csproj" />
-    <ProjectReference Include="..\GbcNet.App\GbcNet.App.csproj" />
+    <ProjectReference Include="..\..\src\GbcNet.Core\GbcNet.Core.csproj" />
+    <ProjectReference Include="..\..\src\GbcNet.App\GbcNet.App.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -5,6 +5,7 @@ using System.Globalization;
 using GbcNet.App.Library;
 using GbcNet.Core.Cartridges;
 using GbcNet.Tests.Cartridges;
+using Microsoft.Data.Sqlite;
 
 namespace GbcNet.Tests.App.Library;
 
@@ -506,7 +507,11 @@ public sealed class LibraryServiceTests
             return path;
         }
 
-        public void Dispose() => TestDirectories.DeleteDirectoryIfExists(DirectoryPath);
+        public void Dispose()
+        {
+            SqliteConnection.ClearAllPools();
+            TestDirectories.DeleteDirectoryIfExists(DirectoryPath);
+        }
     }
 
     private sealed class TestTimeProvider(DateTimeOffset utcNow) : TimeProvider

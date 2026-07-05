@@ -1,9 +1,11 @@
 <Solution>
+  <Project Path="src/GbcNet.Core/GbcNet.Core.csproj" />
+  <Project Path="src/GbcNet.App/GbcNet.App.csproj" />
+  <Folder Name="/Tests/">
+    <Project Path="tests/GbcNet.Tests/GbcNet.Tests.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
   </Folder>
-  <Project Path="src/GbcNet.Core/GbcNet.Core.csproj" />
-  <Project Path="src/GbcNet.App/GbcNet.App.csproj" />
-  <Project Path="src/GbcNet.Tests/GbcNet.Tests.csproj" />
 </Solution>
