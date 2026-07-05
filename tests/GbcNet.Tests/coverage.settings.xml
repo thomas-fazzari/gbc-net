@@ -1,0 +1,9 @@
+<Configuration>
+  <CodeCoverage>
+    <Sources>
+      <Exclude>
+        <Source>.*\.axaml(\.cs)?$</Source>
+      </Exclude>
+    </Sources>
+  </CodeCoverage>
+</Configuration>

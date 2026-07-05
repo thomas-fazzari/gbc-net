@@ -21,6 +21,7 @@ on:
       - "global.json"
       - "Makefile"
       - "nuget.config"
+      - "tests/GbcNet.Tests/coverage.settings.xml"
   pull_request:
     branches: [master]
     paths:
@@ -36,6 +37,7 @@ on:
       - "global.json"
       - "Makefile"
       - "nuget.config"
+      - "tests/GbcNet.Tests/coverage.settings.xml"
 jobs:
   build:
     runs-on: ubuntu-latest
