@@ -10,10 +10,32 @@ on:
       - "hotfix/**"
     paths:
       - "**.cs"
+      - "**.csproj"
+      - "**.props"
+      - "**.slnx"
+      - "**.targets"
+      - "**/.editorconfig"
+      - ".config/dotnet-tools.json"
+      - ".editorconfig"
+      - ".github/workflows/ci.yml"
+      - "global.json"
+      - "Makefile"
+      - "nuget.config"
   pull_request:
     branches: [master]
     paths:
       - "**.cs"
+      - "**.csproj"
+      - "**.props"
+      - "**.slnx"
+      - "**.targets"
+      - "**/.editorconfig"
+      - ".config/dotnet-tools.json"
+      - ".editorconfig"
+      - ".github/workflows/ci.yml"
+      - "global.json"
+      - "Makefile"
+      - "nuget.config"
 jobs:
   build:
     runs-on: ubuntu-latest
