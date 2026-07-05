@@ -89,6 +89,47 @@ public sealed class LcdFrameBitmapRendererTests
         );
     }
 
+    [Fact]
+    public void WritePixels_RejectsTooSmallRowBytes()
+    {
+        var frame = CreateFrame(width: 2, height: 1, 0, 1);
+        var destination = new byte[8];
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 7)
+        );
+    }
+
+    [Fact]
+    public void WritePixels_RejectsTooSmallDestination()
+    {
+        var frame = CreateFrame(width: 2, height: 2, 0, 1, 2, 3);
+        var destination = new byte[15];
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 8)
+        );
+
+        Assert.Equal("destination", exception.ParamName);
+    }
+
+    [Fact]
+    public void WritePixels_RejectsUnsupportedPixelFormat()
+    {
+        LcdFrame frame = new(width: 1, height: 1, (LcdPixelFormat)255, [0]);
+        var destination = new byte[4];
+
+        var exception = Assert.Throws<NotSupportedException>(() =>
+            LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 4)
+        );
+
+        Assert.Contains(
+            "Unsupported LCD pixel format",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+    }
+
     private static LcdFrame CreateFrame(int width, int height, params byte[] pixels) =>
         new(width, height, LcdPixelFormat.DmgShadeIndex8, pixels);
 }
