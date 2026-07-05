@@ -13,3 +13,14 @@
   <img src="docs/assets/app.png" alt="GBC.Net app" width="600" />
   <img src="docs/assets/emulation.png" alt="GBC.Net in-game" width="600" />
 </p>
+
+<h2>Active Development</h2>
+<p>
+  This project is under active development. Core emulation is functional, but some features are incomplete and bugs are expected.
+</p>
+<p>Run it from source with:</p>
+
+```sh
+make install # Also sets up a linting Git hook
+make run
+```

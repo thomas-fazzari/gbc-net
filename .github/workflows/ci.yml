@@ -56,5 +56,11 @@ jobs:
         run: make install
       - name: Lint and build
         run: make lint CONFIGURATION=Release
-      - name: Test
-        run: make test CONFIGURATION=Release
+      - name: Test with coverage
+        run: make coverage CONFIGURATION=Release
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./tests/GbcNet.Tests/bin/Release/net10.0/TestResults/coverage.cobertura.xml
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}

@@ -1,5 +1,6 @@
 SOLUTION = GbcNet.slnx
 APP = src/GbcNet.App/GbcNet.App.csproj
+TESTS = tests/GbcNet.Tests/GbcNet.Tests.csproj
 CONFIGURATION ?= Debug
 RUN_CONFIGURATION ?= Release
 AOT_RUNTIME ?= osx-arm64
@@ -19,6 +20,10 @@ lint:
 .PHONY: test
 test:
 	dotnet test --solution $(SOLUTION) --configuration $(CONFIGURATION)
+
+.PHONY: coverage
+coverage:
+	dotnet test --project $(TESTS) --configuration $(CONFIGURATION) -- --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml
 
 .PHONY: aot-check
 aot-check:
