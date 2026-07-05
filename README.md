@@ -11,6 +11,6 @@
 </p>
 
 <p align="center">
-  <img src=".github/docs/assets/app.png" alt="GBC.Net app" width="600" />
-  <img src=".github/docs/assets/emulation.png" alt="GBC.Net in-game" width="600" />
+  <img src="docs/assets/app.png" alt="GBC.Net app" width="600" />
+  <img src="docs/assets/emulation.png" alt="GBC.Net in-game" width="600" />
 </p>
