@@ -19,8 +19,8 @@
     <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
   </ItemGroup>
   <ItemGroup Label="Analyzers">
-    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.27.0.140913" />
+    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.28.0.143324" />
     <PackageVersion Include="Roslynator.Analyzers" Version="4.15.0" />
-    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.110" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.121" />
   </ItemGroup>
 </Project>
