@@ -138,6 +138,167 @@ public sealed class LibraryServiceTests
     }
 
     [Fact]
+    public void GetRoms_SearchTextMatchesCartridgeTitleOrFileName()
+    {
+        using var test = new LibraryTestContext();
+        InsertLibraryEntry(
+            test.DatabasePath,
+            "title-match",
+            "plain.gb",
+            "2026-06-27T12:03:00.0000000+00:00",
+            cartridgeTitle: "Metroid Fusion"
+        );
+        InsertLibraryEntry(
+            test.DatabasePath,
+            "file-match",
+            "fusion-file.gb",
+            "2026-06-27T12:02:00.0000000+00:00",
+            cartridgeTitle: "Puzzle"
+        );
+        InsertLibraryEntry(
+            test.DatabasePath,
+            "miss",
+            "other.gb",
+            "2026-06-27T12:01:00.0000000+00:00",
+            cartridgeTitle: "Puzzle"
+        );
+
+        var entries = ResultAssertions.AssertSuccess(
+            test.Library.GetRoms(new LibraryQuery(SearchText: "fusion"), limit: 10)
+        );
+
+        Assert.Collection(
+            entries,
+            entry => Assert.Equal("plain.gb", entry.FileName),
+            entry => Assert.Equal("fusion-file.gb", entry.FileName)
+        );
+    }
+
+    [Theory]
+    [InlineData((int)LibraryHardwareFilter.Gb, "gb.gb")]
+    [InlineData((int)LibraryHardwareFilter.Gbc, "gbc.gb")]
+    [InlineData((int)LibraryHardwareFilter.Sgb, "sgb.gb")]
+    public void GetRoms_HardwareFilterReturnsOnlyMatchingKind(int hardware, string expectedFileName)
+    {
+        using var test = new LibraryTestContext();
+        InsertLibraryEntry(
+            test.DatabasePath,
+            "gb",
+            "gb.gb",
+            "2026-06-27T12:03:00.0000000+00:00",
+            hardwareKind: CartridgeHardwareKind.GB
+        );
+        InsertLibraryEntry(
+            test.DatabasePath,
+            "gbc",
+            "gbc.gb",
+            "2026-06-27T12:02:00.0000000+00:00",
+            hardwareKind: CartridgeHardwareKind.GBC
+        );
+        InsertLibraryEntry(
+            test.DatabasePath,
+            "sgb",
+            "sgb.gb",
+            "2026-06-27T12:01:00.0000000+00:00",
+            hardwareKind: CartridgeHardwareKind.SGB
+        );
+
+        var entry = Assert.Single(
+            ResultAssertions.AssertSuccess(
+                test.Library.GetRoms(
+                    new LibraryQuery(Hardware: (LibraryHardwareFilter)hardware),
+                    limit: 10
+                )
+            )
+        );
+
+        Assert.Equal(expectedFileName, entry.FileName);
+    }
+
+    [Theory]
+    [InlineData((int)LibraryCoverFilter.WithCover, "covered.gb")]
+    [InlineData((int)LibraryCoverFilter.MissingCover, "missing-cover.gb")]
+    public void GetRoms_CoverFilterReturnsOnlyMatchingEntries(int cover, string expectedFileName)
+    {
+        using var test = new LibraryTestContext();
+        InsertLibraryEntry(
+            test.DatabasePath,
+            "covered",
+            "covered.gb",
+            "2026-06-27T12:02:00.0000000+00:00",
+            coverPath: Path.Combine(test.CoverDirectoryPath, "covered.png")
+        );
+        InsertLibraryEntry(
+            test.DatabasePath,
+            "missing-cover",
+            "missing-cover.gb",
+            "2026-06-27T12:01:00.0000000+00:00"
+        );
+
+        var entry = Assert.Single(
+            ResultAssertions.AssertSuccess(
+                test.Library.GetRoms(new LibraryQuery(Cover: (LibraryCoverFilter)cover), limit: 10)
+            )
+        );
+
+        Assert.Equal(expectedFileName, entry.FileName);
+    }
+
+    [Fact]
+    public void GetRoms_TitleSortOrdersByDisplayTitleAscending()
+    {
+        using var test = new LibraryTestContext();
+        InsertSortEntries(test.DatabasePath);
+
+        var entries = ResultAssertions.AssertSuccess(
+            test.Library.GetRoms(new LibraryQuery(Sort: LibrarySortMode.Title), limit: 10)
+        );
+
+        Assert.Collection(
+            entries,
+            entry => Assert.Equal("alpha.gb", entry.FileName),
+            entry => Assert.Equal("charlie.gb", entry.FileName),
+            entry => Assert.Equal("delta.gb", entry.FileName)
+        );
+    }
+
+    [Fact]
+    public void GetRoms_MostPlayedSortOrdersByLaunchCountDescending()
+    {
+        using var test = new LibraryTestContext();
+        InsertSortEntries(test.DatabasePath);
+
+        var entries = ResultAssertions.AssertSuccess(
+            test.Library.GetRoms(new LibraryQuery(Sort: LibrarySortMode.MostPlayed), limit: 10)
+        );
+
+        Assert.Collection(
+            entries,
+            entry => Assert.Equal("alpha.gb", entry.FileName),
+            entry => Assert.Equal("delta.gb", entry.FileName),
+            entry => Assert.Equal("charlie.gb", entry.FileName)
+        );
+    }
+
+    [Fact]
+    public void GetRoms_RecentlyAddedSortOrdersByAddedTimestampDescending()
+    {
+        using var test = new LibraryTestContext();
+        InsertSortEntries(test.DatabasePath);
+
+        var entries = ResultAssertions.AssertSuccess(
+            test.Library.GetRoms(new LibraryQuery(Sort: LibrarySortMode.RecentlyAdded), limit: 10)
+        );
+
+        Assert.Collection(
+            entries,
+            entry => Assert.Equal("charlie.gb", entry.FileName),
+            entry => Assert.Equal("delta.gb", entry.FileName),
+            entry => Assert.Equal("alpha.gb", entry.FileName)
+        );
+    }
+
+    [Fact]
     public async Task AssignCoverImage_CopiesFileAndStoresCoverPath()
     {
         using var test = new LibraryTestContext();
@@ -230,7 +391,12 @@ public sealed class LibraryServiceTests
         string databasePath,
         string romHash,
         string fileName,
-        string lastOpenedAt
+        string lastOpenedAt,
+        string? cartridgeTitle = null,
+        string? addedAt = null,
+        int launchCount = 1,
+        string? coverPath = null,
+        CartridgeHardwareKind hardwareKind = CartridgeHardwareKind.GB
     )
     {
         using var connection = new LibraryDatabase(databasePath).OpenConnection();
@@ -244,23 +410,61 @@ public sealed class LibraryServiceTests
               added_at,
               last_opened_at,
               launch_count,
-              cover_path
+              cover_path,
+              hardware_kind
             ) values (
               $romHash,
               $lastKnownPath,
               $fileName,
-              null,
+              $cartridgeTitle,
+              $addedAt,
               $lastOpenedAt,
-              $lastOpenedAt,
-              1,
-              null
+              $launchCount,
+              $coverPath,
+              $hardwareKind
             );
             """;
         command.Parameters.AddWithValue("$romHash", romHash);
         command.Parameters.AddWithValue("$lastKnownPath", Path.Combine(databasePath, fileName));
         command.Parameters.AddWithValue("$fileName", fileName);
+        command.Parameters.AddWithValue("$cartridgeTitle", cartridgeTitle ?? (object)DBNull.Value);
+        command.Parameters.AddWithValue("$addedAt", addedAt ?? lastOpenedAt);
         command.Parameters.AddWithValue("$lastOpenedAt", lastOpenedAt);
+        command.Parameters.AddWithValue("$launchCount", launchCount);
+        command.Parameters.AddWithValue("$coverPath", coverPath ?? (object)DBNull.Value);
+        command.Parameters.AddWithValue("$hardwareKind", hardwareKind.ToString());
         command.ExecuteNonQuery();
+    }
+
+    private static void InsertSortEntries(string databasePath)
+    {
+        InsertLibraryEntry(
+            databasePath,
+            "delta",
+            "delta.gb",
+            "2026-06-27T12:03:00.0000000+00:00",
+            cartridgeTitle: "Delta",
+            addedAt: "2026-06-27T12:02:00.0000000+00:00",
+            launchCount: 3
+        );
+        InsertLibraryEntry(
+            databasePath,
+            "alpha",
+            "alpha.gb",
+            "2026-06-27T12:01:00.0000000+00:00",
+            cartridgeTitle: "alpha",
+            addedAt: "2026-06-27T12:00:00.0000000+00:00",
+            launchCount: 5
+        );
+        InsertLibraryEntry(
+            databasePath,
+            "charlie",
+            "charlie.gb",
+            "2026-06-27T12:02:00.0000000+00:00",
+            cartridgeTitle: "Charlie",
+            addedAt: "2026-06-27T12:04:00.0000000+00:00",
+            launchCount: 1
+        );
     }
 
     private sealed class LibraryTestContext : IDisposable

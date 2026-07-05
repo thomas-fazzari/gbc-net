@@ -11,4 +11,4 @@
 </p>
 
 <p align="center">
-  <img src=".github/docs/images/app.png" alt="GBC.Net app" width="600" />
+  <img src=".github/docs/assets/app.png" alt="GBC.Net app" width="600" />

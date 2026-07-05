@@ -3,23 +3,75 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   x:Class="GbcNet.App.Library.LibraryView"
 >
-  <Border Background="#101010" Padding="32">
-    <Grid>
-      <ScrollViewer x:Name="LibraryScrollViewer" VerticalScrollBarVisibility="Auto">
-        <WrapPanel x:Name="RomTilesPanel" Orientation="Horizontal" />
-      </ScrollViewer>
+  <Border Background="#101010" Padding="48,32">
+    <Grid x:Name="LibraryPageRoot">
+      <Grid
+        x:Name="LibraryContentRoot"
+        MaxWidth="1440"
+        Width="{Binding Bounds.Width, ElementName=LibraryPageRoot}"
+        HorizontalAlignment="Center"
+        RowDefinitions="Auto,Auto,*"
+      >
+        <Grid
+          x:Name="LibraryFilterGrid"
+          Margin="0,0,0,14"
+          RowDefinitions="Auto,Auto"
+          ColumnDefinitions="*,Auto"
+        >
+          <Border
+            x:Name="LibrarySearchBorder"
+            Grid.Column="0"
+            Height="34"
+            MinWidth="140"
+            Margin="0,0,10,0"
+            Background="#202024"
+            BorderBrush="#1cffffff"
+            BorderThickness="1"
+            CornerRadius="4"
+            VerticalAlignment="Center"
+            HorizontalAlignment="Stretch"
+          >
+            <TextBox
+              x:Name="LibrarySearchTextBox"
+              Background="Transparent"
+              BorderThickness="0"
+              FontSize="13"
+              Foreground="#f2f2f3"
+              Padding="10,0"
+              PlaceholderText="Search ROMs"
+              VerticalContentAlignment="Center"
+            />
+          </Border>
 
-      <Grid x:Name="EmptyState">
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-          <TextBlock
-            x:Name="EmptyStateText"
-            Text="No ROMs yet"
-            Foreground="#f2f2f3"
-            FontSize="16"
-            FontWeight="SemiBold"
-            HorizontalAlignment="Center"
+          <WrapPanel
+            x:Name="LibraryControlsPanel"
+            Grid.Column="1"
+            Orientation="Horizontal"
+            VerticalAlignment="Center"
+            HorizontalAlignment="Stretch"
           />
-        </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="1" Height="1" Margin="0,0,0,18" Background="#1cffffff" />
+
+        <Grid Grid.Row="2">
+          <ScrollViewer x:Name="LibraryScrollViewer" VerticalScrollBarVisibility="Auto">
+            <WrapPanel x:Name="RomTilesPanel" Orientation="Horizontal" />
+          </ScrollViewer>
+
+          <Grid x:Name="EmptyState">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+              <TextBlock
+                x:Name="EmptyStateText"
+                Text="No ROMs yet"
+                Foreground="#f2f2f3"
+                FontSize="16"
+                FontWeight="SemiBold"
+                HorizontalAlignment="Center"
+              />
+            </StackPanel>
+          </Grid>
+        </Grid>
       </Grid>
     </Grid>
   </Border>

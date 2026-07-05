@@ -35,6 +35,7 @@ internal sealed class LibraryPresenter
         view.SetCoverRequested = entry => operationRunner.Run(() => SetCoverAsync(entry));
         view.ClearCoverRequested = entry => operationRunner.Run(() => ClearCoverAsync(entry));
         view.RemoveRequested = entry => operationRunner.Run(() => RemoveRomAsync(entry));
+        view.QueryChanged = Refresh;
     }
 
     private async Task SetCoverAsync(LibraryEntry entry)
@@ -92,7 +93,7 @@ internal sealed class LibraryPresenter
 
     public void Refresh()
     {
-        var entries = _libraryService.GetRoms();
+        var entries = _libraryService.GetRoms(_view.Query);
         if (entries.IsSuccess)
         {
             _view.Load(entries.Value);

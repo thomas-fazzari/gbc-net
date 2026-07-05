@@ -10,6 +10,36 @@ using Microsoft.Data.Sqlite;
 
 namespace GbcNet.App.Library;
 
+internal readonly record struct LibraryQuery(
+    string? SearchText = null,
+    LibraryHardwareFilter Hardware = LibraryHardwareFilter.All,
+    LibraryCoverFilter Cover = LibraryCoverFilter.All,
+    LibrarySortMode Sort = LibrarySortMode.LastOpened
+);
+
+internal enum LibraryHardwareFilter
+{
+    All = 0,
+    Gb = 1,
+    Gbc = 2,
+    Sgb = 3,
+}
+
+internal enum LibraryCoverFilter
+{
+    All = 0,
+    WithCover = 1,
+    MissingCover = 2,
+}
+
+internal enum LibrarySortMode
+{
+    LastOpened = 0,
+    Title = 1,
+    MostPlayed = 2,
+    RecentlyAdded = 3,
+}
+
 internal sealed class LibraryService(
     LibraryDatabase database,
     string coverDirectoryPath,
@@ -57,7 +87,12 @@ internal sealed class LibraryService(
         }
     }
 
-    public Result<IReadOnlyList<LibraryEntry>> GetRoms(int limit = int.MaxValue)
+    public Result<IReadOnlyList<LibraryEntry>> GetRoms(int limit) => GetRoms(default, limit);
+
+    public Result<IReadOnlyList<LibraryEntry>> GetRoms(
+        LibraryQuery query = default,
+        int limit = int.MaxValue
+    )
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
         try
@@ -76,9 +111,33 @@ internal sealed class LibraryService(
                   cover_path,
                   hardware_kind
                 from roms
-                order by last_opened_at desc
+                where (
+                  $searchText is null
+                  or upper(file_name) like $searchText escape '\'
+                  or upper(coalesce(cartridge_title, '')) like $searchText escape '\'
+                )
+                and ($hardwareKind is null or hardware_kind = $hardwareKind)
+                and (
+                  $coverFilter = 0
+                  or ($coverFilter = 1 and cover_path is not null)
+                  or ($coverFilter = 2 and cover_path is null)
+                )
+                order by
+                  case when $sortMode = 0 then last_opened_at end desc,
+                  case when $sortMode = 1 then coalesce(cartridge_title, file_name) end collate nocase asc,
+                  case when $sortMode = 2 then launch_count end desc,
+                  case when $sortMode = 3 then added_at end desc,
+                  file_name collate nocase asc
                 limit $limit;
                 """;
+            AddOptionalTextParameter(command, "$searchText", NormalizeSearchText(query.SearchText));
+            AddOptionalTextParameter(
+                command,
+                "$hardwareKind",
+                GetHardwareKindFilter(query.Hardware)
+            );
+            AddIntegerParameter(command, "$coverFilter", (int)query.Cover);
+            AddIntegerParameter(command, "$sortMode", (int)query.Sort);
             AddIntegerParameter(command, "$limit", limit);
 
             using var reader = command.ExecuteReader();
@@ -392,6 +451,27 @@ internal sealed class LibraryService(
 
     private static string ComputeRomHash(ReadOnlySpan<byte> rom) =>
         Convert.ToHexString(SHA256.HashData(rom));
+
+    private static string? NormalizeSearchText(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? null
+            : $"%{EscapeLike(value.Trim().ToUpperInvariant())}%";
+
+    private static string EscapeLike(string value) =>
+        value
+            .Replace(@"\", @"\\", StringComparison.Ordinal)
+            .Replace("%", @"\%", StringComparison.Ordinal)
+            .Replace("_", @"\_", StringComparison.Ordinal);
+
+    private static string? GetHardwareKindFilter(LibraryHardwareFilter hardware) =>
+        hardware switch
+        {
+            LibraryHardwareFilter.All => null,
+            LibraryHardwareFilter.Gb => nameof(CartridgeHardwareKind.GB),
+            LibraryHardwareFilter.Gbc => nameof(CartridgeHardwareKind.GBC),
+            LibraryHardwareFilter.Sgb => nameof(CartridgeHardwareKind.SGB),
+            _ => throw new ArgumentOutOfRangeException(nameof(hardware), hardware, message: null),
+        };
 
     private static DateTimeOffset ParseTimestamp(string value) =>
         DateTimeOffset.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);

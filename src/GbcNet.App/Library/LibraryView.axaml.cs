@@ -16,18 +16,54 @@ namespace GbcNet.App.Library;
 internal sealed partial class LibraryView : UserControl
 {
     private const int TileTitleMaxLength = 34;
+    private const double HardwareDropDownWidth = 132;
+    private const double CoverDropDownWidth = 132;
+    private const double SortDropDownWidth = 116;
+    private const double HeaderControlGap = 8;
+    private const double CompactHeaderWidth = 760;
+
+    private static readonly LibraryHardwareFilter[] _hardwareFilterOptions =
+    [
+        LibraryHardwareFilter.All,
+        LibraryHardwareFilter.Gb,
+        LibraryHardwareFilter.Gbc,
+        LibraryHardwareFilter.Sgb,
+    ];
+    private static readonly LibraryCoverFilter[] _coverFilterOptions =
+    [
+        LibraryCoverFilter.All,
+        LibraryCoverFilter.WithCover,
+        LibraryCoverFilter.MissingCover,
+    ];
+    private static readonly LibrarySortMode[] _sortOptions =
+    [
+        LibrarySortMode.LastOpened,
+        LibrarySortMode.Title,
+        LibrarySortMode.MostPlayed,
+        LibrarySortMode.RecentlyAdded,
+    ];
     private readonly List<Bitmap> _coverBitmaps = [];
+    private LibraryHardwareFilter _hardwareFilter;
+    private LibraryCoverFilter _coverFilter;
+    private LibrarySortMode _sortMode;
 
     public LibraryView()
     {
         InitializeComponent();
         DetachedFromVisualTree += (_, _) => DisposeCoverBitmaps();
+        BuildLibraryControls();
+        LibraryFilterGrid.SizeChanged += (_, _) => UpdateHeaderLayout();
+        LibrarySearchTextBox.TextChanged += (_, _) => QueryChanged?.Invoke();
     }
 
     public Action<LibraryEntry>? RomSelected { get; set; }
     public Action<LibraryEntry>? SetCoverRequested { get; set; }
     public Action<LibraryEntry>? ClearCoverRequested { get; set; }
     public Action<LibraryEntry>? RemoveRequested { get; set; }
+    public Action? QueryChanged { get; set; }
+
+    public LibraryQuery Query =>
+        new(LibrarySearchTextBox.Text, _hardwareFilter, _coverFilter, _sortMode);
 
     public void Load(IReadOnlyList<LibraryEntry> entries)
     {
@@ -35,7 +71,7 @@ internal sealed partial class LibraryView : UserControl
         DisposeCoverBitmaps();
         LibraryScrollViewer.IsVisible = entries.Count > 0;
         EmptyState.IsVisible = entries.Count == 0;
-        EmptyStateText.Text = "No ROMs yet";
+        EmptyStateText.Text = HasActiveQuery ? "No ROMs match" : "No ROMs yet";
         EmptyStateText.Foreground = AppChrome.Brush(AppChrome.Text);
 
         foreach (var entry in entries)
@@ -60,6 +96,93 @@ internal sealed partial class LibraryView : UserControl
         EmptyState.IsVisible = true;
         EmptyStateText.Text = message;
         EmptyStateText.Foreground = AppChrome.Brush(AppChrome.Error);
+    }
+
+    private bool HasActiveQuery =>
+        !string.IsNullOrWhiteSpace(LibrarySearchTextBox.Text)
+        || _hardwareFilter != LibraryHardwareFilter.All
+        || _coverFilter != LibraryCoverFilter.All
+        || _sortMode != LibrarySortMode.LastOpened;
+
+    private void BuildLibraryControls()
+    {
+        LibraryControlsPanel.Children.Add(
+            CreateDropDown(
+                HardwareDropDownWidth,
+                _hardwareFilterOptions,
+                FormatHardwareFilter,
+                value => _hardwareFilter = value
+            )
+        );
+        LibraryControlsPanel.Children.Add(
+            CreateDropDown(
+                CoverDropDownWidth,
+                _coverFilterOptions,
+                FormatCoverFilter,
+                value => _coverFilter = value
+            )
+        );
+        LibraryControlsPanel.Children.Add(
+            CreateDropDown(
+                SortDropDownWidth,
+                _sortOptions,
+                FormatSortMode,
+                value => _sortMode = value
+            )
+        );
+    }
+
+    private void UpdateHeaderLayout()
+    {
+        if (LibraryFilterGrid.Bounds.Width <= 0)
+        {
+            return;
+        }
+        var compact = LibraryFilterGrid.Bounds.Width < CompactHeaderWidth;
+        Grid.SetColumnSpan(LibrarySearchBorder, compact ? 2 : 1);
+        Grid.SetRow(LibraryControlsPanel, compact ? 1 : 0);
+        Grid.SetColumn(LibraryControlsPanel, compact ? 0 : 1);
+        Grid.SetColumnSpan(LibraryControlsPanel, compact ? 2 : 1);
+        LibrarySearchBorder.Margin = compact ? new Thickness(0) : new Thickness(0, 0, 10, 0);
+        LibraryControlsPanel.Margin = compact ? new Thickness(0, 10, 0, 0) : new Thickness(0);
+    }
+
+    private ComboBox CreateDropDown<T>(
+        double width,
+        IEnumerable<T> options,
+        Func<T, string> format,
+        Action<T> select
+    )
+    {
+        var dropDown = new ComboBox
+        {
+            Width = width,
+            Height = 30,
+            MinWidth = 0,
+            Margin = new Thickness(0, 0, HeaderControlGap, 0),
+            ItemsSource = options.Select(option => new ComboBoxItem
+            {
+                Content = format(option),
+                Tag = option,
+            }),
+            SelectedIndex = 0,
+            Background = AppChrome.Brush(AppChrome.Panel),
+            BorderBrush = AppChrome.Brush(AppChrome.Hair),
+            BorderThickness = new Thickness(1),
+            Foreground = AppChrome.Brush(AppChrome.Text),
+            FontSize = 12,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
+        };
+        dropDown.SelectionChanged += (_, _) =>
+        {
+            if (dropDown.SelectedItem is ComboBoxItem item && item.Tag is T value)
+            {
+                select(value);
+                QueryChanged?.Invoke();
+            }
+        };
+        return dropDown;
     }
 
     private Button CreateRomTile(LibraryEntry entry)
@@ -199,10 +322,10 @@ internal sealed partial class LibraryView : UserControl
     {
         var button = new Button
         {
-            Content = "⋯",
+            Content = Icons.Make(Icons.Settings, AppChrome.Muted, size: 12, sourceSize: 28),
             MinWidth = 26,
             Height = 18,
-            Margin = new Thickness(6, 0, 0, 0),
+            Margin = new Thickness(10, 0, 0, 0),
             Padding = new Thickness(0),
             Background = Brushes.Transparent,
             BorderBrush = AppChrome.Brush(AppChrome.Hair),
@@ -327,6 +450,43 @@ internal sealed partial class LibraryView : UserControl
             };
         }
     }
+
+    private static string FormatHardwareFilter(LibraryHardwareFilter hardwareFilter) =>
+        $"Hardware: {hardwareFilter switch
+        {
+            LibraryHardwareFilter.All => "All",
+            LibraryHardwareFilter.Gb => "GB",
+            LibraryHardwareFilter.Gbc => "GBC",
+            LibraryHardwareFilter.Sgb => "SGB",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(hardwareFilter),
+                hardwareFilter,
+                message: null
+            ),
+        }}";
+
+    private static string FormatCoverFilter(LibraryCoverFilter coverFilter) =>
+        $"Cover: {coverFilter switch
+        {
+            LibraryCoverFilter.All => "Any",
+            LibraryCoverFilter.WithCover => "Set",
+            LibraryCoverFilter.MissingCover => "Missing",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(coverFilter),
+                coverFilter,
+                message: null
+            ),
+        }}";
+
+    private static string FormatSortMode(LibrarySortMode sortMode) =>
+        $"Sort: {sortMode switch
+        {
+            LibrarySortMode.LastOpened => "Recent",
+            LibrarySortMode.Title => "Title",
+            LibrarySortMode.MostPlayed => "Plays",
+            LibrarySortMode.RecentlyAdded => "Added",
+            _ => throw new ArgumentOutOfRangeException(nameof(sortMode), sortMode, message: null),
+        }}";
 
     private static string FormatTileTitle(string fileName) =>
         fileName.Length <= TileTitleMaxLength
