@@ -38,4 +38,4 @@ fix:
 
 .PHONY: copyrights
 copyrights:
-	scripts/copyrights.sh
+	dotnet fsi scripts/copyrights.fsx --
