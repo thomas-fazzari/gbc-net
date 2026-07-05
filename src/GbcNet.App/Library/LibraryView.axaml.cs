@@ -27,6 +27,7 @@ internal sealed partial class LibraryView : UserControl
     public Action<LibraryEntry>? RomSelected { get; set; }
     public Action<LibraryEntry>? SetCoverRequested { get; set; }
     public Action<LibraryEntry>? ClearCoverRequested { get; set; }
+    public Action<LibraryEntry>? RemoveRequested { get; set; }
 
     public void Load(IReadOnlyList<LibraryEntry> entries)
     {
@@ -41,6 +42,14 @@ internal sealed partial class LibraryView : UserControl
         {
             RomTilesPanel.Children.Add(CreateRomTile(entry));
         }
+    }
+
+    public Task<bool> ConfirmRemoveAsync()
+    {
+        var owner =
+            TopLevel.GetTopLevel(this) as Window
+            ?? throw new InvalidOperationException("Library view is not attached to a window.");
+        return new RemoveLibraryEntryWindow().ShowDialog<bool>(owner);
     }
 
     public void ShowError(string message)
@@ -223,6 +232,10 @@ internal sealed partial class LibraryView : UserControl
             items.Add(clearCover);
         }
 
+        var remove = new MenuItem { Header = "Remove from Library..." };
+        remove.Click += (_, _) => RemoveRequested?.Invoke(entry);
+        items.Add(remove);
+
         return new MenuFlyout { ItemsSource = items };
     }
 
@@ -259,6 +272,60 @@ internal sealed partial class LibraryView : UserControl
         }
 
         _coverBitmaps.Clear();
+    }
+
+    private sealed class RemoveLibraryEntryWindow : Window
+    {
+        public RemoveLibraryEntryWindow()
+        {
+            Title = "Remove ROM";
+            SizeToContent = SizeToContent.WidthAndHeight;
+            CanResize = false;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            Background = AppChrome.Brush(AppChrome.Bg);
+            Content = BuildContent();
+        }
+
+        private StackPanel BuildContent()
+        {
+            var cancelButton = AppChrome.Button("Cancel");
+            cancelButton.Click += (_, _) => Close(dialogResult: false);
+
+            var removeButton = AppChrome.Button("Remove", accent: true);
+            removeButton.Click += (_, _) => Close(dialogResult: true);
+
+            return new StackPanel
+            {
+                Width = 360,
+                Margin = new Thickness(18),
+                Spacing = 14,
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = "Remove this ROM from your library?",
+                        Foreground = AppChrome.Brush(AppChrome.Text),
+                        FontSize = 16,
+                        FontWeight = FontWeight.SemiBold,
+                    },
+                    new TextBlock
+                    {
+                        Text =
+                            "It will be removed from your GBC.Net library. The file stays on disk.",
+                        Foreground = AppChrome.Brush(AppChrome.Muted),
+                        FontSize = 13,
+                        TextWrapping = TextWrapping.Wrap,
+                    },
+                    new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        Spacing = 8,
+                        Children = { cancelButton, removeButton },
+                    },
+                },
+            };
+        }
     }
 
     private static string FormatTileTitle(string fileName) =>

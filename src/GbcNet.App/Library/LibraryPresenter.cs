@@ -34,6 +34,7 @@ internal sealed class LibraryPresenter
             });
         view.SetCoverRequested = entry => operationRunner.Run(() => SetCoverAsync(entry));
         view.ClearCoverRequested = entry => operationRunner.Run(() => ClearCoverAsync(entry));
+        view.RemoveRequested = entry => operationRunner.Run(() => RemoveRomAsync(entry));
     }
 
     private async Task SetCoverAsync(LibraryEntry entry)
@@ -68,6 +69,17 @@ internal sealed class LibraryPresenter
         ThrowIfFailed(_libraryService.ClearCover(entry.RomHash));
         Refresh();
         return Task.CompletedTask;
+    }
+
+    private async Task RemoveRomAsync(LibraryEntry entry)
+    {
+        if (!await _view.ConfirmRemoveAsync().ConfigureAwait(true))
+        {
+            return;
+        }
+
+        ThrowIfFailed(_libraryService.RemoveRomPath(entry.LastKnownPath));
+        Refresh();
     }
 
     private static void ThrowIfFailed(Result result)
