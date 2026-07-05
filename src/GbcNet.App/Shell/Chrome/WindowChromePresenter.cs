@@ -12,10 +12,12 @@ internal sealed class WindowChromePresenter(Window window, Control statusBar, Ma
 {
     private bool _statusBarAvailable = true;
     private bool _statusBarVisibleWhenAvailable = true;
+    private bool _menuBarVisibleWhenAvailable = true;
 
     public void SyncMenuState()
     {
         menu.SetFullscreenState(window.WindowState is WindowState.FullScreen);
+        menu.SetMenuBarState(_menuBarVisibleWhenAvailable);
         menu.SetStatusBarAvailability(_statusBarAvailable);
         menu.SetStatusBarState(statusBar.IsVisible);
     }
@@ -24,6 +26,7 @@ internal sealed class WindowChromePresenter(Window window, Control statusBar, Ma
     {
         if (change.Property == Window.WindowStateProperty)
         {
+            ApplyMenuBarVisibility();
             menu.SetFullscreenState(window.WindowState is WindowState.FullScreen);
         }
     }
@@ -36,6 +39,17 @@ internal sealed class WindowChromePresenter(Window window, Control statusBar, Ma
                 : WindowState.FullScreen;
     }
 
+    public void ToggleMenuBar()
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            return;
+        }
+
+        _menuBarVisibleWhenAvailable = !_menuBarVisibleWhenAvailable;
+        ApplyMenuBarVisibility();
+    }
+
     public void ToggleStatusBar()
     {
         if (!_statusBarAvailable)
@@ -44,6 +58,23 @@ internal sealed class WindowChromePresenter(Window window, Control statusBar, Ma
         }
 
         _statusBarVisibleWhenAvailable = !_statusBarVisibleWhenAvailable;
+        ApplyStatusBarVisibility();
+    }
+
+    public void SetMenuBarVisible(bool isVisible)
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            return;
+        }
+
+        _menuBarVisibleWhenAvailable = isVisible;
+        ApplyMenuBarVisibility();
+    }
+
+    public void SetStatusBarVisible(bool isVisible)
+    {
+        _statusBarVisibleWhenAvailable = isVisible;
         ApplyStatusBarVisibility();
     }
 
@@ -58,6 +89,15 @@ internal sealed class WindowChromePresenter(Window window, Control statusBar, Ma
         statusBar.IsVisible = _statusBarAvailable && _statusBarVisibleWhenAvailable;
         menu.SetStatusBarAvailability(_statusBarAvailable);
         menu.SetStatusBarState(statusBar.IsVisible);
+    }
+
+    private void ApplyMenuBarVisibility()
+    {
+        menu.IsVisible =
+            !OperatingSystem.IsMacOS()
+            && _menuBarVisibleWhenAvailable
+            && window.WindowState is not WindowState.FullScreen;
+        menu.SetMenuBarState(_menuBarVisibleWhenAvailable);
     }
 
     public bool TryHandleShortcut(Key key, KeyModifiers modifiers)

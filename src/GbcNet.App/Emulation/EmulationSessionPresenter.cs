@@ -26,6 +26,7 @@ internal sealed class EmulationSessionPresenter(
 )
 {
     private const int RecentRomLimit = 5;
+    private string? _loadedRomCoverPath;
 
     private static readonly FilePickerFileType _gameBoyRomFileType = new("Game Boy ROM")
     {
@@ -74,6 +75,7 @@ internal sealed class EmulationSessionPresenter(
         inputRouter.Clear();
         var result = await controller.OpenRomFileAsync(file).ConfigureAwait(true);
 
+        _loadedRomCoverPath = null;
         ApplyRomActionResult(result);
 
         if (
@@ -93,6 +95,8 @@ internal sealed class EmulationSessionPresenter(
             }
             else
             {
+                _loadedRomCoverPath = recorded.Value;
+                ShowLoadedRomStatus(result.Value);
                 SyncRecentRoms();
             }
         }
@@ -232,17 +236,16 @@ internal sealed class EmulationSessionPresenter(
 
         if (result.Value.HasSession)
         {
-            if (result.Value.HardwareModel is { } hardwareModel)
-            {
-                statusBar.ShowRomFileName(result.Value.LoadedRomFileName, hardwareModel);
-            }
-            else
-            {
-                statusBar.ShowRomFileName(result.Value.LoadedRomFileName);
-            }
-
+            ShowLoadedRomStatus(result.Value);
             SessionOpened?.Invoke(this, EventArgs.Empty);
         }
         SyncMenuState();
     }
+
+    private void ShowLoadedRomStatus(EmulationControllerState state) =>
+        statusBar.ShowRomFileName(
+            state.LoadedRomFileName,
+            state.HardwareModel,
+            _loadedRomCoverPath
+        );
 }

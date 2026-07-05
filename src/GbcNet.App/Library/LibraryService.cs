@@ -49,7 +49,7 @@ internal sealed class LibraryService(
     private readonly string _coverDirectoryPath = Path.GetFullPath(coverDirectoryPath);
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
-    public async Task<Result> RecordOpenedRomAsync(string path)
+    public async Task<Result<string?>> RecordOpenedRomAsync(string path)
     {
         try
         {
@@ -70,7 +70,7 @@ internal sealed class LibraryService(
         }
     }
 
-    public Result RecordLoadedRom(
+    public Result<string?> RecordLoadedRom(
         string path,
         ReadOnlyMemory<byte> rom,
         CartridgeHeader cartridgeHeader
@@ -78,8 +78,7 @@ internal sealed class LibraryService(
     {
         try
         {
-            RecordOpenedRomCore(Path.GetFullPath(path), rom, cartridgeHeader);
-            return Result.Ok();
+            return Result.Ok(RecordOpenedRomCore(Path.GetFullPath(path), rom, cartridgeHeader));
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
@@ -144,19 +143,7 @@ internal sealed class LibraryService(
             var entries = new List<LibraryEntry>();
             while (reader.Read())
             {
-                entries.Add(
-                    new LibraryEntry(
-                        reader.GetString(0),
-                        reader.GetString(1),
-                        reader.GetString(2),
-                        reader.IsDBNull(3) ? null : reader.GetString(3),
-                        ParseHardwareKind(reader.GetString(8)),
-                        ParseTimestamp(reader.GetString(4)),
-                        ParseTimestamp(reader.GetString(5)),
-                        reader.GetInt32(6),
-                        reader.IsDBNull(7) ? null : reader.GetString(7)
-                    )
-                );
+                entries.Add(ReadLibraryEntry(reader));
             }
 
             return Result.Ok<IReadOnlyList<LibraryEntry>>(entries);
@@ -260,7 +247,7 @@ internal sealed class LibraryService(
         }
     }
 
-    private void RecordOpenedRomCore(
+    private string? RecordOpenedRomCore(
         string fullPath,
         ReadOnlyMemory<byte> rom,
         CartridgeHeader cartridgeHeader
@@ -325,7 +312,8 @@ internal sealed class LibraryService(
               cartridge_title = excluded.cartridge_title,
               hardware_kind = excluded.hardware_kind,
               last_opened_at = excluded.last_opened_at,
-              launch_count = roms.launch_count + 1;
+              launch_count = roms.launch_count + 1
+            returning cover_path;
             """;
         AddTextParameter(upsertCommand, "$romHash", romHash);
         AddTextParameter(upsertCommand, "$lastKnownPath", fullPath);
@@ -333,13 +321,15 @@ internal sealed class LibraryService(
         AddOptionalTextParameter(upsertCommand, "$cartridgeTitle", cartridgeHeader.Title);
         AddTextParameter(upsertCommand, "$hardwareKind", cartridgeHeader.HardwareKind.ToString());
         AddTextParameter(upsertCommand, "$openedAt", openedAt);
-        upsertCommand.ExecuteNonQuery();
+        var coverPath = upsertCommand.ExecuteScalar() as string;
 
         transaction.Commit();
-        foreach (var coverPath in deletedCoverPaths)
+        foreach (var coverPathToDelete in deletedCoverPaths)
         {
-            DeleteManagedCoverFile(coverPath);
+            DeleteManagedCoverFile(coverPathToDelete);
         }
+
+        return coverPath;
     }
 
     private Result<string?> GetCoverPath(string romHash)
@@ -484,6 +474,19 @@ internal sealed class LibraryService(
             nameof(CartridgeHardwareKind.SGB) => CartridgeHardwareKind.SGB,
             _ => throw new FormatException($"Unknown cartridge hardware kind '{value}'."),
         };
+
+    private static LibraryEntry ReadLibraryEntry(SqliteDataReader reader) =>
+        new(
+            reader.GetString(0),
+            reader.GetString(1),
+            reader.GetString(2),
+            reader.IsDBNull(3) ? null : reader.GetString(3),
+            ParseHardwareKind(reader.GetString(8)),
+            ParseTimestamp(reader.GetString(4)),
+            ParseTimestamp(reader.GetString(5)),
+            reader.GetInt32(6),
+            reader.IsDBNull(7) ? null : reader.GetString(7)
+        );
 
     private static bool IsExpectedLibraryException(Exception exception) =>
         exception

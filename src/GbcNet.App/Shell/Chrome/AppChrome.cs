@@ -29,8 +29,8 @@ internal static class AppChrome
     public static readonly Color Status = Color.Parse("#a1a1aa");
     public static readonly Color Error = Color.Parse("#fca5a5");
 
-    private static readonly Color FocusBlue = Color.Parse("#0078d4");
-    private static readonly Color FocusBluePressed = Color.Parse("#005a9e");
+    private static readonly Color _focusBlue = Color.Parse("#0078d4");
+    private static readonly Color _focusBluePressed = Color.Parse("#005a9e");
 
     public static SolidColorBrush Brush(Color color) => new(color);
 
@@ -71,8 +71,8 @@ internal static class AppChrome
     private static void AttachHover(Button button, bool accent)
     {
         var normal = accent ? Accent : Raise;
-        var hover = accent ? FocusBlue : Hover;
-        var press = accent ? FocusBluePressed : Press;
+        var hover = accent ? _focusBlue : Hover;
+        var press = accent ? _focusBluePressed : Press;
         button.PointerEntered += (_, _) => button.Background = Brush(hover);
         button.PointerExited += (_, _) => button.Background = Brush(normal);
         button.PointerPressed += (_, _) => button.Background = Brush(press);

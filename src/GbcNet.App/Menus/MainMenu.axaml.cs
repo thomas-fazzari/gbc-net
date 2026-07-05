@@ -3,8 +3,10 @@
 
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Media;
 using GbcNet.App.Emulation;
 using GbcNet.App.Library.Entities;
+using GbcNet.App.Shell.Chrome;
 
 namespace GbcNet.App.Menus;
 
@@ -15,6 +17,7 @@ internal sealed partial class MainMenu : UserControl
     private static readonly KeyGesture _statusBarGesture = KeyGesture.Parse(
         OperatingSystem.IsMacOS() ? "Meta+I" : "Ctrl+I"
     );
+    private static readonly KeyGesture _menuBarGesture = KeyGesture.Parse("Ctrl+M");
 
     private readonly NativeMenuItem _nativePauseMenuItem = new("Pause")
     {
@@ -65,6 +68,9 @@ internal sealed partial class MainMenu : UserControl
     public MainMenu()
     {
         InitializeComponent();
+        MenuChrome.Background = AppChrome.Brush(AppChrome.Bg);
+        MenuChrome.BorderBrush = AppChrome.Brush(AppChrome.Hair);
+        WindowMenu.Background = Brushes.Transparent;
 
         IsVisible = !OperatingSystem.IsMacOS();
         _nativeOpenRecentMenuItem = new NativeMenuItem("Open Recent")
@@ -98,6 +104,8 @@ internal sealed partial class MainMenu : UserControl
 
     public event EventHandler? FullscreenRequested;
 
+    public event EventHandler? MenuBarRequested;
+
     public event EventHandler? StatusBarRequested;
 
     public void AttachNativeMenu(Window window)
@@ -105,6 +113,40 @@ internal sealed partial class MainMenu : UserControl
         if (OperatingSystem.IsMacOS())
         {
             NativeMenu.SetMenu(window, _nativeMenu);
+        }
+    }
+
+    public bool TryHandleShortcut(Key key, KeyModifiers modifiers)
+    {
+        if (OperatingSystem.IsMacOS() || modifiers is not KeyModifiers.Control)
+        {
+            return false;
+        }
+
+        switch (key)
+        {
+            case Key.O:
+                OpenRomRequested?.Invoke(this, EventArgs.Empty);
+                return true;
+
+            case Key.W when CloseWindowMenuItem.IsEnabled:
+                CloseRequested?.Invoke(this, EventArgs.Empty);
+                return true;
+
+            case Key.C:
+                ConfigurationRequested?.Invoke(this, EventArgs.Empty);
+                return true;
+
+            case Key.M:
+                MenuBarRequested?.Invoke(this, EventArgs.Empty);
+                return true;
+
+            case Key.R when ResetEmulationMenuItem.IsEnabled:
+                ResetRequested?.Invoke(this, EventArgs.Empty);
+                return true;
+
+            default:
+                return false;
         }
     }
 
@@ -148,6 +190,11 @@ internal sealed partial class MainMenu : UserControl
     {
         _nativeFullscreenMenuItem.IsChecked = isFullscreen;
         FullscreenMenuItem.IsChecked = isFullscreen;
+    }
+
+    public void SetMenuBarState(bool isVisible)
+    {
+        MenuBarMenuItem.IsChecked = isVisible;
     }
 
     public void SetStatusBarState(bool isVisible)
@@ -198,6 +245,8 @@ internal sealed partial class MainMenu : UserControl
     {
         ConfigurationMenuItem.Click += (_, _) =>
             ConfigurationRequested?.Invoke(this, EventArgs.Empty);
+        ConfigurationFileLocationMenuItem.Click += (_, _) =>
+            ConfigurationFileLocationRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private void ConfigureWindowEmulationMenu()
@@ -219,6 +268,8 @@ internal sealed partial class MainMenu : UserControl
     {
         FullscreenMenuItem.InputGesture = _fullscreenGesture;
         FullscreenMenuItem.Click += (_, _) => FullscreenRequested?.Invoke(this, EventArgs.Empty);
+        MenuBarMenuItem.InputGesture = _menuBarGesture;
+        MenuBarMenuItem.Click += (_, _) => MenuBarRequested?.Invoke(this, EventArgs.Empty);
         StatusBarMenuItem.InputGesture = _statusBarGesture;
         StatusBarMenuItem.Click += (_, _) => StatusBarRequested?.Invoke(this, EventArgs.Empty);
     }

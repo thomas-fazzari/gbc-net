@@ -3,7 +3,7 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   x:Class="GbcNet.App.Library.LibraryView"
 >
-  <Border Background="#101010" Padding="48,32">
+  <Border x:Name="LibraryPageBackground" Padding="48,32">
     <Grid x:Name="LibraryPageRoot">
       <Grid
         x:Name="LibraryContentRoot"
@@ -24,8 +24,6 @@
             Height="34"
             MinWidth="140"
             Margin="0,0,10,0"
-            Background="#202024"
-            BorderBrush="#1cffffff"
             BorderThickness="1"
             CornerRadius="4"
             VerticalAlignment="Center"
@@ -33,10 +31,8 @@
           >
             <TextBox
               x:Name="LibrarySearchTextBox"
-              Background="Transparent"
               BorderThickness="0"
               FontSize="13"
-              Foreground="#f2f2f3"
               Padding="10,0"
               PlaceholderText="Search ROMs"
               VerticalContentAlignment="Center"
@@ -52,7 +48,7 @@
           />
         </Grid>
 
-        <Border Grid.Row="1" Height="1" Margin="0,0,0,18" Background="#1cffffff" />
+        <Border x:Name="LibraryDivider" Grid.Row="1" Height="1" Margin="0,0,0,18" />
 
         <Grid Grid.Row="2">
           <ScrollViewer x:Name="LibraryScrollViewer" VerticalScrollBarVisibility="Auto">
@@ -64,7 +60,6 @@
               <TextBlock
                 x:Name="EmptyStateText"
                 Text="No ROMs yet"
-                Foreground="#f2f2f3"
                 FontSize="16"
                 FontWeight="SemiBold"
                 HorizontalAlignment="Center"

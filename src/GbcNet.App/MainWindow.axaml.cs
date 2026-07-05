@@ -42,6 +42,12 @@ internal sealed partial class MainWindow : Window, IDisposable
     )
     {
         InitializeComponent();
+        Background = AppChrome.Brush(AppChrome.Bg);
+        StatusBar.Background = AppChrome.Brush(AppChrome.Panel);
+        StatusBar.BorderBrush = AppChrome.Brush(AppChrome.Hair);
+        StatusCoverFrame.Background = AppChrome.Brush(AppChrome.Surface);
+        StatusTextBlock.Foreground = AppChrome.Brush(AppChrome.Muted);
+        StatusSpeedTextBlock.Foreground = AppChrome.Brush(AppChrome.Muted);
 
         var libraryView = new LibraryView();
         var emulationView = new EmulationView();
@@ -50,7 +56,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         _framePresenter = new LcdFramePresenter(emulationView.Screen);
 
         var statusGrid = (Grid)StatusTextBlock.Parent!;
-        statusGrid.ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto");
+        StatusCoverFrame.IsVisible = false;
         statusGrid.ColumnSpacing = 8;
 
         var statusHardwareBadgeTextBlock = new TextBlock
@@ -69,11 +75,10 @@ internal sealed partial class MainWindow : Window, IDisposable
             IsVisible = false,
             Child = statusHardwareBadgeTextBlock,
         };
-        Grid.SetColumn(statusHardwareBadge, 1);
+        Grid.SetColumn(statusHardwareBadge, 2);
         statusGrid.Children.Add(statusHardwareBadge);
 
         statusGrid.Children.Remove(StatusSpeedTextBlock);
-        StatusSpeedTextBlock.Foreground = AppChrome.Brush(AppChrome.Muted);
         StatusSpeedTextBlock.FontSize = 10;
         StatusSpeedTextBlock.FontWeight = FontWeight.SemiBold;
         var statusSpeedBadge = new Border
@@ -86,11 +91,13 @@ internal sealed partial class MainWindow : Window, IDisposable
             IsVisible = false,
             Child = StatusSpeedTextBlock,
         };
-        Grid.SetColumn(statusSpeedBadge, 2);
+        Grid.SetColumn(statusSpeedBadge, 3);
         statusGrid.Children.Add(statusSpeedBadge);
 
         _statusBar = new StatusBarPresenter(
             StatusTextBlock,
+            StatusCoverFrame,
+            StatusCoverImage,
             statusHardwareBadge,
             statusHardwareBadgeTextBlock,
             statusSpeedBadge,
@@ -131,18 +138,23 @@ internal sealed partial class MainWindow : Window, IDisposable
         _emulationSession.SessionOpened += (_, _) =>
         {
             ContentHost.Content = emulationView;
+            _windowChrome.SetMenuBarVisible(isVisible: false);
             _windowChrome.SetStatusBarAvailable(isAvailable: true);
+            _windowChrome.SetStatusBarVisible(isVisible: false);
         };
         _emulationSession.SessionClosed += (_, _) =>
         {
             ContentHost.Content = libraryView;
+            _windowChrome.SetMenuBarVisible(isVisible: true);
             _windowChrome.SetStatusBarAvailable(isAvailable: false);
             libraryPresenter.Refresh();
         };
         _emulationSession.SessionFaulted += (_, _) =>
         {
             ContentHost.Content = libraryView;
+            _windowChrome.SetMenuBarVisible(isVisible: true);
             _windowChrome.SetStatusBarAvailable(isAvailable: true);
+            _windowChrome.SetStatusBarVisible(isVisible: true);
             libraryPresenter.Refresh();
         };
 
@@ -184,6 +196,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         MainMenu.FastForwardSpeedSelected += (_, e) =>
             _emulationSession.SetFastForwardSpeed(e.Speed);
         MainMenu.FullscreenRequested += (_, _) => _windowChrome.ToggleFullscreen();
+        MainMenu.MenuBarRequested += (_, _) => _windowChrome.ToggleMenuBar();
         MainMenu.StatusBarRequested += (_, _) => _windowChrome.ToggleStatusBar();
         _windowChrome.SyncMenuState();
         _emulationSession.SyncMenuState();
@@ -223,6 +236,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     public void Dispose()
     {
+        _statusBar.Dispose();
         _framePresenter.Dispose();
     }
 
@@ -263,7 +277,8 @@ internal sealed partial class MainWindow : Window, IDisposable
     private void ApplyKeyboardEvent(KeyEventArgs e, bool pressed)
     {
         if (
-            (pressed && _windowChrome.TryHandleShortcut(e.Key, e.KeyModifiers))
+            (pressed && MainMenu.TryHandleShortcut(e.Key, e.KeyModifiers))
+            || (pressed && _windowChrome.TryHandleShortcut(e.Key, e.KeyModifiers))
             || _emulationSession.ApplyKeyboardInput(e.Key, pressed)
         )
         {

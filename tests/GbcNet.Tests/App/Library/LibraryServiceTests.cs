@@ -340,7 +340,10 @@ public sealed class LibraryServiceTests
             ?? throw new InvalidOperationException("Cover path was not stored.");
         var secondPath = await test.WriteRomAsync("second.gb", rom);
 
-        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(secondPath));
+        Assert.Equal(
+            coverPath,
+            ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(secondPath))
+        );
 
         var entry = Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)));
         Assert.Equal(coverPath, entry.CoverPath);

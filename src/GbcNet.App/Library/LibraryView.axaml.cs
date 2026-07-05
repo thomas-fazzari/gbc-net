@@ -50,6 +50,13 @@ internal sealed partial class LibraryView : UserControl
     public LibraryView()
     {
         InitializeComponent();
+        LibraryPageBackground.Background = AppChrome.Brush(AppChrome.Bg);
+        LibrarySearchBorder.Background = AppChrome.Brush(AppChrome.Panel);
+        LibrarySearchBorder.BorderBrush = AppChrome.Brush(AppChrome.Hair);
+        LibrarySearchTextBox.Background = Brushes.Transparent;
+        LibrarySearchTextBox.Foreground = AppChrome.Brush(AppChrome.Text);
+        LibraryDivider.Background = AppChrome.Brush(AppChrome.Hair);
+        EmptyStateText.Foreground = AppChrome.Brush(AppChrome.Text);
         DetachedFromVisualTree += (_, _) => DisposeCoverBitmaps();
         BuildLibraryControls();
         LibraryFilterGrid.SizeChanged += (_, _) => UpdateHeaderLayout();

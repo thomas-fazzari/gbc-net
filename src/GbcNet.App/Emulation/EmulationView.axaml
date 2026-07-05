@@ -3,9 +3,9 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   x:Class="GbcNet.App.Emulation.EmulationView"
 >
-  <Border Background="#050505">
+  <Border x:Name="ViewportBackground">
     <Viewbox Stretch="Uniform">
-      <Border Background="#050505" RenderOptions.BitmapInterpolationMode="None">
+      <Border x:Name="ScreenBackground" RenderOptions.BitmapInterpolationMode="None">
         <Image x:Name="ScreenImage" Width="160" Height="144" Stretch="Fill" />
       </Border>
     </Viewbox>

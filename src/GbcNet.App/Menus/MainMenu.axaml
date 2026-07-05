@@ -3,8 +3,8 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   x:Class="GbcNet.App.Menus.MainMenu"
 >
-  <Border Background="#181818" BorderBrush="#2A2A2A" BorderThickness="0,0,0,1">
-    <Menu Background="Transparent">
+  <Border x:Name="MenuChrome" BorderThickness="0,0,0,1">
+    <Menu x:Name="WindowMenu">
       <MenuItem x:Name="FileMenuItem" Header="_File">
         <MenuItem x:Name="OpenRomMenuItem" Header="_Open ROM..." InputGesture="Ctrl+O" />
         <MenuItem x:Name="OpenRecentMenuItem" Header="Open _Recent" IsEnabled="False" />
@@ -13,7 +13,9 @@
       </MenuItem>
 
       <MenuItem Header="_Settings">
-        <MenuItem x:Name="ConfigurationMenuItem" Header="_Configuration..." InputGesture="Meta+C" />
+        <MenuItem x:Name="ConfigurationMenuItem" Header="_Configuration..." InputGesture="Ctrl+C" />
+        <Separator />
+        <MenuItem x:Name="ConfigurationFileLocationMenuItem" Header="_Open KDL File Location" />
       </MenuItem>
 
       <MenuItem Header="_Emulation">
@@ -36,6 +38,12 @@
 
       <MenuItem Header="_View">
         <MenuItem x:Name="FullscreenMenuItem" Header="_Fullscreen" ToggleType="CheckBox" />
+        <MenuItem
+          x:Name="MenuBarMenuItem"
+          Header="_Menu Bar"
+          ToggleType="CheckBox"
+          IsChecked="True"
+        />
         <Separator />
         <MenuItem
           x:Name="StatusBarMenuItem"

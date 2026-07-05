@@ -9,32 +9,27 @@
   MinWidth="640"
   MinHeight="576"
   WindowStartupLocation="CenterScreen"
-  Background="#101010"
 >
   <Grid RowDefinitions="Auto,*,Auto">
     <menus:MainMenu x:Name="MainMenu" Grid.Row="0" />
 
     <ContentControl x:Name="ContentHost" Grid.Row="1" />
 
-    <Border
-      x:Name="StatusBar"
-      Grid.Row="2"
-      Background="#050505"
-      BorderBrush="#141414"
-      BorderThickness="0,1,0,0"
-      Padding="14,6"
-    >
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+    <Border x:Name="StatusBar" Grid.Row="2" BorderThickness="0,1,0,0" Padding="14,6">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+        <Border x:Name="StatusCoverFrame" Width="18" Height="18" CornerRadius="3">
+          <Image x:Name="StatusCoverImage" Stretch="UniformToFill" />
+        </Border>
         <TextBlock
           x:Name="StatusTextBlock"
-          Foreground="#71717a"
+          Grid.Column="1"
           FontSize="12"
           TextTrimming="CharacterEllipsis"
+          VerticalAlignment="Center"
         />
         <TextBlock
           x:Name="StatusSpeedTextBlock"
-          Grid.Column="1"
-          Foreground="#5f5f66"
+          Grid.Column="2"
           FontSize="12"
           TextTrimming="CharacterEllipsis"
         />
