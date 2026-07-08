@@ -4,7 +4,7 @@ TESTS = tests/GbcNet.Tests/GbcNet.Tests.csproj
 COVERAGE_SETTINGS = $(CURDIR)/tests/GbcNet.Tests/coverage.settings.xml
 CONFIGURATION ?= Debug
 RUN_CONFIGURATION ?= Release
-AOT_RUNTIME ?= osx-arm64
+RUNTIME ?= osx-arm64
 
 .PHONY: install
 install:
@@ -26,13 +26,9 @@ test:
 coverage:
 	dotnet test --project $(TESTS) --configuration $(CONFIGURATION) -- --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --coverage-settings "$(COVERAGE_SETTINGS)"
 
-.PHONY: aot-check
-aot-check:
-	dotnet publish $(APP) --configuration Release --runtime $(AOT_RUNTIME) --self-contained true -p:PublishAot=true
-
 .PHONY: app-bundle
 app-bundle:
-	packaging/package.sh "$(APP)" "$(AOT_RUNTIME)"
+	packaging/macos/create-app-bundle.sh "$(APP)" "$(RUNTIME)"
 
 .PHONY: run
 run:

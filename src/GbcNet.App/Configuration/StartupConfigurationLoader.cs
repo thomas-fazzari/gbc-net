@@ -1,12 +1,11 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using FluentResults;
-using GbcNet.App.Common;
 using GbcNet.App.Configuration.Kdl;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.Core;
+using KdlSharp;
 
 namespace GbcNet.App.Configuration;
 
@@ -24,31 +23,48 @@ internal static class StartupConfigurationLoader
 {
     public static StartupConfiguration Load(string configPath)
     {
-        var document = KdlConfigurationFile.LoadOrCreate(configPath);
-
-        var loadedInputConfig = document.IsSuccess
-            ? InputConfigReader.Read(document.Value)
-            : document.ToResult<InputConfig>();
-
-        var loadedBootRomOptions = document.IsSuccess
-            ? BootRomConfigReader.ReadBootRomOptions(
-                document.Value,
-                Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory
-            )
-            : Result.Ok(new BootRomOptions());
-
-        var inputConfig = loadedInputConfig.IsSuccess
-            ? loadedInputConfig.Value
-            : LoadTemplateInputConfig();
-
-        var bootRomOptions = loadedBootRomOptions.IsSuccess
-            ? loadedBootRomOptions.Value
-            : new BootRomOptions();
-
         var startupErrors = new List<string>();
+        var bootRomOptions = new BootRomOptions();
 
-        AddErrors(startupErrors, loadedInputConfig);
-        AddErrors(startupErrors, loadedBootRomOptions);
+        KdlDocument? document = null;
+        try
+        {
+            document = KdlConfigurationFile.LoadOrCreate(configPath);
+        }
+        catch (ConfigurationException exception)
+        {
+            startupErrors.Add(ConfigurationErrors.Format(exception));
+        }
+
+        InputConfig inputConfig;
+        if (document is null)
+        {
+            inputConfig = LoadTemplateInputConfig();
+        }
+        else
+        {
+            try
+            {
+                inputConfig = InputConfigReader.Read(document);
+            }
+            catch (ConfigurationException exception)
+            {
+                startupErrors.Add(ConfigurationErrors.Format(exception));
+                inputConfig = LoadTemplateInputConfig();
+            }
+
+            try
+            {
+                bootRomOptions = BootRomConfigReader.ReadBootRomOptions(
+                    document,
+                    Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory
+                );
+            }
+            catch (ConfigurationException exception)
+            {
+                startupErrors.Add(ConfigurationErrors.Format(exception));
+            }
+        }
 
         var validation = InputConfigValidator.Validate(inputConfig);
 
@@ -75,14 +91,6 @@ internal static class StartupConfigurationLoader
         );
     }
 
-    private static void AddErrors<T>(List<string> startupErrors, Result<T> result)
-    {
-        if (result.IsFailed)
-        {
-            startupErrors.Add(ResultErrors.Format(result.Errors));
-        }
-    }
-
     private static string? ToStartupErrorMessage(List<string> startupErrors) =>
         startupErrors.Count == 0 ? null : string.Join(Environment.NewLine, startupErrors);
 
@@ -100,17 +108,13 @@ internal static class StartupConfigurationLoader
 
     private static InputConfig LoadTemplateInputConfig()
     {
-        var template = KdlConfigurationFile.LoadTemplate();
-
-        if (template.IsFailed)
+        try
         {
-            throw new InvalidOperationException(ResultErrors.Format(template.Errors));
+            return InputConfigReader.Read(KdlConfigurationFile.LoadTemplate());
         }
-
-        var inputConfig = InputConfigReader.Read(template.Value);
-
-        return inputConfig.IsSuccess
-            ? inputConfig.Value
-            : throw new InvalidOperationException(ResultErrors.Format(inputConfig.Errors));
+        catch (ConfigurationException exception)
+        {
+            throw new InvalidOperationException(ConfigurationErrors.Format(exception), exception);
+        }
     }
 }

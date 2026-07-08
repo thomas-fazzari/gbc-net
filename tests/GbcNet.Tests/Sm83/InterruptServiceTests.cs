@@ -22,10 +22,10 @@ public sealed class InterruptServiceTests
     [Fact]
     public void Step_ServicesVBlankInterruptBeforeFetchingOpcode()
     {
-        var cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0x00);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes => bytes[0x0100] = 0x00);
         cpu.Ime = true;
-        CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
-        CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+        bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
 
         var machineCycles = cpu.Step();
 
@@ -33,48 +33,38 @@ public sealed class InterruptServiceTests
         Assert.False(cpu.Ime);
         Assert.Equal(VBlankVector, cpu.Registers.PC);
         Assert.Equal(OldProgramCounterStackLowByteAddress, cpu.Registers.SP);
-        Assert.Equal(
-            0x00,
-            CpuTestFactory.GetBus(cpu).ReadByte(OldProgramCounterStackLowByteAddress)
-        );
-        Assert.Equal(
-            0x01,
-            CpuTestFactory.GetBus(cpu).ReadByte(OldProgramCounterStackHighByteAddress)
-        );
-        Assert.Equal(0xE0, CpuTestFactory.GetBus(cpu).ReadByte(AddressMap.InterruptFlagRegister));
+        Assert.Equal(0x00, bus.ReadByte(OldProgramCounterStackLowByteAddress));
+        Assert.Equal(0x01, bus.ReadByte(OldProgramCounterStackHighByteAddress));
+        Assert.Equal(0xE0, bus.ReadByte(AddressMap.InterruptFlagRegister));
     }
 
     [Fact]
     public void Step_ServicesHighestPriorityRequestedAndEnabledInterrupt()
     {
-        var cpu = CpuTestFactory.CreateCpu();
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus();
         cpu.Ime = true;
-        CpuTestFactory
-            .GetBus(cpu)
-            .WriteByte(
-                AddressMap.InterruptEnableRegister,
-                VBlankInterrupt | TimerInterrupt | JoypadInterrupt
-            );
-        CpuTestFactory
-            .GetBus(cpu)
-            .WriteByte(
-                AddressMap.InterruptFlagRegister,
-                VBlankInterrupt | TimerInterrupt | JoypadInterrupt
-            );
+        bus.WriteByte(
+            AddressMap.InterruptEnableRegister,
+            VBlankInterrupt | TimerInterrupt | JoypadInterrupt
+        );
+        bus.WriteByte(
+            AddressMap.InterruptFlagRegister,
+            VBlankInterrupt | TimerInterrupt | JoypadInterrupt
+        );
 
         var machineCycles = cpu.Step();
 
         Assert.Equal(5, machineCycles);
         Assert.Equal(VBlankVector, cpu.Registers.PC);
-        Assert.Equal(0xF4, CpuTestFactory.GetBus(cpu).ReadByte(AddressMap.InterruptFlagRegister));
+        Assert.Equal(0xF4, bus.ReadByte(AddressMap.InterruptFlagRegister));
     }
 
     [Fact]
     public void Step_DoesNotServiceInterruptWhenInterruptMasterEnableIsDisabled()
     {
-        var cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0x00);
-        CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
-        CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes => bytes[0x0100] = 0x00);
+        bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
 
         var machineCycles = cpu.Step();
 
@@ -82,16 +72,16 @@ public sealed class InterruptServiceTests
         Assert.False(cpu.Ime);
         Assert.Equal(0x0101, cpu.Registers.PC);
         Assert.Equal(0xFFFE, cpu.Registers.SP);
-        Assert.Equal(0xE1, CpuTestFactory.GetBus(cpu).ReadByte(AddressMap.InterruptFlagRegister));
+        Assert.Equal(0xE1, bus.ReadByte(AddressMap.InterruptFlagRegister));
     }
 
     [Fact]
     public void Step_DoesNotServiceInterruptWhenNoRequestIsEnabled()
     {
-        var cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = 0x00);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes => bytes[0x0100] = 0x00);
         cpu.Ime = true;
-        CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
-        CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptFlagRegister, TimerInterrupt);
+        bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        bus.WriteByte(AddressMap.InterruptFlagRegister, TimerInterrupt);
 
         var machineCycles = cpu.Step();
 
@@ -99,19 +89,19 @@ public sealed class InterruptServiceTests
         Assert.True(cpu.Ime);
         Assert.Equal(0x0101, cpu.Registers.PC);
         Assert.Equal(0xFFFE, cpu.Registers.SP);
-        Assert.Equal(0xE4, CpuTestFactory.GetBus(cpu).ReadByte(AddressMap.InterruptFlagRegister));
+        Assert.Equal(0xE4, bus.ReadByte(AddressMap.InterruptFlagRegister));
     }
 
     [Fact]
     public void Step_ServicesPendingInterruptOneStepAfterDelayedEiCompletes()
     {
-        var cpu = CpuTestFactory.CreateCpu(bytes =>
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes =>
         {
             bytes[0x0100] = 0xFB;
             bytes[0x0101] = 0x00;
         });
-        CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
-        CpuTestFactory.GetBus(cpu).WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+        bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
 
         Assert.Equal(1, cpu.Step());
         Assert.False(cpu.Ime);
@@ -122,19 +112,18 @@ public sealed class InterruptServiceTests
         Assert.True(cpu.Ime);
         Assert.False(cpu.ImeEnablePending);
         Assert.Equal(0x0102, cpu.Registers.PC);
-        Assert.Equal(0xE1, CpuTestFactory.GetBus(cpu).ReadByte(AddressMap.InterruptFlagRegister));
+        Assert.Equal(0xE1, bus.ReadByte(AddressMap.InterruptFlagRegister));
 
         Assert.Equal(5, cpu.Step());
         Assert.False(cpu.Ime);
         Assert.Equal(VBlankVector, cpu.Registers.PC);
-        Assert.Equal(0xE0, CpuTestFactory.GetBus(cpu).ReadByte(AddressMap.InterruptFlagRegister));
+        Assert.Equal(0xE0, bus.ReadByte(AddressMap.InterruptFlagRegister));
     }
 
     [Fact]
     public void Step_CancelsInterruptDispatchWhenHighBytePushDisablesAllPendingInterrupts()
     {
-        var cpu = CpuTestFactory.CreateCpu();
-        var bus = CpuTestFactory.GetBus(cpu);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus();
         cpu.Ime = true;
         cpu.Registers.PC = 0x0200;
         cpu.Registers.SP = 0x0000;
@@ -155,8 +144,7 @@ public sealed class InterruptServiceTests
     [Fact]
     public void Step_DispatchesRemainingInterruptWhenHighBytePushChangesEnabledMask()
     {
-        var cpu = CpuTestFactory.CreateCpu();
-        var bus = CpuTestFactory.GetBus(cpu);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus();
         cpu.Ime = true;
         cpu.Registers.PC = 0x0200;
         cpu.Registers.SP = 0x0000;
@@ -177,8 +165,7 @@ public sealed class InterruptServiceTests
     [Fact]
     public void Step_DoesNotCancelInterruptDispatchWhenLowBytePushDisablesSelectedInterrupt()
     {
-        var cpu = CpuTestFactory.CreateCpu();
-        var bus = CpuTestFactory.GetBus(cpu);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus();
         cpu.Ime = true;
         cpu.Registers.PC = 0x1235;
         cpu.Registers.SP = 0x0001;
@@ -198,8 +185,7 @@ public sealed class InterruptServiceTests
     [Fact]
     public void Step_SelectsInterruptUsingOldInterruptFlagWhenLowBytePushWritesInterruptFlag()
     {
-        var cpu = CpuTestFactory.CreateCpu();
-        var bus = CpuTestFactory.GetBus(cpu);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus();
         cpu.Ime = true;
         cpu.Registers.PC = 0x1200;
         cpu.Registers.SP = 0xFF11;

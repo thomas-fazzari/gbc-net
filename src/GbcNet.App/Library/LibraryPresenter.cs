@@ -4,7 +4,6 @@
 using Avalonia.Platform.Storage;
 using FluentResults;
 using GbcNet.App.Common;
-using GbcNet.App.Library.Entities;
 using GbcNet.App.Shell;
 
 namespace GbcNet.App.Library;

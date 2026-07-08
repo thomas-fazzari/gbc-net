@@ -34,12 +34,10 @@ public sealed class BootRomConfigWriterTests
                 """
             );
 
-            var result = BootRomConfigWriter.Write(
+            BootRomConfigWriter.Write(
                 configPath,
                 new BootRomConfig("new-dmg.bin", "new-cgb.bin", "new-sgb.bin")
             );
-
-            ResultAssertions.AssertSuccess(result);
             var text = File.ReadAllText(configPath);
             Assert.Contains("input version=1", text, StringComparison.Ordinal);
             Assert.DoesNotContain("old-dmg.bin", text, StringComparison.Ordinal);
@@ -79,12 +77,7 @@ public sealed class BootRomConfigWriterTests
                 """
             );
 
-            var result = BootRomConfigWriter.Write(
-                configPath,
-                new BootRomConfig("new-dmg.bin", CgbPath: null)
-            );
-
-            ResultAssertions.AssertSuccess(result);
+            BootRomConfigWriter.Write(configPath, new BootRomConfig("new-dmg.bin", CgbPath: null));
             var text = File.ReadAllText(configPath);
             Assert.Contains("// keep top comment", text, StringComparison.Ordinal);
             Assert.Contains("// keep nested comment", text, StringComparison.Ordinal);
@@ -109,9 +102,7 @@ public sealed class BootRomConfigWriterTests
             Directory.CreateDirectory(tempDirectory);
             File.WriteAllText(configPath, "input version=1 { }" + Environment.NewLine);
 
-            var result = BootRomConfigWriter.Write(configPath, new BootRomConfig(null, "cgb.bin"));
-
-            ResultAssertions.AssertSuccess(result);
+            BootRomConfigWriter.Write(configPath, new BootRomConfig(null, "cgb.bin"));
             var text = File.ReadAllText(configPath);
             Assert.Contains("boot_roms {", text, StringComparison.Ordinal);
             Assert.Contains("    cgb \"cgb.bin\"", text, StringComparison.Ordinal);
@@ -144,9 +135,7 @@ public sealed class BootRomConfigWriterTests
                 """
             );
 
-            var result = BootRomConfigWriter.Write(configPath, new BootRomConfig());
-
-            ResultAssertions.AssertSuccess(result);
+            BootRomConfigWriter.Write(configPath, new BootRomConfig());
             var text = File.ReadAllText(configPath);
             Assert.Contains(BootRomConfigSchema.BootRomNodeName, text, StringComparison.Ordinal);
             Assert.DoesNotContain("dmg.bin", text, StringComparison.Ordinal);
@@ -171,12 +160,7 @@ public sealed class BootRomConfigWriterTests
             Directory.CreateDirectory(tempDirectory);
             File.WriteAllText(configPath, "input version=1 { }" + Environment.NewLine);
 
-            var result = BootRomConfigWriter.Write(
-                configPath,
-                new BootRomConfig(path, CgbPath: null)
-            );
-
-            ResultAssertions.AssertSuccess(result);
+            BootRomConfigWriter.Write(configPath, new BootRomConfig(path, CgbPath: null));
             Assert.Contains(
                 "dmg \"dir\\\\boot\\\"rom.bin\"",
                 File.ReadAllText(configPath),
@@ -213,14 +197,11 @@ public sealed class BootRomConfigWriterTests
                 """
             );
 
-            var result = BootRomConfigWriter.Write(configPath, new BootRomConfig("new-dmg.bin"));
-
-            Assert.True(result.IsFailed);
-            Assert.Contains(
-                "only one boot_roms node",
-                result.Errors[0].Message,
-                StringComparison.Ordinal
+            var exception = Assert.Throws<ConfigurationException>(() =>
+                BootRomConfigWriter.Write(configPath, new BootRomConfig("new-dmg.bin"))
             );
+
+            Assert.Contains("only one boot_roms node", exception.Message, StringComparison.Ordinal);
         }
         finally
         {

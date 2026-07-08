@@ -1,7 +1,6 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using System.Globalization;
 using System.Security.Cryptography;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Ppu;
@@ -49,7 +48,11 @@ public sealed class DmgAcid2VisualRomTests
         Assert.Equal(LcdPixelFormat.DmgShadeIndex8, result.Frame.PixelFormat);
         Assert.True(
             expectedPixels.AsSpan().SequenceEqual(result.Frame.Pixels.Span),
-            DmgAcid2FrameDifference.CreateMessage(result, expectedPixels)
+            Rgb555FrameDifference.CreateDmgShadeIndex8Message(
+                result,
+                expectedPixels,
+                MaxReportedDiffOffsets
+            )
         );
     }
 
@@ -101,59 +104,4 @@ public sealed class DmgAcid2VisualRomTests
 
     private static string ComputeSha256(ReadOnlySpan<byte> bytes) =>
         Convert.ToHexString(SHA256.HashData(bytes));
-
-    private static class DmgAcid2FrameDifference
-    {
-        public static string CreateMessage(VisualRomTestResult result, ReadOnlySpan<byte> expected)
-        {
-            if (result.Frame is null)
-            {
-                return string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"No frame completed after {result.MachineCycles} M-cycles."
-                );
-            }
-
-            var actual = result.Frame.Pixels.Span;
-            var comparedLength = Math.Min(expected.Length, actual.Length);
-            var unmatchedLength = Math.Abs(expected.Length - actual.Length);
-            var differenceCount = unmatchedLength;
-            var firstDifferences = new string[MaxReportedDiffOffsets];
-            var reportedDifferenceCount = 0;
-
-            for (var offset = 0; offset < comparedLength; offset++)
-            {
-                if (expected[offset] == actual[offset])
-                {
-                    continue;
-                }
-
-                if (reportedDifferenceCount < firstDifferences.Length)
-                {
-                    firstDifferences[reportedDifferenceCount] = FormatDifference(
-                        offset,
-                        expected[offset],
-                        actual[offset]
-                    );
-                    reportedDifferenceCount++;
-                }
-
-                differenceCount++;
-            }
-
-            return string.Create(
-                CultureInfo.InvariantCulture,
-                $"Frame {result.CompletedFrames} differs at {differenceCount} pixels after {result.MachineCycles} M-cycles. Expected length={expected.Length}, actual length={actual.Length}, unmatched tail={unmatchedLength}. First differences: {string.Join(", ", firstDifferences.AsSpan()[..reportedDifferenceCount])}."
-            );
-        }
-
-        private static string FormatDifference(int offset, byte expected, byte actual)
-        {
-            var y = Math.DivRem(offset, PpuGeometry.FrameWidth, out var x);
-            return string.Create(
-                CultureInfo.InvariantCulture,
-                $"({x},{y}) exp={expected} act={actual}"
-            );
-        }
-    }
 }

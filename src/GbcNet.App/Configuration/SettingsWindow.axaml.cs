@@ -78,27 +78,9 @@ internal sealed partial class SettingsWindow : Window
             RowSpacing = 12,
             ColumnSpacing = 8,
         };
-        AddPathRow(
-            form,
-            row: 0,
-            BootRomConfigSchema.DmgNodeName.ToUpperInvariant(),
-            _dmgBootRomPathTextBox,
-            $"Select {BootRomConfigSchema.DmgNodeName.ToUpperInvariant()} boot ROM"
-        );
-        AddPathRow(
-            form,
-            row: 1,
-            BootRomConfigSchema.CgbNodeName.ToUpperInvariant(),
-            _cgbBootRomPathTextBox,
-            $"Select {BootRomConfigSchema.CgbNodeName.ToUpperInvariant()} boot ROM"
-        );
-        AddPathRow(
-            form,
-            row: 2,
-            BootRomConfigSchema.SgbNodeName.ToUpperInvariant(),
-            _sgbBootRomPathTextBox,
-            $"Select {BootRomConfigSchema.SgbNodeName.ToUpperInvariant()} boot ROM"
-        );
+        AddPathRow(form, row: 0, "DMG", _dmgBootRomPathTextBox, "Select DMG boot ROM");
+        AddPathRow(form, row: 1, "CGB", _cgbBootRomPathTextBox, "Select CGB boot ROM");
+        AddPathRow(form, row: 2, "SGB", _sgbBootRomPathTextBox, "Select SGB boot ROM");
 
         var footer = new StackPanel
         {

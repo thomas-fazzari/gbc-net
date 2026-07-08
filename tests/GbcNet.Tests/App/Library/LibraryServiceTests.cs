@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Globalization;
+using GbcNet.App.Database;
+using GbcNet.App.Database.Entities;
 using GbcNet.App.Library;
 using GbcNet.Core.Cartridges;
 using GbcNet.Tests.Cartridges;
-using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 
 namespace GbcNet.Tests.App.Library;
 
@@ -19,7 +21,11 @@ public sealed class LibraryServiceTests
 
         ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
 
-        Assert.Equal(2, GetAppliedMigrationVersion(test.DatabasePath));
+        Assert.Contains(
+            "InitialLibrarySchema",
+            Assert.Single(GetAppliedMigrations(test.DatabasePath)),
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]
@@ -383,12 +389,10 @@ public sealed class LibraryServiceTests
         Assert.True(test.Library.ClearCover("missing").IsFailed);
     }
 
-    private static int GetAppliedMigrationVersion(string databasePath)
+    private static string[] GetAppliedMigrations(string databasePath)
     {
-        using var connection = new LibraryDatabase(databasePath).OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "PRAGMA user_version;";
-        return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        using var db = new TestDbContextFactory(databasePath).CreateDbContext();
+        return [.. db.Database.GetAppliedMigrations()];
     }
 
     private static void InsertLibraryEntry(
@@ -403,41 +407,33 @@ public sealed class LibraryServiceTests
         CartridgeHardwareKind hardwareKind = CartridgeHardwareKind.GB
     )
     {
-        using var connection = new LibraryDatabase(databasePath).OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            insert into roms (
-              rom_hash,
-              last_known_path,
-              file_name,
-              cartridge_title,
-              added_at,
-              last_opened_at,
-              launch_count,
-              cover_path,
-              hardware_kind
-            ) values (
-              $romHash,
-              $lastKnownPath,
-              $fileName,
-              $cartridgeTitle,
-              $addedAt,
-              $lastOpenedAt,
-              $launchCount,
-              $coverPath,
-              $hardwareKind
+        var lastOpened = DateTimeOffset.Parse(lastOpenedAt, CultureInfo.InvariantCulture);
+        var rom = LibraryRom.Opened(
+            romHash,
+            Path.Combine(databasePath, fileName),
+            fileName,
+            cartridgeTitle,
+            hardwareKind,
+            lastOpened
+        );
+        var createdAt = DateTimeOffset.Parse(addedAt ?? lastOpenedAt, CultureInfo.InvariantCulture);
+        rom.StampCreated(createdAt);
+        rom.StampUpdated(createdAt);
+        for (var i = 1; i < launchCount; i++)
+        {
+            rom.RecordOpen(
+                Path.Combine(databasePath, fileName),
+                fileName,
+                cartridgeTitle,
+                hardwareKind,
+                lastOpened
             );
-            """;
-        command.Parameters.AddWithValue("$romHash", romHash);
-        command.Parameters.AddWithValue("$lastKnownPath", Path.Combine(databasePath, fileName));
-        command.Parameters.AddWithValue("$fileName", fileName);
-        command.Parameters.AddWithValue("$cartridgeTitle", cartridgeTitle ?? (object)DBNull.Value);
-        command.Parameters.AddWithValue("$addedAt", addedAt ?? lastOpenedAt);
-        command.Parameters.AddWithValue("$lastOpenedAt", lastOpenedAt);
-        command.Parameters.AddWithValue("$launchCount", launchCount);
-        command.Parameters.AddWithValue("$coverPath", coverPath ?? (object)DBNull.Value);
-        command.Parameters.AddWithValue("$hardwareKind", hardwareKind.ToString());
-        command.ExecuteNonQuery();
+        }
+
+        rom.SetCoverPath(coverPath);
+        using var db = new TestDbContextFactory(databasePath).CreateDbContext();
+        db.Roms.Add(rom);
+        db.SaveChanges();
     }
 
     private static void InsertSortEntries(string databasePath)
@@ -476,11 +472,10 @@ public sealed class LibraryServiceTests
         public LibraryTestContext()
         {
             Directory.CreateDirectory(DirectoryPath);
-            Library = new LibraryService(
-                new LibraryDatabase(DatabasePath),
-                CoverDirectoryPath,
-                TimeProvider
-            );
+            var dbContextFactory = new TestDbContextFactory(DatabasePath, TimeProvider);
+            using var db = dbContextFactory.CreateDbContext();
+            db.Database.Migrate();
+            Library = new LibraryService(dbContextFactory, CoverDirectoryPath, TimeProvider);
         }
 
         private string DirectoryPath { get; } = TestDirectories.GetTemporaryDirectoryPath();
@@ -512,9 +507,24 @@ public sealed class LibraryServiceTests
 
         public void Dispose()
         {
-            SqliteConnection.ClearAllPools();
             TestDirectories.DeleteDirectoryIfExists(DirectoryPath);
         }
+    }
+
+    private sealed class TestDbContextFactory : IDbContextFactory<GbcNetDbContext>
+    {
+        private readonly DbContextOptions<GbcNetDbContext> _options;
+        private readonly TimeProvider? _timeProvider;
+
+        public TestDbContextFactory(string databasePath, TimeProvider? timeProvider = null)
+        {
+            _options = new DbContextOptionsBuilder<GbcNetDbContext>()
+                .UseSqlite($"Data Source={databasePath}")
+                .Options;
+            _timeProvider = timeProvider;
+        }
+
+        public GbcNetDbContext CreateDbContext() => new(_options, _timeProvider);
     }
 
     private sealed class TestTimeProvider(DateTimeOffset utcNow) : TimeProvider

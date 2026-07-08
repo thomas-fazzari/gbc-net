@@ -27,7 +27,9 @@ internal sealed partial class MainWindow : Window, IDisposable
     private readonly LcdFramePresenter _framePresenter;
     private readonly ShellOperationRunner _operationRunner;
     private readonly StatusBarPresenter _statusBar;
-    private readonly WindowChromePresenter _windowChrome;
+    private bool _statusBarAvailable = true;
+    private bool _statusBarVisibleWhenAvailable = true;
+    private bool _menuBarVisibleWhenAvailable = true;
     private bool _closeAfterAsyncStop;
     private int _closeStopStarted;
 
@@ -108,8 +110,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             logger
         );
 
-        _windowChrome = new WindowChromePresenter(this, StatusBar, MainMenu);
-        _windowChrome.SetStatusBarAvailable(false);
+        SetStatusBarAvailable(false);
 
         var emulationController = new EmulationController(
             startupConfiguration.BootRomOptions,
@@ -138,23 +139,23 @@ internal sealed partial class MainWindow : Window, IDisposable
         _emulationSession.SessionOpened += (_, _) =>
         {
             ContentHost.Content = emulationView;
-            _windowChrome.SetMenuBarVisible(isVisible: false);
-            _windowChrome.SetStatusBarAvailable(isAvailable: true);
-            _windowChrome.SetStatusBarVisible(isVisible: false);
+            SetMenuBarVisible(isVisible: false);
+            SetStatusBarAvailable(isAvailable: true);
+            SetStatusBarVisible(isVisible: false);
         };
         _emulationSession.SessionClosed += (_, _) =>
         {
             ContentHost.Content = libraryView;
-            _windowChrome.SetMenuBarVisible(isVisible: true);
-            _windowChrome.SetStatusBarAvailable(isAvailable: false);
+            SetMenuBarVisible(isVisible: true);
+            SetStatusBarAvailable(isAvailable: false);
             libraryPresenter.Refresh();
         };
         _emulationSession.SessionFaulted += (_, _) =>
         {
             ContentHost.Content = libraryView;
-            _windowChrome.SetMenuBarVisible(isVisible: true);
-            _windowChrome.SetStatusBarAvailable(isAvailable: true);
-            _windowChrome.SetStatusBarVisible(isVisible: true);
+            SetMenuBarVisible(isVisible: true);
+            SetStatusBarAvailable(isAvailable: true);
+            SetStatusBarVisible(isVisible: true);
             libraryPresenter.Refresh();
         };
 
@@ -195,12 +196,118 @@ internal sealed partial class MainWindow : Window, IDisposable
         MainMenu.FastForwardRequested += (_, _) => _emulationSession.ToggleFastForward();
         MainMenu.FastForwardSpeedSelected += (_, e) =>
             _emulationSession.SetFastForwardSpeed(e.Speed);
-        MainMenu.FullscreenRequested += (_, _) => _windowChrome.ToggleFullscreen();
-        MainMenu.MenuBarRequested += (_, _) => _windowChrome.ToggleMenuBar();
-        MainMenu.StatusBarRequested += (_, _) => _windowChrome.ToggleStatusBar();
-        _windowChrome.SyncMenuState();
+        MainMenu.FullscreenRequested += (_, _) => ToggleFullscreen();
+        MainMenu.MenuBarRequested += (_, _) => ToggleMenuBar();
+        MainMenu.StatusBarRequested += (_, _) => ToggleStatusBar();
+        SyncMenuState();
         _emulationSession.SyncMenuState();
         _emulationSession.SyncRecentRoms();
+    }
+
+    private void SyncMenuState()
+    {
+        MainMenu.SetFullscreenState(WindowState is WindowState.FullScreen);
+        MainMenu.SetMenuBarState(_menuBarVisibleWhenAvailable);
+        MainMenu.SetStatusBarAvailability(_statusBarAvailable);
+        MainMenu.SetStatusBarState(StatusBar.IsVisible);
+    }
+
+    private void SyncFullscreenState(AvaloniaPropertyChangedEventArgs change)
+    {
+        if (change.Property != WindowStateProperty || MainMenu is null)
+        {
+            return;
+        }
+
+        ApplyMenuBarVisibility();
+        MainMenu.SetFullscreenState(WindowState is WindowState.FullScreen);
+    }
+
+    private void ToggleFullscreen()
+    {
+        WindowState =
+            WindowState is WindowState.FullScreen ? WindowState.Normal : WindowState.FullScreen;
+    }
+
+    private void ToggleMenuBar()
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            return;
+        }
+
+        _menuBarVisibleWhenAvailable = !_menuBarVisibleWhenAvailable;
+        ApplyMenuBarVisibility();
+    }
+
+    private void ToggleStatusBar()
+    {
+        if (!_statusBarAvailable)
+        {
+            return;
+        }
+
+        _statusBarVisibleWhenAvailable = !_statusBarVisibleWhenAvailable;
+        ApplyStatusBarVisibility();
+    }
+
+    private void SetMenuBarVisible(bool isVisible)
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            return;
+        }
+
+        _menuBarVisibleWhenAvailable = isVisible;
+        ApplyMenuBarVisibility();
+    }
+
+    private void SetStatusBarVisible(bool isVisible)
+    {
+        _statusBarVisibleWhenAvailable = isVisible;
+        ApplyStatusBarVisibility();
+    }
+
+    private void SetStatusBarAvailable(bool isAvailable)
+    {
+        _statusBarAvailable = isAvailable;
+        ApplyStatusBarVisibility();
+    }
+
+    private void ApplyStatusBarVisibility()
+    {
+        StatusBar.IsVisible = _statusBarAvailable && _statusBarVisibleWhenAvailable;
+        MainMenu.SetStatusBarAvailability(_statusBarAvailable);
+        MainMenu.SetStatusBarState(StatusBar.IsVisible);
+    }
+
+    private void ApplyMenuBarVisibility()
+    {
+        MainMenu.IsVisible =
+            !OperatingSystem.IsMacOS()
+            && _menuBarVisibleWhenAvailable
+            && WindowState is not WindowState.FullScreen;
+        MainMenu.SetMenuBarState(_menuBarVisibleWhenAvailable);
+    }
+
+    private bool TryHandleChromeShortcut(Key key, KeyModifiers modifiers)
+    {
+        switch (key)
+        {
+            case Key.Enter when modifiers.HasFlag(KeyModifiers.Alt):
+                ToggleFullscreen();
+                return true;
+
+            case Key.I
+                when modifiers.HasFlag(
+                    OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control
+                ):
+                ToggleStatusBar();
+                return true;
+
+            default:
+                return false;
+        }
     }
 
     protected override void OnClosing(WindowClosingEventArgs e)
@@ -223,9 +330,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-
-        // ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
-        _windowChrome?.SyncFullscreenState(change);
+        SyncFullscreenState(change);
     }
 
     protected override void OnClosed(EventArgs e)
@@ -278,7 +383,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         if (
             (pressed && MainMenu.TryHandleShortcut(e.Key, e.KeyModifiers))
-            || (pressed && _windowChrome.TryHandleShortcut(e.Key, e.KeyModifiers))
+            || (pressed && TryHandleChromeShortcut(e.Key, e.KeyModifiers))
             || _emulationSession.ApplyKeyboardInput(e.Key, pressed)
         )
         {

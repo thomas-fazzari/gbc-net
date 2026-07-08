@@ -7,7 +7,6 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using GbcNet.App.Library.Entities;
 using GbcNet.App.Shell.Chrome;
 using GbcNet.Core.Cartridges;
 

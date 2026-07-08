@@ -5,7 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using GbcNet.App.Emulation;
-using GbcNet.App.Library.Entities;
+using GbcNet.App.Library;
 using GbcNet.App.Shell.Chrome;
 
 namespace GbcNet.App.Menus;
@@ -51,11 +51,11 @@ internal sealed partial class MainMenu : UserControl
     };
 
     private readonly List<(
-        NativeMenuItem Item,
+        NativeMenuItem NativeItem,
+        MenuItem WindowItem,
         EmulationSpeed Speed
-    )> _nativeFastForwardSpeedMenuItems = [];
-    private readonly List<(MenuItem Item, EmulationSpeed Speed)> _windowFastForwardSpeedMenuItems =
-    [];
+    )> _fastForwardSpeedMenuItems = [];
+    private readonly NativeMenu _nativeFastForwardSpeedMenu = [];
     private readonly NativeMenu _nativeOpenRecentMenu = [];
     private readonly NativeMenuItem _nativeOpenRecentMenuItem;
     private readonly NativeMenuItem _nativeCloseMenuItem = new("Close")
@@ -78,8 +78,8 @@ internal sealed partial class MainMenu : UserControl
             IsEnabled = false,
             Menu = _nativeOpenRecentMenu,
         };
-        _nativeMenu = CreateNativeMenu();
         ConfigureWindowMenu();
+        _nativeMenu = CreateNativeMenu();
     }
 
     public event EventHandler? OpenRomRequested;
@@ -153,60 +153,58 @@ internal sealed partial class MainMenu : UserControl
     public void SetEmulationActionsEnabled(bool isEnabled)
     {
         SetPauseState(isEnabled, isPaused: false);
-        _nativeResetMenuItem.IsEnabled = isEnabled;
-        ResetEmulationMenuItem.IsEnabled = isEnabled;
-        _nativeCloseMenuItem.IsEnabled = isEnabled;
-        CloseWindowMenuItem.IsEnabled = isEnabled;
+        SetEnabled(_nativeResetMenuItem, ResetEmulationMenuItem, isEnabled);
+        SetEnabled(_nativeCloseMenuItem, CloseWindowMenuItem, isEnabled);
     }
 
     public void SetPauseState(bool isEnabled, bool isPaused)
     {
         var header = isPaused ? "Resume" : "Pause";
 
-        _nativePauseMenuItem.Header = header;
-        _nativePauseMenuItem.IsEnabled = isEnabled;
-
-        PauseEmulationMenuItem.Header = header;
-        PauseEmulationMenuItem.IsEnabled = isEnabled;
+        SetHeader(_nativePauseMenuItem, PauseEmulationMenuItem, header);
+        SetEnabled(_nativePauseMenuItem, PauseEmulationMenuItem, isEnabled);
     }
 
     public void SetFastForwardState(bool isEnabled, EmulationSpeed speed)
     {
-        _nativeFastForwardMenuItem.IsChecked = isEnabled;
-        FastForwardMenuItem.IsChecked = isEnabled;
+        SetChecked(_nativeFastForwardMenuItem, FastForwardMenuItem, isEnabled);
 
-        foreach (var (item, itemSpeed) in _nativeFastForwardSpeedMenuItems)
+        foreach (var (nativeItem, windowItem, itemSpeed) in _fastForwardSpeedMenuItems)
         {
-            item.IsChecked = itemSpeed == speed;
-        }
-
-        foreach (var (item, itemSpeed) in _windowFastForwardSpeedMenuItems)
-        {
-            item.IsChecked = itemSpeed == speed;
+            SetChecked(nativeItem, windowItem, itemSpeed == speed);
         }
     }
 
-    public void SetFullscreenState(bool isFullscreen)
-    {
-        _nativeFullscreenMenuItem.IsChecked = isFullscreen;
-        FullscreenMenuItem.IsChecked = isFullscreen;
-    }
+    public void SetFullscreenState(bool isFullscreen) =>
+        SetChecked(_nativeFullscreenMenuItem, FullscreenMenuItem, isFullscreen);
 
     public void SetMenuBarState(bool isVisible)
     {
         MenuBarMenuItem.IsChecked = isVisible;
     }
 
-    public void SetStatusBarState(bool isVisible)
+    public void SetStatusBarState(bool isVisible) =>
+        SetChecked(_nativeStatusBarMenuItem, StatusBarMenuItem, isVisible);
+
+    public void SetStatusBarAvailability(bool isAvailable) =>
+        SetEnabled(_nativeStatusBarMenuItem, StatusBarMenuItem, isAvailable);
+
+    private static void SetChecked(NativeMenuItem nativeItem, MenuItem windowItem, bool isChecked)
     {
-        _nativeStatusBarMenuItem.IsChecked = isVisible;
-        StatusBarMenuItem.IsChecked = isVisible;
+        nativeItem.IsChecked = isChecked;
+        windowItem.IsChecked = isChecked;
     }
 
-    public void SetStatusBarAvailability(bool isAvailable)
+    private static void SetEnabled(NativeMenuItem nativeItem, MenuItem windowItem, bool isEnabled)
     {
-        _nativeStatusBarMenuItem.IsEnabled = isAvailable;
-        StatusBarMenuItem.IsEnabled = isAvailable;
+        nativeItem.IsEnabled = isEnabled;
+        windowItem.IsEnabled = isEnabled;
+    }
+
+    private static void SetHeader(NativeMenuItem nativeItem, MenuItem windowItem, string header)
+    {
+        nativeItem.Header = header;
+        windowItem.Header = header;
     }
 
     public void SetRecentRoms(IReadOnlyList<LibraryEntry> entries)
@@ -255,13 +253,7 @@ internal sealed partial class MainMenu : UserControl
         ResetEmulationMenuItem.Click += (_, _) => ResetRequested?.Invoke(this, EventArgs.Empty);
         FastForwardMenuItem.InputGesture = _fastForwardGesture;
         FastForwardMenuItem.Click += (_, _) => FastForwardRequested?.Invoke(this, EventArgs.Empty);
-
-        foreach (var speed in Enum.GetValues<EmulationSpeed>())
-        {
-            var item = CreateWindowFastForwardSpeedMenuItem(speed);
-            _windowFastForwardSpeedMenuItems.Add((item, speed));
-            FastForwardSpeedMenuItem.Items.Add(item);
-        }
+        ConfigureFastForwardSpeedMenuItems();
     }
 
     private void ConfigureWindowViewMenu()
@@ -272,6 +264,18 @@ internal sealed partial class MainMenu : UserControl
         MenuBarMenuItem.Click += (_, _) => MenuBarRequested?.Invoke(this, EventArgs.Empty);
         StatusBarMenuItem.InputGesture = _statusBarGesture;
         StatusBarMenuItem.Click += (_, _) => StatusBarRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ConfigureFastForwardSpeedMenuItems()
+    {
+        foreach (var speed in Enum.GetValues<EmulationSpeed>())
+        {
+            var windowItem = CreateWindowFastForwardSpeedMenuItem(speed);
+            var nativeItem = CreateNativeFastForwardSpeedMenuItem(speed);
+            _fastForwardSpeedMenuItems.Add((nativeItem, windowItem, speed));
+            FastForwardSpeedMenuItem.Items.Add(windowItem);
+            _nativeFastForwardSpeedMenu.Add(nativeItem);
+        }
     }
 
     private MenuItem CreateWindowFastForwardSpeedMenuItem(EmulationSpeed speed)
@@ -351,7 +355,7 @@ internal sealed partial class MainMenu : UserControl
             _nativeResetMenuItem,
             new NativeMenuItemSeparator(),
             _nativeFastForwardMenuItem,
-            new NativeMenuItem("Fast Forward Speed") { Menu = CreateNativeFastForwardSpeedMenu() },
+            new NativeMenuItem("Fast Forward Speed") { Menu = _nativeFastForwardSpeedMenu },
         ];
     }
 
@@ -363,20 +367,6 @@ internal sealed partial class MainMenu : UserControl
             StatusBarRequested?.Invoke(this, EventArgs.Empty);
 
         return [_nativeFullscreenMenuItem, new NativeMenuItemSeparator(), _nativeStatusBarMenuItem];
-    }
-
-    private NativeMenu CreateNativeFastForwardSpeedMenu()
-    {
-        NativeMenu menu = [];
-
-        foreach (var speed in Enum.GetValues<EmulationSpeed>())
-        {
-            var item = CreateNativeFastForwardSpeedMenuItem(speed);
-            _nativeFastForwardSpeedMenuItems.Add((item, speed));
-            menu.Add(item);
-        }
-
-        return menu;
     }
 
     private NativeMenuItem CreateNativeFastForwardSpeedMenuItem(EmulationSpeed speed)

@@ -1,7 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using FluentResults;
+using GbcNet.App.Configuration;
 using KdlSharp;
 using KdlSharp.Parsing;
 
@@ -12,11 +12,7 @@ internal static class KdlSectionTextEditor
     private const char LineFeed = '\n';
     private const char CarriageReturn = '\r';
 
-    public static Result<string> ReplaceTopLevelSection(
-        string text,
-        KdlNode? section,
-        string replacement
-    )
+    public static string ReplaceTopLevelSection(string text, KdlNode? section, string replacement)
     {
         var replacementText = EndsWithLineBreak(replacement)
             ? replacement
@@ -31,7 +27,9 @@ internal static class KdlSectionTextEditor
 
         if (section.SourcePosition is null)
         {
-            return Result.Fail($"Config node '{section.Name}' does not have source position.");
+            throw new ConfigurationException(
+                $"Config node '{section.Name}' does not have source position."
+            );
         }
 
         var range = FindSectionRange(text, GetTextIndex(text, section.SourcePosition));

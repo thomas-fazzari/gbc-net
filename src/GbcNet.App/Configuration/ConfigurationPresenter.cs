@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using Avalonia.Controls;
-using GbcNet.App.Common;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Shell.Chrome;
 using GbcNet.Core;
@@ -19,15 +18,18 @@ internal sealed class ConfigurationPresenter(
 {
     public async Task OpenAsync(Window owner)
     {
-        var bootRomConfig = configurationService.LoadBootRomConfig();
-
-        if (bootRomConfig.IsFailed)
+        BootRomConfig bootRomConfig;
+        try
         {
-            statusBar.ShowError(ResultErrors.Format(bootRomConfig.Errors));
+            bootRomConfig = configurationService.LoadBootRomConfig();
+        }
+        catch (ConfigurationException exception)
+        {
+            statusBar.ShowError(ConfigurationErrors.Format(exception));
             return;
         }
 
-        var savedConfig = await new SettingsWindow(bootRomConfig.Value)
+        var savedConfig = await new SettingsWindow(bootRomConfig)
             .ShowDialog<BootRomConfig?>(owner)
             .ConfigureAwait(true);
 
@@ -36,11 +38,13 @@ internal sealed class ConfigurationPresenter(
             return;
         }
 
-        var saved = configurationService.SaveBootRomConfig(savedConfig.Value);
-
-        if (saved.IsFailed)
+        try
         {
-            statusBar.ShowError(ResultErrors.Format(saved.Errors));
+            configurationService.SaveBootRomConfig(savedConfig.Value);
+        }
+        catch (ConfigurationException exception)
+        {
+            statusBar.ShowError(ConfigurationErrors.Format(exception));
             return;
         }
 
@@ -69,15 +73,14 @@ internal sealed class ConfigurationPresenter(
 
     private void ReloadBootRomOptions()
     {
-        var bootRomOptions = configurationService.LoadBootRomOptions();
-
-        if (bootRomOptions.IsFailed)
+        try
+        {
+            setBootRomOptions(configurationService.LoadBootRomOptions());
+        }
+        catch (ConfigurationException exception)
         {
             setBootRomOptions(new BootRomOptions());
-            statusBar.ShowError(ResultErrors.Format(bootRomOptions.Errors));
-            return;
+            statusBar.ShowError(ConfigurationErrors.Format(exception));
         }
-
-        setBootRomOptions(bootRomOptions.Value);
     }
 }

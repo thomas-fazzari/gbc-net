@@ -1,9 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <IsAotCompatible>true</IsAotCompatible>
-    <IsTrimmable>true</IsTrimmable>
-  </PropertyGroup>
-
   <ItemGroup>
     <InternalsVisibleTo Include="GbcNet.Tests" />
   </ItemGroup>

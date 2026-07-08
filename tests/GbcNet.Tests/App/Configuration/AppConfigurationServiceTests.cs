@@ -21,11 +21,9 @@ public sealed class AppConfigurationServiceTests
             Directory.CreateDirectory(tempDirectory);
             var service = new AppConfigurationService(configPath);
 
-            ResultAssertions.AssertSuccess(
-                service.SaveBootRomConfig(new BootRomConfig("dmg.bin", "cgb.bin", "sgb.bin"))
-            );
+            service.SaveBootRomConfig(new BootRomConfig("dmg.bin", "cgb.bin", "sgb.bin"));
 
-            var config = ResultAssertions.AssertSuccess(service.LoadBootRomConfig());
+            var config = service.LoadBootRomConfig();
 
             Assert.Equal(new BootRomConfig("dmg.bin", "cgb.bin", "sgb.bin"), config);
         }
@@ -57,11 +55,9 @@ public sealed class AppConfigurationServiceTests
                 CreateBootRom(BootRomOptions.SgbBootRomSize, marker: 0x50)
             );
             var service = new AppConfigurationService(configPath);
-            ResultAssertions.AssertSuccess(
-                service.SaveBootRomConfig(new BootRomConfig("dmg.bin", "cgb.bin", "sgb.bin"))
-            );
+            service.SaveBootRomConfig(new BootRomConfig("dmg.bin", "cgb.bin", "sgb.bin"));
 
-            var options = ResultAssertions.AssertSuccess(service.LoadBootRomOptions());
+            var options = service.LoadBootRomOptions();
 
             Assert.Equal(BootRomOptions.DmgBootRomSize, options.DmgBootRom.Length);
             Assert.Equal(BootRomOptions.CgbBootRomSize, options.CgbBootRom.Length);
@@ -77,7 +73,7 @@ public sealed class AppConfigurationServiceTests
     }
 
     [Fact]
-    public void LoadBootRomConfig_ReturnsFailureForInvalidBootRomSection()
+    public void LoadBootRomConfig_ThrowsForInvalidBootRomSection()
     {
         var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
         var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
@@ -95,14 +91,11 @@ public sealed class AppConfigurationServiceTests
             );
             var service = new AppConfigurationService(configPath);
 
-            var result = service.LoadBootRomConfig();
-
-            Assert.True(result.IsFailed);
-            Assert.Contains(
-                "does not allow child",
-                result.Errors[0].Message,
-                StringComparison.Ordinal
+            var exception = Assert.Throws<ConfigurationException>(() =>
+                service.LoadBootRomConfig()
             );
+
+            Assert.Contains("does not allow child", exception.Message, StringComparison.Ordinal);
         }
         finally
         {

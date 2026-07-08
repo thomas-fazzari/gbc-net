@@ -74,19 +74,19 @@ public sealed class CbRotateShiftInstructionTests
         byte expectedFlags
     )
     {
-        var cpu = CpuTestFactory.CreateCpu(bytes =>
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes =>
         {
             bytes[0x0100] = 0xCB;
             bytes[0x0101] = prefixedOpcode;
         });
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = initialFlags;
-        CpuTestFactory.GetBus(cpu).WriteByte(0xC123, value);
+        bus.WriteByte(0xC123, value);
 
         var machineCycles = cpu.Step();
 
         Assert.Equal(4, machineCycles);
-        Assert.Equal(expectedValue, CpuTestFactory.GetBus(cpu).ReadByte(0xC123));
+        Assert.Equal(expectedValue, bus.ReadByte(0xC123));
         Assert.Equal(expectedFlags, cpu.Registers.F);
         Assert.Equal(0x0102, cpu.Registers.PC);
     }
@@ -97,7 +97,7 @@ public sealed class CbRotateShiftInstructionTests
         for (byte prefixedOpcode = 0x00; prefixedOpcode <= 0x3F; prefixedOpcode++)
         {
             var opcode = prefixedOpcode;
-            var cpu = CpuTestFactory.CreateCpu(bytes =>
+            var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes =>
             {
                 bytes[0x0100] = 0xCB;
                 bytes[0x0101] = opcode;
@@ -109,7 +109,7 @@ public sealed class CbRotateShiftInstructionTests
             cpu.Registers.E = 0x81;
             cpu.Registers.H = 0xC1;
             cpu.Registers.L = 0x23;
-            CpuTestFactory.GetBus(cpu).WriteByte(0xC123, 0x81);
+            bus.WriteByte(0xC123, 0x81);
 
             var machineCycles = cpu.Step();
 

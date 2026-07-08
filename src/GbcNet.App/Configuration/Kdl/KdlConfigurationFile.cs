@@ -1,7 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using FluentResults;
+using GbcNet.App.Configuration;
 using KdlSharp;
 
 namespace GbcNet.App.Configuration.Kdl;
@@ -16,22 +16,13 @@ internal static class KdlConfigurationFile
     /// <summary>
     /// Loads the configuration document, creates it from defaults when it does not exist.
     /// </summary>
-    public static Result<KdlDocument> LoadOrCreate(string path)
-    {
-        var text = LoadTextOrCreate(path);
-        return text.IsSuccess ? Parse(text.Value) : text.ToResult<KdlDocument>();
-    }
+    public static KdlDocument LoadOrCreate(string path) => Parse(LoadTextOrCreate(path));
 
-    public static Result<string> LoadTextOrCreate(string path)
+    public static string LoadTextOrCreate(string path)
     {
         if (!File.Exists(path))
         {
-            var created = CreateDefaultFile(path);
-
-            if (created.IsFailed)
-            {
-                return created.ToResult<string>();
-            }
+            CreateDefaultFile(path);
         }
 
         try
@@ -40,14 +31,14 @@ internal static class KdlConfigurationFile
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            return Result.Fail($"Config file could not be read: {exception.Message}");
+            throw new ConfigurationException($"Config file could not be read: {exception.Message}");
         }
     }
 
     /// <summary>
     /// Loads the embedded default configuration template.
     /// </summary>
-    public static Result<KdlDocument> LoadTemplate()
+    public static KdlDocument LoadTemplate()
     {
         try
         {
@@ -60,32 +51,34 @@ internal static class KdlConfigurationFile
                         or InvalidOperationException
             )
         {
-            return Result.Fail($"Config template could not be read: {exception.Message}");
+            throw new ConfigurationException(
+                $"Config template could not be read: {exception.Message}"
+            );
         }
     }
 
     /// <summary>
     /// Atomically saves the configuration document.
     /// </summary>
-    public static Result SaveText(string path, string text)
+    public static void SaveText(string path, string text)
     {
         try
         {
             WriteTextAtomically(path, text, overwrite: true);
-            return Result.Ok();
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            return Result.Fail($"Config file could not be written: {exception.Message}");
+            throw new ConfigurationException(
+                $"Config file could not be written: {exception.Message}"
+            );
         }
     }
 
-    private static Result CreateDefaultFile(string path)
+    private static void CreateDefaultFile(string path)
     {
         try
         {
             WriteTextAtomically(path, ReadTemplateText(), overwrite: false);
-            return Result.Ok();
         }
         catch (Exception exception)
             when (exception
@@ -94,7 +87,9 @@ internal static class KdlConfigurationFile
                         or InvalidOperationException
             )
         {
-            return Result.Fail($"Config file could not be created: {exception.Message}");
+            throw new ConfigurationException(
+                $"Config file could not be created: {exception.Message}"
+            );
         }
     }
 
@@ -126,15 +121,12 @@ internal static class KdlConfigurationFile
         File.Move(temporaryPath, path, overwrite);
     }
 
-    public static Result<KdlDocument> Parse(string text)
+    public static KdlDocument Parse(string text)
     {
-        if (KdlDocument.TryParse(text, out var document, out var exception))
-        {
-            return Result.Ok(document);
-        }
-
-        return Result.Fail(
-            $"Config file is not valid KDL: {exception?.Message ?? "Unknown parse error."}"
-        );
+        return KdlDocument.TryParse(text, out var document, out var exception)
+            ? document
+            : throw new ConfigurationException(
+                $"Config file is not valid KDL: {exception?.Message ?? "Unknown parse error."}"
+            );
     }
 }

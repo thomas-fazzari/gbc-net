@@ -14,7 +14,7 @@ public sealed class LoadAddressInstructionTests
     [Fact]
     public void Step_LoadsAccumulatorIntoImmediate16Address()
     {
-        var cpu = CpuTestFactory.CreateCpu(bytes =>
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes =>
         {
             bytes[0x0100] = 0xEA;
             bytes[0x0101] = WorkRamAddressLowByte;
@@ -26,7 +26,7 @@ public sealed class LoadAddressInstructionTests
         var machineCycles = cpu.Step();
 
         Assert.Equal(4, machineCycles);
-        Assert.Equal(0x42, CpuTestFactory.GetBus(cpu).ReadByte(WorkRamAddress));
+        Assert.Equal(0x42, bus.ReadByte(WorkRamAddress));
         Assert.Equal(0xF0, cpu.Registers.F);
         Assert.Equal(0x0103, cpu.Registers.PC);
     }
@@ -34,13 +34,13 @@ public sealed class LoadAddressInstructionTests
     [Fact]
     public void Step_LoadsAccumulatorFromImmediate16Address()
     {
-        var cpu = CpuTestFactory.CreateCpu(bytes =>
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes =>
         {
             bytes[0x0100] = 0xFA;
             bytes[0x0101] = WorkRamAddressLowByte;
             bytes[0x0102] = WorkRamAddressHighByte;
         });
-        CpuTestFactory.GetBus(cpu).WriteByte(WorkRamAddress, 0xA5);
+        bus.WriteByte(WorkRamAddress, 0xA5);
         cpu.Registers.F = 0xF0;
 
         var machineCycles = cpu.Step();

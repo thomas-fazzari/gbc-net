@@ -55,19 +55,19 @@ public sealed class CbInstructionTests
         byte expectedFlags
     )
     {
-        var cpu = CpuTestFactory.CreateCpu(bytes =>
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes =>
         {
             bytes[0x0100] = 0xCB;
             bytes[0x0101] = prefixedOpcode;
         });
         cpu.Registers.HL = 0xC123;
         cpu.Registers.F = (byte)CpuFlag.Carry;
-        CpuTestFactory.GetBus(cpu).WriteByte(0xC123, value);
+        bus.WriteByte(0xC123, value);
 
         var machineCycles = cpu.Step();
 
         Assert.Equal(3, machineCycles);
-        Assert.Equal(value, CpuTestFactory.GetBus(cpu).ReadByte(0xC123));
+        Assert.Equal(value, bus.ReadByte(0xC123));
         Assert.Equal(expectedFlags, cpu.Registers.F);
         Assert.Equal(0x0102, cpu.Registers.PC);
     }
@@ -78,7 +78,7 @@ public sealed class CbInstructionTests
         for (byte prefixedOpcode = 0x40; prefixedOpcode <= 0x7F; prefixedOpcode++)
         {
             var opcode = prefixedOpcode;
-            var cpu = CpuTestFactory.CreateCpu(bytes =>
+            var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes =>
             {
                 bytes[0x0100] = 0xCB;
                 bytes[0x0101] = opcode;
@@ -90,7 +90,7 @@ public sealed class CbInstructionTests
             cpu.Registers.E = 0xFF;
             cpu.Registers.H = 0xC1;
             cpu.Registers.L = 0x23;
-            CpuTestFactory.GetBus(cpu).WriteByte(0xC123, 0xFF);
+            bus.WriteByte(0xC123, 0xFF);
 
             var machineCycles = cpu.Step();
 

@@ -62,7 +62,7 @@ public sealed class StopInstructionTests
     public void Step_StoppedCpuWakesWhenSelectedJoypadLineGoesLowWithoutTickingHardware()
     {
         var ticks = 0;
-        var cpu = CpuTestFactory.CreateCpu(
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(
             rom =>
             {
                 rom[EntryPoint] = StopOpcode;
@@ -71,7 +71,6 @@ public sealed class StopInstructionTests
             },
             () => ticks++
         );
-        var bus = CpuTestFactory.GetBus(cpu);
         bus.WriteByte(AddressMap.JoypadRegister, 0x20);
         cpu.Step();
         var ticksAfterStopInstruction = ticks;
@@ -90,12 +89,11 @@ public sealed class StopInstructionTests
     [Fact]
     public void Step_StopResetsDividerRegister()
     {
-        var cpu = CpuTestFactory.CreateCpu(rom =>
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(rom =>
         {
             rom[EntryPoint] = StopOpcode;
             rom[EntryPoint + 1] = NopOpcode;
         });
-        var bus = CpuTestFactory.GetBus(cpu);
         bus.Clock.SetCounter(0xABCC);
 
         cpu.Step();

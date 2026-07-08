@@ -3,10 +3,10 @@
 
 using GbcNet.Core.Cartridges;
 
-namespace GbcNet.App.Library.Entities;
+namespace GbcNet.App.Library;
 
 /// <summary>
-/// A ROM, identified by its hash.
+/// A ROM indexed by the library.
 /// </summary>
 internal sealed record LibraryEntry(
     string RomHash,

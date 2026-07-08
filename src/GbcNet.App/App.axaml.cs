@@ -5,19 +5,16 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
-using GbcNet.App.Audio;
 using GbcNet.App.Configuration;
-using GbcNet.App.Input;
-using GbcNet.App.Library;
-using GbcNet.App.Saves;
-using Microsoft.Extensions.Logging;
+using GbcNet.App.Database;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GbcNet.App;
 
 internal sealed class GbcNetApplication : Application, IDisposable
 {
-    private ILoggerFactory? _loggerFactory;
-    private SoundFlowAudioOutput? _audioOutput;
+    private ServiceProvider? _services;
 
     public override void Initialize()
     {
@@ -29,42 +26,25 @@ internal sealed class GbcNetApplication : Application, IDisposable
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            _loggerFactory = LoggerFactory.Create(static builder => builder.AddDebug());
-
             var startupConfiguration = StartupConfigurationLoader.Load(
                 UserDataPaths.ConfigFilePath
             );
-
-            var inputMap = InputMap.FromConfig(startupConfiguration.InputConfig);
-
-            var configurationService = new AppConfigurationService(startupConfiguration.ConfigPath);
-
-            var cartridgeSaveFileService = new CartridgeBatterySaveFileService(
-                UserDataPaths.SaveDirectoryPath
-            );
-
-            LibraryService libraryService = new(
-                new LibraryDatabase(UserDataPaths.LibraryDatabasePath),
-                UserDataPaths.CoverDirectoryPath
-            );
-
-            _audioOutput = new SoundFlowAudioOutput(
-                _loggerFactory.CreateLogger<SoundFlowAudioOutput>()
-            );
-
-            desktop.MainWindow = new MainWindow(
-                inputMap,
-                startupConfiguration,
-                configurationService,
-                cartridgeSaveFileService,
-                libraryService,
-                _audioOutput,
-                _loggerFactory.CreateLogger<MainWindow>()
-            );
+            _services = DependencyInjection.BuildServiceProvider(startupConfiguration);
+            MigrateDatabase(_services);
+            desktop.MainWindow = _services.GetRequiredService<MainWindow>();
             desktop.Exit += (_, _) => DisposeServices();
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static void MigrateDatabase(IServiceProvider services)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(UserDataPaths.LibraryDatabasePath) ?? ".");
+        using var db = services
+            .GetRequiredService<IDbContextFactory<GbcNetDbContext>>()
+            .CreateDbContext();
+        db.Database.Migrate();
     }
 
     public void Dispose()
@@ -74,9 +54,7 @@ internal sealed class GbcNetApplication : Application, IDisposable
 
     private void DisposeServices()
     {
-        _audioOutput?.Dispose();
-        _loggerFactory?.Dispose();
-        _audioOutput = null;
-        _loggerFactory = null;
+        _services?.Dispose();
+        _services = null;
     }
 }

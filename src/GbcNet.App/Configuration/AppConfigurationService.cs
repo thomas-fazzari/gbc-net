@@ -1,7 +1,6 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using FluentResults;
 using GbcNet.App.Configuration.Kdl;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.Core;
@@ -10,25 +9,15 @@ namespace GbcNet.App.Configuration;
 
 internal sealed class AppConfigurationService(string configPath)
 {
-    public Result<BootRomConfig> LoadBootRomConfig()
-    {
-        var document = KdlConfigurationFile.LoadOrCreate(configPath);
-        return document.IsFailed
-            ? Result.Fail<BootRomConfig>(document.Errors)
-            : BootRomConfigReader.ReadConfig(document.Value);
-    }
+    public BootRomConfig LoadBootRomConfig() =>
+        BootRomConfigReader.ReadConfig(KdlConfigurationFile.LoadOrCreate(configPath));
 
-    public Result<BootRomOptions> LoadBootRomOptions()
-    {
-        var document = KdlConfigurationFile.LoadOrCreate(configPath);
-        return document.IsFailed
-            ? Result.Fail<BootRomOptions>(document.Errors)
-            : BootRomConfigReader.ReadBootRomOptions(
-                document.Value,
-                Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory
-            );
-    }
+    public BootRomOptions LoadBootRomOptions() =>
+        BootRomConfigReader.ReadBootRomOptions(
+            KdlConfigurationFile.LoadOrCreate(configPath),
+            Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory
+        );
 
-    public Result SaveBootRomConfig(BootRomConfig config) =>
+    public void SaveBootRomConfig(BootRomConfig config) =>
         BootRomConfigWriter.Write(configPath, config);
 }

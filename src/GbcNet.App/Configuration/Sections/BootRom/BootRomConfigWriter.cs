@@ -1,7 +1,6 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using FluentResults;
 using GbcNet.App.Configuration.Kdl;
 using KdlSharp;
 
@@ -12,35 +11,17 @@ namespace GbcNet.App.Configuration.Sections.BootRom;
 /// </summary>
 internal static class BootRomConfigWriter
 {
-    public static Result Write(string configPath, BootRomConfig config)
+    public static void Write(string configPath, BootRomConfig config)
     {
         var text = KdlConfigurationFile.LoadTextOrCreate(configPath);
-        if (text.IsFailed)
-        {
-            return text.ToResult();
-        }
-
-        var document = KdlConfigurationFile.Parse(text.Value);
-        if (document.IsFailed)
-        {
-            return document.ToResult();
-        }
-
-        var section = document.Value.ReadOptionalSection(BootRomConfigSchema.BootRomNodeName);
-        if (section.IsFailed)
-        {
-            return section.ToResult();
-        }
-
+        var document = KdlConfigurationFile.Parse(text);
         var replacement = KdlSectionTextEditor.ReplaceTopLevelSection(
-            text.Value,
-            section.Value,
+            text,
+            document.ReadOptionalSection(BootRomConfigSchema.BootRomNodeName),
             CreateBootRomNode(config).ToKdlString()
         );
 
-        return replacement.IsFailed
-            ? replacement.ToResult()
-            : KdlConfigurationFile.SaveText(configPath, replacement.Value);
+        KdlConfigurationFile.SaveText(configPath, replacement);
     }
 
     private static KdlNode CreateBootRomNode(BootRomConfig config)

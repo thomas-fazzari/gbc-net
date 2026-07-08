@@ -12,6 +12,19 @@ internal static class Rgb555FrameDifference
         VisualRomTestResult result,
         ReadOnlySpan<byte> expected,
         int maxReportedDiffOffsets
+    ) => CreateMessage(result, expected, maxReportedDiffOffsets, bytesPerPixel: 2);
+
+    public static string CreateDmgShadeIndex8Message(
+        VisualRomTestResult result,
+        ReadOnlySpan<byte> expected,
+        int maxReportedDiffOffsets
+    ) => CreateMessage(result, expected, maxReportedDiffOffsets, bytesPerPixel: 1);
+
+    private static string CreateMessage(
+        VisualRomTestResult result,
+        ReadOnlySpan<byte> expected,
+        int maxReportedDiffOffsets,
+        int bytesPerPixel
     )
     {
         if (result.Frame is null)
@@ -41,7 +54,8 @@ internal static class Rgb555FrameDifference
                 firstDifferences[reportedDifferenceCount] = FormatDifference(
                     offset,
                     expected[offset],
-                    actual[offset]
+                    actual[offset],
+                    bytesPerPixel
                 );
                 reportedDifferenceCount++;
             }
@@ -49,19 +63,28 @@ internal static class Rgb555FrameDifference
             differenceCount++;
         }
 
+        var unit = bytesPerPixel == 1 ? "pixels" : "bytes";
         return string.Create(
             CultureInfo.InvariantCulture,
-            $"Frame {result.CompletedFrames} differs at {differenceCount} bytes after {result.MachineCycles} M-cycles. Expected length={expected.Length}, actual length={actual.Length}, unmatched tail={unmatchedLength}. First differences: {string.Join(", ", firstDifferences.AsSpan()[..reportedDifferenceCount])}."
+            $"Frame {result.CompletedFrames} differs at {differenceCount} {unit} after {result.MachineCycles} M-cycles. Expected length={expected.Length}, actual length={actual.Length}, unmatched tail={unmatchedLength}. First differences: {string.Join(", ", firstDifferences.AsSpan()[..reportedDifferenceCount])}."
         );
     }
 
-    private static string FormatDifference(int offset, byte expected, byte actual)
+    private static string FormatDifference(
+        int offset,
+        byte expected,
+        byte actual,
+        int bytesPerPixel
+    )
     {
-        var pixel = offset / 2;
+        var pixel = offset / bytesPerPixel;
         var y = Math.DivRem(pixel, PpuGeometry.FrameWidth, out var x);
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"({x},{y}) byte{offset & 1} exp={expected:X2} act={actual:X2}"
-        );
+
+        return bytesPerPixel == 1
+            ? string.Create(CultureInfo.InvariantCulture, $"({x},{y}) exp={expected} act={actual}")
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"({x},{y}) byte{offset & 1} exp={expected:X2} act={actual:X2}"
+            );
     }
 }

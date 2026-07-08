@@ -1,12 +1,12 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using System.Globalization;
 using System.Security.Cryptography;
 using FluentResults;
-using GbcNet.App.Library.Entities;
+using GbcNet.App.Database;
+using GbcNet.App.Database.Entities;
 using GbcNet.Core.Cartridges;
-using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 
 namespace GbcNet.App.Library;
 
@@ -41,7 +41,7 @@ internal enum LibrarySortMode
 }
 
 internal sealed class LibraryService(
-    LibraryDatabase database,
+    IDbContextFactory<GbcNetDbContext> dbContextFactory,
     string coverDirectoryPath,
     TimeProvider? timeProvider = null
 )
@@ -96,57 +96,89 @@ internal sealed class LibraryService(
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
         try
         {
-            using var connection = database.OpenConnection();
-            using var command = connection.CreateCommand();
-            command.CommandText = """
-                select
-                  rom_hash,
-                  last_known_path,
-                  file_name,
-                  cartridge_title,
-                  added_at,
-                  last_opened_at,
-                  launch_count,
-                  cover_path,
-                  hardware_kind
-                from roms
-                where (
-                  $searchText is null
-                  or upper(file_name) like $searchText escape '\'
-                  or upper(coalesce(cartridge_title, '')) like $searchText escape '\'
-                )
-                and ($hardwareKind is null or hardware_kind = $hardwareKind)
-                and (
-                  $coverFilter = 0
-                  or ($coverFilter = 1 and cover_path is not null)
-                  or ($coverFilter = 2 and cover_path is null)
-                )
-                order by
-                  case when $sortMode = 0 then last_opened_at end desc,
-                  case when $sortMode = 1 then coalesce(cartridge_title, file_name) end collate nocase asc,
-                  case when $sortMode = 2 then launch_count end desc,
-                  case when $sortMode = 3 then added_at end desc,
-                  file_name collate nocase asc
-                limit $limit;
-                """;
-            AddOptionalTextParameter(command, "$searchText", NormalizeSearchText(query.SearchText));
-            AddOptionalTextParameter(
-                command,
-                "$hardwareKind",
-                GetHardwareKindFilter(query.Hardware)
-            );
-            AddIntegerParameter(command, "$coverFilter", (int)query.Cover);
-            AddIntegerParameter(command, "$sortMode", (int)query.Sort);
-            AddIntegerParameter(command, "$limit", limit);
+            using var db = dbContextFactory.CreateDbContext();
+            IQueryable<LibraryRom> roms = db.Roms;
 
-            using var reader = command.ExecuteReader();
-            var entries = new List<LibraryEntry>();
-            while (reader.Read())
+            var searchText = NormalizeSearchText(query.SearchText);
+            if (searchText is not null)
             {
-                entries.Add(ReadLibraryEntry(reader));
+                roms = roms.Where(rom =>
+                    EF.Functions.Like(
+                        EF.Functions.Collate(
+                            rom.FileName,
+                            GbcNetDbConstants.CaseInsensitiveCollation
+                        ),
+                        searchText,
+                        @"\"
+                    )
+                    || EF.Functions.Like(
+                        EF.Functions.Collate(
+                            rom.CartridgeTitle ?? string.Empty,
+                            GbcNetDbConstants.CaseInsensitiveCollation
+                        ),
+                        searchText,
+                        @"\"
+                    )
+                );
             }
 
-            return Result.Ok<IReadOnlyList<LibraryEntry>>(entries);
+            var hardwareKind = GetHardwareKindFilter(query.Hardware);
+            if (hardwareKind is not null)
+            {
+                roms = roms.Where(rom => rom.HardwareKind == hardwareKind);
+            }
+
+            roms = query.Cover switch
+            {
+                LibraryCoverFilter.All => roms,
+                LibraryCoverFilter.WithCover => roms.Where(rom => rom.CoverPath != null),
+                LibraryCoverFilter.MissingCover => roms.Where(rom => rom.CoverPath == null),
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(query),
+                    query.Cover,
+                    message: null
+                ),
+            };
+
+            var orderedRoms = query.Sort switch
+            {
+                LibrarySortMode.LastOpened => roms.OrderByDescending(rom => rom.LastOpenedAt),
+                LibrarySortMode.Title => roms.OrderBy(rom =>
+                    EF.Functions.Collate(
+                        rom.CartridgeTitle ?? rom.FileName,
+                        GbcNetDbConstants.CaseInsensitiveCollation
+                    )
+                ),
+                LibrarySortMode.MostPlayed => roms.OrderByDescending(rom => rom.LaunchCount),
+                LibrarySortMode.RecentlyAdded => roms.OrderByDescending(rom => rom.AddedAt),
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(query),
+                    query.Sort,
+                    message: null
+                ),
+            };
+
+            return Result.Ok<IReadOnlyList<LibraryEntry>>([
+                .. orderedRoms
+                    .ThenBy(rom =>
+                        EF.Functions.Collate(
+                            rom.FileName,
+                            GbcNetDbConstants.CaseInsensitiveCollation
+                        )
+                    )
+                    .Take(limit)
+                    .Select(rom => new LibraryEntry(
+                        rom.RomHash,
+                        rom.LastKnownPath,
+                        rom.FileName,
+                        rom.CartridgeTitle,
+                        rom.HardwareKind,
+                        rom.AddedAt,
+                        rom.LastOpenedAt,
+                        rom.LaunchCount,
+                        rom.CoverPath
+                    )),
+            ]);
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
@@ -159,30 +191,16 @@ internal sealed class LibraryService(
         try
         {
             var fullPath = Path.GetFullPath(path);
-            using var connection = database.OpenConnection();
-            using var transaction = connection.BeginTransaction();
-            var coverPaths = new List<string>();
+            using var db = dbContextFactory.CreateDbContext();
+            using var transaction = db.Database.BeginTransaction();
+            var coverPaths = db
+                .Roms.Where(rom => rom.LastKnownPath == fullPath && rom.CoverPath != null)
+                .Select(rom => rom.CoverPath!)
+                .ToList();
 
-            using var selectCoverCommand = connection.CreateCommand();
-            selectCoverCommand.Transaction = transaction;
-            selectCoverCommand.CommandText =
-                "select cover_path from roms where last_known_path = $lastKnownPath and cover_path is not null;";
-            AddTextParameter(selectCoverCommand, "$lastKnownPath", fullPath);
-            using (var reader = selectCoverCommand.ExecuteReader())
-            {
-                while (reader.Read())
-                {
-                    coverPaths.Add(reader.GetString(0));
-                }
-            }
-
-            using var deleteCommand = connection.CreateCommand();
-            deleteCommand.Transaction = transaction;
-            deleteCommand.CommandText = "delete from roms where last_known_path = $lastKnownPath;";
-            AddTextParameter(deleteCommand, "$lastKnownPath", fullPath);
-            deleteCommand.ExecuteNonQuery();
-
+            db.Roms.Where(rom => rom.LastKnownPath == fullPath).ExecuteDelete();
             transaction.Commit();
+
             foreach (var coverPath in coverPaths)
             {
                 DeleteManagedCoverFile(coverPath);
@@ -254,76 +272,51 @@ internal sealed class LibraryService(
     )
     {
         var romHash = ComputeRomHash(rom.Span);
-        var openedAt = _timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture);
-        using var connection = database.OpenConnection();
-        using var transaction = connection.BeginTransaction();
+        var openedAt = _timeProvider.GetUtcNow();
+        using var db = dbContextFactory.CreateDbContext();
+        using var transaction = db.Database.BeginTransaction();
 
-        var deletedCoverPaths = new List<string>();
+        var deletedCoverPaths = db
+            .Roms.Where(rom =>
+                rom.LastKnownPath == fullPath && rom.RomHash != romHash && rom.CoverPath != null
+            )
+            .Select(rom => rom.CoverPath!)
+            .ToList();
 
-        using var selectDeletedCoverCommand = connection.CreateCommand();
-        selectDeletedCoverCommand.Transaction = transaction;
-        selectDeletedCoverCommand.CommandText =
-            "select cover_path from roms where last_known_path = $lastKnownPath and rom_hash <> $romHash and cover_path is not null;";
-        AddTextParameter(selectDeletedCoverCommand, "$lastKnownPath", fullPath);
-        AddTextParameter(selectDeletedCoverCommand, "$romHash", romHash);
-        using (var reader = selectDeletedCoverCommand.ExecuteReader())
+        db.Roms.Where(rom => rom.LastKnownPath == fullPath && rom.RomHash != romHash)
+            .ExecuteDelete();
+
+        var existingRom = db.Roms.AsTracking().SingleOrDefault(rom => rom.RomHash == romHash);
+        string? coverPath;
+        if (existingRom is null)
         {
-            while (reader.Read())
-            {
-                deletedCoverPaths.Add(reader.GetString(0));
-            }
+            coverPath = null;
+            db.Roms.Add(
+                LibraryRom.Opened(
+                    romHash,
+                    fullPath,
+                    Path.GetFileName(fullPath),
+                    cartridgeHeader.Title,
+                    cartridgeHeader.HardwareKind,
+                    openedAt
+                )
+            );
+        }
+        else
+        {
+            coverPath = existingRom.CoverPath;
+            existingRom.RecordOpen(
+                fullPath,
+                Path.GetFileName(fullPath),
+                cartridgeHeader.Title,
+                cartridgeHeader.HardwareKind,
+                openedAt
+            );
         }
 
-        using var deleteCommand = connection.CreateCommand();
-        deleteCommand.Transaction = transaction;
-        deleteCommand.CommandText =
-            "delete from roms where last_known_path = $lastKnownPath and rom_hash <> $romHash;";
-        AddTextParameter(deleteCommand, "$lastKnownPath", fullPath);
-        AddTextParameter(deleteCommand, "$romHash", romHash);
-        deleteCommand.ExecuteNonQuery();
-
-        using var upsertCommand = connection.CreateCommand();
-        upsertCommand.Transaction = transaction;
-        upsertCommand.CommandText = """
-            insert into roms (
-              rom_hash,
-              last_known_path,
-              file_name,
-              cartridge_title,
-              added_at,
-              last_opened_at,
-              launch_count,
-              cover_path,
-              hardware_kind
-            ) values (
-              $romHash,
-              $lastKnownPath,
-              $fileName,
-              $cartridgeTitle,
-              $openedAt,
-              $openedAt,
-              1,
-              null,
-              $hardwareKind
-            )
-            on conflict(rom_hash) do update set
-              last_known_path = excluded.last_known_path,
-              file_name = excluded.file_name,
-              cartridge_title = excluded.cartridge_title,
-              hardware_kind = excluded.hardware_kind,
-              last_opened_at = excluded.last_opened_at,
-              launch_count = roms.launch_count + 1
-            returning cover_path;
-            """;
-        AddTextParameter(upsertCommand, "$romHash", romHash);
-        AddTextParameter(upsertCommand, "$lastKnownPath", fullPath);
-        AddTextParameter(upsertCommand, "$fileName", Path.GetFileName(fullPath));
-        AddOptionalTextParameter(upsertCommand, "$cartridgeTitle", cartridgeHeader.Title);
-        AddTextParameter(upsertCommand, "$hardwareKind", cartridgeHeader.HardwareKind.ToString());
-        AddTextParameter(upsertCommand, "$openedAt", openedAt);
-        var coverPath = upsertCommand.ExecuteScalar() as string;
-
+        db.SaveChanges();
         transaction.Commit();
+
         foreach (var coverPathToDelete in deletedCoverPaths)
         {
             DeleteManagedCoverFile(coverPathToDelete);
@@ -334,28 +327,17 @@ internal sealed class LibraryService(
 
     private Result<string?> GetCoverPath(string romHash)
     {
-        using var connection = database.OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "select cover_path from roms where rom_hash = $romHash;";
-        AddTextParameter(command, "$romHash", romHash);
-
-        var value = command.ExecuteScalar();
-        if (value is null)
-        {
-            return Result.Fail($"ROM not found: {romHash}");
-        }
-
-        return Result.Ok(value == DBNull.Value ? null : (string)value);
+        using var db = dbContextFactory.CreateDbContext();
+        var rom = db.Roms.SingleOrDefault(rom => rom.RomHash == romHash);
+        return rom is null ? Result.Fail($"ROM not found: {romHash}") : Result.Ok(rom.CoverPath);
     }
 
     private void SetCoverPath(string romHash, string? coverPath)
     {
-        using var connection = database.OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "update roms set cover_path = $coverPath where rom_hash = $romHash;";
-        AddOptionalTextParameter(command, "$coverPath", coverPath);
-        AddTextParameter(command, "$romHash", romHash);
-        command.ExecuteNonQuery();
+        using var db = dbContextFactory.CreateDbContext();
+        var rom = db.Roms.AsTracking().Single(rom => rom.RomHash == romHash);
+        rom.SetCoverPath(coverPath);
+        db.SaveChanges();
     }
 
     private void DeleteManagedCoverFile(string? coverPath, string? exceptPath = null)
@@ -443,9 +425,7 @@ internal sealed class LibraryService(
         Convert.ToHexString(SHA256.HashData(rom));
 
     private static string? NormalizeSearchText(string? value) =>
-        string.IsNullOrWhiteSpace(value)
-            ? null
-            : $"%{EscapeLike(value.Trim().ToUpperInvariant())}%";
+        string.IsNullOrWhiteSpace(value) ? null : $"%{EscapeLike(value.Trim())}%";
 
     private static string EscapeLike(string value) =>
         value
@@ -453,40 +433,15 @@ internal sealed class LibraryService(
             .Replace("%", @"\%", StringComparison.Ordinal)
             .Replace("_", @"\_", StringComparison.Ordinal);
 
-    private static string? GetHardwareKindFilter(LibraryHardwareFilter hardware) =>
+    private static CartridgeHardwareKind? GetHardwareKindFilter(LibraryHardwareFilter hardware) =>
         hardware switch
         {
             LibraryHardwareFilter.All => null,
-            LibraryHardwareFilter.Gb => nameof(CartridgeHardwareKind.GB),
-            LibraryHardwareFilter.Gbc => nameof(CartridgeHardwareKind.GBC),
-            LibraryHardwareFilter.Sgb => nameof(CartridgeHardwareKind.SGB),
+            LibraryHardwareFilter.Gb => CartridgeHardwareKind.GB,
+            LibraryHardwareFilter.Gbc => CartridgeHardwareKind.GBC,
+            LibraryHardwareFilter.Sgb => CartridgeHardwareKind.SGB,
             _ => throw new ArgumentOutOfRangeException(nameof(hardware), hardware, message: null),
         };
-
-    private static DateTimeOffset ParseTimestamp(string value) =>
-        DateTimeOffset.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
-
-    private static CartridgeHardwareKind ParseHardwareKind(string value) =>
-        value switch
-        {
-            nameof(CartridgeHardwareKind.GB) => CartridgeHardwareKind.GB,
-            nameof(CartridgeHardwareKind.GBC) => CartridgeHardwareKind.GBC,
-            nameof(CartridgeHardwareKind.SGB) => CartridgeHardwareKind.SGB,
-            _ => throw new FormatException($"Unknown cartridge hardware kind '{value}'."),
-        };
-
-    private static LibraryEntry ReadLibraryEntry(SqliteDataReader reader) =>
-        new(
-            reader.GetString(0),
-            reader.GetString(1),
-            reader.GetString(2),
-            reader.IsDBNull(3) ? null : reader.GetString(3),
-            ParseHardwareKind(reader.GetString(8)),
-            ParseTimestamp(reader.GetString(4)),
-            ParseTimestamp(reader.GetString(5)),
-            reader.GetInt32(6),
-            reader.IsDBNull(7) ? null : reader.GetString(7)
-        );
 
     private static bool IsExpectedLibraryException(Exception exception) =>
         exception
@@ -496,32 +451,5 @@ internal sealed class LibraryService(
                 or FormatException
                 or NotSupportedException
                 or ArgumentException
-                or SqliteException;
-
-    private static void AddTextParameter(SqliteCommand command, string name, string value)
-    {
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = name;
-        parameter.SqliteType = SqliteType.Text;
-        parameter.Value = value;
-        command.Parameters.Add(parameter);
-    }
-
-    private static void AddOptionalTextParameter(SqliteCommand command, string name, string? value)
-    {
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = name;
-        parameter.SqliteType = SqliteType.Text;
-        parameter.Value = value ?? (object)DBNull.Value;
-        command.Parameters.Add(parameter);
-    }
-
-    private static void AddIntegerParameter(SqliteCommand command, string name, int value)
-    {
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = name;
-        parameter.SqliteType = SqliteType.Integer;
-        parameter.Value = value;
-        command.Parameters.Add(parameter);
-    }
+                or DbUpdateException;
 }

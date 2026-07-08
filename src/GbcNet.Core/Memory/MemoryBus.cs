@@ -220,7 +220,7 @@ internal sealed class MemoryBus
         OamDma.Tick(machineCycles, _readByteForOamDma, _writeOamByteForDma);
     }
 
-    public PpuTickResult TickPpu(int tCycles)
+    public PpuEngineTickResult TickPpu(int tCycles)
     {
         var restoreVideoRendering = false;
 
