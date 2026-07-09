@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Reflection;
+using GbcNet.App.Audio;
 using GbcNet.App.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -19,6 +20,7 @@ internal static class DependencyInjection
         services.AddLogging(static builder => builder.AddDebug());
         services.AddSingleton(startupConfiguration);
         services.AddSingleton(_ => new AppConfigurationService(startupConfiguration.ConfigPath));
+        services.AddSingleton<IAudioOutput, SoundFlowAudioOutput>();
 
         foreach (var module in DiscoverModules())
         {
