@@ -87,6 +87,22 @@ public sealed class CartridgeTests
     }
 
     [Fact]
+    public void Load_DetectsCgbEnhancedCartridgeWhenCgbAndSgbFlagsArePresent()
+    {
+        var rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0143] = 0x80;
+            bytes[0x0146] = 0x03;
+            bytes[0x014B] = 0x33;
+        });
+
+        var cartridge = TestRomFactory.LoadCartridge(rom);
+
+        Assert.Equal(CgbSupport.Enhanced, cartridge.Header.CgbSupport);
+        Assert.Equal(CartridgeHardwareKind.GBC, cartridge.Header.HardwareKind);
+    }
+
+    [Fact]
     public void Load_DoesNotDetectSgbCartridgeWhenLicenseeUnlockIsMissing()
     {
         var rom = TestRomFactory.Create(bytes => bytes[0x0146] = 0x03);

@@ -63,6 +63,18 @@ public sealed class GameBoy
         Bus.Serial.ByteTransferred += OnSerialByteTransferred;
         _clock = new MachineClock(Bus);
         Cpu = new Cpu(Bus, _clock.TickMachineCycle);
+
+        if (bootRom is not null)
+        {
+            Cpu.Registers.PC = 0x0000;
+            Cpu.Registers.C = hardwareProfile.Model switch
+            {
+                HardwareModel.Sgb => 0x14,
+                HardwareModel.Dmg => 0x13,
+                _ => 0x00,
+            };
+        }
+
         HardwareModel = hardwareProfile.Model;
         CpuMachineCyclesPerSecond =
             hardwareProfile.Model is HardwareModel.Sgb
@@ -140,6 +152,8 @@ public sealed class GameBoy
     /// </summary>
     public int CpuMachineCyclesPerSecond =>
         Bus.Clock.CgbDoubleSpeed ? GameBoyTiming.DoubleCpuHz : field;
+
+    public bool IsBootRomMapped => Bus.IsBootRomMapped;
 
     internal MemoryBus Bus { get; }
 

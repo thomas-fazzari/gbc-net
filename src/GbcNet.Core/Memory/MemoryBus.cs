@@ -25,7 +25,6 @@ internal sealed class MemoryBus
     /// Plain backing store for HRAM at FF80-FFFE.
     /// </summary>
     private readonly MappedMemory _highRam = new(AddressMap.HighRamStart, AddressMap.HighRamEnd);
-
     private readonly WorkRam _workRam;
     private readonly Cartridge _cartridge;
     private readonly IHardwareProfile _hardwareProfile;
@@ -84,6 +83,8 @@ internal sealed class MemoryBus
     /// Raised after a CPU-visible write has been routed by the memory bus.
     /// </summary>
     internal event EventHandler<CpuMemoryWrittenEventArgs>? CpuMemoryWritten;
+
+    public bool IsBootRomMapped => _bootRom?.IsMapped == true;
 
     /// <summary>
     /// Creates the CPU-visible bus and model-specific DMA/PPU policies for a cartridge.
@@ -224,7 +225,10 @@ internal sealed class MemoryBus
     {
         var restoreVideoRendering = false;
 
-        if (_sgb?.HasPendingVramTransfer == true && !Ppu.VideoRenderingEnabled)
+        if (
+            (_bootRom?.IsMapped == true || _sgb?.HasPendingVramTransfer == true)
+            && !Ppu.VideoRenderingEnabled
+        )
         {
             Ppu.VideoRenderingEnabled = true;
             restoreVideoRendering = true;

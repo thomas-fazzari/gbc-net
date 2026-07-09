@@ -26,6 +26,8 @@ internal sealed class BootRom
         _bytes = bytes.ToArray();
     }
 
+    internal bool IsMapped => _mapped;
+
     internal static BootRom? Create(HardwareModel hardwareModel, BootRomOptions options)
     {
         var bytes = hardwareModel switch
@@ -45,26 +47,14 @@ internal sealed class BootRom
             return null;
         }
 
-        var expectedLength = hardwareModel switch
-        {
-            HardwareModel.Dmg => BootRomOptions.DmgBootRomSize,
-            HardwareModel.Cgb => BootRomOptions.CgbBootRomSize,
-            HardwareModel.Sgb => BootRomOptions.SgbBootRomSize,
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(hardwareModel),
-                hardwareModel,
-                "Unsupported hardware model."
-            ),
-        };
-
-        if (bytes.Length != expectedLength)
+        if (!BootRomOptions.IsValidSize(hardwareModel, bytes.Length))
         {
             throw new ArgumentException(
                 string.Format(
                     CultureInfo.InvariantCulture,
                     "{0} boot ROM must be {1} bytes, but was {2} bytes.",
                     hardwareModel,
-                    expectedLength,
+                    BootRomOptions.SizeDescription(hardwareModel),
                     bytes.Length
                 ),
                 nameof(options)
@@ -90,7 +80,12 @@ internal sealed class BootRom
 
         if (_hardwareModel is HardwareModel.Cgb && address is >= CgbUpperStart and <= CgbUpperEnd)
         {
-            value = _bytes[CgbUpperFileOffset + address - CgbUpperStart];
+            // CGB dumps are commonly stored either packed (0000-00FF + 0200-08FF)
+            // or mapped with the unused 0100-01FF gap still present.
+            value =
+                _bytes.Length == BootRomOptions.CgbBootRomMappedSize
+                    ? _bytes[address]
+                    : _bytes[CgbUpperFileOffset + address - CgbUpperStart];
             return true;
         }
 

@@ -55,7 +55,7 @@ internal sealed class AppConfigurationService(string configPath)
     {
         var path = config.GetPath(model);
         var label = BootRomConfig.DisplayName(model);
-        var expectedLength = BootRomConfig.Size(model);
+        var expectedLength = BootRomOptions.SizeDescription(model);
         if (path is null)
         {
             return default;
@@ -81,7 +81,7 @@ internal sealed class AppConfigurationService(string configPath)
             );
         }
 
-        return bytes.Length == expectedLength
+        return BootRomOptions.IsValidSize(model, bytes.Length)
             ? bytes
             : throw new ConfigurationException(
                 $"{label} boot ROM must be {expectedLength} bytes, but was {bytes.Length} bytes."

@@ -101,6 +101,7 @@ internal sealed class SgbController(bool commandsEnabled)
     private byte _pendingVramTransferFrameDelay;
     private bool _borderReady;
     private byte[]? _visibleFramePixels;
+    private byte[]? _lastBootFramePixels;
 
     public bool HasPendingVramTransfer => _pendingVramTransfer != NoPendingVramTransfer;
 
@@ -164,6 +165,20 @@ internal sealed class SgbController(bool commandsEnabled)
             MaskColor0 => CreateSolidRgb555Pixels(_palettes[0], colorizedPixels),
             _ => SetVisibleRgb555Pixels(colorizedPixels),
         };
+
+        if (
+            !_borderReady
+            && IsSolidRgb555(gameBoyPixels, 0x7FFF)
+            && _lastBootFramePixels is not null
+        )
+        {
+            return CreateGameBoyFrame(_lastBootFramePixels);
+        }
+
+        if (!_borderReady && !IsSolidRgb555(gameBoyPixels, 0x7FFF))
+        {
+            _lastBootFramePixels = gameBoyPixels;
+        }
 
         return _borderReady ? CreateSgbFrame(gameBoyPixels) : CreateGameBoyFrame(gameBoyPixels);
     }
@@ -255,7 +270,8 @@ internal sealed class SgbController(bool commandsEnabled)
 
     private int GetCommandSizeBits()
     {
-        var packetCount = _command[0] & 0x07;
+        var packetCount = IsSupportedCommand(_command[0] >> 3) ? _command[0] & 0x07 : 1;
+
         if (packetCount == 0)
         {
             packetCount = 1;
@@ -263,6 +279,26 @@ internal sealed class SgbController(bool commandsEnabled)
 
         return packetCount * PacketSizeBytes * 8;
     }
+
+    private static bool IsSupportedCommand(int command) =>
+        command
+            is Pal01Command
+                or Pal23Command
+                or Pal03Command
+                or Pal12Command
+                or AttrBlkCommand
+                or AttrLinCommand
+                or AttrDivCommand
+                or AttrChrCommand
+                or PalSetCommand
+                or PalTrnCommand
+                or DataSndCommand
+                or MltReqCommand
+                or ChrTrnCommand
+                or PctTrnCommand
+                or AttrTrnCommand
+                or AttrSetCommand
+                or MaskEnCommand;
 
     private void PreparePacketWrite()
     {
@@ -324,7 +360,13 @@ internal sealed class SgbController(bool commandsEnabled)
             return;
         }
 
-        switch (_command[0] >> 3)
+        var command = _command[0] >> 3;
+        if (!IsSupportedCommand(command))
+        {
+            return;
+        }
+
+        switch (command)
         {
             case Pal01Command:
                 SetPalettes(firstPalette: 0, secondPalette: 1);
@@ -454,6 +496,19 @@ internal sealed class SgbController(bool commandsEnabled)
                 transferData[targetOffset + (y * 2) + 1] = high;
             }
         }
+    }
+
+    private static bool IsSolidRgb555(ReadOnlySpan<byte> pixels, ushort color)
+    {
+        for (var offset = 0; offset < pixels.Length; offset += Rgb555BytesPerPixel)
+        {
+            if ((ushort)(pixels[offset] | (pixels[offset + 1] << 8)) != color)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private byte[] SetVisibleRgb555Pixels(byte[] pixels)

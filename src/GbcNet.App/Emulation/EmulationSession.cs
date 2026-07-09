@@ -237,15 +237,22 @@ internal sealed class EmulationSession
         }
     }
 
-    private double GetSpeedMultiplier() =>
-        Volatile.Read(ref _isFastForwardEnabled) != 0
-            ? Volatile.Read(ref _fastForwardSpeed) / (double)(int)EmulationSpeed.Normal
-            : 1.0;
+    private double GetSpeedMultiplier()
+    {
+        // Do not let fast-forward collapse the boot animation into its final white frame.
+        if (_gameBoy.IsBootRomMapped || Volatile.Read(ref _isFastForwardEnabled) == 0)
+        {
+            return 1.0;
+        }
+
+        return Volatile.Read(ref _fastForwardSpeed) / (double)(int)EmulationSpeed.Normal;
+    }
 
     private bool ShouldMuteAudio()
     {
         // Current audio output is real-time; fast-forward audio needs separate resampling.
-        return Volatile.Read(ref _isFastForwardEnabled) != 0
+        return !_gameBoy.IsBootRomMapped
+            && Volatile.Read(ref _isFastForwardEnabled) != 0
             && Volatile.Read(ref _fastForwardSpeed) > (int)EmulationSpeed.Normal;
     }
 
@@ -308,7 +315,8 @@ internal sealed class EmulationSession
     }
 
     private bool ShouldRenderVideoFrame() =>
-        Volatile.Read(ref _isFastForwardEnabled) == 0
+        _gameBoy.IsBootRomMapped
+        || Volatile.Read(ref _isFastForwardEnabled) == 0
         || Volatile.Read(ref _fastForwardSpeed) <= (int)EmulationSpeed.Normal
         || Volatile.Read(ref _videoFrameRenderRequested) != 0;
 }

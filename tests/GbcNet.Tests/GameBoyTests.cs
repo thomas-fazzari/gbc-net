@@ -20,6 +20,7 @@ public sealed class GameBoyTests
     private const byte JumpImmediate16Opcode = 0xC3;
     private const byte LoadAImmediate8Opcode = 0x3E;
     private const byte LoadHighMemoryAImmediate8Opcode = 0xE0;
+    private const byte LcdControlEnabled = 0x91;
 
     [Fact]
     public void Step_ReturnsCpuMachineCyclesAndTicksTimer()
@@ -239,6 +240,25 @@ public sealed class GameBoyTests
         );
 
         Assert.Equal(HardwareModel.Cgb, gameBoy.HardwareModel);
+        Assert.Equal(LoadAImmediate8Opcode, gameBoy.Bus.ReadByte(0x0000));
+        Assert.Equal(HaltOpcode, gameBoy.Bus.ReadByte(0x0100));
+        Assert.Equal(StopOpcode, gameBoy.Bus.ReadByte(0x0200));
+    }
+
+    [Fact]
+    public void Ctor_CgbHardwareAcceptsMappedCgbBootRomWithGap()
+    {
+        var cartridge = TestRomFactory.LoadCartridge(bytes => bytes[0x0100] = HaltOpcode);
+        var cgbBootRom = new byte[BootRomOptions.CgbBootRomMappedSize];
+        cgbBootRom[0x0000] = LoadAImmediate8Opcode;
+        cgbBootRom[0x0200] = StopOpcode;
+
+        var gameBoy = new GameBoy(
+            cartridge,
+            HardwareModel.Cgb,
+            new BootRomOptions { CgbBootRom = cgbBootRom }
+        );
+
         Assert.Equal(LoadAImmediate8Opcode, gameBoy.Bus.ReadByte(0x0000));
         Assert.Equal(HaltOpcode, gameBoy.Bus.ReadByte(0x0100));
         Assert.Equal(StopOpcode, gameBoy.Bus.ReadByte(0x0200));
@@ -525,6 +545,64 @@ public sealed class GameBoyTests
         Assert.Equal(160, completedFrame.Width);
         Assert.Equal(144, completedFrame.Height);
         Assert.Equal(LcdPixelFormat.DmgShadeIndex8, completedFrame.PixelFormat);
+    }
+
+    [Fact]
+    public void Step_RendersBootRomFrameEvenWhenHostFrameSkippingIsEnabled()
+    {
+        var cartridge = TestRomFactory.LoadCartridge();
+        var bootRom = CreateDmgBootRom(bytes =>
+        {
+            bytes[0x0000] = LoadAImmediate8Opcode;
+            bytes[0x0001] = LcdControlEnabled;
+            bytes[0x0002] = LoadHighMemoryAImmediate8Opcode;
+            bytes[0x0003] = 0x40;
+            bytes[0x0004] = JumpImmediate16Opcode;
+            bytes[0x0005] = 0x04;
+            bytes[0x0006] = 0x00;
+        });
+        var gameBoy = new GameBoy(
+            cartridge,
+            HardwareModel.Dmg,
+            new BootRomOptions { DmgBootRom = bootRom }
+        )
+        {
+            VideoRenderingEnabled = false,
+        };
+        var completedFrames = new List<LcdFrame>();
+        gameBoy.FrameCompleted += (_, e) => completedFrames.Add(e.Frame);
+
+        for (var step = 0; completedFrames.Count == 0 && step < 20_000; step++)
+        {
+            gameBoy.Step();
+        }
+
+        Assert.Single(completedFrames);
+    }
+
+    [Fact]
+    public void Step_ClearsBootRomMappedStateWhenFf50IsWritten()
+    {
+        var cartridge = TestRomFactory.LoadCartridge(bytes => bytes[0x0000] = HaltOpcode);
+        var bootRom = CreateDmgBootRom(bytes =>
+        {
+            bytes[0x0000] = LoadAImmediate8Opcode;
+            bytes[0x0001] = 0x01;
+            bytes[0x0002] = LoadHighMemoryAImmediate8Opcode;
+            bytes[0x0003] = 0x50;
+        });
+        var gameBoy = new GameBoy(
+            cartridge,
+            HardwareModel.Dmg,
+            new BootRomOptions { DmgBootRom = bootRom }
+        );
+
+        Assert.True(gameBoy.IsBootRomMapped);
+
+        gameBoy.Step();
+        gameBoy.Step();
+
+        Assert.False(gameBoy.IsBootRomMapped);
     }
 
     private static byte[] CreateDmgBootRom(Action<byte[]> configure)
