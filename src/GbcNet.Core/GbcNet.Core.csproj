@@ -2,8 +2,4 @@
   <ItemGroup>
     <InternalsVisibleTo Include="GbcNet.Tests" />
   </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="FluentResults" />
-  </ItemGroup>
 </Project>

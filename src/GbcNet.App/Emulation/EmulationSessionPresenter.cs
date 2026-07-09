@@ -5,8 +5,6 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
-using FluentResults;
-using GbcNet.App.Common;
 using GbcNet.App.Input;
 using GbcNet.App.Library;
 using GbcNet.App.Menus;
@@ -73,31 +71,26 @@ internal sealed class EmulationSessionPresenter(
     public async Task OpenRomFileAsync(IStorageFile file)
     {
         inputRouter.Clear();
-        var result = await controller.OpenRomFileAsync(file).ConfigureAwait(true);
+        var state = await controller.OpenRomFileAsync(file).ConfigureAwait(true);
 
         _loadedRomCoverPath = null;
-        ApplyRomActionResult(result);
+        ApplyRomActionResult(state);
 
-        if (
-            result.IsSuccess
-            && file.Path.IsFile
-            && result.Value.LoadedCartridgeHeader is { } cartridgeHeader
-        )
+        if (file.Path.IsFile && state.LoadedCartridgeHeader is { } cartridgeHeader)
         {
-            var recorded = libraryService.RecordLoadedRom(
-                file.Path.LocalPath,
-                result.Value.LoadedRom,
-                cartridgeHeader
-            );
-            if (recorded.IsFailed)
+            try
             {
-                statusBar.ShowError(ResultErrors.Format(recorded.Errors));
-            }
-            else
-            {
-                _loadedRomCoverPath = recorded.Value;
-                ShowLoadedRomStatus(result.Value);
+                _loadedRomCoverPath = libraryService.RecordLoadedRom(
+                    file.Path.LocalPath,
+                    state.LoadedRom,
+                    cartridgeHeader
+                );
+                ShowLoadedRomStatus(state);
                 SyncRecentRoms();
+            }
+            catch (InvalidOperationException exception)
+            {
+                statusBar.ShowError(exception.Message);
             }
         }
     }
@@ -109,10 +102,13 @@ internal sealed class EmulationSessionPresenter(
         {
             statusBar.ShowError($"Recent ROM not found: {path}");
 
-            var removed = libraryService.RemoveRomPath(path);
-            if (removed.IsFailed)
+            try
             {
-                statusBar.ShowError(ResultErrors.Format(removed.Errors));
+                libraryService.RemoveRomPath(path);
+            }
+            catch (InvalidOperationException exception)
+            {
+                statusBar.ShowError(exception.Message);
             }
 
             SyncRecentRoms();
@@ -194,15 +190,15 @@ internal sealed class EmulationSessionPresenter(
 
     public void SyncRecentRoms()
     {
-        var recentRoms = libraryService.GetRoms(RecentRomLimit);
-        if (recentRoms.IsFailed)
+        try
         {
-            statusBar.ShowError(ResultErrors.Format(recentRoms.Errors));
-            menu.SetRecentRoms([]);
-            return;
+            menu.SetRecentRoms(libraryService.GetRoms(RecentRomLimit));
         }
-
-        menu.SetRecentRoms(recentRoms.Value);
+        catch (InvalidOperationException exception)
+        {
+            statusBar.ShowError(exception.Message);
+            menu.SetRecentRoms([]);
+        }
     }
 
     private static void DragDrop_OnDragOver(object? sender, DragEventArgs e)
@@ -225,18 +221,11 @@ internal sealed class EmulationSessionPresenter(
         operationRunner.Run(() => OpenRomFileAsync(file));
     }
 
-    private void ApplyRomActionResult(Result<EmulationControllerState> result)
+    private void ApplyRomActionResult(EmulationControllerState state)
     {
-        if (result.IsFailed)
+        if (state.HasSession)
         {
-            statusBar.ShowError(ResultErrors.Format(result.Errors));
-            SyncMenuState();
-            return;
-        }
-
-        if (result.Value.HasSession)
-        {
-            ShowLoadedRomStatus(result.Value);
+            ShowLoadedRomStatus(state);
             SessionOpened?.Invoke(this, EventArgs.Empty);
         }
         SyncMenuState();

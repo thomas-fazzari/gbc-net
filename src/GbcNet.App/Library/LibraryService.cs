@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Security.Cryptography;
-using FluentResults;
 using GbcNet.App.Database;
 using GbcNet.App.Database.Entities;
 using GbcNet.Core.Cartridges;
@@ -49,28 +48,28 @@ internal sealed class LibraryService(
     private readonly string _coverDirectoryPath = Path.GetFullPath(coverDirectoryPath);
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
-    public async Task<Result<string?>> RecordOpenedRomAsync(string path)
+    public async Task<string?> RecordOpenedRomAsync(string path)
     {
         try
         {
             var fullPath = Path.GetFullPath(path);
             var rom = await File.ReadAllBytesAsync(fullPath, CancellationToken.None)
                 .ConfigureAwait(false);
-            var cartridge = Cartridge.Load(rom);
-            if (cartridge.IsFailed)
+            var load = Cartridge.Load(rom);
+            if (load.Cartridge is not { } cartridge)
             {
-                return Result.Fail(cartridge.Errors);
+                throw new InvalidOperationException(load.Error?.Message);
             }
 
-            return RecordLoadedRom(fullPath, rom, cartridge.Value.Header);
+            return RecordOpenedRomCore(fullPath, rom, cartridge.Header);
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
-            return Result.Fail(exception.Message);
+            throw CreateLibraryException(exception);
         }
     }
 
-    public Result<string?> RecordLoadedRom(
+    public string? RecordLoadedRom(
         string path,
         ReadOnlyMemory<byte> rom,
         CartridgeHeader cartridgeHeader
@@ -78,17 +77,17 @@ internal sealed class LibraryService(
     {
         try
         {
-            return Result.Ok(RecordOpenedRomCore(Path.GetFullPath(path), rom, cartridgeHeader));
+            return RecordOpenedRomCore(Path.GetFullPath(path), rom, cartridgeHeader);
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
-            return Result.Fail(exception.Message);
+            throw CreateLibraryException(exception);
         }
     }
 
-    public Result<IReadOnlyList<LibraryEntry>> GetRoms(int limit) => GetRoms(default, limit);
+    public IReadOnlyList<LibraryEntry> GetRoms(int limit) => GetRoms(default, limit);
 
-    public Result<IReadOnlyList<LibraryEntry>> GetRoms(
+    public IReadOnlyList<LibraryEntry> GetRoms(
         LibraryQuery query = default,
         int limit = int.MaxValue
     )
@@ -158,7 +157,8 @@ internal sealed class LibraryService(
                 ),
             };
 
-            return Result.Ok<IReadOnlyList<LibraryEntry>>([
+            return
+            [
                 .. orderedRoms
                     .ThenBy(rom =>
                         EF.Functions.Collate(
@@ -178,15 +178,15 @@ internal sealed class LibraryService(
                         rom.LaunchCount,
                         rom.CoverPath
                     )),
-            ]);
+            ];
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
-            return Result.Fail(exception.Message);
+            throw CreateLibraryException(exception);
         }
     }
 
-    public Result RemoveRomPath(string path)
+    public void RemoveRomPath(string path)
     {
         try
         {
@@ -205,63 +205,44 @@ internal sealed class LibraryService(
             {
                 DeleteManagedCoverFile(coverPath);
             }
-
-            return Result.Ok();
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
-            return Result.Fail(exception.Message);
+            throw CreateLibraryException(exception);
         }
     }
 
-    public Result AssignCoverImage(string romHash, string sourceImagePath)
+    public void AssignCoverImage(string romHash, string sourceImagePath)
     {
         try
         {
             var previousCoverPath = GetCoverPath(romHash);
-            if (previousCoverPath.IsFailed)
-            {
-                return Result.Fail(previousCoverPath.Errors);
-            }
-
             var imageExtension = GetSafeImageExtension(sourceImagePath);
-            if (imageExtension.IsFailed)
-            {
-                return Result.Fail(imageExtension.Errors);
-            }
 
             Directory.CreateDirectory(_coverDirectoryPath);
-            var destinationPath = Path.Combine(_coverDirectoryPath, romHash + imageExtension.Value);
+            var destinationPath = Path.Combine(_coverDirectoryPath, romHash + imageExtension);
             File.Copy(Path.GetFullPath(sourceImagePath), destinationPath, overwrite: true);
             SetCoverPath(romHash, destinationPath);
-            DeleteManagedCoverFile(previousCoverPath.Value, destinationPath);
-
-            return Result.Ok();
+            DeleteManagedCoverFile(previousCoverPath, destinationPath);
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
-            return Result.Fail(exception.Message);
+            throw CreateLibraryException(exception);
         }
     }
 
-    public Result ClearCover(string romHash)
+    public void ClearCover(string romHash)
     {
         try
         {
             var previousCoverPath = GetCoverPath(romHash);
-            if (previousCoverPath.IsFailed)
-            {
-                return Result.Fail(previousCoverPath.Errors);
-            }
 
-            DeleteManagedCoverFile(previousCoverPath.Value);
+            DeleteManagedCoverFile(previousCoverPath);
             SetCoverPath(romHash, coverPath: null);
-
-            return Result.Ok();
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
-            return Result.Fail(exception.Message);
+            throw CreateLibraryException(exception);
         }
     }
 
@@ -325,19 +306,29 @@ internal sealed class LibraryService(
         return coverPath;
     }
 
-    private Result<string?> GetCoverPath(string romHash)
+    private string? GetCoverPath(string romHash)
     {
         using var db = dbContextFactory.CreateDbContext();
-        var rom = db.Roms.SingleOrDefault(rom => rom.RomHash == romHash);
-        return rom is null ? Result.Fail($"ROM not found: {romHash}") : Result.Ok(rom.CoverPath);
+        var rom = db
+            .Roms.Where(rom => rom.RomHash == romHash)
+            .Select(rom => new { rom.CoverPath })
+            .SingleOrDefault();
+
+        return rom is null
+            ? throw new InvalidOperationException("ROM not found: " + romHash)
+            : rom.CoverPath;
     }
 
     private void SetCoverPath(string romHash, string? coverPath)
     {
         using var db = dbContextFactory.CreateDbContext();
-        var rom = db.Roms.AsTracking().Single(rom => rom.RomHash == romHash);
-        rom.SetCoverPath(coverPath);
-        db.SaveChanges();
+        if (
+            db.Roms.Where(rom => rom.RomHash == romHash)
+                .ExecuteUpdate(setters => setters.SetProperty(rom => rom.CoverPath, coverPath)) == 0
+        )
+        {
+            throw new InvalidOperationException("ROM not found: " + romHash);
+        }
     }
 
     private void DeleteManagedCoverFile(string? coverPath, string? exceptPath = null)
@@ -383,35 +374,33 @@ internal sealed class LibraryService(
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
 
-    private static Result<string> GetSafeImageExtension(string sourceImagePath)
+    private static string GetSafeImageExtension(string sourceImagePath)
     {
         var extension = Path.GetExtension(sourceImagePath);
         if (extension.Length is < 2 or > 16)
         {
-            return Result.Fail("Cover image file name has no safe extension.");
+            throw new InvalidOperationException("Cover image file name has no safe extension.");
         }
 
         for (var index = 1; index < extension.Length; index++)
         {
             if (!IsAsciiLetterOrDigit(extension[index]))
             {
-                return Result.Fail("Cover image file name has no safe extension.");
+                throw new InvalidOperationException("Cover image file name has no safe extension.");
             }
         }
 
-        return Result.Ok(
-            string.Create(
-                extension.Length,
-                extension,
-                static (lowercaseExtension, extension) =>
+        return string.Create(
+            extension.Length,
+            extension,
+            static (lowercaseExtension, extension) =>
+            {
+                lowercaseExtension[0] = '.';
+                for (var index = 1; index < extension.Length; index++)
                 {
-                    lowercaseExtension[0] = '.';
-                    for (var index = 1; index < extension.Length; index++)
-                    {
-                        lowercaseExtension[index] = ToLowerAscii(extension[index]);
-                    }
+                    lowercaseExtension[index] = ToLowerAscii(extension[index]);
                 }
-            )
+            }
         );
     }
 
@@ -442,6 +431,11 @@ internal sealed class LibraryService(
             LibraryHardwareFilter.Sgb => CartridgeHardwareKind.SGB,
             _ => throw new ArgumentOutOfRangeException(nameof(hardware), hardware, message: null),
         };
+
+    private static InvalidOperationException CreateLibraryException(Exception exception) =>
+        exception is InvalidOperationException invalidOperationException
+            ? invalidOperationException
+            : new InvalidOperationException(exception.Message, exception);
 
     private static bool IsExpectedLibraryException(Exception exception) =>
         exception

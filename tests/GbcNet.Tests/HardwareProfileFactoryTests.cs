@@ -158,9 +158,7 @@ public sealed class HardwareProfileFactoryTests
             ),
         };
 
-        var cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(TestRomFactory.Create(rom => rom[0x0143] = cgbFlag))
-        );
+        var cartridge = TestRomFactory.LoadCartridge(rom => rom[0x0143] = cgbFlag);
 
         Assert.Equal(cgbSupport, cartridge.Header.CgbSupport);
         return cartridge.Header;

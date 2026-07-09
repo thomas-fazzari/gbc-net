@@ -1,7 +1,6 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using FluentResults;
 using GbcNet.Core.Cartridges;
 
 namespace GbcNet.Tests.Cartridges;
@@ -13,7 +12,7 @@ public sealed class CartridgeTests
     {
         var rom = TestRomFactory.Create();
 
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         Assert.Equal("TEST ROM", cartridge.Header.Title);
         Assert.Equal(CgbSupport.None, cartridge.Header.CgbSupport);
@@ -29,7 +28,7 @@ public sealed class CartridgeTests
     {
         var rom = TestRomFactory.Create(bytes => bytes[0x0143] = 0x80);
 
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         Assert.Equal(CgbSupport.Enhanced, cartridge.Header.CgbSupport);
     }
@@ -43,7 +42,7 @@ public sealed class CartridgeTests
             bytes[0x0143] = 0x80;
         });
 
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         Assert.Equal("FIFTEENCHARROM!", cartridge.Header.Title);
     }
@@ -58,7 +57,7 @@ public sealed class CartridgeTests
             bytes[0x014B] = 0x33;
         });
 
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         Assert.Equal("ELEVENCHARS", cartridge.Header.Title);
     }
@@ -68,7 +67,7 @@ public sealed class CartridgeTests
     {
         var rom = TestRomFactory.Create(bytes => bytes[0x0143] = 0xC0);
 
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         Assert.Equal(CgbSupport.Required, cartridge.Header.CgbSupport);
     }
@@ -82,7 +81,7 @@ public sealed class CartridgeTests
             bytes[0x014B] = 0x33;
         });
 
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         Assert.Equal(CartridgeHardwareKind.SGB, cartridge.Header.HardwareKind);
     }
@@ -92,7 +91,7 @@ public sealed class CartridgeTests
     {
         var rom = TestRomFactory.Create(bytes => bytes[0x0146] = 0x03);
 
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         Assert.Equal(CartridgeHardwareKind.GB, cartridge.Header.HardwareKind);
     }
@@ -104,8 +103,9 @@ public sealed class CartridgeTests
 
         var result = Cartridge.Load(rom);
 
-        Assert.True(result.IsFailed);
-        Assert.Equal(CartridgeLoadErrorCode.RomTooSmall, GetErrorCode(result.Errors[0]));
+        var error =
+            result.Error ?? throw new InvalidOperationException("Expected cartridge load to fail.");
+        Assert.Equal(CartridgeLoadErrorCode.RomTooSmall, error.Code);
     }
 
     [Fact]
@@ -116,8 +116,9 @@ public sealed class CartridgeTests
 
         var result = Cartridge.Load(rom);
 
-        Assert.True(result.IsFailed);
-        Assert.Equal(CartridgeLoadErrorCode.InvalidHeaderChecksum, GetErrorCode(result.Errors[0]));
+        var error =
+            result.Error ?? throw new InvalidOperationException("Expected cartridge load to fail.");
+        Assert.Equal(CartridgeLoadErrorCode.InvalidHeaderChecksum, error.Code);
     }
 
     [Fact]
@@ -127,11 +128,9 @@ public sealed class CartridgeTests
 
         var result = Cartridge.Load(rom);
 
-        Assert.True(result.IsFailed);
-        Assert.Equal(
-            CartridgeLoadErrorCode.UnsupportedCartridgeType,
-            GetErrorCode(result.Errors[0])
-        );
+        var error =
+            result.Error ?? throw new InvalidOperationException("Expected cartridge load to fail.");
+        Assert.Equal(CartridgeLoadErrorCode.UnsupportedCartridgeType, error.Code);
     }
 
     [Fact]
@@ -141,8 +140,9 @@ public sealed class CartridgeTests
 
         var result = Cartridge.Load(rom);
 
-        Assert.True(result.IsFailed);
-        Assert.Equal(CartridgeLoadErrorCode.RomLengthMismatch, GetErrorCode(result.Errors[0]));
+        var error =
+            result.Error ?? throw new InvalidOperationException("Expected cartridge load to fail.");
+        Assert.Equal(CartridgeLoadErrorCode.RomLengthMismatch, error.Code);
     }
 
     [Fact]
@@ -159,16 +159,10 @@ public sealed class CartridgeTests
         var rom = TestRomFactory.Create();
         rom[0x0000] = 0x31;
         rom[0x4000] = 0xC3;
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         Assert.Equal(0x31, cartridge.ReadRom(0x0000));
         Assert.Equal(0xC3, cartridge.ReadRom(0x4000));
         Assert.Equal(rom[0x7FFF], cartridge.ReadRom(0x7FFF));
-    }
-
-    private static CartridgeLoadErrorCode GetErrorCode(IError error)
-    {
-        var cartridgeError = Assert.IsType<CartridgeLoadError>(error);
-        return cartridgeError.Code;
     }
 }

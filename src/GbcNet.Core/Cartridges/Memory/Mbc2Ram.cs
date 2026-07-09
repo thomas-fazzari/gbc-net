@@ -1,8 +1,8 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using FluentResults;
 
 namespace GbcNet.Core.Cartridges.Memory;
 
@@ -40,23 +40,26 @@ internal sealed class Mbc2Ram(bool hasBattery) : ICartridgeSaveData
 
     public byte[] ExportBatterySave() => hasBattery ? (byte[])_bytes.Clone() : [];
 
-    public Result ImportBatterySave(ReadOnlySpan<byte> data)
+    public bool TryImportBatterySave(
+        ReadOnlySpan<byte> data,
+        [NotNullWhen(false)] out string? errorMessage
+    )
     {
         if (!hasBattery)
         {
-            return data.IsEmpty ? Result.Ok() : Result.Fail("Cartridge has no battery-backed RAM.");
+            errorMessage = data.IsEmpty ? null : "Cartridge has no battery-backed RAM.";
+            return data.IsEmpty;
         }
 
         if (data.Length != _bytes.Length)
         {
-            return Result.Fail(
-                string.Format(
-                    CultureInfo.InvariantCulture,
-                    "Save RAM length is {0} bytes, but cartridge expects {1} bytes.",
-                    data.Length,
-                    _bytes.Length
-                )
+            errorMessage = string.Format(
+                CultureInfo.InvariantCulture,
+                "Save RAM length is {0} bytes, but cartridge expects {1} bytes.",
+                data.Length,
+                _bytes.Length
             );
+            return false;
         }
 
         for (var index = 0; index < data.Length; index++)
@@ -65,7 +68,8 @@ internal sealed class Mbc2Ram(bool hasBattery) : ICartridgeSaveData
         }
 
         _dirty = false;
-        return Result.Ok();
+        errorMessage = null;
+        return true;
     }
 
     public void ClearBatterySaveDirty()

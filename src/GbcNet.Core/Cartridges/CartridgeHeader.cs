@@ -1,9 +1,9 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
-using FluentResults;
 
 namespace GbcNet.Core.Cartridges;
 
@@ -67,53 +67,65 @@ public sealed record CartridgeHeader(
     /// <summary>
     /// Parses cartridge header fields and validates the header checksum.
     /// </summary>
-    /// <returns>
-    /// A parsed header, or a typed cartridge load error.
-    /// </returns>
-    public static Result<CartridgeHeader> Parse(ReadOnlySpan<byte> rom)
+    internal static bool TryParse(
+        ReadOnlySpan<byte> rom,
+        [NotNullWhen(true)] out CartridgeHeader? header,
+        [NotNullWhen(false)] out CartridgeLoadError? error
+    )
     {
-        var headerValidation = ValidateHeaderRangeAndChecksum(rom);
+        header = null;
 
-        if (headerValidation.IsFailed)
+        if (!ValidateHeaderRangeAndChecksum(rom, out error))
         {
-            return Result.Fail<CartridgeHeader>(headerValidation.Errors);
+            return false;
         }
 
-        var romSizeResult = DecodeRomSize(rom[RomSizeAddress]);
-        if (romSizeResult.IsFailed)
+        if (
+            !TryDecodeRomSize(
+                rom[RomSizeAddress],
+                out var romSizeBytes,
+                out var romBankCount,
+                out error
+            )
+        )
         {
-            return Result.Fail<CartridgeHeader>(romSizeResult.Errors);
+            return false;
         }
 
-        var ramSizeResult = DecodeRamSize(rom[RamSizeAddress]);
-        if (ramSizeResult.IsFailed)
+        if (
+            !TryDecodeRamSize(
+                rom[RamSizeAddress],
+                out var ramSizeBytes,
+                out var ramBankCount,
+                out error
+            )
+        )
         {
-            return Result.Fail<CartridgeHeader>(ramSizeResult.Errors);
+            return false;
         }
 
-        var (romSizeBytes, romBankCount) = romSizeResult.Value;
-        var (ramSizeBytes, ramBankCount) = ramSizeResult.Value;
         var cgbSupport = DecodeCgbSupport(rom[CgbFlagAddress]);
-
-        return Result.Ok(
-            Create(rom, cgbSupport, romSizeBytes, romBankCount, ramSizeBytes, ramBankCount)
-        );
+        header = Create(rom, cgbSupport, romSizeBytes, romBankCount, ramSizeBytes, ramBankCount);
+        error = null;
+        return true;
     }
 
-    private static Result ValidateHeaderRangeAndChecksum(ReadOnlySpan<byte> rom)
+    private static bool ValidateHeaderRangeAndChecksum(
+        ReadOnlySpan<byte> rom,
+        [NotNullWhen(false)] out CartridgeLoadError? error
+    )
     {
         if (rom.Length <= HeaderEndAddress)
         {
-            return Result.Fail(
-                new CartridgeLoadError(
-                    CartridgeLoadErrorCode.RomTooSmall,
-                    string.Format(
-                        CultureInfo.InvariantCulture,
-                        "ROM must contain at least {0} bytes to include the cartridge header.",
-                        HeaderEndAddress + 1
-                    )
+            error = new CartridgeLoadError(
+                CartridgeLoadErrorCode.RomTooSmall,
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "ROM must contain at least {0} bytes to include the cartridge header.",
+                    HeaderEndAddress + 1
                 )
             );
+            return false;
         }
 
         var expectedChecksum = CalculateHeaderChecksum(rom);
@@ -121,20 +133,20 @@ public sealed record CartridgeHeader(
 
         if (actualChecksum == expectedChecksum)
         {
-            return Result.Ok();
+            error = null;
+            return true;
         }
 
-        return Result.Fail(
-            new CartridgeLoadError(
-                CartridgeLoadErrorCode.InvalidHeaderChecksum,
-                string.Format(
-                    CultureInfo.InvariantCulture,
-                    "Header checksum is 0x{0:X2}, expected 0x{1:X2}.",
-                    actualChecksum,
-                    expectedChecksum
-                )
+        error = new CartridgeLoadError(
+            CartridgeLoadErrorCode.InvalidHeaderChecksum,
+            string.Format(
+                CultureInfo.InvariantCulture,
+                "Header checksum is 0x{0:X2}, expected 0x{1:X2}.",
+                actualChecksum,
+                expectedChecksum
             )
         );
+        return false;
     }
 
     private static CartridgeHeader Create(
@@ -229,42 +241,96 @@ public sealed record CartridgeHeader(
         return cgbSupport == CgbSupport.None ? TitleEndAddress : CgbTitleEndAddress;
     }
 
-    private static Result<(int SizeBytes, int BankCount)> DecodeRomSize(byte code) =>
-        code switch
+    private static bool TryDecodeRomSize(
+        byte code,
+        out int sizeBytes,
+        out int bankCount,
+        [NotNullWhen(false)] out CartridgeLoadError? error
+    )
+    {
+        switch (code)
         {
-            <= 0x08 => Result.Ok((32 * 1024 * (1 << code), 2 * (1 << code))),
-            0x52 => Result.Ok((1_152 * 1024, 72)),
-            0x53 => Result.Ok((1_280 * 1024, 80)),
-            0x54 => Result.Ok((1_536 * 1024, 96)),
-            _ => Result.Fail<(int SizeBytes, int BankCount)>(
-                new CartridgeLoadError(
+            case <= 0x08:
+                sizeBytes = 32 * 1024 * (1 << code);
+                bankCount = 2 * (1 << code);
+                error = null;
+                return true;
+            case 0x52:
+                sizeBytes = 1_152 * 1024;
+                bankCount = 72;
+                error = null;
+                return true;
+            case 0x53:
+                sizeBytes = 1_280 * 1024;
+                bankCount = 80;
+                error = null;
+                return true;
+            case 0x54:
+                sizeBytes = 1_536 * 1024;
+                bankCount = 96;
+                error = null;
+                return true;
+            default:
+                sizeBytes = 0;
+                bankCount = 0;
+                error = new CartridgeLoadError(
                     CartridgeLoadErrorCode.UnsupportedRomSize,
                     string.Format(
                         CultureInfo.InvariantCulture,
                         "ROM size code 0x{0:X2} is not supported.",
                         code
                     )
-                )
-            ),
-        };
+                );
+                return false;
+        }
+    }
 
-    private static Result<(int SizeBytes, int BankCount)> DecodeRamSize(byte code) =>
-        code switch
+    private static bool TryDecodeRamSize(
+        byte code,
+        out int sizeBytes,
+        out int bankCount,
+        [NotNullWhen(false)] out CartridgeLoadError? error
+    )
+    {
+        switch (code)
         {
-            0x00 => Result.Ok((0, 0)),
-            0x02 => Result.Ok((8 * 1024, 1)),
-            0x03 => Result.Ok((32 * 1024, 4)),
-            0x04 => Result.Ok((128 * 1024, 16)),
-            0x05 => Result.Ok((64 * 1024, 8)),
-            _ => Result.Fail<(int SizeBytes, int BankCount)>(
-                new CartridgeLoadError(
+            case 0x00:
+                sizeBytes = 0;
+                bankCount = 0;
+                error = null;
+                return true;
+            case 0x02:
+                sizeBytes = 8 * 1024;
+                bankCount = 1;
+                error = null;
+                return true;
+            case 0x03:
+                sizeBytes = 32 * 1024;
+                bankCount = 4;
+                error = null;
+                return true;
+            case 0x04:
+                sizeBytes = 128 * 1024;
+                bankCount = 16;
+                error = null;
+                return true;
+            case 0x05:
+                sizeBytes = 64 * 1024;
+                bankCount = 8;
+                error = null;
+                return true;
+            default:
+                sizeBytes = 0;
+                bankCount = 0;
+                error = new CartridgeLoadError(
                     CartridgeLoadErrorCode.UnsupportedRamSize,
                     string.Format(
                         CultureInfo.InvariantCulture,
                         "RAM size code 0x{0:X2} is not supported.",
                         code
                     )
-                )
-            ),
-        };
+                );
+                return false;
+        }
+    }
 }

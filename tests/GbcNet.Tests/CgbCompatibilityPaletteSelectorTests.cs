@@ -86,24 +86,18 @@ public sealed class CgbCompatibilityPaletteSelectorTests
         byte oldLicenseeCode,
         string? newLicenseeCode = null
     ) =>
-        ResultAssertions.AssertSuccess(
-            Cartridge.Load(
-                TestRomFactory.Create(bytes =>
-                {
-                    bytes.AsSpan(0x0134, 16).Clear();
-                    Encoding
-                        .ASCII.GetBytes(title[..Math.Min(title.Length, 16)])
-                        .CopyTo(bytes, 0x0134);
-                    bytes[0x014B] = oldLicenseeCode;
+        TestRomFactory.LoadCartridge(bytes =>
+        {
+            bytes.AsSpan(0x0134, 16).Clear();
+            Encoding.ASCII.GetBytes(title[..Math.Min(title.Length, 16)]).CopyTo(bytes, 0x0134);
+            bytes[0x014B] = oldLicenseeCode;
 
-                    if (newLicenseeCode is null)
-                    {
-                        return;
-                    }
+            if (newLicenseeCode is null)
+            {
+                return;
+            }
 
-                    bytes[0x0144] = (byte)newLicenseeCode[0];
-                    bytes[0x0145] = (byte)newLicenseeCode[1];
-                })
-            )
-        );
+            bytes[0x0144] = (byte)newLicenseeCode[0];
+            bytes[0x0145] = (byte)newLicenseeCode[1];
+        });
 }

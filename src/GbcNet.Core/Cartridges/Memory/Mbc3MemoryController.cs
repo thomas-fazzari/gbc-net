@@ -1,8 +1,8 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using FluentResults;
 
 namespace GbcNet.Core.Cartridges.Memory;
 
@@ -83,32 +83,34 @@ internal sealed class Mbc3MemoryController : ICartridgeMemoryController, ICartri
         return data;
     }
 
-    public Result ImportBatterySave(ReadOnlySpan<byte> data)
+    public bool TryImportBatterySave(
+        ReadOnlySpan<byte> data,
+        [NotNullWhen(false)] out string? errorMessage
+    )
     {
         if (_realTimeClock is null)
         {
-            return _externalRam.Ram.ImportBatterySave(data);
+            return _externalRam.Ram.TryImportBatterySave(data, out errorMessage);
         }
 
         if (data.Length != BatterySaveSize)
         {
-            return Result.Fail(
-                string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"Save data length is {data.Length} bytes, but cartridge expects {BatterySaveSize} bytes."
-                )
+            errorMessage = string.Create(
+                CultureInfo.InvariantCulture,
+                $"Save data length is {data.Length} bytes, but cartridge expects {BatterySaveSize} bytes."
             );
+            return false;
         }
 
         var ramSize = _externalRam.Ram.BatterySaveSize;
-        var ramImport = _externalRam.Ram.ImportBatterySave(data[..ramSize]);
-        if (ramImport.IsFailed)
+        if (!_externalRam.Ram.TryImportBatterySave(data[..ramSize], out errorMessage))
         {
-            return ramImport;
+            return false;
         }
 
         _realTimeClock.ImportState(data.Slice(ramSize, Mbc3RealTimeClock.SaveStateSize));
-        return Result.Ok();
+        errorMessage = null;
+        return true;
     }
 
     public void ClearBatterySaveDirty()

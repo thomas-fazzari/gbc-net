@@ -3,7 +3,6 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using FluentResults;
 using GbcNet.App.Audio;
 using GbcNet.Core;
 using GbcNet.Core.Apu;
@@ -23,7 +22,7 @@ internal sealed class EmulationSession
     private static readonly long _fastForwardFrameIntervalTimestamp = Stopwatch.Frequency / 60;
     private static readonly TimeSpan _stoppedCpuSleepInterval = TimeSpan.FromMilliseconds(1);
 
-    private readonly Func<Result> _flushBatterySave;
+    private readonly Action _flushBatterySave;
     private readonly Action<Exception> _handleFault;
     private readonly Action<Exception> _handleFatalFault;
     private readonly Action<FrameCompletedEventArgs> _handleFrame;
@@ -68,7 +67,7 @@ internal sealed class EmulationSession
         Action<FrameCompletedEventArgs> handleFrame,
         Action<Exception> handleFault,
         Action<Exception> handleFatalFault,
-        Func<Result> flushBatterySave
+        Action flushBatterySave
     )
     {
         _gameBoy = gameBoy;
@@ -267,15 +266,13 @@ internal sealed class EmulationSession
 
     private void FlushBatterySave()
     {
-        var result = _flushBatterySave();
-
-        if (result.IsFailed)
+        try
         {
-            _handleFault(
-                new InvalidOperationException(
-                    string.Join(Environment.NewLine, result.Errors.Select(error => error.Message))
-                )
-            );
+            _flushBatterySave();
+        }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException)
+        {
+            _handleFault(exception);
         }
     }
 

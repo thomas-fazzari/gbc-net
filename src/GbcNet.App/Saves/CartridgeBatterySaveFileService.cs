@@ -1,9 +1,9 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using FluentResults;
 using GbcNet.Core.Cartridges;
 
 namespace GbcNet.App.Saves;
@@ -24,17 +24,17 @@ internal sealed class CartridgeBatterySaveFileService
         _saveDirectoryPath = saveDirectoryPath;
     }
 
-    public Result Load(Cartridge cartridge, ReadOnlySpan<byte> rom)
+    public void Load(Cartridge cartridge, ReadOnlySpan<byte> rom)
     {
         if (!cartridge.HasBatteryBackedSave)
         {
-            return Result.Ok();
+            return;
         }
 
         var path = GetBatterySavePath(cartridge, rom);
         if (!File.Exists(path))
         {
-            return Result.Ok();
+            return;
         }
 
         try
@@ -42,24 +42,32 @@ internal sealed class CartridgeBatterySaveFileService
             var saveLength = new FileInfo(path).Length;
             if (saveLength != cartridge.BatterySaveSize)
             {
-                return Result.Fail(
-                    $"Save file is {saveLength} bytes, but cartridge expects {cartridge.BatterySaveSize} bytes."
+                throw new InvalidOperationException(
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"Save file is {saveLength} bytes, but cartridge expects {cartridge.BatterySaveSize} bytes."
+                    )
                 );
             }
 
-            return cartridge.ImportBatterySave(File.ReadAllBytes(path));
+            if (!cartridge.TryImportBatterySave(File.ReadAllBytes(path), out var errorMessage))
+            {
+                throw new InvalidOperationException(
+                    errorMessage ?? "Save file could not be imported."
+                );
+            }
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            return Result.Fail("Save file could not be read: " + exception.Message);
+            throw new IOException("Save file could not be read: " + exception.Message, exception);
         }
     }
 
-    public Result Save(Cartridge cartridge, ReadOnlySpan<byte> rom)
+    public void Save(Cartridge cartridge, ReadOnlySpan<byte> rom)
     {
         if (!cartridge.HasBatteryBackedSave || !cartridge.IsBatterySaveDirty)
         {
-            return Result.Ok();
+            return;
         }
 
         try
@@ -71,11 +79,13 @@ internal sealed class CartridgeBatterySaveFileService
             File.WriteAllBytes(temporaryPath, cartridge.ExportBatterySave());
             File.Move(temporaryPath, savePath, overwrite: true);
             cartridge.ClearBatterySaveDirty();
-            return Result.Ok();
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            return Result.Fail("Save file could not be written: " + exception.Message);
+            throw new IOException(
+                "Save file could not be written: " + exception.Message,
+                exception
+            );
         }
     }
 

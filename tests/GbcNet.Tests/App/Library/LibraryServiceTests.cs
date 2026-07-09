@@ -19,7 +19,7 @@ public sealed class LibraryServiceTests
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
 
-        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
+        await test.Library.RecordOpenedRomAsync(romPath);
 
         Assert.Contains(
             "InitialLibrarySchema",
@@ -36,11 +36,11 @@ public sealed class LibraryServiceTests
         var firstPath = await test.WriteRomAsync("first.gb", rom);
         var secondPath = await test.WriteRomAsync("second.gb", rom);
 
-        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(firstPath));
+        await test.Library.RecordOpenedRomAsync(firstPath);
         test.TimeProvider.Advance(TimeSpan.FromMinutes(1));
-        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(secondPath));
+        await test.Library.RecordOpenedRomAsync(secondPath);
 
-        var entry = Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)));
+        var entry = Assert.Single(test.Library.GetRoms(limit: 10));
         Assert.Equal(Path.GetFullPath(secondPath), entry.LastKnownPath);
         Assert.Equal("second.gb", entry.FileName);
         Assert.Equal("TEST ROM", entry.CartridgeTitle);
@@ -55,14 +55,12 @@ public sealed class LibraryServiceTests
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
-        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
-        var oldRomHash = Assert
-            .Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)))
-            .RomHash;
+        await test.Library.RecordOpenedRomAsync(romPath);
+        var oldRomHash = Assert.Single(test.Library.GetRoms(limit: 10)).RomHash;
         var sourceImagePath = await test.WriteImageAsync("old-cover.png", [0x10, 0x11, 0x12]);
-        ResultAssertions.AssertSuccess(test.Library.AssignCoverImage(oldRomHash, sourceImagePath));
+        test.Library.AssignCoverImage(oldRomHash, sourceImagePath);
         var oldCoverPath =
-            Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10))).CoverPath
+            Assert.Single(test.Library.GetRoms(limit: 10)).CoverPath
             ?? throw new InvalidOperationException("Cover path was not stored.");
         await test.WriteRomAsync(
             "game.gb",
@@ -70,9 +68,9 @@ public sealed class LibraryServiceTests
         );
 
         Assert.True(File.Exists(oldCoverPath));
-        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
+        await test.Library.RecordOpenedRomAsync(romPath);
 
-        var entry = Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)));
+        var entry = Assert.Single(test.Library.GetRoms(limit: 10));
         Assert.Equal(Path.GetFullPath(romPath), entry.LastKnownPath);
         Assert.Equal("SECOND ROM", entry.CartridgeTitle);
         Assert.Equal(1, entry.LaunchCount);
@@ -86,12 +84,12 @@ public sealed class LibraryServiceTests
     {
         using var test = new LibraryTestContext();
         var rom = TestRomFactory.Create(bytes => "MEMORY ROM"u8.CopyTo(bytes.AsSpan(0x0134)));
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = LoadCartridge(rom);
         var path = Path.Combine(Path.GetDirectoryName(test.DatabasePath)!, "memory.gb");
 
-        ResultAssertions.AssertSuccess(test.Library.RecordLoadedRom(path, rom, cartridge.Header));
+        test.Library.RecordLoadedRom(path, rom, cartridge.Header);
 
-        var entry = Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)));
+        var entry = Assert.Single(test.Library.GetRoms(limit: 10));
         Assert.Equal(Path.GetFullPath(path), entry.LastKnownPath);
         Assert.Equal("MEMORY ROM", entry.CartridgeTitle);
     }
@@ -101,20 +99,18 @@ public sealed class LibraryServiceTests
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
-        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
-        var romHash = Assert
-            .Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)))
-            .RomHash;
+        await test.Library.RecordOpenedRomAsync(romPath);
+        var romHash = Assert.Single(test.Library.GetRoms(limit: 10)).RomHash;
         var sourceImagePath = await test.WriteImageAsync("cover.png", [0x13, 0x14, 0x15]);
-        ResultAssertions.AssertSuccess(test.Library.AssignCoverImage(romHash, sourceImagePath));
+        test.Library.AssignCoverImage(romHash, sourceImagePath);
         var coverPath =
-            Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10))).CoverPath
+            Assert.Single(test.Library.GetRoms(limit: 10)).CoverPath
             ?? throw new InvalidOperationException("Cover path was not stored.");
 
         Assert.True(File.Exists(coverPath));
-        ResultAssertions.AssertSuccess(test.Library.RemoveRomPath(romPath));
+        test.Library.RemoveRomPath(romPath);
 
-        Assert.Empty(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)));
+        Assert.Empty(test.Library.GetRoms(limit: 10));
         Assert.False(File.Exists(coverPath));
     }
 
@@ -135,7 +131,7 @@ public sealed class LibraryServiceTests
             "2026-10-25T01:15:00.0000000+00:00"
         );
 
-        var entries = ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10));
+        var entries = test.Library.GetRoms(limit: 10);
 
         Assert.Collection(
             entries,
@@ -170,9 +166,7 @@ public sealed class LibraryServiceTests
             cartridgeTitle: "Puzzle"
         );
 
-        var entries = ResultAssertions.AssertSuccess(
-            test.Library.GetRoms(new LibraryQuery(SearchText: "fusion"), limit: 10)
-        );
+        var entries = test.Library.GetRoms(new LibraryQuery(SearchText: "fusion"), limit: 10);
 
         Assert.Collection(
             entries,
@@ -211,11 +205,9 @@ public sealed class LibraryServiceTests
         );
 
         var entry = Assert.Single(
-            ResultAssertions.AssertSuccess(
-                test.Library.GetRoms(
-                    new LibraryQuery(Hardware: (LibraryHardwareFilter)hardware),
-                    limit: 10
-                )
+            test.Library.GetRoms(
+                new LibraryQuery(Hardware: (LibraryHardwareFilter)hardware),
+                limit: 10
             )
         );
 
@@ -243,9 +235,7 @@ public sealed class LibraryServiceTests
         );
 
         var entry = Assert.Single(
-            ResultAssertions.AssertSuccess(
-                test.Library.GetRoms(new LibraryQuery(Cover: (LibraryCoverFilter)cover), limit: 10)
-            )
+            test.Library.GetRoms(new LibraryQuery(Cover: (LibraryCoverFilter)cover), limit: 10)
         );
 
         Assert.Equal(expectedFileName, entry.FileName);
@@ -257,8 +247,9 @@ public sealed class LibraryServiceTests
         using var test = new LibraryTestContext();
         InsertSortEntries(test.DatabasePath);
 
-        var entries = ResultAssertions.AssertSuccess(
-            test.Library.GetRoms(new LibraryQuery(Sort: LibrarySortMode.Title), limit: 10)
+        var entries = test.Library.GetRoms(
+            new LibraryQuery(Sort: LibrarySortMode.Title),
+            limit: 10
         );
 
         Assert.Collection(
@@ -275,8 +266,9 @@ public sealed class LibraryServiceTests
         using var test = new LibraryTestContext();
         InsertSortEntries(test.DatabasePath);
 
-        var entries = ResultAssertions.AssertSuccess(
-            test.Library.GetRoms(new LibraryQuery(Sort: LibrarySortMode.MostPlayed), limit: 10)
+        var entries = test.Library.GetRoms(
+            new LibraryQuery(Sort: LibrarySortMode.MostPlayed),
+            limit: 10
         );
 
         Assert.Collection(
@@ -293,8 +285,9 @@ public sealed class LibraryServiceTests
         using var test = new LibraryTestContext();
         InsertSortEntries(test.DatabasePath);
 
-        var entries = ResultAssertions.AssertSuccess(
-            test.Library.GetRoms(new LibraryQuery(Sort: LibrarySortMode.RecentlyAdded), limit: 10)
+        var entries = test.Library.GetRoms(
+            new LibraryQuery(Sort: LibrarySortMode.RecentlyAdded),
+            limit: 10
         );
 
         Assert.Collection(
@@ -310,22 +303,20 @@ public sealed class LibraryServiceTests
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
-        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
-        var romHash = Assert
-            .Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)))
-            .RomHash;
+        await test.Library.RecordOpenedRomAsync(romPath);
+        var romHash = Assert.Single(test.Library.GetRoms(limit: 10)).RomHash;
         byte[] imageBytes = [0x89, 0x50, 0x4E, 0x47];
         var sourceImagePath = await test.WriteImageAsync("cover.PNG", imageBytes);
         var expectedCoverPath = Path.Combine(test.CoverDirectoryPath, $"{romHash}.png");
 
-        ResultAssertions.AssertSuccess(test.Library.AssignCoverImage(romHash, sourceImagePath));
+        test.Library.AssignCoverImage(romHash, sourceImagePath);
 
         var copiedImageBytes = await File.ReadAllBytesAsync(
             expectedCoverPath,
             TestContext.Current.CancellationToken
         );
         Assert.Equal(imageBytes, copiedImageBytes);
-        var entry = Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)));
+        var entry = Assert.Single(test.Library.GetRoms(limit: 10));
         Assert.Equal(expectedCoverPath, entry.CoverPath);
     }
 
@@ -335,23 +326,18 @@ public sealed class LibraryServiceTests
         using var test = new LibraryTestContext();
         var rom = TestRomFactory.Create();
         var firstPath = await test.WriteRomAsync("first.gb", rom);
-        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(firstPath));
-        var romHash = Assert
-            .Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)))
-            .RomHash;
+        await test.Library.RecordOpenedRomAsync(firstPath);
+        var romHash = Assert.Single(test.Library.GetRoms(limit: 10)).RomHash;
         var sourceImagePath = await test.WriteImageAsync("cover.png", [0x01, 0x02, 0x03]);
-        ResultAssertions.AssertSuccess(test.Library.AssignCoverImage(romHash, sourceImagePath));
+        test.Library.AssignCoverImage(romHash, sourceImagePath);
         var coverPath =
-            Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10))).CoverPath
+            Assert.Single(test.Library.GetRoms(limit: 10)).CoverPath
             ?? throw new InvalidOperationException("Cover path was not stored.");
         var secondPath = await test.WriteRomAsync("second.gb", rom);
 
-        Assert.Equal(
-            coverPath,
-            ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(secondPath))
-        );
+        Assert.Equal(coverPath, await test.Library.RecordOpenedRomAsync(secondPath));
 
-        var entry = Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)));
+        var entry = Assert.Single(test.Library.GetRoms(limit: 10));
         Assert.Equal(coverPath, entry.CoverPath);
         Assert.True(File.Exists(coverPath));
     }
@@ -361,21 +347,17 @@ public sealed class LibraryServiceTests
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
-        ResultAssertions.AssertSuccess(await test.Library.RecordOpenedRomAsync(romPath));
-        var romHash = Assert
-            .Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10)))
-            .RomHash;
+        await test.Library.RecordOpenedRomAsync(romPath);
+        var romHash = Assert.Single(test.Library.GetRoms(limit: 10)).RomHash;
         var sourceImagePath = await test.WriteImageAsync("cover.png", [0x04, 0x05, 0x06]);
-        ResultAssertions.AssertSuccess(test.Library.AssignCoverImage(romHash, sourceImagePath));
+        test.Library.AssignCoverImage(romHash, sourceImagePath);
         var coverPath =
-            Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10))).CoverPath
+            Assert.Single(test.Library.GetRoms(limit: 10)).CoverPath
             ?? throw new InvalidOperationException("Cover path was not stored.");
 
-        ResultAssertions.AssertSuccess(test.Library.ClearCover(romHash));
+        test.Library.ClearCover(romHash);
 
-        Assert.Null(
-            Assert.Single(ResultAssertions.AssertSuccess(test.Library.GetRoms(limit: 10))).CoverPath
-        );
+        Assert.Null(Assert.Single(test.Library.GetRoms(limit: 10)).CoverPath);
         Assert.False(File.Exists(coverPath));
     }
 
@@ -385,9 +367,25 @@ public sealed class LibraryServiceTests
         using var test = new LibraryTestContext();
         var sourceImagePath = await test.WriteImageAsync("cover.png", [0x07, 0x08, 0x09]);
 
-        Assert.True(test.Library.AssignCoverImage("missing", sourceImagePath).IsFailed);
-        Assert.True(test.Library.ClearCover("missing").IsFailed);
+        Assert.Equal(
+            "ROM not found: missing",
+            Assert
+                .Throws<InvalidOperationException>(() =>
+                    test.Library.AssignCoverImage("missing", sourceImagePath)
+                )
+                .Message
+        );
+        Assert.Equal(
+            "ROM not found: missing",
+            Assert
+                .Throws<InvalidOperationException>(() => test.Library.ClearCover("missing"))
+                .Message
+        );
     }
+
+    private static Cartridge LoadCartridge(byte[] rom) =>
+        Cartridge.Load(rom).Cartridge
+        ?? throw new InvalidOperationException("Test ROM failed to load.");
 
     private static string[] GetAppliedMigrations(string databasePath)
     {

@@ -15,7 +15,7 @@ public sealed class Mbc1CartridgeTests
     {
         var rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)CartridgeType.Mbc1);
 
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         Assert.Equal(CartridgeType.Mbc1, cartridge.Header.CartridgeType);
     }
@@ -28,7 +28,7 @@ public sealed class Mbc1CartridgeTests
             bytes[0x0147] = (byte)CartridgeType.Mbc1;
             bytes[RomBankSize] = 0x42;
         });
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         Assert.Equal(0x42, cartridge.ReadRom(0x4000));
     }
@@ -45,7 +45,7 @@ public sealed class Mbc1CartridgeTests
                 bytes[2 * RomBankSize] = 0x22;
             }
         );
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         cartridge.WriteRom(0x2000, 0x02);
 
@@ -64,7 +64,7 @@ public sealed class Mbc1CartridgeTests
                 bytes[1 * RomBankSize] = 0x11;
             }
         );
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         cartridge.WriteRom(0x2000, 0x00);
 
@@ -83,7 +83,7 @@ public sealed class Mbc1CartridgeTests
                 bytes[1 * RomBankSize] = 0x11;
             }
         );
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         cartridge.WriteRom(0x2000, 0x10);
 
@@ -105,7 +105,7 @@ public sealed class Mbc1CartridgeTests
                 bytes[bank21 * RomBankSize] = 0x21;
             }
         );
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         cartridge.WriteRom(0x4000, 0x01);
 
@@ -126,7 +126,7 @@ public sealed class Mbc1CartridgeTests
                 bytes[(bank20 * RomBankSize) + AddressMap.CartridgeEntryPointAddress] = 0x20;
             }
         );
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         cartridge.WriteRom(0x4000, 0x01);
         cartridge.WriteRom(0x6000, 0x01);
@@ -142,7 +142,7 @@ public sealed class Mbc1CartridgeTests
             bytes[0x0147] = (byte)CartridgeType.Mbc1Ram;
             bytes[0x0149] = 0x02;
         });
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
 
@@ -162,7 +162,7 @@ public sealed class Mbc1CartridgeTests
             bytes[0x0147] = (byte)CartridgeType.Mbc1Ram;
             bytes[0x0149] = 0x03;
         });
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         cartridge.WriteRom(0x0000, 0x0A);
         cartridge.WriteRom(0x6000, 0x01);
@@ -186,7 +186,7 @@ public sealed class Mbc1CartridgeTests
             bytes[0x0147] = (byte)CartridgeType.Mbc1Ram;
             bytes[0x0149] = 0x02;
         });
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         cartridge.WriteRom(0x0000, 0x0A);
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
@@ -205,7 +205,7 @@ public sealed class Mbc1CartridgeTests
             bytes[0x0147] = (byte)CartridgeType.Mbc1RamBattery;
             bytes[0x0149] = 0x03;
         });
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         cartridge.WriteRom(0x0000, 0x0A);
         cartridge.WriteRom(0x6000, 0x01);
@@ -236,17 +236,14 @@ public sealed class Mbc1CartridgeTests
             bytes[0x0147] = (byte)CartridgeType.Mbc1RamBattery;
             bytes[0x0149] = 0x03;
         });
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
         var save = new byte[32 * 1024];
         save[0] = 0x33;
         save[AddressMap.ExternalRamWindowSize] = 0x44;
 
-        var result = cartridge.ImportBatterySave(save);
+        var result = cartridge.TryImportBatterySave(save, out var errorMessage);
 
-        Assert.True(
-            result.IsSuccess,
-            string.Join(Environment.NewLine, result.Errors.Select(error => error.Message))
-        );
+        Assert.True(result, errorMessage);
         Assert.False(cartridge.IsBatterySaveDirty);
 
         cartridge.WriteRom(0x0000, 0x0A);
@@ -265,10 +262,10 @@ public sealed class Mbc1CartridgeTests
             bytes[0x0147] = (byte)CartridgeType.Mbc1RamBattery;
             bytes[0x0149] = 0x02;
         });
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
-        var result = cartridge.ImportBatterySave(new byte[1]);
+        var result = cartridge.TryImportBatterySave(new byte[1], out _);
 
-        Assert.True(result.IsFailed);
+        Assert.False(result);
     }
 }

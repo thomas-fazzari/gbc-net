@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using Avalonia.Platform.Storage;
-using FluentResults;
 using GbcNet.App.Audio;
 using GbcNet.App.Saves;
 using GbcNet.Core;
@@ -71,24 +70,20 @@ internal sealed class EmulationController(
         ApplyFastForwardSettings();
     }
 
-    public async Task<Result<EmulationControllerState>> OpenRomFileAsync(IStorageFile file)
+    public async Task<EmulationControllerState> OpenRomFileAsync(IStorageFile file)
     {
         var rom = await ReadFileAsync(file).ConfigureAwait(true);
         await StopAsync().ConfigureAwait(true);
         var cartridge = LoadCartridge(rom);
-        if (cartridge.IsFailed)
-        {
-            return Result.Fail<EmulationControllerState>(cartridge.Errors);
-        }
 
         _loadedRom = rom;
-        _loadedCartridgeHeader = cartridge.Value.Header;
+        _loadedCartridgeHeader = cartridge.Header;
         _loadedRomFileName = file.Name;
-        Start(cartridge.Value, rom);
+        Start(cartridge, rom);
         return State;
     }
 
-    public async Task<Result<EmulationControllerState>> ResetAsync()
+    public async Task<EmulationControllerState> ResetAsync()
     {
         if (_loadedRom is null)
         {
@@ -97,13 +92,9 @@ internal sealed class EmulationController(
 
         await StopAsync().ConfigureAwait(true);
         var cartridge = LoadCartridge(_loadedRom);
-        if (cartridge.IsFailed)
-        {
-            return Result.Fail<EmulationControllerState>(cartridge.Errors);
-        }
 
-        _loadedCartridgeHeader = cartridge.Value.Header;
-        Start(cartridge.Value, _loadedRom);
+        _loadedCartridgeHeader = cartridge.Header;
+        Start(cartridge, _loadedRom);
         return State;
     }
 
@@ -131,16 +122,16 @@ internal sealed class EmulationController(
         }
     }
 
-    private Result<Cartridge> LoadCartridge(byte[] rom)
+    private Cartridge LoadCartridge(byte[] rom)
     {
-        var cartridge = Cartridge.Load(rom);
-        if (cartridge.IsFailed)
+        var load = Cartridge.Load(rom);
+        if (load.Cartridge is not { } cartridge)
         {
-            return cartridge;
+            throw new InvalidOperationException(load.Error?.Message);
         }
 
-        var save = cartridgeSaveFileService.Load(cartridge.Value, rom);
-        return save.IsFailed ? Result.Fail<Cartridge>(save.Errors) : cartridge;
+        cartridgeSaveFileService.Load(cartridge, rom);
+        return cartridge;
     }
 
     private void Start(Cartridge cartridge, byte[] rom)

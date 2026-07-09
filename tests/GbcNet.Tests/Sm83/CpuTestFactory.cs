@@ -23,9 +23,7 @@ internal static class CpuTestFactory
         IHardwareProfile? profile = null
     )
     {
-        var cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(TestRomFactory.Create(configure))
-        );
+        var cartridge = TestRomFactory.LoadCartridge(configure);
         var bus = new MemoryBus(cartridge, profile ?? DmgHardwareProfile.Instance);
         return (new Cpu(bus, tickMachineCycle), bus);
     }

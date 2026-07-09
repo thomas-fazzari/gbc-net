@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using Avalonia.Platform.Storage;
-using FluentResults;
-using GbcNet.App.Common;
 using GbcNet.App.Shell;
 
 namespace GbcNet.App.Library;
@@ -60,13 +58,13 @@ internal sealed class LibraryPresenter
             throw new NotSupportedException("Cover image must be a local file.");
         }
 
-        ThrowIfFailed(_libraryService.AssignCoverImage(entry.RomHash, files[0].Path.LocalPath));
+        _libraryService.AssignCoverImage(entry.RomHash, files[0].Path.LocalPath);
         Refresh();
     }
 
     private Task ClearCoverAsync(LibraryEntry entry)
     {
-        ThrowIfFailed(_libraryService.ClearCover(entry.RomHash));
+        _libraryService.ClearCover(entry.RomHash);
         Refresh();
         return Task.CompletedTask;
     }
@@ -78,28 +76,19 @@ internal sealed class LibraryPresenter
             return;
         }
 
-        ThrowIfFailed(_libraryService.RemoveRomPath(entry.LastKnownPath));
+        _libraryService.RemoveRomPath(entry.LastKnownPath);
         Refresh();
-    }
-
-    private static void ThrowIfFailed(Result result)
-    {
-        if (result.IsFailed)
-        {
-            throw new InvalidOperationException(ResultErrors.Format(result.Errors));
-        }
     }
 
     public void Refresh()
     {
-        var entries = _libraryService.GetRoms(_view.Query);
-        if (entries.IsSuccess)
+        try
         {
-            _view.Load(entries.Value);
+            _view.Load(_libraryService.GetRoms(_view.Query));
         }
-        else
+        catch (InvalidOperationException exception)
         {
-            _view.ShowError(ResultErrors.Format(entries.Errors));
+            _view.ShowError(exception.Message);
         }
     }
 }

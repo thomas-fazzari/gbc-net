@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core;
-using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Ppu;
+using GbcNet.Tests.Cartridges;
 
 namespace GbcNet.Tests.RomTesting.Utils;
 
@@ -20,7 +20,7 @@ internal static class VisualRomTestRunner
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(targetFrame);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxMachineCycles);
 
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
         var gameBoy = new GameBoy(cartridge, hardwareModel);
         LcdFrame? frame = null;
         var frameCount = 0;

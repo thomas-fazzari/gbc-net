@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core;
-using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware;
+using GbcNet.Tests.Cartridges;
 using GbcNet.Tests.RomTesting.Utils.ResultObservers;
 
 namespace GbcNet.Tests.RomTesting.Utils;
@@ -19,7 +19,7 @@ internal static class RomTestRunner
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxMachineCycles);
 
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
         var gameBoy = new GameBoy(cartridge, hardwareModel);
         IRomResultObserver[] observers = protocol switch
         {

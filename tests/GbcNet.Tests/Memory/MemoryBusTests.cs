@@ -1350,7 +1350,7 @@ public sealed class MemoryBusTests
 
     private static MemoryBus CreateBus(byte[] rom, IHardwareProfile profile)
     {
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
         return new MemoryBus(cartridge, profile);
     }
 

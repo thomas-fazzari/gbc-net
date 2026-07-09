@@ -24,7 +24,7 @@ public sealed class GameBoyTests
     [Fact]
     public void Step_ReturnsCpuMachineCyclesAndTicksTimer()
     {
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
+        var cartridge = TestRomFactory.LoadCartridge();
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         gameBoy.Bus.WriteByte(AddressMap.TimerControlRegister, 0b0000_0101);
 
@@ -40,15 +40,11 @@ public sealed class GameBoyTests
     [Fact]
     public void Step_ReturnsZeroAfterCpuEntersStop()
     {
-        var cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(
-                TestRomFactory.Create(bytes =>
-                {
-                    bytes[0x0100] = StopOpcode;
-                    bytes[0x0101] = 0x00;
-                })
-            )
-        );
+        var cartridge = TestRomFactory.LoadCartridge(bytes =>
+        {
+            bytes[0x0100] = StopOpcode;
+            bytes[0x0101] = 0x00;
+        });
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
 
         Assert.Equal(2, gameBoy.Step());
@@ -58,16 +54,12 @@ public sealed class GameBoyTests
     [Fact]
     public void CpuMachineCyclesPerSecond_DoublesAfterCgbSpeedSwitch()
     {
-        var cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(
-                TestRomFactory.Create(bytes =>
-                {
-                    bytes[0x0100] = StopOpcode;
-                    bytes[0x0101] = 0x00;
-                    bytes[0x0143] = 0xC0;
-                })
-            )
-        );
+        var cartridge = TestRomFactory.LoadCartridge(bytes =>
+        {
+            bytes[0x0100] = StopOpcode;
+            bytes[0x0101] = 0x00;
+            bytes[0x0143] = 0xC0;
+        });
         var gameBoy = new GameBoy(cartridge, HardwareModel.Cgb);
 
         Assert.Equal(GameBoyTiming.NormalCpuHz, gameBoy.CpuMachineCyclesPerSecond);
@@ -81,17 +73,13 @@ public sealed class GameBoyTests
     [Fact]
     public void Step_ConsumesCgbSpeedSwitchPauseWithoutAdvancingDividerThenResumesCpu()
     {
-        var cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(
-                TestRomFactory.Create(bytes =>
-                {
-                    bytes[0x0100] = StopOpcode;
-                    bytes[0x0101] = 0x00;
-                    bytes[0x0102] = IncBOpcode;
-                    bytes[0x0143] = 0xC0;
-                })
-            )
-        );
+        var cartridge = TestRomFactory.LoadCartridge(bytes =>
+        {
+            bytes[0x0100] = StopOpcode;
+            bytes[0x0101] = 0x00;
+            bytes[0x0102] = IncBOpcode;
+            bytes[0x0143] = 0xC0;
+        });
         var gameBoy = new GameBoy(cartridge, HardwareModel.Cgb);
         gameBoy.Bus.Clock.SetCounter(0xABCC);
         gameBoy.Bus.WriteByte(AddressMap.Key1Register, 0x01);
@@ -124,9 +112,7 @@ public sealed class GameBoyTests
     [Fact]
     public void Step_TicksSerial()
     {
-        var cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(TestRomFactory.Create(bytes => bytes[0x0100] = HaltOpcode))
-        );
+        var cartridge = TestRomFactory.LoadCartridge(bytes => bytes[0x0100] = HaltOpcode);
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         byte? transferredByte = null;
         gameBoy.SerialByteTransferred += (_, e) => transferredByte = e.TransferredByte;
@@ -146,7 +132,7 @@ public sealed class GameBoyTests
     [Fact]
     public void Constructor_AppliesDmgPostBootState()
     {
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
+        var cartridge = TestRomFactory.LoadCartridge();
 
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
 
@@ -158,7 +144,7 @@ public sealed class GameBoyTests
     [Fact]
     public void Constructor_WithEmptyBootRomSlotAppliesPostBootState()
     {
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
+        var cartridge = TestRomFactory.LoadCartridge();
 
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg, new BootRomOptions());
 
@@ -169,7 +155,7 @@ public sealed class GameBoyTests
     [Fact]
     public void Constructor_WithDmgBootRomStartsAtResetVector()
     {
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
+        var cartridge = TestRomFactory.LoadCartridge();
         var bootRom = CreateDmgBootRom(bytes => bytes[0x0000] = IncBOpcode);
 
         var gameBoy = new GameBoy(
@@ -190,7 +176,7 @@ public sealed class GameBoyTests
     [Fact]
     public void Constructor_RejectsInvalidSelectedBootRomSize()
     {
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
+        var cartridge = TestRomFactory.LoadCartridge();
 
         var exception = Assert.Throws<ArgumentException>(() =>
             new GameBoy(
@@ -210,9 +196,7 @@ public sealed class GameBoyTests
     [Fact]
     public void Step_UnmapsBootRomWhenFf50IsWritten()
     {
-        var cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(TestRomFactory.Create(bytes => bytes[0x0000] = HaltOpcode))
-        );
+        var cartridge = TestRomFactory.LoadCartridge(bytes => bytes[0x0000] = HaltOpcode);
         var bootRom = CreateDmgBootRom(bytes =>
         {
             bytes[0x0000] = LoadAImmediate8Opcode;
@@ -240,9 +224,7 @@ public sealed class GameBoyTests
     [Fact]
     public void Constructor_CgbHardwareWithDmgCartridgeMapsCgbBootRom()
     {
-        var cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(TestRomFactory.Create(bytes => bytes[0x0100] = HaltOpcode))
-        );
+        var cartridge = TestRomFactory.LoadCartridge(bytes => bytes[0x0100] = HaltOpcode);
         var dmgBootRom = CreateDmgBootRom(bytes => bytes[0x0000] = IncBOpcode);
         var cgbBootRom = CreateCgbBootRom(bytes =>
         {
@@ -265,8 +247,8 @@ public sealed class GameBoyTests
     [Fact]
     public void Constructor_SgbHardwareIgnoresDmgBootRomSlot()
     {
-        var cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(CreateSgbRom(bytes => bytes[0x0000] = HaltOpcode))
+        var cartridge = TestRomFactory.LoadCartridge(
+            CreateSgbRom(bytes => bytes[0x0000] = HaltOpcode)
         );
         var dmgBootRom = CreateDmgBootRom(bytes => bytes[0x0000] = IncBOpcode);
 
@@ -285,8 +267,8 @@ public sealed class GameBoyTests
     [Fact]
     public void Constructor_SgbHardwareMapsSgbBootRomSlot()
     {
-        var cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(CreateSgbRom(bytes => bytes[0x0000] = HaltOpcode))
+        var cartridge = TestRomFactory.LoadCartridge(
+            CreateSgbRom(bytes => bytes[0x0000] = HaltOpcode)
         );
         var dmgBootRom = CreateDmgBootRom(bytes => bytes[0x0000] = HaltOpcode);
         var sgbBootRom = CreateSgbBootRom(bytes => bytes[0x0000] = IncBOpcode);
@@ -304,7 +286,7 @@ public sealed class GameBoyTests
     [Fact]
     public void Joypad_SgbMltReqEnablesPlayerIdReadback()
     {
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(CreateSgbRom()));
+        var cartridge = TestRomFactory.LoadCartridge(CreateSgbRom());
         var gameBoy = new GameBoy(cartridge, HardwareModel.Sgb);
 
         WriteSgbPacket(gameBoy, 0x11, [0x01]);
@@ -322,7 +304,7 @@ public sealed class GameBoyTests
     [Fact]
     public void TickPpu_SgbAppliesPaletteToCompletedFrame()
     {
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(CreateSgbRom()));
+        var cartridge = TestRomFactory.LoadCartridge(CreateSgbRom());
         var gameBoy = new GameBoy(cartridge, HardwareModel.Sgb);
         WriteSgbPacket(
             gameBoy,
@@ -358,7 +340,7 @@ public sealed class GameBoyTests
     [Fact]
     public void TickPpu_SgbCapturesPaletteTransferFromScreen()
     {
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(CreateSgbRom()));
+        var cartridge = TestRomFactory.LoadCartridge(CreateSgbRom());
         var gameBoy = new GameBoy(cartridge, HardwareModel.Sgb);
         var transferData = new byte[4096];
         WriteSgbPaletteTransfer(transferData, paletteId: 9, 0x1234, 0x2345, 0x3456, 0x4567);
@@ -377,7 +359,7 @@ public sealed class GameBoyTests
     [Fact]
     public void TickPpu_SgbCapturesAttributeTransferFromScreen()
     {
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(CreateSgbRom()));
+        var cartridge = TestRomFactory.LoadCartridge(CreateSgbRom());
         var gameBoy = new GameBoy(cartridge, HardwareModel.Sgb);
         WriteSgbPacket(
             gameBoy,
@@ -419,7 +401,7 @@ public sealed class GameBoyTests
     [Fact]
     public void TickPpu_SgbPalSetCanApplyAttributeFile()
     {
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(CreateSgbRom()));
+        var cartridge = TestRomFactory.LoadCartridge(CreateSgbRom());
         var gameBoy = new GameBoy(cartridge, HardwareModel.Sgb);
         var paletteTransfer = new byte[4096];
         var attributeTransfer = new byte[4096];
@@ -445,7 +427,7 @@ public sealed class GameBoyTests
     [Fact]
     public void TickPpu_SgbCapturesBorderTransferFromScreen()
     {
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(CreateSgbRom()));
+        var cartridge = TestRomFactory.LoadCartridge(CreateSgbRom());
         var gameBoy = new GameBoy(cartridge, HardwareModel.Sgb);
         var tileTransfer = new byte[4096];
         var mapTransfer = new byte[4096];
@@ -475,7 +457,7 @@ public sealed class GameBoyTests
     [Fact]
     public void DrainAudioSamples_ReturnsProducedSamples()
     {
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
+        var cartridge = TestRomFactory.LoadCartridge();
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         var destination = new ApuStereoSample[1];
 
@@ -488,7 +470,7 @@ public sealed class GameBoyTests
     [Fact]
     public void DrainAudioSamples_PreservesSamplesThatDoNotFit()
     {
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
+        var cartridge = TestRomFactory.LoadCartridge();
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         var firstDrain = new ApuStereoSample[1];
         var secondDrain = new ApuStereoSample[2];
@@ -502,7 +484,7 @@ public sealed class GameBoyTests
     [Fact]
     public void DrainAudioSamples_ReturnsZeroWhenEmpty()
     {
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
+        var cartridge = TestRomFactory.LoadCartridge();
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         Span<ApuStereoSample> destination = stackalloc ApuStereoSample[1];
 
@@ -512,7 +494,7 @@ public sealed class GameBoyTests
     [Fact]
     public void SetButtonState_UpdatesJoypadInputState()
     {
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(TestRomFactory.Create()));
+        var cartridge = TestRomFactory.LoadCartridge();
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x10);
 
@@ -524,16 +506,12 @@ public sealed class GameBoyTests
     [Fact]
     public void Step_RaisesFrameCompletedAfterCpuInstruction()
     {
-        var cartridge = ResultAssertions.AssertSuccess(
-            Cartridge.Load(
-                TestRomFactory.Create(bytes =>
-                {
-                    bytes[0x0100] = JumpImmediate16Opcode;
-                    bytes[0x0101] = 0x00;
-                    bytes[0x0102] = 0x01;
-                })
-            )
-        );
+        var cartridge = TestRomFactory.LoadCartridge(bytes =>
+        {
+            bytes[0x0100] = JumpImmediate16Opcode;
+            bytes[0x0101] = 0x00;
+            bytes[0x0102] = 0x01;
+        });
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         var completedFrames = new List<LcdFrame>();
         gameBoy.FrameCompleted += (_, e) => completedFrames.Add(e.Frame);

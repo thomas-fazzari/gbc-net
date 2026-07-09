@@ -19,7 +19,7 @@ public sealed class NoMbcCartridgeTests
             bytes[0x0149] = 0x02;
         });
 
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         Assert.Equal(cartridgeType, cartridge.Header.CartridgeType);
         Assert.Equal(8 * 1024, cartridge.Header.RamSizeBytes);
@@ -33,7 +33,7 @@ public sealed class NoMbcCartridgeTests
             bytes[0x0147] = (byte)CartridgeType.RomRam;
             bytes[0x0149] = 0x02;
         });
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
 
@@ -44,7 +44,7 @@ public sealed class NoMbcCartridgeTests
     public void ReadWriteRam_ReturnsFFWhenNoRomRamIsConnected()
     {
         var rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)CartridgeType.RomRam);
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
 
@@ -59,7 +59,7 @@ public sealed class NoMbcCartridgeTests
             bytes[0x0147] = (byte)CartridgeType.RomRam;
             bytes[0x0149] = 0x02;
         });
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
 
@@ -77,7 +77,7 @@ public sealed class NoMbcCartridgeTests
             bytes[0x0147] = (byte)CartridgeType.RomRamBattery;
             bytes[0x0149] = 0x02;
         });
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x11);
         cartridge.WriteRam(AddressMap.ExternalRamStart + 0x0100, 0x22);
@@ -90,13 +90,10 @@ public sealed class NoMbcCartridgeTests
         Assert.Equal(0x11, save[0]);
         Assert.Equal(0x22, save[0x0100]);
 
-        var reloaded = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
-        var import = reloaded.ImportBatterySave(save);
+        var reloaded = TestRomFactory.LoadCartridge(rom);
+        var import = reloaded.TryImportBatterySave(save, out var errorMessage);
 
-        Assert.True(
-            import.IsSuccess,
-            string.Join(Environment.NewLine, import.Errors.Select(error => error.Message))
-        );
+        Assert.True(import, errorMessage);
         Assert.False(reloaded.IsBatterySaveDirty);
         Assert.Equal(0x11, reloaded.ReadRam(AddressMap.ExternalRamStart));
         Assert.Equal(0x22, reloaded.ReadRam(AddressMap.ExternalRamStart + 0x0100));
@@ -116,10 +113,10 @@ public sealed class NoMbcCartridgeTests
             bytes[0x0147] = (byte)CartridgeType.RomRamBattery;
             bytes[0x0149] = 0x02;
         });
-        var cartridge = ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+        var cartridge = TestRomFactory.LoadCartridge(rom);
 
-        var result = cartridge.ImportBatterySave(new byte[1]);
+        var result = cartridge.TryImportBatterySave(new byte[1], out _);
 
-        Assert.True(result.IsFailed);
+        Assert.False(result);
     }
 }

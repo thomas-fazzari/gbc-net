@@ -1,7 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using FluentResults;
+using System.Diagnostics.CodeAnalysis;
 
 namespace GbcNet.Core.Cartridges.Memory;
 
@@ -33,7 +33,10 @@ internal interface ICartridgeSaveData
     /// <summary>
     /// Imports battery-backed state and validates the payload format and length.
     /// </summary>
-    Result ImportBatterySave(ReadOnlySpan<byte> data);
+    bool TryImportBatterySave(
+        ReadOnlySpan<byte> data,
+        [NotNullWhen(false)] out string? errorMessage
+    );
 
     /// <summary>
     /// Marks battery-backed state as clean after it has been persisted.

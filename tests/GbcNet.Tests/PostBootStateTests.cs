@@ -278,8 +278,7 @@ public sealed class PostBootStateTests
         return (new Cpu(bus), bus);
     }
 
-    private static Cartridge LoadCartridge(byte[] rom) =>
-        ResultAssertions.AssertSuccess(Cartridge.Load(rom));
+    private static Cartridge LoadCartridge(byte[] rom) => TestRomFactory.LoadCartridge(rom);
 
     private static byte[] CreateSgbRom() =>
         TestRomFactory.Create(bytes =>
