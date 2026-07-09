@@ -33,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AvaloniaResource Include="Assets\Fonts\HankenGrotesk.ttf" />
+    <AvaloniaResource Include="Assets\Fonts\Cabin-*.ttf" />
+    <None Include="Assets\Fonts\Cabin-OFL.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

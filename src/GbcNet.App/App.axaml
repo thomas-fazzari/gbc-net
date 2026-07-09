@@ -13,9 +13,7 @@
   </NativeMenu.Menu>
 
   <Application.Resources>
-    <FontFamily x:Key="AppFont">
-      avares://GbcNet/Assets/Fonts/HankenGrotesk.ttf#Hanken Grotesk
-    </FontFamily>
+    <FontFamily x:Key="AppFont">avares://GbcNet/Assets/Fonts#Cabin</FontFamily>
   </Application.Resources>
 
   <Application.Styles>

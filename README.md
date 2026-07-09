@@ -1,7 +1,6 @@
 <h1 align="center">
   GBC.Net
   <br/>
-  <img src="https://img.shields.io/badge/Status-Work%20in%20progress-orange?style=flat-square&labelColor=11111B" alt="Work in Progress">
   <a href="https://github.com/thomas-fazzari/gbc-net/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/thomas-fazzari/gbc-net/ci.yml?branch=master&style=flat-square&labelColor=11111B&label=CI&logo=githubactions&logoColor=white" alt="CI"></a>
   <a href="https://codecov.io/gh/thomas-fazzari/gbc-net"><img src="https://img.shields.io/codecov/c/github/thomas-fazzari/gbc-net?style=flat-square&labelColor=11111B&label=Coverage&logo=codecov&logoColor=white" alt="Coverage"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0--only-313244?style=flat-square&labelColor=11111B&logo=gnu&logoColor=white" alt="GPL-3.0-only License"></a>
@@ -14,7 +13,7 @@
   <img src="docs/assets/emulation.png" alt="GBC.Net in-game" width="600" />
 </p>
 
-<h2>Active Development</h2>
+<h2>🛠️ Work in Progress</h2>
 <p>
   This project is under active development. Core emulation is functional, but some features are incomplete and bugs are expected.
 </p>
