@@ -16,7 +16,6 @@
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
-    <PackageReference Include="KdlSharp" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -35,9 +34,5 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\Fonts\HankenGrotesk.ttf" />
-    <EmbeddedResource
-      Include="Configuration\Templates\config.kdl"
-      LogicalName="GbcNet.App.Configuration.Templates.config.kdl"
-    />
   </ItemGroup>
 </Project>

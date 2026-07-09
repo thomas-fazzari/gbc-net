@@ -1,13 +1,14 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Text.Json;
 using Avalonia.Input;
-using GbcNet.App;
 using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.App.Input;
 using GbcNet.Core;
+using GbcNet.Core.Hardware;
 using GbcNet.Core.Joypad;
 
 namespace GbcNet.Tests.App.Configuration;
@@ -15,7 +16,7 @@ namespace GbcNet.Tests.App.Configuration;
 public sealed class AppConfigurationIntegrationTests
 {
     [Fact]
-    public void Load_CreatesDefaultConfigFileAndBuildsInputMap()
+    public void Load_CreatesDefaultJsonConfigFile()
     {
         var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
         var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
@@ -26,33 +27,18 @@ public sealed class AppConfigurationIntegrationTests
 
             Assert.Null(startupConfiguration.StartupErrorMessage);
             Assert.True(File.Exists(configPath));
-            var configText = File.ReadAllText(configPath);
-            Assert.Contains(
-                $"{InputConfigSchema.InputNodeName} {InputConfigSchema.VersionPropertyName}=1",
-                configText,
-                StringComparison.Ordinal
+            using var configJson = JsonDocument.Parse(File.ReadAllText(configPath));
+            var root = configJson.RootElement;
+            Assert.True(root.TryGetProperty("input", out var input));
+            Assert.Equal(1, input.GetProperty("version").GetInt32());
+            Assert.True(input.TryGetProperty("activeProfile", out var activeProfile));
+            Assert.Equal(JsonValueKind.String, activeProfile.ValueKind);
+            Assert.True(
+                input.GetProperty("profiles").TryGetProperty(activeProfile.GetString()!, out _)
             );
-            Assert.Contains(
-                BootRomConfigSchema.BootRomNodeName,
-                configText,
-                StringComparison.Ordinal
-            );
+            Assert.True(root.TryGetProperty("bootRoms", out var bootRoms));
+            Assert.Equal(JsonValueKind.Object, bootRoms.ValueKind);
             AssertInputConfigIsValid(startupConfiguration.InputConfig);
-
-            var inputMap = InputMap.FromConfig(startupConfiguration.InputConfig);
-
-            Assert.Equal(8, inputMap.Bindings.Count);
-            Assert.Contains(
-                inputMap.Bindings,
-                binding => binding is { Button: JoypadButton.A, Key: Key.Z }
-            );
-            Assert.Contains(
-                inputMap.Bindings,
-                binding => binding is { Button: JoypadButton.Start, Key: Key.Enter }
-            );
-            Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
-            Assert.True(startupConfiguration.BootRomOptions.CgbBootRom.IsEmpty);
-            Assert.True(startupConfiguration.BootRomOptions.SgbBootRom.IsEmpty);
         }
         finally
         {
@@ -101,6 +87,56 @@ public sealed class AppConfigurationIntegrationTests
             Assert.Equal(0xD0, startupConfiguration.BootRomOptions.DmgBootRom.Span[0]);
             Assert.Equal(0xC0, startupConfiguration.BootRomOptions.CgbBootRom.Span[0]);
             Assert.Equal(0x50, startupConfiguration.BootRomOptions.SgbBootRom.Span[0]);
+        }
+        finally
+        {
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
+        }
+    }
+
+    [Fact]
+    public void Load_UsesActiveInputProfileFromMultipleProfiles()
+    {
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
+        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
+
+        try
+        {
+            Directory.CreateDirectory(tempDirectory);
+            File.WriteAllText(
+                configPath,
+                """
+                {
+                  "input": {
+                    "version": 1,
+                    "activeProfile": "alternate",
+                    "profiles": {
+                      "default": {
+                        "keyboard": [
+                          { "button": "a", "key": "Z" }
+                        ]
+                      },
+                      "alternate": {
+                        "keyboard": [
+                          { "button": "b", "key": "X" }
+                        ]
+                      }
+                    }
+                  },
+                  "bootRoms": {}
+                }
+                """
+            );
+
+            var startupConfiguration = StartupConfigurationLoader.Load(configPath);
+
+            Assert.Null(startupConfiguration.StartupErrorMessage);
+            Assert.Equal("alternate", startupConfiguration.InputConfig.ActiveProfile);
+            Assert.Equal(2, startupConfiguration.InputConfig.Profiles.Count);
+            var inputMap = InputMap.FromConfig(startupConfiguration.InputConfig);
+            var binding = Assert.Single(inputMap.Bindings);
+            Assert.Equal(JoypadButton.B, binding.Button);
+            Assert.Equal(Key.X, binding.Key);
         }
         finally
         {
@@ -172,7 +208,7 @@ public sealed class AppConfigurationIntegrationTests
         {
             Profiles = new Dictionary<string, InputProfileConfig>(StringComparer.Ordinal)
             {
-                [InputConfigSchema.DefaultProfileName] = new(),
+                [InputConfig.DefaultProfileName] = new(),
             },
         };
 
@@ -199,37 +235,45 @@ public sealed class AppConfigurationIntegrationTests
         string? sgbBootRomPath
     )
     {
-        var bootRomLines = new List<string>();
-        AddBootRomLine(BootRomConfigSchema.DmgNodeName, dmgBootRomPath);
-        AddBootRomLine(BootRomConfigSchema.CgbNodeName, cgbBootRomPath);
-        AddBootRomLine(BootRomConfigSchema.SgbNodeName, sgbBootRomPath);
+        var bootRomProperties = new List<string>();
+        AddBootRomProperty(HardwareModel.Dmg, dmgBootRomPath);
+        AddBootRomProperty(HardwareModel.Cgb, cgbBootRomPath);
+        AddBootRomProperty(HardwareModel.Sgb, sgbBootRomPath);
+        var bootRomsJson = string.Join("," + Environment.NewLine, bootRomProperties);
 
         return $$"""
-            {{InputConfigSchema.InputNodeName}} {{InputConfigSchema.VersionPropertyName}}=1 {
-              {{InputConfigSchema.ProfileNodeName}} "{{InputConfigSchema.DefaultProfileName}}" {
-                {{InputConfigSchema.KeyboardNodeName}} {
-                  {{InputConfigSchema.BindNodeName}} "up" {{InputConfigSchema.KeyPropertyName}}="Up"
-                  {{InputConfigSchema.BindNodeName}} "down" {{InputConfigSchema.KeyPropertyName}}="Down"
-                  {{InputConfigSchema.BindNodeName}} "left" {{InputConfigSchema.KeyPropertyName}}="Left"
-                  {{InputConfigSchema.BindNodeName}} "right" {{InputConfigSchema.KeyPropertyName}}="Right"
-                  {{InputConfigSchema.BindNodeName}} "a" {{InputConfigSchema.KeyPropertyName}}="Z"
-                  {{InputConfigSchema.BindNodeName}} "b" {{InputConfigSchema.KeyPropertyName}}="X"
-                  {{InputConfigSchema.BindNodeName}} "start" {{InputConfigSchema.KeyPropertyName}}="Enter"
-                  {{InputConfigSchema.BindNodeName}} "select" {{InputConfigSchema.KeyPropertyName}}="Back"
+            {
+              "input": {
+                "version": 1,
+                "activeProfile": "{{InputConfig.DefaultProfileName}}",
+                "profiles": {
+                  "{{InputConfig.DefaultProfileName}}": {
+                    "keyboard": [
+                      { "button": "up", "key": "Up" },
+                      { "button": "down", "key": "Down" },
+                      { "button": "left", "key": "Left" },
+                      { "button": "right", "key": "Right" },
+                      { "button": "a", "key": "Z" },
+                      { "button": "b", "key": "X" },
+                      { "button": "start", "key": "Enter" },
+                      { "button": "select", "key": "Back" }
+                    ]
+                  }
                 }
+              },
+              "bootRoms": {
+            {{bootRomsJson}}
               }
-            }
-
-            {{BootRomConfigSchema.BootRomNodeName}} {
-            {{string.Join(Environment.NewLine, bootRomLines)}}
             }
             """;
 
-        void AddBootRomLine(string nodeName, string? path)
+        void AddBootRomProperty(HardwareModel model, string? path)
         {
             if (path is not null)
             {
-                bootRomLines.Add("  " + nodeName + " \"" + path + "\"");
+                bootRomProperties.Add(
+                    $"""    "{BootRomConfig.JsonName(model)}": {JsonSerializer.Serialize(path)}"""
+                );
             }
         }
     }

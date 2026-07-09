@@ -8,13 +8,13 @@ namespace GbcNet.App.Configuration;
 /// </summary>
 internal static class UserDataPaths
 {
-    internal const string ConfigFileName = "config.kdl";
+    internal const string ConfigFileName = "config.json";
 
     private const string LinuxDirectoryName = "gbc-net";
     private const string DesktopDirectoryName = "GbcNet";
     private const string SaveDirectoryName = "saves";
     private const string CoverDirectoryName = "covers";
-    private const string LibraryDatabaseFileName = "library.sqlite";
+    private const string LibraryDatabaseFileName = "gbcnet.sqlite";
 
     /// <summary>
     /// Per-user configuration file path for the current OS.

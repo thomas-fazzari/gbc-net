@@ -478,7 +478,7 @@ public sealed class LibraryServiceTests
 
         private string DirectoryPath { get; } = TestDirectories.GetTemporaryDirectoryPath();
 
-        public string DatabasePath => Path.Combine(DirectoryPath, "library.sqlite");
+        public string DatabasePath => Path.Combine(DirectoryPath, "gbcnet.sqlite");
 
         public string CoverDirectoryPath => Path.Combine(DirectoryPath, "covers");
 

@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Shell.Chrome;
+using GbcNet.Core.Hardware;
 
 namespace GbcNet.App.Configuration;
 
@@ -78,9 +79,9 @@ internal sealed partial class SettingsWindow : Window
             RowSpacing = 12,
             ColumnSpacing = 8,
         };
-        AddPathRow(form, row: 0, "DMG", _dmgBootRomPathTextBox, "Select DMG boot ROM");
-        AddPathRow(form, row: 1, "CGB", _cgbBootRomPathTextBox, "Select CGB boot ROM");
-        AddPathRow(form, row: 2, "SGB", _sgbBootRomPathTextBox, "Select SGB boot ROM");
+        AddPathRow(form, row: 0, HardwareModel.Dmg, _dmgBootRomPathTextBox);
+        AddPathRow(form, row: 1, HardwareModel.Cgb, _cgbBootRomPathTextBox);
+        AddPathRow(form, row: 2, HardwareModel.Sgb, _sgbBootRomPathTextBox);
 
         var footer = new StackPanel
         {
@@ -154,8 +155,9 @@ internal sealed partial class SettingsWindow : Window
             FocusAdorner = null,
         };
 
-    private void AddPathRow(Grid form, int row, string label, TextBox pathBox, string pickerTitle)
+    private void AddPathRow(Grid form, int row, HardwareModel model, TextBox pathBox)
     {
+        var label = BootRomConfig.DisplayName(model);
         var labelBlock = AppChrome.TextBlock(label, AppChrome.Text, fontSize: 13);
         form.Children.Add(labelBlock);
         Grid.SetRow(labelBlock, row);
@@ -167,7 +169,7 @@ internal sealed partial class SettingsWindow : Window
 
         var browseButton = AppChrome.Button("Browse");
         browseButton.Click += async (_, _) =>
-            await BrowseBootRomAsync(pathBox, pickerTitle).ConfigureAwait(true);
+            await BrowseBootRomAsync(pathBox, $"Select {label} boot ROM").ConfigureAwait(true);
         form.Children.Add(browseButton);
         Grid.SetRow(browseButton, row);
         Grid.SetColumn(browseButton, 2);

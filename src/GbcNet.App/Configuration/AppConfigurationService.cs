@@ -1,23 +1,86 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using GbcNet.App.Configuration.Kdl;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.Core;
+using GbcNet.Core.Hardware;
 
 namespace GbcNet.App.Configuration;
 
 internal sealed class AppConfigurationService(string configPath)
 {
     public BootRomConfig LoadBootRomConfig() =>
-        BootRomConfigReader.ReadConfig(KdlConfigurationFile.LoadOrCreate(configPath));
+        BootRomConfig.FromDictionary(AppConfigurationFile.LoadOrCreate(configPath).BootRoms);
 
     public BootRomOptions LoadBootRomOptions() =>
-        BootRomConfigReader.ReadBootRomOptions(
-            KdlConfigurationFile.LoadOrCreate(configPath),
+        LoadBootRomOptions(
+            LoadBootRomConfig(),
             Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory
         );
 
-    public void SaveBootRomConfig(BootRomConfig config) =>
-        BootRomConfigWriter.Write(configPath, config);
+    public void SaveBootRomConfig(BootRomConfig config)
+    {
+        var appConfig = AppConfigurationFile.LoadOrCreate(configPath);
+        appConfig.BootRoms = config.ToDictionary();
+        AppConfigurationFile.Save(configPath, appConfig);
+    }
+
+    internal static BootRomOptions LoadBootRomOptions(
+        BootRomConfig config,
+        string configDirectoryPath
+    ) =>
+        new()
+        {
+            DmgBootRom = ReadBootRom(config, HardwareModel.Dmg, configDirectoryPath),
+            CgbBootRom = ReadBootRom(config, HardwareModel.Cgb, configDirectoryPath),
+            SgbBootRom = ReadBootRom(config, HardwareModel.Sgb, configDirectoryPath),
+        };
+
+    private static ReadOnlyMemory<byte> ReadBootRom(
+        BootRomConfig config,
+        HardwareModel model,
+        string configDirectoryPath
+    )
+    {
+        var path = config.GetPath(model);
+        var label = BootRomConfig.DisplayName(model);
+        var expectedLength = BootRomConfig.Size(model);
+        if (path is null)
+        {
+            return default;
+        }
+
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new ConfigurationException($"{label} boot ROM path must not be empty.");
+        }
+
+        byte[] bytes;
+        try
+        {
+            var resolvedPath = Path.IsPathFullyQualified(path)
+                ? path
+                : Path.GetFullPath(Path.Combine(configDirectoryPath, path));
+            bytes = File.ReadAllBytes(resolvedPath);
+        }
+        catch (Exception exception) when (IsExpectedPathException(exception))
+        {
+            throw new ConfigurationException(
+                $"{label} boot ROM file could not be read: {exception.Message}"
+            );
+        }
+
+        return bytes.Length == expectedLength
+            ? bytes
+            : throw new ConfigurationException(
+                $"{label} boot ROM must be {expectedLength} bytes, but was {bytes.Length} bytes."
+            );
+    }
+
+    private static bool IsExpectedPathException(Exception exception) =>
+        exception
+            is IOException
+                or UnauthorizedAccessException
+                or ArgumentException
+                or NotSupportedException;
 }

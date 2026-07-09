@@ -18,6 +18,7 @@ internal static class DependencyInjection
         var services = new ServiceCollection();
         services.AddLogging(static builder => builder.AddDebug());
         services.AddSingleton(startupConfiguration);
+        services.AddSingleton(_ => new AppConfigurationService(startupConfiguration.ConfigPath));
 
         foreach (var module in DiscoverModules())
         {

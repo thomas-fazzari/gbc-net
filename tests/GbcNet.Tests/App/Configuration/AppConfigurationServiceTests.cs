@@ -1,12 +1,14 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using GbcNet.App;
+using System.Text.Json;
 using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.BootRom;
+using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.Core;
+using GbcNet.Core.Hardware;
 
-namespace GbcNet.Tests.App.ConfigurationService;
+namespace GbcNet.Tests.App.Configuration;
 
 public sealed class AppConfigurationServiceTests
 {
@@ -26,6 +28,95 @@ public sealed class AppConfigurationServiceTests
             var config = service.LoadBootRomConfig();
 
             Assert.Equal(new BootRomConfig("dmg.bin", "cgb.bin", "sgb.bin"), config);
+        }
+        finally
+        {
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
+        }
+    }
+
+    [Fact]
+    public void SaveBootRomConfig_PreservesInputProfiles()
+    {
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
+        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
+
+        try
+        {
+            Directory.CreateDirectory(tempDirectory);
+            File.WriteAllText(
+                configPath,
+                $$"""
+                {
+                  "input": {
+                    "version": 1,
+                    "activeProfile": "alternate",
+                    "profiles": {
+                      "default": {
+                        "keyboard": [
+                          { "button": "a", "key": "Z" }
+                        ]
+                      },
+                      "alternate": {
+                        "keyboard": [
+                          { "button": "b", "key": "X" }
+                        ]
+                      }
+                    }
+                  },
+                  "bootRoms": {
+                    "{{BootRomConfig.JsonName(HardwareModel.Dmg)}}": "old-dmg.bin"
+                  }
+                }
+                """
+            );
+            var service = new AppConfigurationService(configPath);
+
+            service.SaveBootRomConfig(
+                new BootRomConfig("new-dmg.bin", "new-cgb.bin", "new-sgb.bin")
+            );
+
+            var appConfig = AppConfigurationFile.Load(configPath);
+            Assert.Equal(
+                new BootRomConfig("new-dmg.bin", "new-cgb.bin", "new-sgb.bin"),
+                BootRomConfig.FromDictionary(appConfig.BootRoms)
+            );
+            Assert.Equal("alternate", appConfig.Input.ActiveProfile);
+            Assert.Equal(2, appConfig.Input.Profiles.Count);
+            var binding = Assert.Single(appConfig.Input.Profiles["alternate"].Keyboard);
+            Assert.Equal(new KeyboardInputBindingConfig("b", "X"), binding);
+        }
+        finally
+        {
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
+        }
+    }
+
+    [Fact]
+    public void SaveBootRomConfig_WritesJsonThatRoundTripsEscapedPaths()
+    {
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
+        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
+        const string dmgPath = "dir\\boot\"rom.bin";
+
+        try
+        {
+            Directory.CreateDirectory(tempDirectory);
+            var service = new AppConfigurationService(configPath);
+
+            service.SaveBootRomConfig(new BootRomConfig(dmgPath, CgbPath: "cgb.bin"));
+
+            using var json = JsonDocument.Parse(File.ReadAllText(configPath));
+            Assert.Equal(
+                dmgPath,
+                json.RootElement.GetProperty("bootRoms")
+                    .GetProperty(BootRomConfig.JsonName(HardwareModel.Dmg))
+                    .GetString()
+            );
+            Assert.Equal(
+                new BootRomConfig(dmgPath, CgbPath: "cgb.bin"),
+                service.LoadBootRomConfig()
+            );
         }
         finally
         {
@@ -73,7 +164,7 @@ public sealed class AppConfigurationServiceTests
     }
 
     [Fact]
-    public void LoadBootRomConfig_ThrowsForInvalidBootRomSection()
+    public void LoadBootRomConfig_ThrowsForUnknownBootRomProperty()
     {
         var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
         var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
@@ -84,8 +175,10 @@ public sealed class AppConfigurationServiceTests
             File.WriteAllText(
                 configPath,
                 """
-                boot_roms {
-                  invalid "boot.bin"
+                {
+                  "bootRoms": {
+                    "invalid": "boot.bin"
+                  }
                 }
                 """
             );
@@ -95,7 +188,7 @@ public sealed class AppConfigurationServiceTests
                 service.LoadBootRomConfig()
             );
 
-            Assert.Contains("does not allow child", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("could not be parsed", exception.Message, StringComparison.Ordinal);
         }
         finally
         {

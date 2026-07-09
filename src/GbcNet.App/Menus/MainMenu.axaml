@@ -15,7 +15,7 @@
       <MenuItem Header="_Settings">
         <MenuItem x:Name="ConfigurationMenuItem" Header="_Configuration..." InputGesture="Ctrl+C" />
         <Separator />
-        <MenuItem x:Name="ConfigurationFileLocationMenuItem" Header="_Open KDL File Location" />
+        <MenuItem x:Name="ConfigurationFileLocationMenuItem" Header="_Open Config File Location" />
       </MenuItem>
 
       <MenuItem Header="_Emulation">

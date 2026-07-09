@@ -1,6 +1,10 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Globalization;
+using Avalonia.Input;
+using GbcNet.Core.Joypad;
+
 namespace GbcNet.App.Configuration.Sections.Input;
 
 /// <summary>
@@ -12,17 +16,75 @@ internal sealed class InputConfig
     /// Supported input configuration schema version.
     /// </summary>
     public const int SupportedVersion = 1;
+    public const string DefaultProfileName = "default";
 
     public int Version { get; set; } = SupportedVersion;
 
     /// <summary>
     /// Profile activated on startup.
     /// </summary>
-    public string ActiveProfile { get; set; } = InputConfigSchema.DefaultProfileName;
+    public string ActiveProfile { get; set; } = DefaultProfileName;
 
     /// <summary>
     /// Available input profiles keyed by profile name.
     /// </summary>
     public IReadOnlyDictionary<string, InputProfileConfig> Profiles { get; set; } =
         new Dictionary<string, InputProfileConfig>(StringComparer.Ordinal);
+}
+
+/// <summary>
+/// Validates loaded input config before it is converted to runtime bindings.
+/// </summary>
+internal static class InputConfigValidator
+{
+    public static IReadOnlyList<string> Validate(InputConfig config)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+
+        if (config.Version != InputConfig.SupportedVersion)
+        {
+            return
+            [
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Input config version {config.Version} is not supported."
+                ),
+            ];
+        }
+
+        if (!config.Profiles.TryGetValue(config.ActiveProfile, out var profile))
+        {
+            return [$"Input profile '{config.ActiveProfile}' does not exist."];
+        }
+
+        if (profile.Keyboard.Count == 0)
+        {
+            return
+            [
+                $"Input profile '{config.ActiveProfile}' must contain at least one keyboard binding.",
+            ];
+        }
+
+        var usedKeys = new HashSet<Key>();
+
+        foreach (var binding in profile.Keyboard)
+        {
+            if (!Enum.TryParse(binding.ButtonName, ignoreCase: true, out JoypadButton _))
+            {
+                return [$"Unknown joypad button '{binding.ButtonName}'."];
+            }
+
+            if (!Enum.TryParse(binding.KeyName, ignoreCase: false, out Key key))
+            {
+                return [$"Unknown keyboard key '{binding.KeyName}'."];
+            }
+
+            if (!usedKeys.Add(key))
+            {
+                return [$"Keyboard key '{binding.KeyName}' is bound more than once."];
+            }
+        }
+
+        return [];
+    }
 }

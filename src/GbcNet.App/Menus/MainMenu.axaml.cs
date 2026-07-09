@@ -335,7 +335,7 @@ internal sealed partial class MainMenu : UserControl
             Gesture = KeyGesture.Parse("Meta+C"),
         };
         configurationItem.Click += (_, _) => ConfigurationRequested?.Invoke(this, EventArgs.Empty);
-        var fileLocationItem = new NativeMenuItem("Open KDL File Location");
+        var fileLocationItem = new NativeMenuItem("Open Config File Location");
         fileLocationItem.Click += (_, _) =>
             ConfigurationFileLocationRequested?.Invoke(this, EventArgs.Empty);
 
