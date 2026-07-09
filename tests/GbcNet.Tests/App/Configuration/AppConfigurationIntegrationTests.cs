@@ -5,7 +5,9 @@ using System.Text.Json;
 using Avalonia.Input;
 using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.BootRom;
+using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.App.Configuration.Sections.Input;
+using GbcNet.App.Emulation;
 using GbcNet.App.Input;
 using GbcNet.Core;
 using GbcNet.Core.Hardware;
@@ -137,6 +139,126 @@ public sealed class AppConfigurationIntegrationTests
             var binding = Assert.Single(inputMap.Bindings);
             Assert.Equal(JoypadButton.B, binding.Button);
             Assert.Equal(Key.X, binding.Key);
+        }
+        finally
+        {
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
+        }
+    }
+
+    [Fact]
+    public void Load_ReadsEmulationFastForwardConfig()
+    {
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
+        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
+
+        try
+        {
+            Directory.CreateDirectory(tempDirectory);
+            File.WriteAllText(
+                configPath,
+                """
+                {
+                  "input": {
+                    "version": 1,
+                    "activeProfile": "default",
+                    "profiles": {
+                      "default": {
+                        "keyboard": [
+                          { "button": "a", "key": "Z" }
+                        ]
+                      }
+                    }
+                  },
+                  "emulation": {
+                    "fastForwardEnabled": true,
+                    "fastForwardSpeed": "eight"
+                  },
+                  "bootRoms": {}
+                }
+                """
+            );
+
+            var startupConfiguration = StartupConfigurationLoader.Load(configPath);
+
+            Assert.Null(startupConfiguration.StartupErrorMessage);
+            Assert.True(startupConfiguration.EmulationConfig.FastForwardEnabled);
+            Assert.Equal(
+                EmulationSpeed.Eight,
+                startupConfiguration.EmulationConfig.FastForwardSpeed
+            );
+        }
+        finally
+        {
+            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
+        }
+    }
+
+    [Fact]
+    public void SaveEmulationConfig_WritesEmulationJsonAndPreservesInputAndBootRoms()
+    {
+        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
+        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
+
+        try
+        {
+            Directory.CreateDirectory(tempDirectory);
+            File.WriteAllText(
+                configPath,
+                $$"""
+                {
+                  "input": {
+                    "version": 1,
+                    "activeProfile": "alternate",
+                    "profiles": {
+                      "default": {
+                        "keyboard": [
+                          { "button": "a", "key": "Z" }
+                        ]
+                      },
+                      "alternate": {
+                        "keyboard": [
+                          { "button": "b", "key": "X" }
+                        ]
+                      }
+                    }
+                  },
+                  "bootRoms": {
+                    "{{BootRomConfig.JsonName(HardwareModel.Dmg)}}": "old-dmg.bin"
+                  }
+                }
+                """
+            );
+            var service = new AppConfigurationService(configPath);
+
+            service.SaveEmulationConfig(
+                new EmulationConfig
+                {
+                    FastForwardEnabled = true,
+                    FastForwardSpeed = EmulationSpeed.Eight,
+                }
+            );
+
+            using var configJson = JsonDocument.Parse(File.ReadAllText(configPath));
+            var root = configJson.RootElement;
+            var emulation = root.GetProperty("emulation");
+            Assert.True(emulation.GetProperty("fastForwardEnabled").GetBoolean());
+            Assert.Equal("eight", emulation.GetProperty("fastForwardSpeed").GetString());
+            Assert.Equal(
+                "alternate",
+                root.GetProperty("input").GetProperty("activeProfile").GetString()
+            );
+            Assert.Equal(
+                "old-dmg.bin",
+                root.GetProperty("bootRoms")
+                    .GetProperty(BootRomConfig.JsonName(HardwareModel.Dmg))
+                    .GetString()
+            );
+
+            var appConfig = AppConfigurationFile.Load(configPath);
+            var binding = Assert.Single(appConfig.Input.Profiles["alternate"].Keyboard);
+            Assert.Equal(new KeyboardInputBindingConfig("b", "X"), binding);
+            Assert.Equal("old-dmg.bin", BootRomConfig.FromDictionary(appConfig.BootRoms).DmgPath);
         }
         finally
         {

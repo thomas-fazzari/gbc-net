@@ -20,7 +20,9 @@ internal sealed class EmulationController(
     IAudioOutput audioOutput,
     CartridgeBatterySaveFileService cartridgeSaveFileService,
     Action<FrameCompletedEventArgs> handleFrame,
-    Action<Exception> handleFault
+    Action<Exception> handleFault,
+    bool fastForwardEnabled,
+    EmulationSpeed fastForwardSpeed
 )
 {
     private EmulationSession? _session;
@@ -28,8 +30,10 @@ internal sealed class EmulationController(
     private byte[]? _loadedRom;
     private CartridgeHeader? _loadedCartridgeHeader;
     private string _loadedRomFileName = string.Empty;
-    private bool _fastForwardEnabled;
-    private EmulationSpeed _fastForwardSpeed = EmulationSpeed.Two;
+    private bool _fastForwardEnabled = fastForwardEnabled;
+    private EmulationSpeed _fastForwardSpeed = Enum.IsDefined(fastForwardSpeed)
+        ? fastForwardSpeed
+        : EmulationSpeed.Two;
 
     public EmulationControllerState State =>
         new(

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.App.Configuration.Sections.BootRom;
+using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.Core;
 using GbcNet.Core.Hardware;
 
@@ -9,6 +10,9 @@ namespace GbcNet.App.Configuration;
 
 internal sealed class AppConfigurationService(string configPath)
 {
+    public EmulationConfig LoadEmulationConfig() =>
+        AppConfigurationFile.LoadOrCreate(configPath).Emulation;
+
     public BootRomConfig LoadBootRomConfig() =>
         BootRomConfig.FromDictionary(AppConfigurationFile.LoadOrCreate(configPath).BootRoms);
 
@@ -22,6 +26,13 @@ internal sealed class AppConfigurationService(string configPath)
     {
         var appConfig = AppConfigurationFile.LoadOrCreate(configPath);
         appConfig.BootRoms = config.ToDictionary();
+        AppConfigurationFile.Save(configPath, appConfig);
+    }
+
+    public void SaveEmulationConfig(EmulationConfig config)
+    {
+        var appConfig = AppConfigurationFile.LoadOrCreate(configPath);
+        appConfig.Emulation = config;
         AppConfigurationFile.Save(configPath, appConfig);
     }
 

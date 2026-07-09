@@ -4,6 +4,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using GbcNet.App.Configuration.Sections.Input;
+using GbcNet.App.Emulation;
 using GbcNet.Core.Hardware;
 
 namespace GbcNet.App.Configuration;
@@ -15,7 +16,14 @@ internal static class AppConfigurationFile
         AllowTrailingCommas = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         ReadCommentHandling = JsonCommentHandling.Skip,
-        Converters = { new JsonStringEnumConverter<HardwareModel>(JsonNamingPolicy.CamelCase) },
+        Converters =
+        {
+            new JsonStringEnumConverter<HardwareModel>(JsonNamingPolicy.CamelCase),
+            new JsonStringEnumConverter<EmulationSpeed>(
+                JsonNamingPolicy.CamelCase,
+                allowIntegerValues: false
+            ),
+        },
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
         WriteIndented = true,
     };

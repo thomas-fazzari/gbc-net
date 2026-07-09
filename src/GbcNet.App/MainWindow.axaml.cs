@@ -118,12 +118,15 @@ internal sealed partial class MainWindow : Window, IDisposable
             audioOutput,
             cartridgeSaveFileService,
             OnFrameCompleted,
-            OnEmulationFaulted
+            OnEmulationFaulted,
+            startupConfiguration.EmulationConfig.FastForwardEnabled,
+            startupConfiguration.EmulationConfig.FastForwardSpeed
         );
         _emulationSession = new EmulationSessionPresenter(
             emulationController,
             new InputRouter(inputMap.Bindings, emulationController.SetButtonState),
             libraryService,
+            configurationService,
             _statusBar,
             MainMenu,
             _operationRunner

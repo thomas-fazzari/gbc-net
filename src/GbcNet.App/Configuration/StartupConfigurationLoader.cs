@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.App.Configuration.Sections.BootRom;
+using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.Core;
 
@@ -9,6 +10,7 @@ namespace GbcNet.App.Configuration;
 
 internal sealed record StartupConfiguration(
     InputConfig InputConfig,
+    EmulationConfig EmulationConfig,
     BootRomOptions BootRomOptions,
     string ConfigPath,
     string? StartupErrorMessage
@@ -50,6 +52,7 @@ internal static class StartupConfigurationLoader
 
         return new StartupConfiguration(
             inputConfig,
+            appConfig.Emulation,
             bootRomOptions,
             configPath,
             startupErrors.Count == 0 ? null : string.Join(Environment.NewLine, startupErrors)

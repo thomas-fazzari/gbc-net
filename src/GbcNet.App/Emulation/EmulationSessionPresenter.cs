@@ -5,6 +5,8 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using GbcNet.App.Configuration;
+using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.App.Input;
 using GbcNet.App.Library;
 using GbcNet.App.Menus;
@@ -18,6 +20,7 @@ internal sealed class EmulationSessionPresenter(
     EmulationController controller,
     InputRouter inputRouter,
     LibraryService libraryService,
+    AppConfigurationService configurationService,
     StatusBarPresenter statusBar,
     MainMenu menu,
     ShellOperationRunner operationRunner
@@ -141,13 +144,34 @@ internal sealed class EmulationSessionPresenter(
     public void ToggleFastForward()
     {
         controller.ToggleFastForward();
+        SaveFastForwardConfig();
         SyncMenuState();
     }
 
     public void SetFastForwardSpeed(EmulationSpeed speed)
     {
         controller.SetFastForwardSpeed(speed);
+        SaveFastForwardConfig();
         SyncMenuState();
+    }
+
+    private void SaveFastForwardConfig()
+    {
+        var state = controller.State;
+        try
+        {
+            configurationService.SaveEmulationConfig(
+                new EmulationConfig
+                {
+                    FastForwardEnabled = state.FastForwardEnabled,
+                    FastForwardSpeed = state.FastForwardSpeed,
+                }
+            );
+        }
+        catch (ConfigurationException exception)
+        {
+            statusBar.ShowError(ConfigurationErrors.Format(exception));
+        }
     }
 
     public bool ApplyKeyboardInput(Key key, bool pressed)
