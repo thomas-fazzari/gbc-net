@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari, Fournux
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -199,9 +200,25 @@ internal sealed partial class MainWindow : Window, IDisposable
         MainMenu.FullscreenRequested += (_, _) => ToggleFullscreen();
         MainMenu.MenuBarRequested += (_, _) => ToggleMenuBar();
         MainMenu.StatusBarRequested += (_, _) => ToggleStatusBar();
+        MainMenu.GitHubRepositoryRequested += (_, _) =>
+            _operationRunner.Run(OpenGitHubRepositoryAsync);
         SyncMenuState();
         _emulationSession.SyncMenuState();
         _emulationSession.SyncRecentRoms();
+    }
+
+    private static Task OpenGitHubRepositoryAsync()
+    {
+        using var process =
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName = "https://github.com/thomas-fazzari/gbc-net",
+                    UseShellExecute = true,
+                }
+            ) ?? throw new InvalidOperationException("GitHub repository could not be opened.");
+
+        return Task.CompletedTask;
     }
 
     private void SyncMenuState()

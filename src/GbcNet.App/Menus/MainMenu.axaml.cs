@@ -108,6 +108,8 @@ internal sealed partial class MainMenu : UserControl
 
     public event EventHandler? StatusBarRequested;
 
+    public event EventHandler? GitHubRepositoryRequested;
+
     public void AttachNativeMenu(Window window)
     {
         if (OperatingSystem.IsMacOS())
@@ -230,6 +232,7 @@ internal sealed partial class MainMenu : UserControl
         ConfigureWindowSettingsMenu();
         ConfigureWindowEmulationMenu();
         ConfigureWindowViewMenu();
+        ConfigureWindowHelpMenu();
     }
 
     private void ConfigureWindowFileMenu()
@@ -264,6 +267,12 @@ internal sealed partial class MainMenu : UserControl
         MenuBarMenuItem.Click += (_, _) => MenuBarRequested?.Invoke(this, EventArgs.Empty);
         StatusBarMenuItem.InputGesture = _statusBarGesture;
         StatusBarMenuItem.Click += (_, _) => StatusBarRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ConfigureWindowHelpMenu()
+    {
+        GitHubRepositoryMenuItem.Click += (_, _) =>
+            GitHubRepositoryRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private void ConfigureFastForwardSpeedMenuItems()
@@ -307,6 +316,7 @@ internal sealed partial class MainMenu : UserControl
             new NativeMenuItem("Emulation") { Menu = CreateNativeEmulationMenu() },
             new NativeMenuItem("Settings") { Menu = CreateNativeSettingsMenu() },
             new NativeMenuItem("View") { Menu = CreateNativeViewMenu() },
+            new NativeMenuItem("Help") { Menu = CreateNativeHelpMenu() },
         ];
 
     private NativeMenu CreateNativeFileMenu()
@@ -367,6 +377,13 @@ internal sealed partial class MainMenu : UserControl
             StatusBarRequested?.Invoke(this, EventArgs.Empty);
 
         return [_nativeFullscreenMenuItem, new NativeMenuItemSeparator(), _nativeStatusBarMenuItem];
+    }
+
+    private NativeMenu CreateNativeHelpMenu()
+    {
+        var item = new NativeMenuItem("GitHub Repository");
+        item.Click += (_, _) => GitHubRepositoryRequested?.Invoke(this, EventArgs.Empty);
+        return [item];
     }
 
     private NativeMenuItem CreateNativeFastForwardSpeedMenuItem(EmulationSpeed speed)

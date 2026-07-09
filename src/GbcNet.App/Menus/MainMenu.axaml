@@ -52,6 +52,10 @@
           IsChecked="True"
         />
       </MenuItem>
+
+      <MenuItem Header="_Help">
+        <MenuItem x:Name="GitHubRepositoryMenuItem" Header="_GitHub Repository" />
+      </MenuItem>
     </Menu>
   </Border>
 </UserControl>

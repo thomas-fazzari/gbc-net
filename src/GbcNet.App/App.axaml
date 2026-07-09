@@ -5,13 +5,6 @@
   Name="GbcNet"
   RequestedThemeVariant="Dark"
 >
-  <NativeMenu.Menu>
-    <NativeMenu>
-      <NativeMenuItem Header="About GbcNet" />
-      <NativeMenuItem Header="Preferences..." Gesture="Meta+OemComma" />
-    </NativeMenu>
-  </NativeMenu.Menu>
-
   <Application.Resources>
     <FontFamily x:Key="AppFont">avares://GbcNet/Assets/Fonts#Cabin</FontFamily>
   </Application.Resources>
