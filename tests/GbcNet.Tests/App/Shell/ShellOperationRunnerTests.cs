@@ -12,7 +12,6 @@ public sealed class ShellOperationRunnerTests
     public async Task RunAsync_ReportsExpectedUiException()
     {
         var reportedMessage = string.Empty;
-
         ShellOperationRunner runner = new(
             exception => reportedMessage = exception.Message,
             NullLogger<ShellOperationRunner>.Instance
@@ -35,11 +34,12 @@ public sealed class ShellOperationRunnerTests
         var secondOperationStarted = new TaskCompletionSource(
             TaskCreationOptions.RunContinuationsAsynchronously
         );
-
         var activeCount = 0;
         var maxActiveCount = 0;
-
-        ShellOperationRunner runner = new(_ => { }, NullLogger<ShellOperationRunner>.Instance);
+        ShellOperationRunner runner = new(
+            exception => Assert.Fail($"Unexpected error: {exception}"),
+            NullLogger<ShellOperationRunner>.Instance
+        );
 
         var firstOperation = runner.RunAsync(async () =>
         {
@@ -60,7 +60,6 @@ public sealed class ShellOperationRunnerTests
         });
 
         Assert.False(secondOperationStarted.Task.IsCompleted);
-
         releaseFirstOperation.SetResult();
 
         await Task.WhenAll(firstOperation, secondOperation);
@@ -80,7 +79,10 @@ public sealed class ShellOperationRunnerTests
     public async Task RunAsync_ReleasesGateAfterUnexpectedException()
     {
         var nextOperationRan = false;
-        ShellOperationRunner runner = new(_ => { }, NullLogger<ShellOperationRunner>.Instance);
+        ShellOperationRunner runner = new(
+            exception => Assert.Fail($"Unexpected handled error: {exception}"),
+            NullLogger<ShellOperationRunner>.Instance
+        );
 
         await Assert.ThrowsAsync<TimeoutException>(() =>
             runner.RunAsync(() => throw new TimeoutException("boom"))

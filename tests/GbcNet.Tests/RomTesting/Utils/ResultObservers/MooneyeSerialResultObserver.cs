@@ -19,7 +19,7 @@ internal sealed class MooneyeSerialResultObserver : IRomResultObserver
 
     public MooneyeSerialResultObserver(GameBoy gameBoy)
     {
-        gameBoy.SerialByteTransferred += (_, e) => _output.Add(e.TransferredByte);
+        gameBoy.SerialByteTransferred += _output.Add;
     }
 
     public RomTestObservation Snapshot => new(Source, Output: FormatOutput());

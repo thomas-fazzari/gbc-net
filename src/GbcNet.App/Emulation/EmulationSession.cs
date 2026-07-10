@@ -25,7 +25,7 @@ internal sealed class EmulationSession
     private readonly Action _flushBatterySave;
     private readonly Action<Exception> _handleFault;
     private readonly Action<Exception> _handleFatalFault;
-    private readonly Action<FrameCompletedEventArgs> _handleFrame;
+    private readonly Action<LcdFrame> _handleFrame;
     private readonly GameBoy _gameBoy;
     private readonly IAudioOutput _audioOutput;
     private readonly ApuStereoSample[] _audioSamples = new ApuStereoSample[
@@ -64,7 +64,7 @@ internal sealed class EmulationSession
     public EmulationSession(
         GameBoy gameBoy,
         IAudioOutput audioOutput,
-        Action<FrameCompletedEventArgs> handleFrame,
+        Action<LcdFrame> handleFrame,
         Action<Exception> handleFault,
         Action<Exception> handleFatalFault,
         Action flushBatterySave
@@ -283,7 +283,7 @@ internal sealed class EmulationSession
         }
     }
 
-    private void OnFrameCompleted(object? sender, FrameCompletedEventArgs e)
+    private void OnFrameCompleted(LcdFrame frame)
     {
         if (Volatile.Read(ref _isFastForwardEnabled) != 0)
         {
@@ -294,7 +294,7 @@ internal sealed class EmulationSession
         }
 
         Volatile.Write(ref _videoFrameRenderRequested, 0);
-        _handleFrame(e);
+        _handleFrame(frame);
     }
 
     private void RequestFastForwardFrameIfDue(long timestamp)

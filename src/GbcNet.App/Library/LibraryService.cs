@@ -55,11 +55,7 @@ internal sealed class LibraryService(
             var fullPath = Path.GetFullPath(path);
             var rom = await File.ReadAllBytesAsync(fullPath, CancellationToken.None)
                 .ConfigureAwait(false);
-            var load = Cartridge.Load(rom);
-            if (load.Cartridge is not { } cartridge)
-            {
-                throw new InvalidOperationException(load.Error?.Message);
-            }
+            var cartridge = Cartridge.LoadOrThrow(rom);
 
             return RecordOpenedRomCore(fullPath, rom, cartridge.Header);
         }
@@ -376,15 +372,15 @@ internal sealed class LibraryService(
 
     private static string GetSafeImageExtension(string sourceImagePath)
     {
-        var extension = Path.GetExtension(sourceImagePath);
+        var extension = Path.GetExtension(sourceImagePath)!;
         if (extension.Length is < 2 or > 16)
         {
             throw new InvalidOperationException("Cover image file name has no safe extension.");
         }
 
-        for (var index = 1; index < extension.Length; index++)
+        foreach (var value in extension.AsSpan(1))
         {
-            if (!IsAsciiLetterOrDigit(extension[index]))
+            if (!char.IsAsciiLetterOrDigit(value))
             {
                 throw new InvalidOperationException("Cover image file name has no safe extension.");
             }
@@ -393,22 +389,18 @@ internal sealed class LibraryService(
         return string.Create(
             extension.Length,
             extension,
-            static (lowercaseExtension, extension) =>
+            static (result, source) =>
             {
-                lowercaseExtension[0] = '.';
-                for (var index = 1; index < extension.Length; index++)
+                for (var index = 0; index < source.Length; index++)
                 {
-                    lowercaseExtension[index] = ToLowerAscii(extension[index]);
+                    var character = source[index];
+                    result[index] = character is >= 'A' and <= 'Z'
+                        ? (char)(character + ('a' - 'A'))
+                        : character;
                 }
             }
         );
     }
-
-    private static bool IsAsciiLetterOrDigit(char value) =>
-        value is (>= '0' and <= '9') or (>= 'A' and <= 'Z') or (>= 'a' and <= 'z');
-
-    private static char ToLowerAscii(char value) =>
-        value is >= 'A' and <= 'Z' ? (char)(value + ('a' - 'A')) : value;
 
     private static string ComputeRomHash(ReadOnlySpan<byte> rom) =>
         Convert.ToHexString(SHA256.HashData(rom));

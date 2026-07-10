@@ -81,22 +81,17 @@ public sealed class MooneyeAcceptanceRomTests
         "timer/tma_write_reloading.gb",
     ];
 
-    public static TheoryData<string> RomRelativePathRows =>
-        RomTestRunner.CreateTheoryData(_romRelativePaths);
-
-    private static readonly Lazy<IReadOnlyDictionary<string, RomTestResult>> _results = new(() =>
-        RomTestRunner.RunAll(
-            _romRelativePaths,
-            relativePath =>
-            {
-                var rom = File.ReadAllBytes(Path.Combine(RomDirectory, relativePath));
-                return RomTestRunner.Run(rom, MaxMachineCycles, RomTestProtocol.Mooneye);
-            }
-        )
+    private static readonly RomTestRunner.RomSuite _roms = RomTestRunner.CreateSuite(
+        _romRelativePaths,
+        RomDirectory,
+        MaxMachineCycles,
+        RomTestProtocol.Mooneye
     );
+
+    public static TheoryData<string> RomRelativePathRows => _roms.Rows;
 
     [Theory]
     [MemberData(nameof(RomRelativePathRows))]
     public void AcceptanceRomPasses(string relativePath) =>
-        RomTestAssertions.AssertPassed(_results.Value, relativePath);
+        RomTestAssertions.AssertPassed(_roms.Results, relativePath);
 }

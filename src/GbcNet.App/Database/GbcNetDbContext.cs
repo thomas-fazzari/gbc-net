@@ -19,7 +19,7 @@ internal sealed class GbcNetDbContext : DbContext
     )
         : base(options)
     {
-        _timeProvider = timeProvider ?? TimeProvider.System;
+        _timeProvider = timeProvider;
         ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
     }
 

@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GbcNet.App;
 
-internal sealed class GbcNetApplication : Application, IDisposable
+internal sealed class GbcNetApplication : Application
 {
     private ServiceProvider? _services;
 
@@ -32,7 +32,11 @@ internal sealed class GbcNetApplication : Application, IDisposable
             _services = DependencyInjection.BuildServiceProvider(startupConfiguration);
             MigrateDatabase(_services);
             desktop.MainWindow = _services.GetRequiredService<MainWindow>();
-            desktop.Exit += (_, _) => DisposeServices();
+            desktop.Exit += (_, _) =>
+            {
+                _services?.Dispose();
+                _services = null;
+            };
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -45,16 +49,5 @@ internal sealed class GbcNetApplication : Application, IDisposable
             .GetRequiredService<IDbContextFactory<GbcNetDbContext>>()
             .CreateDbContext();
         db.Database.Migrate();
-    }
-
-    public void Dispose()
-    {
-        DisposeServices();
-    }
-
-    private void DisposeServices()
-    {
-        _services?.Dispose();
-        _services = null;
     }
 }

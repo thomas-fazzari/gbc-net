@@ -5,14 +5,23 @@ namespace GbcNet.Tests;
 
 internal static class TestDirectories
 {
-    public static string GetTemporaryDirectoryPath() =>
-        Path.Combine(Path.GetTempPath(), "gbc-net-tests", Guid.NewGuid().ToString("N"));
+    public static TemporaryDirectory CreateTemporaryDirectory() => new();
 
-    public static void DeleteDirectoryIfExists(string path)
+    public sealed class TemporaryDirectory : IDisposable
     {
-        if (Directory.Exists(path))
+        public string Path { get; } =
+            System.IO.Path.Combine(
+                System.IO.Path.GetTempPath(),
+                "gbc-net-tests",
+                Guid.NewGuid().ToString("N")
+            );
+
+        public void Dispose()
         {
-            Directory.Delete(path, recursive: true);
+            if (Directory.Exists(Path))
+            {
+                Directory.Delete(Path, recursive: true);
+            }
         }
     }
 }

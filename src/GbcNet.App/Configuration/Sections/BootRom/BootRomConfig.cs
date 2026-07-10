@@ -2,15 +2,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using GbcNet.Core;
 using GbcNet.Core.Hardware;
 
 namespace GbcNet.App.Configuration.Sections.BootRom;
 
 internal readonly record struct BootRomConfig(
-    string? DmgPath = null,
-    string? CgbPath = null,
-    string? SgbPath = null
+    [property: JsonPropertyName("dmg")] string? DmgPath = null,
+    [property: JsonPropertyName("cgb")] string? CgbPath = null,
+    [property: JsonPropertyName("sgb")] string? SgbPath = null
 )
 {
     public static string JsonName(HardwareModel model) =>
@@ -35,24 +36,4 @@ internal readonly record struct BootRomConfig(
             HardwareModel.Sgb => SgbPath,
             _ => throw new ArgumentOutOfRangeException(nameof(model), model, message: null),
         };
-
-    public Dictionary<HardwareModel, string?> ToDictionary() =>
-        new()
-        {
-            [HardwareModel.Dmg] = DmgPath,
-            [HardwareModel.Cgb] = CgbPath,
-            [HardwareModel.Sgb] = SgbPath,
-        };
-
-    public static BootRomConfig FromDictionary(IReadOnlyDictionary<HardwareModel, string?> paths) =>
-        new(
-            GetPath(paths, HardwareModel.Dmg),
-            GetPath(paths, HardwareModel.Cgb),
-            GetPath(paths, HardwareModel.Sgb)
-        );
-
-    private static string? GetPath(
-        IReadOnlyDictionary<HardwareModel, string?> paths,
-        HardwareModel model
-    ) => paths.TryGetValue(model, out var path) ? path : null;
 }

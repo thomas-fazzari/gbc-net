@@ -5,8 +5,7 @@ using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Layout;
-using Avalonia.Media;
+using Avalonia.Threading;
 using GbcNet.App.Audio;
 using GbcNet.App.Configuration;
 using GbcNet.App.Emulation;
@@ -45,12 +44,6 @@ internal sealed partial class MainWindow : Window, IDisposable
     )
     {
         InitializeComponent();
-        Background = AppChrome.Brush(AppChrome.Bg);
-        StatusBar.Background = AppChrome.Brush(AppChrome.Panel);
-        StatusBar.BorderBrush = AppChrome.Brush(AppChrome.Hair);
-        StatusCoverFrame.Background = AppChrome.Brush(AppChrome.Surface);
-        StatusTextBlock.Foreground = AppChrome.Brush(AppChrome.Muted);
-        StatusSpeedTextBlock.Foreground = AppChrome.Brush(AppChrome.Muted);
 
         var libraryView = new LibraryView();
         var emulationView = new EmulationView();
@@ -58,52 +51,13 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         _framePresenter = new LcdFramePresenter(emulationView.Screen);
 
-        var statusGrid = (Grid)StatusTextBlock.Parent!;
-        StatusCoverFrame.IsVisible = false;
-        statusGrid.ColumnSpacing = 8;
-
-        var statusHardwareBadgeTextBlock = new TextBlock
-        {
-            Foreground = AppChrome.Brush(AppChrome.Muted),
-            FontSize = 10,
-            FontWeight = FontWeight.SemiBold,
-        };
-        var statusHardwareBadge = new Border
-        {
-            BorderBrush = AppChrome.Brush(AppChrome.Hair),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(7),
-            Padding = new Thickness(5, 1),
-            VerticalAlignment = VerticalAlignment.Center,
-            IsVisible = false,
-            Child = statusHardwareBadgeTextBlock,
-        };
-        Grid.SetColumn(statusHardwareBadge, 2);
-        statusGrid.Children.Add(statusHardwareBadge);
-
-        statusGrid.Children.Remove(StatusSpeedTextBlock);
-        StatusSpeedTextBlock.FontSize = 10;
-        StatusSpeedTextBlock.FontWeight = FontWeight.SemiBold;
-        var statusSpeedBadge = new Border
-        {
-            BorderBrush = AppChrome.Brush(AppChrome.Hair),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(7),
-            Padding = new Thickness(5, 1),
-            VerticalAlignment = VerticalAlignment.Center,
-            IsVisible = false,
-            Child = StatusSpeedTextBlock,
-        };
-        Grid.SetColumn(statusSpeedBadge, 3);
-        statusGrid.Children.Add(statusSpeedBadge);
-
         _statusBar = new StatusBarPresenter(
             StatusTextBlock,
             StatusCoverFrame,
             StatusCoverImage,
-            statusHardwareBadge,
-            statusHardwareBadgeTextBlock,
-            statusSpeedBadge,
+            StatusHardwareBadge,
+            StatusHardwareBadgeTextBlock,
+            StatusSpeedBadge,
             StatusSpeedTextBlock
         );
         _operationRunner = new ShellOperationRunner(
@@ -143,6 +97,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         _emulationSession.SessionOpened += (_, _) =>
         {
             ContentHost.Content = emulationView;
+            emulationView.Focus();
             SetMenuBarVisible(isVisible: false);
             SetStatusBarAvailable(isAvailable: true);
             SetStatusBarVisible(isVisible: false);
@@ -170,7 +125,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             _emulationSession.SetBootRomOptions
         );
 
-        ConfigureMenu();
+        ConfigureMenu(emulationView);
         _emulationSession.AttachDragDrop(this);
         libraryPresenter.Refresh();
 
@@ -180,7 +135,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
     }
 
-    private void ConfigureMenu()
+    private void ConfigureMenu(EmulationView emulationView)
     {
         MainMenu.AttachNativeMenu(this);
         MainMenu.OpenRomRequested += (_, _) =>
@@ -199,7 +154,10 @@ internal sealed partial class MainWindow : Window, IDisposable
         MainMenu.ResetRequested += (_, _) => _operationRunner.Run(_emulationSession.ResetAsync);
         MainMenu.FastForwardRequested += (_, _) => _emulationSession.ToggleFastForward();
         MainMenu.FastForwardSpeedSelected += (_, e) =>
+        {
             _emulationSession.SetFastForwardSpeed(e.Speed);
+            Dispatcher.UIThread.Post(() => emulationView.Focus(), DispatcherPriority.Input);
+        };
         MainMenu.FullscreenRequested += (_, _) => ToggleFullscreen();
         MainMenu.MenuBarRequested += (_, _) => ToggleMenuBar();
         MainMenu.StatusBarRequested += (_, _) => ToggleStatusBar();
@@ -365,18 +323,6 @@ internal sealed partial class MainWindow : Window, IDisposable
         _framePresenter.Dispose();
     }
 
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        base.OnKeyDown(e);
-        ApplyKeyboardEvent(e, pressed: true);
-    }
-
-    protected override void OnKeyUp(KeyEventArgs e)
-    {
-        base.OnKeyUp(e);
-        ApplyKeyboardEvent(e, pressed: false);
-    }
-
     private async Task StopAndCloseAsync()
     {
         try
@@ -399,6 +345,18 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
     }
 
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        ApplyKeyboardEvent(e, pressed: true);
+    }
+
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        base.OnKeyUp(e);
+        ApplyKeyboardEvent(e, pressed: false);
+    }
+
     private void ApplyKeyboardEvent(KeyEventArgs e, bool pressed)
     {
         if (
@@ -411,9 +369,9 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
     }
 
-    private void OnFrameCompleted(FrameCompletedEventArgs e)
+    private void OnFrameCompleted(LcdFrame frame)
     {
-        _framePresenter.Enqueue(e.Frame);
+        _framePresenter.Enqueue(frame);
     }
 
     private void OnEmulationFaulted(Exception e) => _emulationSession.ShowFault(e);

@@ -25,7 +25,7 @@ internal sealed class ConfigurationPresenter(
         }
         catch (ConfigurationException exception)
         {
-            statusBar.ShowError(ConfigurationErrors.Format(exception));
+            statusBar.ShowError(exception.Message);
             return;
         }
 
@@ -44,7 +44,7 @@ internal sealed class ConfigurationPresenter(
         }
         catch (ConfigurationException exception)
         {
-            statusBar.ShowError(ConfigurationErrors.Format(exception));
+            statusBar.ShowError(exception.Message);
             return;
         }
 
@@ -80,7 +80,7 @@ internal sealed class ConfigurationPresenter(
         catch (ConfigurationException exception)
         {
             setBootRomOptions(new BootRomOptions());
-            statusBar.ShowError(ConfigurationErrors.Format(exception));
+            statusBar.ShowError(exception.Message);
         }
     }
 }

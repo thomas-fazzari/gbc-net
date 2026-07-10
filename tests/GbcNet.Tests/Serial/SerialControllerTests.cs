@@ -115,7 +115,7 @@ public sealed class SerialControllerTests
         var interrupts = new InterruptController();
         var serial = new SerialController(interrupts);
         byte? transferredByte = null;
-        serial.ByteTransferred += (_, e) => transferredByte = e.TransferredByte;
+        serial.ByteTransferred += transferredByteValue => transferredByte = transferredByteValue;
         serial.TransferData = 0x41;
         serial.WriteControl(0x81);
         serial.TransferData = 0x00;
@@ -135,7 +135,7 @@ public sealed class SerialControllerTests
         var interrupts = new InterruptController();
         var serial = new SerialController(interrupts);
         byte? transferredByte = null;
-        serial.ByteTransferred += (_, e) => transferredByte = e.TransferredByte;
+        serial.ByteTransferred += transferredByteValue => transferredByte = transferredByteValue;
         serial.WriteControl(0x80);
 
         TickMachineCycles(counter, serial, 128 * 8);
@@ -153,7 +153,7 @@ public sealed class SerialControllerTests
         var interrupts = new InterruptController();
         var serial = new SerialController(interrupts);
         byte? transferredByte = null;
-        serial.ByteTransferred += (_, e) => transferredByte = e.TransferredByte;
+        serial.ByteTransferred += transferredByteValue => transferredByte = transferredByteValue;
         serial.SetControlState(0x81);
 
         TickMachineCycles(counter, serial, 128 * 8);

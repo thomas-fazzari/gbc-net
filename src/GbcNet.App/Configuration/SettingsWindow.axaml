@@ -12,4 +12,171 @@
   CanResize="True"
   WindowStartupLocation="CenterOwner"
   RequestedThemeVariant="Dark"
-/>
+  Background="{DynamicResource ChromeBackgroundBrush}"
+>
+  <Window.Styles>
+    <Style Selector="TextBlock.chrome-label">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.sidebar-label">
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeMutedBrush}" />
+    </Style>
+    <Style Selector="TextBlock.sidebar-label.selected">
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.form-label">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+    </Style>
+    <Style Selector="Border.sidebar-item">
+      <Setter Property="Height" Value="34" />
+      <Setter Property="CornerRadius" Value="{DynamicResource ChromeCornerRadius}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Padding" Value="12,0" />
+    </Style>
+    <Style Selector="Border.sidebar-item.selected">
+      <Setter Property="Background" Value="{DynamicResource ChromeSelectedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeSelectedBorderBrush}" />
+    </Style>
+    <Style Selector="TextBox.path-box">
+      <Setter Property="PlaceholderText" Value="No file selected" />
+      <Setter Property="Height" Value="30" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="10,0" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="FocusAdorner" Value="{x:Null}" />
+    </Style>
+    <Style Selector="Border.path-well">
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Background" Value="{DynamicResource ChromeSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource ChromeCornerRadius}" />
+    </Style>
+    <Style Selector="Border.path-well:focus-within">
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
+    </Style>
+  </Window.Styles>
+
+  <Grid ColumnDefinitions="152,*">
+    <Border
+      Background="{DynamicResource ChromePanelBrush}"
+      BorderBrush="{DynamicResource ChromeHairBrush}"
+      BorderThickness="0,0,1,0"
+      Padding="8"
+    >
+      <StackPanel Spacing="6">
+        <Border Classes="sidebar-item selected">
+          <Grid ColumnDefinitions="16,*" ColumnSpacing="9">
+            <PathIcon
+              Width="15"
+              Height="15"
+              Data="{StaticResource IconSettings}"
+              Foreground="{DynamicResource ChromeMutedBrush}"
+            />
+            <TextBlock
+              Grid.Column="1"
+              Classes="chrome-label sidebar-label selected"
+              Text="Boot ROMs"
+            />
+          </Grid>
+        </Border>
+        <Border Classes="sidebar-item">
+          <Grid ColumnDefinitions="16,*" ColumnSpacing="9">
+            <PathIcon
+              Width="15"
+              Height="15"
+              Data="{StaticResource IconGames}"
+              Foreground="{DynamicResource ChromeMutedBrush}"
+            />
+            <TextBlock Grid.Column="1" Classes="chrome-label sidebar-label" Text="Inputs" />
+          </Grid>
+        </Border>
+      </StackPanel>
+    </Border>
+
+    <Grid
+      Grid.Column="1"
+      RowDefinitions="Auto,*,Auto"
+      MaxWidth="680"
+      HorizontalAlignment="Stretch"
+      Margin="32,28,32,24"
+    >
+      <Grid
+        RowDefinitions="Auto,Auto,Auto"
+        ColumnDefinitions="48,*,72,64"
+        RowSpacing="12"
+        ColumnSpacing="8"
+      >
+        <TextBlock Grid.Row="0" Classes="chrome-label form-label" Text="DMG" />
+        <Border Grid.Row="0" Grid.Column="1" Classes="path-well">
+          <TextBox x:Name="DmgBootRomPathTextBox" Classes="path-box" />
+        </Border>
+        <Button
+          Grid.Row="0"
+          Grid.Column="2"
+          Classes="chrome-button"
+          Content="Browse"
+          Click="BrowseDmgBootRomPathAsync"
+        />
+        <Button
+          Grid.Row="0"
+          Grid.Column="3"
+          Classes="chrome-button"
+          Content="Clear"
+          Click="ClearDmgBootRomPath"
+        />
+
+        <TextBlock Grid.Row="1" Classes="chrome-label form-label" Text="CGB" />
+        <Border Grid.Row="1" Grid.Column="1" Classes="path-well">
+          <TextBox x:Name="CgbBootRomPathTextBox" Classes="path-box" />
+        </Border>
+        <Button
+          Grid.Row="1"
+          Grid.Column="2"
+          Classes="chrome-button"
+          Content="Browse"
+          Click="BrowseCgbBootRomPathAsync"
+        />
+        <Button
+          Grid.Row="1"
+          Grid.Column="3"
+          Classes="chrome-button"
+          Content="Clear"
+          Click="ClearCgbBootRomPath"
+        />
+
+        <TextBlock Grid.Row="2" Classes="chrome-label form-label" Text="SGB" />
+        <Border Grid.Row="2" Grid.Column="1" Classes="path-well">
+          <TextBox x:Name="SgbBootRomPathTextBox" Classes="path-box" />
+        </Border>
+        <Button
+          Grid.Row="2"
+          Grid.Column="2"
+          Classes="chrome-button"
+          Content="Browse"
+          Click="BrowseSgbBootRomPathAsync"
+        />
+        <Button
+          Grid.Row="2"
+          Grid.Column="3"
+          Classes="chrome-button"
+          Content="Clear"
+          Click="ClearSgbBootRomPath"
+        />
+      </Grid>
+
+      <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <Button Classes="chrome-button" Content="Cancel" Click="CancelSettings" />
+        <Button Classes="chrome-button accent" Content="Save" Click="SaveSettings" />
+      </StackPanel>
+    </Grid>
+  </Grid>
+</Window>

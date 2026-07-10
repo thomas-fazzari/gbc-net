@@ -1,13 +1,10 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Layout;
-using Avalonia.Media;
+using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using GbcNet.App.Configuration.Sections.BootRom;
-using GbcNet.App.Shell.Chrome;
 using GbcNet.Core.Hardware;
 
 namespace GbcNet.App.Configuration;
@@ -21,191 +18,58 @@ internal sealed partial class SettingsWindow : Window
         MimeTypes = ["application/octet-stream"],
     };
 
-    private readonly TextBox _dmgBootRomPathTextBox;
-    private readonly TextBox _cgbBootRomPathTextBox;
-    private readonly TextBox _sgbBootRomPathTextBox;
-
     public SettingsWindow(BootRomConfig bootRomConfig)
     {
         InitializeComponent();
 
-        _dmgBootRomPathTextBox = CreatePathBox(bootRomConfig.DmgPath);
-        _cgbBootRomPathTextBox = CreatePathBox(bootRomConfig.CgbPath);
-        _sgbBootRomPathTextBox = CreatePathBox(bootRomConfig.SgbPath);
-
-        Title = "Configuration";
-        Background = AppChrome.Brush(AppChrome.Bg);
-        Content = BuildContent();
-    }
-
-    private Grid BuildContent()
-    {
-        var root = new Grid { ColumnDefinitions = new ColumnDefinitions("152,*") };
-
-        var sidebar = new Border
-        {
-            Background = AppChrome.Brush(AppChrome.Panel),
-            BorderBrush = AppChrome.Brush(AppChrome.Hair),
-            BorderThickness = new Thickness(0, 0, 1, 0),
-            Padding = new Thickness(8),
-            Child = new StackPanel
-            {
-                Spacing = 6,
-                Children =
-                {
-                    CreateSidebarItem(
-                        "Boot ROMs",
-                        Icons.Settings,
-                        isSelected: true,
-                        sourceSize: 28
-                    ),
-                    CreateSidebarItem("Inputs", Icons.Games, isSelected: false),
-                },
-            },
-        };
-
-        var content = new Grid
-        {
-            RowDefinitions = new RowDefinitions("Auto,*,Auto"),
-            MaxWidth = 680,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            Margin = new Thickness(32, 28, 32, 24),
-        };
-
-        var form = new Grid
-        {
-            RowDefinitions = new RowDefinitions("Auto,Auto,Auto"),
-            ColumnDefinitions = new ColumnDefinitions("48,*,72,64"),
-            RowSpacing = 12,
-            ColumnSpacing = 8,
-        };
-        AddPathRow(form, row: 0, HardwareModel.Dmg, _dmgBootRomPathTextBox);
-        AddPathRow(form, row: 1, HardwareModel.Cgb, _cgbBootRomPathTextBox);
-        AddPathRow(form, row: 2, HardwareModel.Sgb, _sgbBootRomPathTextBox);
-
-        var footer = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            Spacing = 8,
-        };
-        var cancelButton = AppChrome.Button("Cancel");
-        cancelButton.Click += (_, _) => Close(null);
-        var saveButton = AppChrome.Button("Save", accent: true);
-        saveButton.Click += (_, _) => Close(GetBootRomConfig());
-        footer.Children.Add(cancelButton);
-        footer.Children.Add(saveButton);
-
-        root.Children.Add(sidebar);
-        content.Children.Add(form);
-        Grid.SetRow(footer, 2);
-        content.Children.Add(footer);
-        root.Children.Add(content);
-        Grid.SetColumn(content, 1);
-        return root;
-    }
-
-    private static Border CreateSidebarItem(
-        string text,
-        string iconAsset,
-        bool isSelected,
-        double sourceSize = 24
-    )
-    {
-        var icon = Icons.Make(iconAsset, size: 15, sourceSize: sourceSize);
-        var label = AppChrome.TextBlock(
-            text,
-            isSelected ? AppChrome.Text : AppChrome.Muted,
-            fontSize: 14
-        );
-        Grid.SetColumn(label, 1);
-
-        return new Border
-        {
-            Height = 34,
-            CornerRadius = new CornerRadius(AppChrome.Radius),
-            Background = isSelected
-                ? AppChrome.Brush(AppChrome.SelectedSurface)
-                : AppChrome.Brush(Colors.Transparent),
-            BorderBrush = isSelected
-                ? AppChrome.Brush(AppChrome.SelectedBorder)
-                : AppChrome.Brush(Colors.Transparent),
-            Padding = new Thickness(12, 0),
-            Child = new Grid
-            {
-                ColumnDefinitions = new ColumnDefinitions("16,*"),
-                ColumnSpacing = 9,
-                Children = { icon, label },
-            },
-        };
-    }
-
-    private static TextBox CreatePathBox(string? text) =>
-        new()
-        {
-            Text = text,
-            PlaceholderText = "No file selected",
-            Height = 30,
-            FontSize = 12,
-            Foreground = AppChrome.Brush(AppChrome.Text),
-            Background = AppChrome.Brush(Colors.Transparent),
-            BorderThickness = new Thickness(0),
-            Padding = new Thickness(10, 0),
-            VerticalContentAlignment = VerticalAlignment.Center,
-            FocusAdorner = null,
-        };
-
-    private void AddPathRow(Grid form, int row, HardwareModel model, TextBox pathBox)
-    {
-        var label = BootRomConfig.DisplayName(model);
-        var labelBlock = AppChrome.TextBlock(label, AppChrome.Text, fontSize: 13);
-        form.Children.Add(labelBlock);
-        Grid.SetRow(labelBlock, row);
-
-        var pathWell = CreatePathWell(pathBox);
-        form.Children.Add(pathWell);
-        Grid.SetRow(pathWell, row);
-        Grid.SetColumn(pathWell, 1);
-
-        var browseButton = AppChrome.Button("Browse");
-        browseButton.Click += async (_, _) =>
-            await BrowseBootRomAsync(pathBox, $"Select {label} boot ROM").ConfigureAwait(true);
-        form.Children.Add(browseButton);
-        Grid.SetRow(browseButton, row);
-        Grid.SetColumn(browseButton, 2);
-
-        var clearButton = AppChrome.Button("Clear");
-        clearButton.Click += (_, _) => pathBox.Text = string.Empty;
-        form.Children.Add(clearButton);
-        Grid.SetRow(clearButton, row);
-        Grid.SetColumn(clearButton, 3);
-    }
-
-    private static Border CreatePathWell(TextBox pathBox)
-    {
-        var well = new Border
-        {
-            Height = 32,
-            Background = AppChrome.Brush(AppChrome.Surface),
-            BorderBrush = AppChrome.Brush(AppChrome.Hair),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(AppChrome.Radius),
-            Child = pathBox,
-        };
-        pathBox.GotFocus += (_, _) => well.BorderBrush = AppChrome.Brush(AppChrome.Strong);
-        pathBox.LostFocus += (_, _) => well.BorderBrush = AppChrome.Brush(AppChrome.Hair);
-        return well;
+        DmgBootRomPathTextBox.Text = bootRomConfig.DmgPath;
+        CgbBootRomPathTextBox.Text = bootRomConfig.CgbPath;
+        SgbBootRomPathTextBox.Text = bootRomConfig.SgbPath;
     }
 
     private BootRomConfig GetBootRomConfig() =>
         new(
-            NormalizePath(_dmgBootRomPathTextBox.Text),
-            NormalizePath(_cgbBootRomPathTextBox.Text),
-            NormalizePath(_sgbBootRomPathTextBox.Text)
+            NormalizePath(DmgBootRomPathTextBox.Text),
+            NormalizePath(CgbBootRomPathTextBox.Text),
+            NormalizePath(SgbBootRomPathTextBox.Text)
         );
 
     private static string? NormalizePath(string? path) =>
         string.IsNullOrWhiteSpace(path) ? null : path;
+
+    private async void BrowseDmgBootRomPathAsync(object? sender, RoutedEventArgs e) =>
+        await BrowseBootRomAsync(
+                DmgBootRomPathTextBox,
+                $"Select {BootRomConfig.DisplayName(HardwareModel.Dmg)} boot ROM"
+            )
+            .ConfigureAwait(true);
+
+    private async void BrowseCgbBootRomPathAsync(object? sender, RoutedEventArgs e) =>
+        await BrowseBootRomAsync(
+                CgbBootRomPathTextBox,
+                $"Select {BootRomConfig.DisplayName(HardwareModel.Cgb)} boot ROM"
+            )
+            .ConfigureAwait(true);
+
+    private async void BrowseSgbBootRomPathAsync(object? sender, RoutedEventArgs e) =>
+        await BrowseBootRomAsync(
+                SgbBootRomPathTextBox,
+                $"Select {BootRomConfig.DisplayName(HardwareModel.Sgb)} boot ROM"
+            )
+            .ConfigureAwait(true);
+
+    private void ClearDmgBootRomPath(object? sender, RoutedEventArgs e) =>
+        DmgBootRomPathTextBox.Text = string.Empty;
+
+    private void ClearCgbBootRomPath(object? sender, RoutedEventArgs e) =>
+        CgbBootRomPathTextBox.Text = string.Empty;
+
+    private void ClearSgbBootRomPath(object? sender, RoutedEventArgs e) =>
+        SgbBootRomPathTextBox.Text = string.Empty;
+
+    private void CancelSettings(object? sender, RoutedEventArgs e) => Close(null);
+
+    private void SaveSettings(object? sender, RoutedEventArgs e) => Close(GetBootRomConfig());
 
     private async Task BrowseBootRomAsync(TextBox pathBox, string title)
     {

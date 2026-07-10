@@ -9,30 +9,75 @@
   MinWidth="640"
   MinHeight="576"
   WindowStartupLocation="CenterScreen"
+  Background="{DynamicResource ChromeBackgroundBrush}"
 >
   <Grid RowDefinitions="Auto,*,Auto">
     <menus:MainMenu x:Name="MainMenu" Grid.Row="0" />
 
     <ContentControl x:Name="ContentHost" Grid.Row="1" />
 
-    <Border x:Name="StatusBar" Grid.Row="2" BorderThickness="0,1,0,0" Padding="14,6">
+    <Border
+      x:Name="StatusBar"
+      Grid.Row="2"
+      Background="{DynamicResource ChromePanelBrush}"
+      BorderBrush="{DynamicResource ChromeHairBrush}"
+      BorderThickness="0,1,0,0"
+      Padding="14,6"
+    >
       <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
-        <Border x:Name="StatusCoverFrame" Width="18" Height="18" CornerRadius="3">
+        <Border
+          x:Name="StatusCoverFrame"
+          Width="18"
+          Height="18"
+          Background="{DynamicResource ChromeSurfaceBrush}"
+          CornerRadius="3"
+          IsVisible="False"
+        >
           <Image x:Name="StatusCoverImage" Stretch="UniformToFill" />
         </Border>
         <TextBlock
           x:Name="StatusTextBlock"
           Grid.Column="1"
           FontSize="12"
+          Foreground="{DynamicResource ChromeMutedBrush}"
           TextTrimming="CharacterEllipsis"
           VerticalAlignment="Center"
         />
-        <TextBlock
-          x:Name="StatusSpeedTextBlock"
+        <Border
+          x:Name="StatusHardwareBadge"
           Grid.Column="2"
-          FontSize="12"
-          TextTrimming="CharacterEllipsis"
-        />
+          BorderThickness="1"
+          BorderBrush="{DynamicResource ChromeHairBrush}"
+          CornerRadius="7"
+          Padding="5,1"
+          VerticalAlignment="Center"
+          IsVisible="False"
+        >
+          <TextBlock
+            x:Name="StatusHardwareBadgeTextBlock"
+            FontSize="10"
+            FontWeight="SemiBold"
+            Foreground="{DynamicResource ChromeMutedBrush}"
+          />
+        </Border>
+        <Border
+          x:Name="StatusSpeedBadge"
+          Grid.Column="3"
+          BorderThickness="1"
+          BorderBrush="{DynamicResource ChromeHairBrush}"
+          CornerRadius="7"
+          Padding="5,1"
+          VerticalAlignment="Center"
+          IsVisible="False"
+        >
+          <TextBlock
+            x:Name="StatusSpeedTextBlock"
+            FontSize="10"
+            FontWeight="SemiBold"
+            Foreground="{DynamicResource ChromeMutedBrush}"
+            TextTrimming="CharacterEllipsis"
+          />
+        </Border>
       </Grid>
     </Border>
   </Grid>

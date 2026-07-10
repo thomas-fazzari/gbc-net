@@ -27,22 +27,16 @@ public sealed class BlarggDmgSoundRomTests
         "12-wave write while on.gb",
     ];
 
-    public static TheoryData<string> RomFileNameRows =>
-        RomTestRunner.CreateTheoryData(_romFileNames);
-
-    private static readonly Lazy<IReadOnlyDictionary<string, RomTestResult>> _results = new(() =>
-        RomTestRunner.RunAll(
-            _romFileNames,
-            fileName =>
-            {
-                var rom = File.ReadAllBytes(Path.Combine(RomDirectory, fileName));
-                return RomTestRunner.Run(rom, MaxMachineCycles);
-            }
-        )
+    private static readonly RomTestRunner.RomSuite _roms = RomTestRunner.CreateSuite(
+        _romFileNames,
+        RomDirectory,
+        MaxMachineCycles
     );
+
+    public static TheoryData<string> RomFileNameRows => _roms.Rows;
 
     [Theory]
     [MemberData(nameof(RomFileNameRows))]
     public void DmgSoundRomPasses(string fileName) =>
-        RomTestAssertions.AssertPassed(_results.Value, fileName);
+        RomTestAssertions.AssertPassed(_roms.Results, fileName);
 }

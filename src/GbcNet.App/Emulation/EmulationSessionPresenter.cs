@@ -170,7 +170,7 @@ internal sealed class EmulationSessionPresenter(
         }
         catch (ConfigurationException exception)
         {
-            statusBar.ShowError(ConfigurationErrors.Format(exception));
+            statusBar.ShowError(exception.Message);
         }
     }
 

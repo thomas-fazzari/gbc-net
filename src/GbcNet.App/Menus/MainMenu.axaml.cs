@@ -3,10 +3,8 @@
 
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Media;
 using GbcNet.App.Emulation;
 using GbcNet.App.Library;
-using GbcNet.App.Shell.Chrome;
 
 namespace GbcNet.App.Menus;
 
@@ -68,9 +66,6 @@ internal sealed partial class MainMenu : UserControl
     public MainMenu()
     {
         InitializeComponent();
-        MenuChrome.Background = AppChrome.Brush(AppChrome.Bg);
-        MenuChrome.BorderBrush = AppChrome.Brush(AppChrome.Hair);
-        WindowMenu.Background = Brushes.Transparent;
 
         IsVisible = !OperatingSystem.IsMacOS();
         _nativeOpenRecentMenuItem = new NativeMenuItem("Open Recent")

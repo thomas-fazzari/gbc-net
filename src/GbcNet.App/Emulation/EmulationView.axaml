@@ -2,10 +2,15 @@
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   x:Class="GbcNet.App.Emulation.EmulationView"
+  Focusable="True"
 >
-  <Border x:Name="ViewportBackground">
+  <Border x:Name="ViewportBackground" Background="{DynamicResource ChromeBackgroundBrush}">
     <Viewbox Stretch="Uniform">
-      <Border x:Name="ScreenBackground" RenderOptions.BitmapInterpolationMode="None">
+      <Border
+        x:Name="ScreenBackground"
+        Background="{DynamicResource ChromeBackgroundBrush}"
+        RenderOptions.BitmapInterpolationMode="None"
+      >
         <Image x:Name="ScreenImage" Width="160" Height="144" Stretch="Fill" />
       </Border>
     </Viewbox>

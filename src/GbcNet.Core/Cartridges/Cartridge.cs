@@ -54,10 +54,28 @@ public sealed class Cartridge
     /// Parses and loads a cartridge image.
     /// </summary>
     /// <returns>
-    /// A loaded cartridge, or a typed cartridge load error.
+    /// A discriminated load result with a non-null cartridge on success or error on failure.
+    /// Call LoadOrThrow for callers that cannot recover.
     /// </returns>
     public static CartridgeLoadResult Load(ReadOnlySpan<byte> rom) =>
         Load(rom, static () => DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+
+    /// <summary>
+    /// Parses and loads a cartridge image, throwing when loading fails.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Cartridge bytes could not be loaded as a supported ROM.
+    /// </exception>
+    public static Cartridge LoadOrThrow(ReadOnlySpan<byte> rom) =>
+        LoadOrThrow(rom, static () => DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+
+    internal static Cartridge LoadOrThrow(ReadOnlySpan<byte> rom, Func<long> getUnixTimeSeconds)
+    {
+        var result = Load(rom, getUnixTimeSeconds);
+        return result.IsSuccess
+            ? result.Cartridge
+            : throw new InvalidOperationException(result.Error.Message);
+    }
 
     internal static CartridgeLoadResult Load(ReadOnlySpan<byte> rom, Func<long> getUnixTimeSeconds)
     {

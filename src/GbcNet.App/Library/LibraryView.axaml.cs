@@ -4,6 +4,7 @@
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -15,32 +16,8 @@ namespace GbcNet.App.Library;
 internal sealed partial class LibraryView : UserControl
 {
     private const int TileTitleMaxLength = 34;
-    private const double HardwareDropDownWidth = 132;
-    private const double CoverDropDownWidth = 132;
-    private const double SortDropDownWidth = 116;
-    private const double HeaderControlGap = 8;
     private const double CompactHeaderWidth = 760;
 
-    private static readonly LibraryHardwareFilter[] _hardwareFilterOptions =
-    [
-        LibraryHardwareFilter.All,
-        LibraryHardwareFilter.Gb,
-        LibraryHardwareFilter.Gbc,
-        LibraryHardwareFilter.Sgb,
-    ];
-    private static readonly LibraryCoverFilter[] _coverFilterOptions =
-    [
-        LibraryCoverFilter.All,
-        LibraryCoverFilter.WithCover,
-        LibraryCoverFilter.MissingCover,
-    ];
-    private static readonly LibrarySortMode[] _sortOptions =
-    [
-        LibrarySortMode.LastOpened,
-        LibrarySortMode.Title,
-        LibrarySortMode.MostPlayed,
-        LibrarySortMode.RecentlyAdded,
-    ];
     private readonly List<Bitmap> _coverBitmaps = [];
     private LibraryHardwareFilter _hardwareFilter;
     private LibraryCoverFilter _coverFilter;
@@ -49,15 +26,10 @@ internal sealed partial class LibraryView : UserControl
     public LibraryView()
     {
         InitializeComponent();
-        LibraryPageBackground.Background = AppChrome.Brush(AppChrome.Bg);
-        LibrarySearchBorder.Background = AppChrome.Brush(AppChrome.Panel);
-        LibrarySearchBorder.BorderBrush = AppChrome.Brush(AppChrome.Hair);
-        LibrarySearchTextBox.Background = Brushes.Transparent;
-        LibrarySearchTextBox.Foreground = AppChrome.Brush(AppChrome.Text);
-        LibraryDivider.Background = AppChrome.Brush(AppChrome.Hair);
-        EmptyStateText.Foreground = AppChrome.Brush(AppChrome.Text);
-        DetachedFromVisualTree += (_, _) => DisposeCoverBitmaps();
-        BuildLibraryControls();
+        _hardwareFilter = LibraryHardwareFilter.All;
+        _coverFilter = LibraryCoverFilter.All;
+        _sortMode = LibrarySortMode.LastOpened;
+        DetachedFromVisualTree += (_, _) => ClearTiles();
         LibraryFilterGrid.SizeChanged += (_, _) => UpdateHeaderLayout();
         LibrarySearchTextBox.TextChanged += (_, _) => QueryChanged?.Invoke();
     }
@@ -73,17 +45,24 @@ internal sealed partial class LibraryView : UserControl
 
     public void Load(IReadOnlyList<LibraryEntry> entries)
     {
-        RomTilesPanel.Children.Clear();
-        DisposeCoverBitmaps();
+        ClearTiles();
         LibraryScrollViewer.IsVisible = entries.Count > 0;
         EmptyState.IsVisible = entries.Count == 0;
         EmptyStateText.Text = HasActiveQuery ? "No ROMs match" : "No ROMs yet";
         EmptyStateText.Foreground = AppChrome.Brush(AppChrome.Text);
 
+        if (entries.Count == 0)
+        {
+            return;
+        }
+
+        var tiles = new List<LibraryTile>(entries.Count);
         foreach (var entry in entries)
         {
-            RomTilesPanel.Children.Add(CreateRomTile(entry));
+            tiles.Add(CreateTile(entry));
         }
+
+        RomTilesControl.ItemsSource = tiles;
     }
 
     public Task<bool> ConfirmRemoveAsync()
@@ -96,8 +75,7 @@ internal sealed partial class LibraryView : UserControl
 
     public void ShowError(string message)
     {
-        RomTilesPanel.Children.Clear();
-        DisposeCoverBitmaps();
+        ClearTiles();
         LibraryScrollViewer.IsVisible = false;
         EmptyState.IsVisible = true;
         EmptyStateText.Text = message;
@@ -109,34 +87,6 @@ internal sealed partial class LibraryView : UserControl
         || _hardwareFilter != LibraryHardwareFilter.All
         || _coverFilter != LibraryCoverFilter.All
         || _sortMode != LibrarySortMode.LastOpened;
-
-    private void BuildLibraryControls()
-    {
-        LibraryControlsPanel.Children.Add(
-            CreateDropDown(
-                HardwareDropDownWidth,
-                _hardwareFilterOptions,
-                FormatHardwareFilter,
-                value => _hardwareFilter = value
-            )
-        );
-        LibraryControlsPanel.Children.Add(
-            CreateDropDown(
-                CoverDropDownWidth,
-                _coverFilterOptions,
-                FormatCoverFilter,
-                value => _coverFilter = value
-            )
-        );
-        LibraryControlsPanel.Children.Add(
-            CreateDropDown(
-                SortDropDownWidth,
-                _sortOptions,
-                FormatSortMode,
-                value => _sortMode = value
-            )
-        );
-    }
 
     private void UpdateHeaderLayout()
     {
@@ -153,87 +103,75 @@ internal sealed partial class LibraryView : UserControl
         LibraryControlsPanel.Margin = compact ? new Thickness(0, 10, 0, 0) : new Thickness(0);
     }
 
-    private ComboBox CreateDropDown<T>(
-        double width,
-        IEnumerable<T> options,
-        Func<T, string> format,
-        Action<T> select
-    )
+    private void OnHardwareFilterChanged(object? sender, SelectionChangedEventArgs e)
     {
-        var dropDown = new ComboBox
+        if (
+            sender is ComboBox comboBox
+            && TryGetSelectedTag(comboBox, out LibraryHardwareFilter value)
+            && _hardwareFilter != value
+        )
         {
-            Width = width,
-            Height = 30,
-            MinWidth = 0,
-            Margin = new Thickness(0, 0, HeaderControlGap, 0),
-            ItemsSource = options.Select(option => new ComboBoxItem
-            {
-                Content = format(option),
-                Tag = option,
-            }),
-            SelectedIndex = 0,
-            Background = AppChrome.Brush(AppChrome.Panel),
-            BorderBrush = AppChrome.Brush(AppChrome.Hair),
-            BorderThickness = new Thickness(1),
-            Foreground = AppChrome.Brush(AppChrome.Text),
-            FontSize = 12,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-        };
-        dropDown.SelectionChanged += (_, _) =>
-        {
-            if (dropDown.SelectedItem is ComboBoxItem item && item.Tag is T value)
-            {
-                select(value);
-                QueryChanged?.Invoke();
-            }
-        };
-        return dropDown;
+            _hardwareFilter = value;
+            QueryChanged?.Invoke();
+        }
     }
 
-    private Button CreateRomTile(LibraryEntry entry)
+    private void OnCoverFilterChanged(object? sender, SelectionChangedEventArgs e)
     {
-        var button = new Button
+        if (
+            sender is ComboBox comboBox
+            && TryGetSelectedTag(comboBox, out LibraryCoverFilter value)
+            && _coverFilter != value
+        )
         {
-            Width = 168,
-            Height = 238,
-            Margin = new Thickness(0, 0, 18, 18),
-            Padding = new Thickness(10),
-            Background = AppChrome.Brush(AppChrome.Panel),
-            BorderBrush = AppChrome.Brush(AppChrome.Hair),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(AppChrome.Radius),
-            HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            VerticalContentAlignment = VerticalAlignment.Stretch,
-            Content = CreateRomTileContent(entry),
-        };
-        button.Click += (_, _) => RomSelected?.Invoke(entry);
-        return button;
+            _coverFilter = value;
+            QueryChanged?.Invoke();
+        }
     }
 
-    private Grid CreateRomTileContent(LibraryEntry entry) =>
-        new()
-        {
-            RowDefinitions = new RowDefinitions("148,52,18"),
-            Children = { CreateCover(entry), CreateTitle(entry), CreateFooter(entry) },
-        };
-
-    private Border CreateCover(LibraryEntry entry)
+    private void OnSortModeChanged(object? sender, SelectionChangedEventArgs e)
     {
-        var cover = CreateCoverPlaceholder();
+        if (
+            sender is ComboBox comboBox
+            && TryGetSelectedTag(comboBox, out LibrarySortMode value)
+            && _sortMode != value
+        )
+        {
+            _sortMode = value;
+            QueryChanged?.Invoke();
+        }
+    }
+
+    private static bool TryGetSelectedTag<T>(ComboBox comboBox, out T value)
+        where T : struct, Enum
+    {
+        if (
+            comboBox.SelectedItem is ComboBoxItem { Tag: string tag }
+            && Enum.TryParse(tag, out T parsed)
+        )
+        {
+            value = parsed;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    private LibraryTile CreateTile(LibraryEntry entry)
+    {
         Bitmap? bitmap = null;
         try
         {
             bitmap = TryLoadCoverBitmap(entry.CoverPath);
-            if (bitmap is null)
+            var tile = new LibraryTile(entry, bitmap);
+            if (bitmap is not null)
             {
-                return cover;
+                _coverBitmaps.Add(bitmap);
+                bitmap = null;
             }
 
-            _coverBitmaps.Add(bitmap);
-            cover.Child = new Image { Source = bitmap, Stretch = Stretch.UniformToFill };
-            bitmap = null;
-            return cover;
+            return tile;
         }
         finally
         {
@@ -241,112 +179,26 @@ internal sealed partial class LibraryView : UserControl
         }
     }
 
-    private static Border CreateCoverPlaceholder() =>
-        new()
-        {
-            Background = AppChrome.Brush(AppChrome.Surface),
-            ClipToBounds = true,
-            CornerRadius = new CornerRadius(AppChrome.Radius),
-            Child = new TextBlock
-            {
-                Text = "ROM",
-                Foreground = AppChrome.Brush(AppChrome.Muted),
-                FontSize = 26,
-                FontWeight = FontWeight.SemiBold,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-            },
-        };
-
-    private static Border CreateHardwareKindBadge(CartridgeHardwareKind hardwareKind) =>
-        new()
-        {
-            Background = Brushes.Transparent,
-            BorderBrush = AppChrome.Brush(AppChrome.Hair),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(9),
-            Padding = new Thickness(5, 1),
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Center,
-            Child = new TextBlock
-            {
-                Text = hardwareKind.ToString(),
-                Foreground = AppChrome.Brush(AppChrome.Muted),
-                FontSize = 10,
-                FontWeight = FontWeight.SemiBold,
-            },
-        };
-
-    private static TextBlock CreateTitle(LibraryEntry entry)
+    private void OnRomTileClick(object? sender, RoutedEventArgs e)
     {
-        var title = new TextBlock
+        if (sender is Control { DataContext: LibraryTile tile })
         {
-            Text = FormatTileTitle(Path.GetFileNameWithoutExtension(entry.FileName)),
-            Foreground = AppChrome.Brush(AppChrome.Text),
-            FontSize = 13,
-            FontWeight = FontWeight.SemiBold,
-            Margin = new Thickness(0, 10, 0, 0),
-            MaxLines = 2,
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            TextWrapping = TextWrapping.Wrap,
-            VerticalAlignment = VerticalAlignment.Top,
-        };
-        Grid.SetRow(title, 1);
-        return title;
+            RomSelected?.Invoke(tile.Entry);
+        }
     }
 
-    private Grid CreateFooter(LibraryEntry entry)
+    private void OnTileActionsButtonLoaded(object? sender, RoutedEventArgs e)
     {
-        var footer = new Grid
+        if (sender is not Button button || button.DataContext is not LibraryTile tile)
         {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto"),
-            Margin = new Thickness(0),
-        };
-        footer.Children.Add(
-            new TextBlock
-            {
-                Text = string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"{entry.LaunchCount} play{(entry.LaunchCount == 1 ? string.Empty : "s")}"
-                ),
-                Foreground = AppChrome.Brush(AppChrome.Muted),
-                FontSize = 11,
-                VerticalAlignment = VerticalAlignment.Center,
-            }
-        );
-        var badge = CreateHardwareKindBadge(entry.HardwareKind);
-        Grid.SetColumn(badge, 1);
-        footer.Children.Add(badge);
-        var actions = CreateTileActionsButton(entry);
-        Grid.SetColumn(actions, 2);
-        footer.Children.Add(actions);
-        Grid.SetRow(footer, 2);
-        return footer;
+            return;
+        }
+
+        button.Flyout = CreateTileActionsFlyout(tile.Entry);
     }
 
-    private Button CreateTileActionsButton(LibraryEntry entry)
-    {
-        var button = new Button
-        {
-            Content = Icons.Make(Icons.Settings, AppChrome.Muted, size: 12, sourceSize: 28),
-            MinWidth = 26,
-            Height = 18,
-            Margin = new Thickness(10, 0, 0, 0),
-            Padding = new Thickness(0),
-            Background = Brushes.Transparent,
-            BorderBrush = AppChrome.Brush(AppChrome.Hair),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(9),
-            Foreground = AppChrome.Brush(AppChrome.Muted),
-            HorizontalAlignment = HorizontalAlignment.Right,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Flyout = CreateTileActionsFlyout(entry),
-        };
-        button.Click += (_, e) => e.Handled = true;
-        return button;
-    }
+    private static void OnTileActionsButtonClick(object? sender, RoutedEventArgs e) =>
+        e.Handled = true;
 
     private MenuFlyout CreateTileActionsFlyout(LibraryEntry entry)
     {
@@ -393,6 +245,12 @@ internal sealed partial class LibraryView : UserControl
         }
     }
 
+    private void ClearTiles()
+    {
+        RomTilesControl.ItemsSource = null;
+        DisposeCoverBitmaps();
+    }
+
     private void DisposeCoverBitmaps()
     {
         foreach (var bitmap in _coverBitmaps)
@@ -401,6 +259,20 @@ internal sealed partial class LibraryView : UserControl
         }
 
         _coverBitmaps.Clear();
+    }
+
+    private sealed class LibraryTile(LibraryEntry entry, Bitmap? coverBitmap)
+    {
+        public LibraryEntry Entry { get; } = entry;
+        public Bitmap? CoverBitmap { get; } = coverBitmap;
+        public string Title { get; } =
+            FormatTileTitle(Path.GetFileNameWithoutExtension(entry.FileName));
+        public string PlayCountText { get; } =
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"{entry.LaunchCount} play{(entry.LaunchCount == 1 ? string.Empty : "s")}"
+            );
+        public string HardwareText { get; } = entry.HardwareKind.ToString();
     }
 
     private sealed class RemoveLibraryEntryWindow : Window
@@ -456,43 +328,6 @@ internal sealed partial class LibraryView : UserControl
             };
         }
     }
-
-    private static string FormatHardwareFilter(LibraryHardwareFilter hardwareFilter) =>
-        $"Hardware: {hardwareFilter switch
-        {
-            LibraryHardwareFilter.All => "All",
-            LibraryHardwareFilter.Gb => "GB",
-            LibraryHardwareFilter.Gbc => "GBC",
-            LibraryHardwareFilter.Sgb => "SGB",
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(hardwareFilter),
-                hardwareFilter,
-                message: null
-            ),
-        }}";
-
-    private static string FormatCoverFilter(LibraryCoverFilter coverFilter) =>
-        $"Cover: {coverFilter switch
-        {
-            LibraryCoverFilter.All => "Any",
-            LibraryCoverFilter.WithCover => "Set",
-            LibraryCoverFilter.MissingCover => "Missing",
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(coverFilter),
-                coverFilter,
-                message: null
-            ),
-        }}";
-
-    private static string FormatSortMode(LibrarySortMode sortMode) =>
-        $"Sort: {sortMode switch
-        {
-            LibrarySortMode.LastOpened => "Recent",
-            LibrarySortMode.Title => "Title",
-            LibrarySortMode.MostPlayed => "Plays",
-            LibrarySortMode.RecentlyAdded => "Added",
-            _ => throw new ArgumentOutOfRangeException(nameof(sortMode), sortMode, message: null),
-        }}";
 
     private static string FormatTileTitle(string fileName) =>
         fileName.Length <= TileTitleMaxLength

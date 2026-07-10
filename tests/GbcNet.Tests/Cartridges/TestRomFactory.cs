@@ -88,13 +88,10 @@ internal static class TestRomFactory
     public static Cartridge LoadCartridge(byte romSizeCode, Action<byte[]>? configure = null) =>
         LoadCartridge(Create(romSizeCode, configure));
 
-    public static Cartridge LoadCartridge(byte[] rom) =>
-        Cartridge.Load(rom).Cartridge
-        ?? throw new InvalidOperationException("Test ROM failed to load.");
+    public static Cartridge LoadCartridge(byte[] rom) => Cartridge.LoadOrThrow(rom);
 
     public static Cartridge LoadCartridge(byte[] rom, Func<long> getUnixTimeSeconds) =>
-        Cartridge.Load(rom, getUnixTimeSeconds).Cartridge
-        ?? throw new InvalidOperationException("Test ROM failed to load.");
+        Cartridge.LoadOrThrow(rom, getUnixTimeSeconds);
 
     private static int DecodeRomSizeBytes(byte code) =>
         code switch

@@ -65,6 +65,34 @@ internal static class RomTestRunner
             .ToDictionary(static relativePath => relativePath, run, StringComparer.Ordinal);
     }
 
+    public static RomSuite CreateSuite(
+        IReadOnlyList<string> relativePaths,
+        string romDirectory,
+        int maxMachineCycles,
+        RomTestProtocol protocol = RomTestProtocol.Blargg,
+        HardwareModel hardwareModel = HardwareModel.Dmg
+    )
+    {
+        ArgumentNullException.ThrowIfNull(relativePaths);
+        ArgumentNullException.ThrowIfNull(romDirectory);
+
+        return new(
+            CreateTheoryData(relativePaths),
+            new Lazy<IReadOnlyDictionary<string, RomTestResult>>(() =>
+                RunAll(
+                    relativePaths,
+                    relativePath =>
+                    {
+                        var romPath = Path.Combine(romDirectory, relativePath);
+                        var rom = File.ReadAllBytes(romPath);
+
+                        return Run(rom, maxMachineCycles, protocol, hardwareModel);
+                    }
+                )
+            )
+        );
+    }
+
     public static TheoryData<string> CreateTheoryData(IReadOnlyList<string> relativePaths)
     {
         ArgumentNullException.ThrowIfNull(relativePaths);
@@ -76,6 +104,27 @@ internal static class RomTestRunner
         }
 
         return rows;
+    }
+
+    internal sealed class RomSuite
+    {
+        private readonly Lazy<IReadOnlyDictionary<string, RomTestResult>> _results;
+
+        internal RomSuite(
+            TheoryData<string> rows,
+            Lazy<IReadOnlyDictionary<string, RomTestResult>> results
+        )
+        {
+            ArgumentNullException.ThrowIfNull(rows);
+            ArgumentNullException.ThrowIfNull(results);
+
+            Rows = rows;
+            _results = results;
+        }
+
+        public TheoryData<string> Rows { get; }
+
+        public IReadOnlyDictionary<string, RomTestResult> Results => _results.Value;
     }
 
     private static RomTestResult? CreateTerminalResult(

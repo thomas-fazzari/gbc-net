@@ -19,7 +19,7 @@ internal sealed class EmulationController(
     BootRomOptions bootRomOptions,
     IAudioOutput audioOutput,
     CartridgeBatterySaveFileService cartridgeSaveFileService,
-    Action<FrameCompletedEventArgs> handleFrame,
+    Action<LcdFrame> handleFrame,
     Action<Exception> handleFault,
     bool fastForwardEnabled,
     EmulationSpeed fastForwardSpeed
@@ -128,11 +128,7 @@ internal sealed class EmulationController(
 
     private Cartridge LoadCartridge(byte[] rom)
     {
-        var load = Cartridge.Load(rom);
-        if (load.Cartridge is not { } cartridge)
-        {
-            throw new InvalidOperationException(load.Error?.Message);
-        }
+        var cartridge = Cartridge.LoadOrThrow(rom);
 
         cartridgeSaveFileService.Load(cartridge, rom);
         return cartridge;

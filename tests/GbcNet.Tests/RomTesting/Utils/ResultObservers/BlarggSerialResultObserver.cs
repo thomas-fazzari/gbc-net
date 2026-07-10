@@ -16,7 +16,7 @@ internal sealed class BlarggSerialResultObserver : IRomResultObserver
 
     public BlarggSerialResultObserver(GameBoy gameBoy)
     {
-        gameBoy.SerialByteTransferred += (_, e) => _output.Append((char)e.TransferredByte);
+        gameBoy.SerialByteTransferred += transferredByte => _output.Append((char)transferredByte);
     }
 
     public RomTestObservation Snapshot => new(Source, Output: _output.ToString());

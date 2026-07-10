@@ -20,307 +20,258 @@ public sealed class AppConfigurationIntegrationTests
     [Fact]
     public void Load_CreatesDefaultJsonConfigFile()
     {
-        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
-        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
 
-        try
-        {
-            var startupConfiguration = StartupConfigurationLoader.Load(configPath);
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath);
 
-            Assert.Null(startupConfiguration.StartupErrorMessage);
-            Assert.True(File.Exists(configPath));
-            using var configJson = JsonDocument.Parse(File.ReadAllText(configPath));
-            var root = configJson.RootElement;
-            Assert.True(root.TryGetProperty("input", out var input));
-            Assert.Equal(1, input.GetProperty("version").GetInt32());
-            Assert.True(input.TryGetProperty("activeProfile", out var activeProfile));
-            Assert.Equal(JsonValueKind.String, activeProfile.ValueKind);
-            Assert.True(
-                input.GetProperty("profiles").TryGetProperty(activeProfile.GetString()!, out _)
-            );
-            Assert.True(root.TryGetProperty("bootRoms", out var bootRoms));
-            Assert.Equal(JsonValueKind.Object, bootRoms.ValueKind);
-            AssertInputConfigIsValid(startupConfiguration.InputConfig);
-        }
-        finally
-        {
-            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
-        }
+        Assert.Null(startupConfiguration.StartupErrorMessage);
+        Assert.True(File.Exists(configPath));
+        using var configJson = JsonDocument.Parse(File.ReadAllText(configPath));
+        var root = configJson.RootElement;
+        Assert.True(root.TryGetProperty("input", out var input));
+        Assert.Equal(1, input.GetProperty("version").GetInt32());
+        Assert.True(input.TryGetProperty("activeProfile", out var activeProfile));
+        Assert.Equal(JsonValueKind.String, activeProfile.ValueKind);
+        Assert.True(
+            input.GetProperty("profiles").TryGetProperty(activeProfile.GetString()!, out _)
+        );
+        Assert.True(root.TryGetProperty("bootRoms", out var bootRoms));
+        Assert.Equal(JsonValueKind.Object, bootRoms.ValueKind);
+        AssertInputConfigIsValid(startupConfiguration.InputConfig);
     }
 
     [Fact]
     public void Load_ReadsBootRomFilesFromConfig()
     {
-        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
-        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
 
-        try
-        {
-            Directory.CreateDirectory(tempDirectory);
-            File.WriteAllBytes(
-                Path.Combine(tempDirectory, "dmg.bin"),
-                CreateBootRom(BootRomOptions.DmgBootRomSize, 0xD0)
-            );
-            File.WriteAllBytes(
-                Path.Combine(tempDirectory, "cgb.bin"),
-                CreateBootRom(BootRomOptions.CgbBootRomSize, 0xC0)
-            );
-            File.WriteAllBytes(
-                Path.Combine(tempDirectory, "sgb.bin"),
-                CreateBootRom(BootRomOptions.SgbBootRomSize, 0x50)
-            );
-            File.WriteAllText(configPath, CreateConfig("dmg.bin", "cgb.bin", "sgb.bin"));
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllBytes(
+            Path.Combine(tempDirectory.Path, "dmg.bin"),
+            CreateBootRom(BootRomOptions.DmgBootRomSize, 0xD0)
+        );
+        File.WriteAllBytes(
+            Path.Combine(tempDirectory.Path, "cgb.bin"),
+            CreateBootRom(BootRomOptions.CgbBootRomSize, 0xC0)
+        );
+        File.WriteAllBytes(
+            Path.Combine(tempDirectory.Path, "sgb.bin"),
+            CreateBootRom(BootRomOptions.SgbBootRomSize, 0x50)
+        );
+        File.WriteAllText(configPath, CreateConfig("dmg.bin", "cgb.bin", "sgb.bin"));
 
-            var startupConfiguration = StartupConfigurationLoader.Load(configPath);
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath);
 
-            Assert.Null(startupConfiguration.StartupErrorMessage);
-            Assert.Equal(
-                BootRomOptions.DmgBootRomSize,
-                startupConfiguration.BootRomOptions.DmgBootRom.Length
-            );
-            Assert.Equal(
-                BootRomOptions.CgbBootRomSize,
-                startupConfiguration.BootRomOptions.CgbBootRom.Length
-            );
-            Assert.Equal(
-                BootRomOptions.SgbBootRomSize,
-                startupConfiguration.BootRomOptions.SgbBootRom.Length
-            );
-            Assert.Equal(0xD0, startupConfiguration.BootRomOptions.DmgBootRom.Span[0]);
-            Assert.Equal(0xC0, startupConfiguration.BootRomOptions.CgbBootRom.Span[0]);
-            Assert.Equal(0x50, startupConfiguration.BootRomOptions.SgbBootRom.Span[0]);
-        }
-        finally
-        {
-            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
-        }
+        Assert.Null(startupConfiguration.StartupErrorMessage);
+        Assert.Equal(
+            BootRomOptions.DmgBootRomSize,
+            startupConfiguration.BootRomOptions.DmgBootRom.Length
+        );
+        Assert.Equal(
+            BootRomOptions.CgbBootRomSize,
+            startupConfiguration.BootRomOptions.CgbBootRom.Length
+        );
+        Assert.Equal(
+            BootRomOptions.SgbBootRomSize,
+            startupConfiguration.BootRomOptions.SgbBootRom.Length
+        );
+        Assert.Equal(0xD0, startupConfiguration.BootRomOptions.DmgBootRom.Span[0]);
+        Assert.Equal(0xC0, startupConfiguration.BootRomOptions.CgbBootRom.Span[0]);
+        Assert.Equal(0x50, startupConfiguration.BootRomOptions.SgbBootRom.Span[0]);
     }
 
     [Fact]
     public void Load_UsesActiveInputProfileFromMultipleProfiles()
     {
-        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
-        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
 
-        try
-        {
-            Directory.CreateDirectory(tempDirectory);
-            File.WriteAllText(
-                configPath,
-                """
-                {
-                  "input": {
-                    "version": 1,
-                    "activeProfile": "alternate",
-                    "profiles": {
-                      "default": {
-                        "keyboard": [
-                          { "button": "a", "key": "Z" }
-                        ]
-                      },
-                      "alternate": {
-                        "keyboard": [
-                          { "button": "b", "key": "X" }
-                        ]
-                      }
-                    }
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllText(
+            configPath,
+            """
+            {
+              "input": {
+                "version": 1,
+                "activeProfile": "alternate",
+                "profiles": {
+                  "default": {
+                    "keyboard": [
+                      { "button": "a", "key": "Z" }
+                    ]
                   },
-                  "bootRoms": {}
+                  "alternate": {
+                    "keyboard": [
+                      { "button": "b", "key": "X" }
+                    ]
+                  }
                 }
-                """
-            );
+              },
+              "bootRoms": {}
+            }
+            """
+        );
 
-            var startupConfiguration = StartupConfigurationLoader.Load(configPath);
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath);
 
-            Assert.Null(startupConfiguration.StartupErrorMessage);
-            Assert.Equal("alternate", startupConfiguration.InputConfig.ActiveProfile);
-            Assert.Equal(2, startupConfiguration.InputConfig.Profiles.Count);
-            var inputMap = InputMap.FromConfig(startupConfiguration.InputConfig);
-            var binding = Assert.Single(inputMap.Bindings);
-            Assert.Equal(JoypadButton.B, binding.Button);
-            Assert.Equal(Key.X, binding.Key);
-        }
-        finally
-        {
-            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
-        }
+        Assert.Null(startupConfiguration.StartupErrorMessage);
+        Assert.Equal("alternate", startupConfiguration.InputConfig.ActiveProfile);
+        Assert.Equal(2, startupConfiguration.InputConfig.Profiles.Count);
+        var inputMap = InputMap.FromConfig(startupConfiguration.InputConfig);
+        var binding = Assert.Single(inputMap.Bindings);
+        Assert.Equal(JoypadButton.B, binding.Button);
+        Assert.Equal(Key.X, binding.Key);
     }
 
     [Fact]
     public void Load_ReadsEmulationFastForwardConfig()
     {
-        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
-        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
 
-        try
-        {
-            Directory.CreateDirectory(tempDirectory);
-            File.WriteAllText(
-                configPath,
-                """
-                {
-                  "input": {
-                    "version": 1,
-                    "activeProfile": "default",
-                    "profiles": {
-                      "default": {
-                        "keyboard": [
-                          { "button": "a", "key": "Z" }
-                        ]
-                      }
-                    }
-                  },
-                  "emulation": {
-                    "fastForwardEnabled": true,
-                    "fastForwardSpeed": "eight"
-                  },
-                  "bootRoms": {}
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllText(
+            configPath,
+            """
+            {
+              "input": {
+                "version": 1,
+                "activeProfile": "default",
+                "profiles": {
+                  "default": {
+                    "keyboard": [
+                      { "button": "a", "key": "Z" }
+                    ]
+                  }
                 }
-                """
-            );
+              },
+              "emulation": {
+                "fastForwardEnabled": true,
+                "fastForwardSpeed": "eight"
+              },
+              "bootRoms": {}
+            }
+            """
+        );
 
-            var startupConfiguration = StartupConfigurationLoader.Load(configPath);
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath);
 
-            Assert.Null(startupConfiguration.StartupErrorMessage);
-            Assert.True(startupConfiguration.EmulationConfig.FastForwardEnabled);
-            Assert.Equal(
-                EmulationSpeed.Eight,
-                startupConfiguration.EmulationConfig.FastForwardSpeed
-            );
-        }
-        finally
-        {
-            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
-        }
+        Assert.Null(startupConfiguration.StartupErrorMessage);
+        Assert.True(startupConfiguration.EmulationConfig.FastForwardEnabled);
+        Assert.Equal(EmulationSpeed.Eight, startupConfiguration.EmulationConfig.FastForwardSpeed);
     }
 
     [Fact]
     public void SaveEmulationConfig_WritesEmulationJsonAndPreservesInputAndBootRoms()
     {
-        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
-        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
 
-        try
-        {
-            Directory.CreateDirectory(tempDirectory);
-            File.WriteAllText(
-                configPath,
-                $$"""
-                {
-                  "input": {
-                    "version": 1,
-                    "activeProfile": "alternate",
-                    "profiles": {
-                      "default": {
-                        "keyboard": [
-                          { "button": "a", "key": "Z" }
-                        ]
-                      },
-                      "alternate": {
-                        "keyboard": [
-                          { "button": "b", "key": "X" }
-                        ]
-                      }
-                    }
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllText(
+            configPath,
+            $$"""
+            {
+              "input": {
+                "version": 1,
+                "activeProfile": "alternate",
+                "profiles": {
+                  "default": {
+                    "keyboard": [
+                      { "button": "a", "key": "Z" }
+                    ]
                   },
-                  "bootRoms": {
-                    "{{BootRomConfig.JsonName(HardwareModel.Dmg)}}": "old-dmg.bin"
+                  "alternate": {
+                    "keyboard": [
+                      { "button": "b", "key": "X" }
+                    ]
                   }
                 }
-                """
-            );
-            var service = new AppConfigurationService(configPath);
+              },
+              "bootRoms": {
+                "{{BootRomConfig.JsonName(HardwareModel.Dmg)}}": "old-dmg.bin"
+              }
+            }
+            """
+        );
+        var service = new AppConfigurationService(configPath);
 
-            service.SaveEmulationConfig(
-                new EmulationConfig
-                {
-                    FastForwardEnabled = true,
-                    FastForwardSpeed = EmulationSpeed.Eight,
-                }
-            );
+        service.SaveEmulationConfig(
+            new EmulationConfig
+            {
+                FastForwardEnabled = true,
+                FastForwardSpeed = EmulationSpeed.Eight,
+            }
+        );
 
-            using var configJson = JsonDocument.Parse(File.ReadAllText(configPath));
-            var root = configJson.RootElement;
-            var emulation = root.GetProperty("emulation");
-            Assert.True(emulation.GetProperty("fastForwardEnabled").GetBoolean());
-            Assert.Equal("eight", emulation.GetProperty("fastForwardSpeed").GetString());
-            Assert.Equal(
-                "alternate",
-                root.GetProperty("input").GetProperty("activeProfile").GetString()
-            );
-            Assert.Equal(
-                "old-dmg.bin",
-                root.GetProperty("bootRoms")
-                    .GetProperty(BootRomConfig.JsonName(HardwareModel.Dmg))
-                    .GetString()
-            );
+        using var configJson = JsonDocument.Parse(File.ReadAllText(configPath));
+        var root = configJson.RootElement;
+        var emulation = root.GetProperty("emulation");
+        Assert.True(emulation.GetProperty("fastForwardEnabled").GetBoolean());
+        Assert.Equal("eight", emulation.GetProperty("fastForwardSpeed").GetString());
+        Assert.Equal(
+            "alternate",
+            root.GetProperty("input").GetProperty("activeProfile").GetString()
+        );
+        Assert.Equal(
+            "old-dmg.bin",
+            root.GetProperty("bootRoms")
+                .GetProperty(BootRomConfig.JsonName(HardwareModel.Dmg))
+                .GetString()
+        );
 
-            var appConfig = AppConfigurationFile.Load(configPath);
-            var binding = Assert.Single(appConfig.Input.Profiles["alternate"].Keyboard);
-            Assert.Equal(new KeyboardInputBindingConfig("b", "X"), binding);
-            Assert.Equal("old-dmg.bin", BootRomConfig.FromDictionary(appConfig.BootRoms).DmgPath);
-        }
-        finally
-        {
-            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
-        }
+        var appConfig = AppConfigurationFile.Load(configPath);
+        var binding = Assert.Single(appConfig.Input.Profiles["alternate"].Keyboard);
+        Assert.Equal(new KeyboardInputBindingConfig("b", "X"), binding);
+        Assert.Equal("old-dmg.bin", appConfig.BootRoms.DmgPath);
     }
 
     [Fact]
     public void Load_ReportsInvalidBootRomSizeAndFallsBackToEmptyBootRoms()
     {
-        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
-        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
 
-        try
-        {
-            Directory.CreateDirectory(tempDirectory);
-            File.WriteAllBytes(Path.Combine(tempDirectory, "dmg.bin"), new byte[255]);
-            File.WriteAllText(configPath, CreateConfig("dmg.bin", null, null));
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllBytes(Path.Combine(tempDirectory.Path, "dmg.bin"), new byte[255]);
+        File.WriteAllText(configPath, CreateConfig("dmg.bin", null, null));
 
-            var startupConfiguration = StartupConfigurationLoader.Load(configPath);
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath);
 
-            Assert.Contains(
-                "DMG boot ROM must be 256 bytes",
-                startupConfiguration.StartupErrorMessage,
-                StringComparison.Ordinal
-            );
-            Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
-            Assert.True(startupConfiguration.BootRomOptions.CgbBootRom.IsEmpty);
-            Assert.True(startupConfiguration.BootRomOptions.SgbBootRom.IsEmpty);
-        }
-        finally
-        {
-            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
-        }
+        Assert.Contains(
+            "DMG boot ROM must be 256 bytes",
+            startupConfiguration.StartupErrorMessage,
+            StringComparison.Ordinal
+        );
+        Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
+        Assert.True(startupConfiguration.BootRomOptions.CgbBootRom.IsEmpty);
+        Assert.True(startupConfiguration.BootRomOptions.SgbBootRom.IsEmpty);
     }
 
     [Fact]
     public void Load_ReportsMissingBootRomFileAndFallsBackToEmptyBootRoms()
     {
-        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
-        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
 
-        try
-        {
-            Directory.CreateDirectory(tempDirectory);
-            File.WriteAllText(configPath, CreateConfig("missing-dmg.bin", null, null));
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllText(
+            configPath,
+            CreateConfig("missing-dmg.bin", cgbBootRomPath: null, sgbBootRomPath: null)
+        );
 
-            var startupConfiguration = StartupConfigurationLoader.Load(configPath);
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath);
 
-            Assert.Contains(
-                "DMG boot ROM file could not be read",
-                startupConfiguration.StartupErrorMessage,
-                StringComparison.Ordinal
-            );
-            Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
-            Assert.True(startupConfiguration.BootRomOptions.CgbBootRom.IsEmpty);
-            Assert.True(startupConfiguration.BootRomOptions.SgbBootRom.IsEmpty);
-        }
-        finally
-        {
-            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
-        }
+        Assert.Contains(
+            "DMG boot ROM file could not be read",
+            startupConfiguration.StartupErrorMessage,
+            StringComparison.Ordinal
+        );
+        Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
+        Assert.True(startupConfiguration.BootRomOptions.CgbBootRom.IsEmpty);
+        Assert.True(startupConfiguration.BootRomOptions.SgbBootRom.IsEmpty);
     }
 
     [Fact]

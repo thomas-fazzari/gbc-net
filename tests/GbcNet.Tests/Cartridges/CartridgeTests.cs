@@ -119,9 +119,8 @@ public sealed class CartridgeTests
 
         var result = Cartridge.Load(rom);
 
-        var error =
-            result.Error ?? throw new InvalidOperationException("Expected cartridge load to fail.");
-        Assert.Equal(CartridgeLoadErrorCode.RomTooSmall, error.Code);
+        Assert.True(result.IsFailure);
+        Assert.Equal(CartridgeLoadErrorCode.RomTooSmall, result.Error.Code);
     }
 
     [Fact]
@@ -132,9 +131,8 @@ public sealed class CartridgeTests
 
         var result = Cartridge.Load(rom);
 
-        var error =
-            result.Error ?? throw new InvalidOperationException("Expected cartridge load to fail.");
-        Assert.Equal(CartridgeLoadErrorCode.InvalidHeaderChecksum, error.Code);
+        Assert.True(result.IsFailure);
+        Assert.Equal(CartridgeLoadErrorCode.InvalidHeaderChecksum, result.Error.Code);
     }
 
     [Fact]
@@ -144,9 +142,8 @@ public sealed class CartridgeTests
 
         var result = Cartridge.Load(rom);
 
-        var error =
-            result.Error ?? throw new InvalidOperationException("Expected cartridge load to fail.");
-        Assert.Equal(CartridgeLoadErrorCode.UnsupportedCartridgeType, error.Code);
+        Assert.True(result.IsFailure);
+        Assert.Equal(CartridgeLoadErrorCode.UnsupportedCartridgeType, result.Error.Code);
     }
 
     [Fact]
@@ -156,9 +153,8 @@ public sealed class CartridgeTests
 
         var result = Cartridge.Load(rom);
 
-        var error =
-            result.Error ?? throw new InvalidOperationException("Expected cartridge load to fail.");
-        Assert.Equal(CartridgeLoadErrorCode.RomLengthMismatch, error.Code);
+        Assert.True(result.IsFailure);
+        Assert.Equal(CartridgeLoadErrorCode.RomLengthMismatch, result.Error.Code);
     }
 
     [Fact]

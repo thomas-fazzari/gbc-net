@@ -10,11 +10,8 @@ namespace GbcNet.App.Configuration;
 
 internal sealed class AppConfigurationService(string configPath)
 {
-    public EmulationConfig LoadEmulationConfig() =>
-        AppConfigurationFile.LoadOrCreate(configPath).Emulation;
-
     public BootRomConfig LoadBootRomConfig() =>
-        BootRomConfig.FromDictionary(AppConfigurationFile.LoadOrCreate(configPath).BootRoms);
+        AppConfigurationFile.LoadOrCreate(configPath).BootRoms;
 
     public BootRomOptions LoadBootRomOptions() =>
         LoadBootRomOptions(
@@ -25,7 +22,7 @@ internal sealed class AppConfigurationService(string configPath)
     public void SaveBootRomConfig(BootRomConfig config)
     {
         var appConfig = AppConfigurationFile.LoadOrCreate(configPath);
-        appConfig.BootRoms = config.ToDictionary();
+        appConfig.BootRoms = config;
         AppConfigurationFile.Save(configPath, appConfig);
     }
 

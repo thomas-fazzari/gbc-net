@@ -1,9 +1,28 @@
 <UserControl
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:converters="using:Avalonia.Data.Converters"
   x:Class="GbcNet.App.Library.LibraryView"
 >
-  <Border x:Name="LibraryPageBackground" Padding="48,32">
+  <UserControl.Styles>
+    <Style Selector="ComboBox.library-filter">
+      <Setter Property="Height" Value="30" />
+      <Setter Property="MinWidth" Value="0" />
+      <Setter Property="Margin" Value="0,0,8,0" />
+      <Setter Property="Background" Value="{DynamicResource ChromePanelBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+  <Border
+    x:Name="LibraryPageBackground"
+    Padding="48,32"
+    Background="{DynamicResource ChromeBackgroundBrush}"
+  >
     <Grid x:Name="LibraryPageRoot">
       <Grid
         x:Name="LibraryContentRoot"
@@ -24,14 +43,18 @@
             Height="34"
             MinWidth="140"
             Margin="0,0,10,0"
+            Background="{DynamicResource ChromePanelBrush}"
+            BorderBrush="{DynamicResource ChromeHairBrush}"
             BorderThickness="1"
-            CornerRadius="4"
+            CornerRadius="{DynamicResource ChromeCornerRadius}"
             VerticalAlignment="Center"
             HorizontalAlignment="Stretch"
           >
             <TextBox
               x:Name="LibrarySearchTextBox"
+              Background="Transparent"
               BorderThickness="0"
+              Foreground="{DynamicResource ChromeTextBrush}"
               FontSize="13"
               Padding="10,0"
               PlaceholderText="Search ROMs"
@@ -45,14 +68,169 @@
             Orientation="Horizontal"
             VerticalAlignment="Center"
             HorizontalAlignment="Stretch"
-          />
+          >
+            <ComboBox
+              x:Name="HardwareFilterComboBox"
+              Classes="library-filter"
+              Width="132"
+              SelectedIndex="0"
+              SelectionChanged="OnHardwareFilterChanged"
+            >
+              <ComboBoxItem Content="Hardware: All" Tag="All" />
+              <ComboBoxItem Content="Hardware: GB" Tag="Gb" />
+              <ComboBoxItem Content="Hardware: GBC" Tag="Gbc" />
+              <ComboBoxItem Content="Hardware: SGB" Tag="Sgb" />
+            </ComboBox>
+            <ComboBox
+              x:Name="CoverFilterComboBox"
+              Classes="library-filter"
+              Width="132"
+              SelectedIndex="0"
+              SelectionChanged="OnCoverFilterChanged"
+            >
+              <ComboBoxItem Content="Cover: Any" Tag="All" />
+              <ComboBoxItem Content="Cover: Set" Tag="WithCover" />
+              <ComboBoxItem Content="Cover: Missing" Tag="MissingCover" />
+            </ComboBox>
+            <ComboBox
+              x:Name="SortModeComboBox"
+              Classes="library-filter"
+              Width="116"
+              SelectedIndex="0"
+              SelectionChanged="OnSortModeChanged"
+            >
+              <ComboBoxItem Content="Sort: Recent" Tag="LastOpened" />
+              <ComboBoxItem Content="Sort: Title" Tag="Title" />
+              <ComboBoxItem Content="Sort: Plays" Tag="MostPlayed" />
+              <ComboBoxItem Content="Sort: Added" Tag="RecentlyAdded" />
+            </ComboBox>
+          </WrapPanel>
         </Grid>
 
-        <Border x:Name="LibraryDivider" Grid.Row="1" Height="1" Margin="0,0,0,18" />
+        <Border
+          x:Name="LibraryDivider"
+          Grid.Row="1"
+          Height="1"
+          Margin="0,0,0,18"
+          Background="{DynamicResource ChromeHairBrush}"
+        />
 
         <Grid Grid.Row="2">
           <ScrollViewer x:Name="LibraryScrollViewer" VerticalScrollBarVisibility="Auto">
-            <WrapPanel x:Name="RomTilesPanel" Orientation="Horizontal" />
+            <ItemsControl x:Name="RomTilesControl">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:CompileBindings="False">
+                  <Button
+                    Width="168"
+                    Height="238"
+                    Margin="0,0,18,18"
+                    Padding="10"
+                    Background="{DynamicResource ChromePanelBrush}"
+                    BorderBrush="{DynamicResource ChromeHairBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource ChromeCornerRadius}"
+                    HorizontalContentAlignment="Stretch"
+                    VerticalContentAlignment="Stretch"
+                    Click="OnRomTileClick"
+                  >
+                    <Grid RowDefinitions="148,52,18">
+                      <Border
+                        Grid.Row="0"
+                        Background="{DynamicResource ChromeSurfaceBrush}"
+                        ClipToBounds="True"
+                        CornerRadius="{DynamicResource ChromeCornerRadius}"
+                      >
+                        <Grid>
+                          <Image
+                            Source="{Binding CoverBitmap}"
+                            IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNotNull}}"
+                            Stretch="UniformToFill"
+                          />
+                          <TextBlock
+                            Text="ROM"
+                            IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNull}}"
+                            Foreground="{DynamicResource ChromeMutedBrush}"
+                            FontSize="26"
+                            FontWeight="SemiBold"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                          />
+                        </Grid>
+                      </Border>
+
+                      <TextBlock
+                        Grid.Row="1"
+                        Text="{Binding Title}"
+                        Foreground="{DynamicResource ChromeTextBrush}"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        Margin="0,10,0,0"
+                        MaxLines="2"
+                        TextTrimming="CharacterEllipsis"
+                        TextWrapping="Wrap"
+                        VerticalAlignment="Top"
+                      />
+
+                      <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto">
+                        <TextBlock
+                          Text="{Binding PlayCountText}"
+                          Foreground="{DynamicResource ChromeMutedBrush}"
+                          FontSize="11"
+                          VerticalAlignment="Center"
+                        />
+                        <Border
+                          Grid.Column="1"
+                          Background="Transparent"
+                          BorderBrush="{DynamicResource ChromeHairBrush}"
+                          BorderThickness="1"
+                          CornerRadius="9"
+                          Padding="5,1"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Center"
+                        >
+                          <TextBlock
+                            Text="{Binding HardwareText}"
+                            Foreground="{DynamicResource ChromeMutedBrush}"
+                            FontSize="10"
+                            FontWeight="SemiBold"
+                          />
+                        </Border>
+                        <Button
+                          Grid.Column="2"
+                          MinWidth="26"
+                          Height="18"
+                          Margin="10,0,0,0"
+                          Padding="0"
+                          Background="Transparent"
+                          BorderBrush="{DynamicResource ChromeHairBrush}"
+                          BorderThickness="1"
+                          CornerRadius="9"
+                          Foreground="{DynamicResource ChromeMutedBrush}"
+                          HorizontalAlignment="Right"
+                          HorizontalContentAlignment="Center"
+                          VerticalAlignment="Center"
+                          VerticalContentAlignment="Center"
+                          Loaded="OnTileActionsButtonLoaded"
+                          Click="OnTileActionsButtonClick"
+                        >
+                          <PathIcon
+                            Width="12"
+                            Height="12"
+                            Data="{StaticResource IconSettings}"
+                            Foreground="{DynamicResource ChromeMutedBrush}"
+                          />
+                        </Button>
+                      </Grid>
+                    </Grid>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
           </ScrollViewer>
 
           <Grid x:Name="EmptyState">
@@ -62,6 +240,7 @@
                 Text="No ROMs yet"
                 FontSize="16"
                 FontWeight="SemiBold"
+                Foreground="{DynamicResource ChromeTextBrush}"
                 HorizontalAlignment="Center"
               />
             </StackPanel>

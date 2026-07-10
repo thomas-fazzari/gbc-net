@@ -58,10 +58,13 @@ internal sealed class SerialController(
     private bool _highSpeedMasterClockHigh;
     private bool _transferActive;
 
+    // The raw payload avoids allocating an EventArgs wrapper for every completed transfer.
+#pragma warning disable MA0046
     /// <summary>
     /// Raised when a serial transfer completes, carrying the byte latched at transfer start.
     /// </summary>
-    internal event EventHandler<SerialByteTransferredEventArgs>? ByteTransferred;
+    internal event Action<byte>? ByteTransferred;
+#pragma warning restore MA0046
 
     /// <summary>
     /// SB register at FF01, holding outgoing and incoming serial data.
@@ -186,6 +189,6 @@ internal sealed class SerialController(
         _transferActive = false;
 
         interrupts.Request(InterruptSource.Serial);
-        ByteTransferred?.Invoke(this, new SerialByteTransferredEventArgs(_outgoingTransferData));
+        ByteTransferred?.Invoke(_outgoingTransferData);
     }
 }

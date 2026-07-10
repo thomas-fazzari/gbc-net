@@ -13,33 +13,23 @@ public sealed class AppConfigurationFileTests
     [Fact]
     public void Save_WritesJsonThatRoundTripsEscapedBootRomPaths()
     {
-        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
-        var configPath = Path.Combine(tempDirectory, UserDataPaths.ConfigFileName);
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
         const string dmgPath = "dir\\boot\"rom.bin";
         var bootRoms = new BootRomConfig(dmgPath, "cgb.bin", "sgb.bin");
 
-        try
-        {
-            var config = AppConfigurationFile.CreateDefault();
-            config.BootRoms = bootRoms.ToDictionary();
+        var config = AppConfigurationFile.CreateDefault();
+        config.BootRoms = bootRoms;
 
-            AppConfigurationFile.Save(configPath, config);
+        AppConfigurationFile.Save(configPath, config);
 
-            using var json = JsonDocument.Parse(File.ReadAllText(configPath));
-            Assert.Equal(
-                dmgPath,
-                json.RootElement.GetProperty("bootRoms")
-                    .GetProperty(BootRomConfig.JsonName(HardwareModel.Dmg))
-                    .GetString()
-            );
-            Assert.Equal(
-                bootRoms,
-                BootRomConfig.FromDictionary(AppConfigurationFile.Load(configPath).BootRoms)
-            );
-        }
-        finally
-        {
-            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
-        }
+        using var json = JsonDocument.Parse(File.ReadAllText(configPath));
+        Assert.Equal(
+            dmgPath,
+            json.RootElement.GetProperty("bootRoms")
+                .GetProperty(BootRomConfig.JsonName(HardwareModel.Dmg))
+                .GetString()
+        );
+        Assert.Equal(bootRoms, AppConfigurationFile.Load(configPath).BootRoms);
     }
 }

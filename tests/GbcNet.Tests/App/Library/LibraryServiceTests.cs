@@ -84,7 +84,7 @@ public sealed class LibraryServiceTests
     {
         using var test = new LibraryTestContext();
         var rom = TestRomFactory.Create(bytes => "MEMORY ROM"u8.CopyTo(bytes.AsSpan(0x0134)));
-        var cartridge = LoadCartridge(rom);
+        var cartridge = TestRomFactory.LoadCartridge(rom);
         var path = Path.Combine(Path.GetDirectoryName(test.DatabasePath)!, "memory.gb");
 
         test.Library.RecordLoadedRom(path, rom, cartridge.Header);
@@ -320,6 +320,29 @@ public sealed class LibraryServiceTests
         Assert.Equal(expectedCoverPath, entry.CoverPath);
     }
 
+    [Theory]
+    [InlineData("cover")]
+    [InlineData("cover.unsafe!")]
+    [InlineData("cover.abcdefghijklmnop")]
+    [InlineData("cover.ç")]
+    public async Task AssignCoverImage_RejectsUnsafeImageExtension(string imageFileName)
+    {
+        using var test = new LibraryTestContext();
+        var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
+        await test.Library.RecordOpenedRomAsync(romPath);
+        var romHash = Assert.Single(test.Library.GetRoms(limit: 10)).RomHash;
+        var sourceImagePath = await test.WriteImageAsync(imageFileName, [0x01]);
+
+        Assert.Equal(
+            "Cover image file name has no safe extension.",
+            Assert
+                .Throws<InvalidOperationException>(() =>
+                    test.Library.AssignCoverImage(romHash, sourceImagePath)
+                )
+                .Message
+        );
+    }
+
     [Fact]
     public async Task RecordOpenedRomAsync_PreservesCoverPathWhenUpsertingSameRom()
     {
@@ -382,10 +405,6 @@ public sealed class LibraryServiceTests
                 .Message
         );
     }
-
-    private static Cartridge LoadCartridge(byte[] rom) =>
-        Cartridge.Load(rom).Cartridge
-        ?? throw new InvalidOperationException("Test ROM failed to load.");
 
     private static string[] GetAppliedMigrations(string databasePath)
     {
@@ -476,7 +495,10 @@ public sealed class LibraryServiceTests
             Library = new LibraryService(dbContextFactory, CoverDirectoryPath, TimeProvider);
         }
 
-        private string DirectoryPath { get; } = TestDirectories.GetTemporaryDirectoryPath();
+        private TestDirectories.TemporaryDirectory TemporaryDirectory { get; } =
+            TestDirectories.CreateTemporaryDirectory();
+
+        private string DirectoryPath => TemporaryDirectory.Path;
 
         public string DatabasePath => Path.Combine(DirectoryPath, "gbcnet.sqlite");
 
@@ -503,10 +525,7 @@ public sealed class LibraryServiceTests
             return path;
         }
 
-        public void Dispose()
-        {
-            TestDirectories.DeleteDirectoryIfExists(DirectoryPath);
-        }
+        public void Dispose() => TemporaryDirectory.Dispose();
     }
 
     private sealed class TestDbContextFactory : IDbContextFactory<GbcNetDbContext>

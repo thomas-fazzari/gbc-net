@@ -9,7 +9,6 @@ using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu;
-using GbcNet.Core.Serial;
 using GbcNet.Core.Sm83;
 
 namespace GbcNet.Core;
@@ -91,15 +90,18 @@ public sealed class GameBoy
         }
     }
 
+    // Raw payload delegates avoid allocating wrapper objects on frame and serial hot paths.
+#pragma warning disable CA1003, MA0046
     /// <summary>
     /// Raised when a serial transfer completes, carrying the byte latched at transfer start.
     /// </summary>
-    public event EventHandler<SerialByteTransferredEventArgs>? SerialByteTransferred;
+    public event Action<byte>? SerialByteTransferred;
 
     /// <summary>
     /// Raised after a complete visible LCD frame is available at VBlank entry.
     /// </summary>
-    public event EventHandler<FrameCompletedEventArgs>? FrameCompleted;
+    public event Action<LcdFrame>? FrameCompleted;
+#pragma warning restore CA1003, MA0046
 
     /// <summary>
     /// Enables host-visible LCD frame rendering while keeping LCD timing active either way.
@@ -122,7 +124,7 @@ public sealed class GameBoy
 
         while (_clock.TryDequeueCompletedFrame(out var frame))
         {
-            FrameCompleted?.Invoke(this, new FrameCompletedEventArgs(frame));
+            FrameCompleted?.Invoke(frame);
         }
 
         return machineCycles;
@@ -159,8 +161,6 @@ public sealed class GameBoy
 
     internal Cpu Cpu { get; }
 
-    private void OnSerialByteTransferred(object? sender, SerialByteTransferredEventArgs e)
-    {
-        SerialByteTransferred?.Invoke(this, e);
-    }
+    private void OnSerialByteTransferred(byte transferredByte) =>
+        SerialByteTransferred?.Invoke(transferredByte);
 }

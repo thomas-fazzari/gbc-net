@@ -1,8 +1,6 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using System.Diagnostics.CodeAnalysis;
-
 namespace GbcNet.Core.Cartridges;
 
 /// <summary>
@@ -26,32 +24,49 @@ public sealed class CartridgeLoadError(CartridgeLoadErrorCode code, string messa
 /// </summary>
 public sealed class CartridgeLoadResult
 {
-    private CartridgeLoadResult(Cartridge? cartridge, CartridgeLoadError? error)
+    private readonly Cartridge? _cartridge;
+    private readonly CartridgeLoadError? _error;
+
+    private CartridgeLoadResult(Cartridge cartridge)
     {
-        Cartridge = cartridge;
-        Error = error;
+        ArgumentNullException.ThrowIfNull(cartridge);
+
+        _cartridge = cartridge;
+        IsSuccess = true;
+    }
+
+    private CartridgeLoadResult(CartridgeLoadError error)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+
+        _error = error;
     }
 
     /// <summary>
     /// Indicates that cartridge loading succeeded.
     /// </summary>
-    [MemberNotNullWhen(true, nameof(Cartridge))]
-    [MemberNotNullWhen(false, nameof(Error))]
-    public bool IsSuccess => Cartridge is not null;
+    public bool IsSuccess { get; }
 
     /// <summary>
-    /// Loaded cartridge when <see cref="IsSuccess" /> is true.
+    /// Indicates that cartridge loading failed.
     /// </summary>
-    public Cartridge? Cartridge { get; }
+    public bool IsFailure => !IsSuccess;
 
     /// <summary>
-    /// Typed load error when <see cref="IsSuccess" /> is false.
+    /// Loaded cartridge. Throws when <see cref="IsSuccess" /> is false.
     /// </summary>
-    public CartridgeLoadError? Error { get; }
+    public Cartridge Cartridge =>
+        _cartridge ?? throw new InvalidOperationException("Cartridge load did not succeed.");
 
-    public static CartridgeLoadResult Success(Cartridge cartridge) => new(cartridge, null);
+    /// <summary>
+    /// Typed load error. Throws when <see cref="IsFailure" /> is false.
+    /// </summary>
+    public CartridgeLoadError Error =>
+        _error ?? throw new InvalidOperationException("Cartridge load did not fail.");
 
-    public static CartridgeLoadResult Failure(CartridgeLoadError error) => new(null, error);
+    public static CartridgeLoadResult Success(Cartridge cartridge) => new(cartridge);
+
+    public static CartridgeLoadResult Failure(CartridgeLoadError error) => new(error);
 }
 
 /// <summary>

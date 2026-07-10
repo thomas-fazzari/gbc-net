@@ -13,8 +13,3 @@ internal sealed class ConfigurationException : Exception
     public ConfigurationException(string message, Exception innerException)
         : base(message, innerException) { }
 }
-
-internal static class ConfigurationErrors
-{
-    public static string Format(ConfigurationException exception) => exception.Message;
-}

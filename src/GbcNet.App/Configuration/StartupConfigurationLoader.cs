@@ -32,13 +32,13 @@ internal static class StartupConfigurationLoader
         try
         {
             bootRomOptions = AppConfigurationService.LoadBootRomOptions(
-                BootRomConfig.FromDictionary(appConfig.BootRoms),
+                appConfig.BootRoms,
                 configDirectoryPath
             );
         }
         catch (ConfigurationException exception)
         {
-            startupErrors.Add(ConfigurationErrors.Format(exception));
+            startupErrors.Add(exception.Message);
         }
 
         var validation = InputConfigValidator.Validate(inputConfig);
@@ -67,7 +67,7 @@ internal static class StartupConfigurationLoader
         }
         catch (ConfigurationException exception)
         {
-            startupErrors.Add(ConfigurationErrors.Format(exception));
+            startupErrors.Add(exception.Message);
             return AppConfigurationFile.CreateDefault();
         }
     }

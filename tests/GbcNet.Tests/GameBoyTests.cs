@@ -116,7 +116,8 @@ public sealed class GameBoyTests
         var cartridge = TestRomFactory.LoadCartridge(bytes => bytes[0x0100] = HaltOpcode);
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         byte? transferredByte = null;
-        gameBoy.SerialByteTransferred += (_, e) => transferredByte = e.TransferredByte;
+        gameBoy.SerialByteTransferred += transferredByteValue =>
+            transferredByte = transferredByteValue;
         gameBoy.Bus.WriteByte(AddressMap.SerialTransferDataRegister, 0x41);
         gameBoy.Bus.WriteByte(AddressMap.SerialTransferControlRegister, 0x81);
 
@@ -534,7 +535,7 @@ public sealed class GameBoyTests
         });
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         var completedFrames = new List<LcdFrame>();
-        gameBoy.FrameCompleted += (_, e) => completedFrames.Add(e.Frame);
+        gameBoy.FrameCompleted += completedFrames.Add;
 
         for (var step = 0; completedFrames.Count == 0 && step < 20_000; step++)
         {
@@ -570,7 +571,7 @@ public sealed class GameBoyTests
             VideoRenderingEnabled = false,
         };
         var completedFrames = new List<LcdFrame>();
-        gameBoy.FrameCompleted += (_, e) => completedFrames.Add(e.Frame);
+        gameBoy.FrameCompleted += completedFrames.Add;
 
         for (var step = 0; completedFrames.Count == 0 && step < 20_000; step++)
         {

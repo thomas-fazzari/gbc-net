@@ -24,9 +24,9 @@ internal static class VisualRomTestRunner
         var gameBoy = new GameBoy(cartridge, hardwareModel);
         LcdFrame? frame = null;
         var frameCount = 0;
-        gameBoy.FrameCompleted += (_, args) =>
+        gameBoy.FrameCompleted += completedFrame =>
         {
-            frame = args.Frame;
+            frame = completedFrame;
             frameCount++;
         };
 

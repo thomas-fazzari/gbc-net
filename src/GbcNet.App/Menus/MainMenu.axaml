@@ -3,8 +3,13 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   x:Class="GbcNet.App.Menus.MainMenu"
 >
-  <Border x:Name="MenuChrome" BorderThickness="0,0,0,1">
-    <Menu x:Name="WindowMenu">
+  <Border
+    x:Name="MenuChrome"
+    Background="{DynamicResource ChromeBackgroundBrush}"
+    BorderBrush="{DynamicResource ChromeHairBrush}"
+    BorderThickness="0,0,0,1"
+  >
+    <Menu x:Name="WindowMenu" Background="Transparent">
       <MenuItem x:Name="FileMenuItem" Header="_File">
         <MenuItem x:Name="OpenRomMenuItem" Header="_Open ROM..." InputGesture="Ctrl+O" />
         <MenuItem x:Name="OpenRecentMenuItem" Header="Open _Recent" IsEnabled="False" />

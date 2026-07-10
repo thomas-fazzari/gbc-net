@@ -14,67 +14,47 @@ public sealed class CartridgeBatterySaveFileServiceTests
     [Fact]
     public void SaveAndLoad_PersistsBatterySaveByTitleAndRomHash()
     {
-        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var rom = CreateBatteryBackedMbc1Rom();
-        CartridgeBatterySaveFileService saveFiles = new(tempDirectory);
+        CartridgeBatterySaveFileService saveFiles = new(tempDirectory.Path);
 
-        try
-        {
-            var cartridge = LoadCartridge(rom);
-            cartridge.WriteRom(0x0000, 0x0A);
-            cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
+        var cartridge = TestRomFactory.LoadCartridge(rom);
+        cartridge.WriteRom(0x0000, 0x0A);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
 
-            saveFiles.Save(cartridge, rom);
-            Assert.False(cartridge.IsBatterySaveDirty);
-            var savePath = saveFiles.GetBatterySavePath(cartridge, rom);
-            Assert.True(File.Exists(savePath));
-            Assert.StartsWith("TEST_ROM-", Path.GetFileName(savePath), StringComparison.Ordinal);
+        saveFiles.Save(cartridge, rom);
+        Assert.False(cartridge.IsBatterySaveDirty);
+        var savePath = saveFiles.GetBatterySavePath(cartridge, rom);
+        Assert.True(File.Exists(savePath));
+        Assert.StartsWith("TEST_ROM-", Path.GetFileName(savePath), StringComparison.Ordinal);
 
-            var reloaded = LoadCartridge(rom);
-            saveFiles.Load(reloaded, rom);
-            Assert.False(reloaded.IsBatterySaveDirty);
+        var reloaded = TestRomFactory.LoadCartridge(rom);
+        saveFiles.Load(reloaded, rom);
+        Assert.False(reloaded.IsBatterySaveDirty);
 
-            reloaded.WriteRom(0x0000, 0x0A);
-            Assert.Equal(0x42, reloaded.ReadRam(AddressMap.ExternalRamStart));
-        }
-        finally
-        {
-            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
-        }
+        reloaded.WriteRom(0x0000, 0x0A);
+        Assert.Equal(0x42, reloaded.ReadRam(AddressMap.ExternalRamStart));
     }
 
     [Fact]
     public void Load_RejectsInvalidSaveSize()
     {
-        var tempDirectory = TestDirectories.GetTemporaryDirectoryPath();
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var rom = CreateBatteryBackedMbc1Rom();
-        CartridgeBatterySaveFileService saveFiles = new(tempDirectory);
+        CartridgeBatterySaveFileService saveFiles = new(tempDirectory.Path);
 
-        try
-        {
-            Directory.CreateDirectory(tempDirectory);
-            var cartridge = LoadCartridge(rom);
-            File.WriteAllBytes(saveFiles.GetBatterySavePath(cartridge, rom), [0x42]);
+        Directory.CreateDirectory(tempDirectory.Path);
+        var cartridge = TestRomFactory.LoadCartridge(rom);
+        File.WriteAllBytes(saveFiles.GetBatterySavePath(cartridge, rom), [0x42]);
 
-            Assert.Equal(
-                string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"Save file is 1 bytes, but cartridge expects {cartridge.BatterySaveSize} bytes."
-                ),
-                Assert
-                    .Throws<InvalidOperationException>(() => saveFiles.Load(cartridge, rom))
-                    .Message
-            );
-        }
-        finally
-        {
-            TestDirectories.DeleteDirectoryIfExists(tempDirectory);
-        }
+        Assert.Equal(
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"Save file is 1 bytes, but cartridge expects {cartridge.BatterySaveSize} bytes."
+            ),
+            Assert.Throws<InvalidOperationException>(() => saveFiles.Load(cartridge, rom)).Message
+        );
     }
-
-    private static Cartridge LoadCartridge(byte[] rom) =>
-        Cartridge.Load(rom).Cartridge
-        ?? throw new InvalidOperationException("Test ROM failed to load.");
 
     private static byte[] CreateBatteryBackedMbc1Rom() =>
         TestRomFactory.Create(bytes =>

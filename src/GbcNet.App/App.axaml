@@ -6,7 +6,31 @@
   RequestedThemeVariant="Dark"
 >
   <Application.Resources>
-    <FontFamily x:Key="AppFont">avares://GbcNet/Assets/Fonts#Cabin</FontFamily>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://GbcNet/Shell/Chrome/Icons.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+
+      <FontFamily x:Key="AppFont">avares://GbcNet/Assets/Fonts#Cabin</FontFamily>
+      <SolidColorBrush x:Key="ChromeBackgroundBrush">#18181b</SolidColorBrush>
+      <SolidColorBrush x:Key="ChromePanelBrush">#202024</SolidColorBrush>
+      <SolidColorBrush x:Key="ChromeSurfaceBrush">#26262b</SolidColorBrush>
+      <SolidColorBrush x:Key="ChromeRaisedBrush">#2f2f35</SolidColorBrush>
+      <SolidColorBrush x:Key="ChromeHoverBrush">#38383f</SolidColorBrush>
+      <SolidColorBrush x:Key="ChromePressedBrush">#44444c</SolidColorBrush>
+      <SolidColorBrush x:Key="ChromeSelectedBrush">#303036</SolidColorBrush>
+      <SolidColorBrush x:Key="ChromeAccentBrush">#3a3a41</SolidColorBrush>
+      <SolidColorBrush x:Key="ChromeAccentHoverBrush">#0078d4</SolidColorBrush>
+      <SolidColorBrush x:Key="ChromeAccentPressedBrush">#005a9e</SolidColorBrush>
+      <SolidColorBrush x:Key="ChromeHairBrush">#1cffffff</SolidColorBrush>
+      <SolidColorBrush x:Key="ChromeSelectedBorderBrush">#2affffff</SolidColorBrush>
+      <SolidColorBrush x:Key="ChromeFocusBorderBrush">#38ffffff</SolidColorBrush>
+      <SolidColorBrush x:Key="ChromeTextBrush">#f2f2f3</SolidColorBrush>
+      <SolidColorBrush x:Key="ChromeMutedBrush">#8f8f99</SolidColorBrush>
+      <SolidColorBrush x:Key="ChromeErrorBrush">#fca5a5</SolidColorBrush>
+      <SolidColorBrush x:Key="ChromeStatusBrush">#a1a1aa</SolidColorBrush>
+      <CornerRadius x:Key="ChromeCornerRadius">4</CornerRadius>
+    </ResourceDictionary>
   </Application.Resources>
 
   <Application.Styles>
@@ -19,6 +43,37 @@
     </Style>
     <Style Selector="MenuItem">
       <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.chrome-button">
+      <Setter Property="Height" Value="30" />
+      <Setter Property="MinWidth" Value="0" />
+      <Setter Property="Padding" Value="10,0" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="Medium" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+      <Setter Property="Background" Value="{DynamicResource ChromeRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource ChromeCornerRadius}" />
+    </Style>
+    <Style Selector="Button.chrome-button:pointerover">
+      <Setter Property="Background" Value="{DynamicResource ChromeHoverBrush}" />
+    </Style>
+    <Style Selector="Button.chrome-button:pressed">
+      <Setter Property="Background" Value="{DynamicResource ChromePressedBrush}" />
+    </Style>
+    <Style Selector="Button.chrome-button.accent">
+      <Setter Property="Background" Value="{DynamicResource ChromeAccentBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeAccentBrush}" />
+    </Style>
+    <Style Selector="Button.chrome-button.accent:pointerover">
+      <Setter Property="Background" Value="{DynamicResource ChromeAccentHoverBrush}" />
+    </Style>
+    <Style Selector="Button.chrome-button.accent:pressed">
+      <Setter Property="Background" Value="{DynamicResource ChromeAccentPressedBrush}" />
     </Style>
   </Application.Styles>
 </Application>
