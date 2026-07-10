@@ -42,6 +42,31 @@ public sealed class AppConfigurationIntegrationTests
     }
 
     [Fact]
+    public void Load_MalformedConfigReportsParseErrorAndUsesDefaultFallback()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllText(configPath, "{");
+
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath);
+
+        Assert.Contains(
+            "Configuration file could not be parsed",
+            startupConfiguration.StartupErrorMessage,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "Input profile",
+            startupConfiguration.StartupErrorMessage,
+            StringComparison.Ordinal
+        );
+        Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
+        AssertInputConfigIsValid(startupConfiguration.InputConfig);
+    }
+
+    [Fact]
     public void Load_ReadsBootRomFilesFromConfig()
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();

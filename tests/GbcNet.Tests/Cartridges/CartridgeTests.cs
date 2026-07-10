@@ -24,6 +24,26 @@ public sealed class CartridgeTests
     }
 
     [Fact]
+    public void LoadResult_ExposesOnlyActivePayload()
+    {
+        var success = Cartridge.Load(TestRomFactory.Create());
+
+        Assert.True(success.IsSuccess);
+        Assert.False(success.IsFailure);
+        Assert.Equal("TEST ROM", success.Cartridge.Header.Title);
+        var successException = Assert.Throws<InvalidOperationException>(() => success.Error);
+        Assert.Equal("Cartridge load did not fail.", successException.Message);
+
+        var failure = Cartridge.Load(new byte[0x014F]);
+
+        Assert.False(failure.IsSuccess);
+        Assert.True(failure.IsFailure);
+        Assert.Equal(CartridgeLoadErrorCode.RomTooSmall, failure.Error.Code);
+        var failureException = Assert.Throws<InvalidOperationException>(() => failure.Cartridge);
+        Assert.Equal("Cartridge load did not succeed.", failureException.Message);
+    }
+
+    [Fact]
     public void Load_DetectsCgbEnhancedCartridge()
     {
         var rom = TestRomFactory.Create(bytes => bytes[0x0143] = 0x80);

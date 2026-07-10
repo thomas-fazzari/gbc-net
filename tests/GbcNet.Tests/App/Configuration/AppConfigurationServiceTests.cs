@@ -131,6 +131,25 @@ public sealed class AppConfigurationServiceTests
     }
 
     [Fact]
+    public void BootRomConfig_MapsKnownModelsAndRejectsUnsupportedModel()
+    {
+        var config = new BootRomConfig("dmg.bin", "cgb.bin", "sgb.bin");
+
+        Assert.Equal("dmg.bin", config.GetPath(HardwareModel.Dmg));
+        Assert.Equal("cgb.bin", config.GetPath(HardwareModel.Cgb));
+        Assert.Equal("sgb.bin", config.GetPath(HardwareModel.Sgb));
+        Assert.Equal(BootRomOptions.DmgBootRomSize, BootRomConfig.Size(HardwareModel.Dmg));
+        Assert.Equal(BootRomOptions.CgbBootRomSize, BootRomConfig.Size(HardwareModel.Cgb));
+        Assert.Equal(BootRomOptions.SgbBootRomSize, BootRomConfig.Size(HardwareModel.Sgb));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            config.GetPath((HardwareModel)int.MaxValue)
+        );
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            BootRomConfig.Size((HardwareModel)int.MaxValue)
+        );
+    }
+
+    [Fact]
     public void LoadBootRomConfig_ThrowsForUnknownBootRomProperty()
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();

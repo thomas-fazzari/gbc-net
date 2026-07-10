@@ -52,4 +52,22 @@ public sealed class InputRouterTests
 
         Assert.Equal([(JoypadButton.A, true), (JoypadButton.A, false)], updates);
     }
+
+    [Fact]
+    public void Clear_ReleasesActiveButtonsAndForgetsActiveInputs()
+    {
+        var updates = new List<(JoypadButton Button, bool Pressed)>();
+        InputRouter router = new(
+            [new InputBinding(Key.A, JoypadButton.A), new InputBinding(Key.B, JoypadButton.A)],
+            (button, pressed) => updates.Add((button, pressed))
+        );
+
+        router.Apply(Key.A, pressed: true);
+        router.Apply(Key.B, pressed: true);
+        router.Clear();
+        router.Apply(Key.A, pressed: false);
+        router.Apply(Key.B, pressed: false);
+
+        Assert.Equal([(JoypadButton.A, true), (JoypadButton.A, false)], updates);
+    }
 }

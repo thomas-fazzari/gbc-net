@@ -95,6 +95,110 @@ public sealed class LibraryServiceTests
     }
 
     [Fact]
+    public void SaveChanges_PreservesExplicitTimestampsWithoutTimeProvider()
+    {
+        using var test = new LibraryTestContext();
+        var addedAt = new DateTimeOffset(2026, 6, 1, 1, 2, 3, TimeSpan.Zero);
+        var updatedAt = addedAt.AddMinutes(5);
+        var openedAt = addedAt.AddMinutes(10);
+        var rom = LibraryRom.Opened(
+            "manual",
+            Path.Combine(test.DatabasePath, "manual.gb"),
+            "manual.gb",
+            cartridgeTitle: null,
+            CartridgeHardwareKind.GB,
+            openedAt
+        );
+        rom.StampCreated(addedAt);
+        rom.StampUpdated(updatedAt);
+
+        using (var db = new TestDbContextFactory(test.DatabasePath).CreateDbContext())
+        {
+            db.Roms.Add(rom);
+            db.SaveChanges();
+        }
+
+        using var readDb = new TestDbContextFactory(test.DatabasePath).CreateDbContext();
+        var saved = Assert.Single(readDb.Roms);
+        Assert.Equal(addedAt, saved.AddedAt);
+        Assert.Equal(updatedAt, saved.UpdatedAt);
+        Assert.Equal(openedAt, saved.LastOpenedAt);
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_StampsAddedAndModifiedRomsWithTimeProvider()
+    {
+        using var test = new LibraryTestContext();
+        var firstOpenedAt = new DateTimeOffset(2026, 5, 1, 8, 0, 0, TimeSpan.Zero);
+        var secondOpenedAt = firstOpenedAt.AddHours(1);
+        var romPath = Path.Combine(test.DatabasePath, "async.gb");
+        var createdAt = test.TimeProvider.GetUtcNow();
+        var rom = LibraryRom.Opened(
+            "async",
+            romPath,
+            "async.gb",
+            cartridgeTitle: null,
+            CartridgeHardwareKind.GB,
+            firstOpenedAt
+        );
+
+        var createDb = new TestDbContextFactory(
+            test.DatabasePath,
+            test.TimeProvider
+        ).CreateDbContext();
+        await using (createDb.ConfigureAwait(true))
+        {
+            createDb.Roms.Add(rom);
+            await createDb
+                .SaveChangesAsync(
+                    acceptAllChangesOnSuccess: true,
+                    TestContext.Current.CancellationToken
+                )
+                .ConfigureAwait(true);
+        }
+
+        test.TimeProvider.Advance(TimeSpan.FromMinutes(2));
+        var modifiedAt = test.TimeProvider.GetUtcNow();
+        var updateDb = new TestDbContextFactory(
+            test.DatabasePath,
+            test.TimeProvider
+        ).CreateDbContext();
+        await using (updateDb.ConfigureAwait(true))
+        {
+            var saved = await updateDb
+                .Roms.AsTracking()
+                .SingleAsync(
+                    entry => entry.RomHash == "async",
+                    TestContext.Current.CancellationToken
+                )
+                .ConfigureAwait(true);
+            saved.RecordOpen(
+                romPath,
+                "async.gb",
+                cartridgeTitle: null,
+                CartridgeHardwareKind.GB,
+                secondOpenedAt
+            );
+            await updateDb
+                .SaveChangesAsync(
+                    acceptAllChangesOnSuccess: true,
+                    TestContext.Current.CancellationToken
+                )
+                .ConfigureAwait(true);
+        }
+
+        var readDb = new TestDbContextFactory(test.DatabasePath).CreateDbContext();
+        await using (readDb.ConfigureAwait(true))
+        {
+            var persisted = Assert.Single(readDb.Roms);
+            Assert.Equal(createdAt, persisted.AddedAt);
+            Assert.Equal(modifiedAt, persisted.UpdatedAt);
+            Assert.Equal(secondOpenedAt, persisted.LastOpenedAt);
+            Assert.Equal(2, persisted.LaunchCount);
+        }
+    }
+
+    [Fact]
     public async Task RemoveRomPath_RemovesEntryByLastKnownPathAndAssignedManagedCover()
     {
         using var test = new LibraryTestContext();

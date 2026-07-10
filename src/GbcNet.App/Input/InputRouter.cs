@@ -53,6 +53,11 @@ internal sealed class InputRouter(
 
         foreach (var button in Enum.GetValues<JoypadButton>())
         {
+            if (_activeInputCountByButton[button] > 0)
+            {
+                setButtonState(button, false);
+            }
+
             _activeInputCountByButton[button] = 0;
         }
     }

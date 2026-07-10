@@ -95,4 +95,70 @@ public sealed class ShellOperationRunnerTests
 
         Assert.True(nextOperationRan);
     }
+
+    [Fact]
+    public async Task Run_QueuesFireAndForgetOperationsAndReportsExpectedError()
+    {
+        var releaseFirstOperation = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        var firstOperationStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        var errorReported = new TaskCompletionSource<string>(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        var thirdOperationCompleted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        var events = new List<string>();
+        ShellOperationRunner runner = new(
+            exception =>
+            {
+                events.Add("error");
+                errorReported.SetResult(exception.Message);
+            },
+            NullLogger<ShellOperationRunner>.Instance
+        );
+
+        // Intentionally exercise the synchronous fire-and-forget wrapper.
+#pragma warning disable CA1849, S6966
+        runner.Run(async () =>
+        {
+            events.Add("first-start");
+            firstOperationStarted.SetResult();
+            await releaseFirstOperation.Task.ConfigureAwait(true);
+            events.Add("first-end");
+        });
+
+        await firstOperationStarted.Task.WaitAsync(
+            TimeSpan.FromSeconds(1),
+            TestContext.Current.CancellationToken
+        );
+        runner.Run(() => throw new IOException("no access"));
+        runner.Run(() =>
+        {
+            events.Add("third");
+            thirdOperationCompleted.SetResult();
+            return Task.CompletedTask;
+        });
+#pragma warning restore CA1849, S6966
+
+        Assert.False(errorReported.Task.IsCompleted);
+        Assert.False(thirdOperationCompleted.Task.IsCompleted);
+        releaseFirstOperation.SetResult();
+
+        Assert.Equal(
+            "no access",
+            await errorReported.Task.WaitAsync(
+                TimeSpan.FromSeconds(1),
+                TestContext.Current.CancellationToken
+            )
+        );
+        await thirdOperationCompleted.Task.WaitAsync(
+            TimeSpan.FromSeconds(1),
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(["first-start", "first-end", "error", "third"], events);
+    }
 }

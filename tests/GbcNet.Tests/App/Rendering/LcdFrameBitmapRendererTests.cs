@@ -90,6 +90,17 @@ public sealed class LcdFrameBitmapRendererTests
     }
 
     [Fact]
+    public void WritePixels_ExpandsRgb555ChannelsByBitReplication()
+    {
+        LcdFrame frame = new(width: 1, height: 1, LcdPixelFormat.Rgb555Le, [0x10, 0x09]);
+        var destination = new byte[4];
+
+        LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 4);
+
+        Assert.Equal([0x10, 0x42, 0x84, 0xFF], destination);
+    }
+
+    [Fact]
     public void WritePixels_RejectsTooSmallRowBytes()
     {
         var frame = CreateFrame(width: 2, height: 1, 0, 1);
