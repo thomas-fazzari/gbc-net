@@ -34,6 +34,10 @@ app-bundle:
 run:
 	dotnet run --project $(APP) --configuration $(RUN_CONFIGURATION)
 
+.PHONY: index
+index:
+	codebase-memory-mcp cli index_repository --repo-path "$(CURDIR)"
+
 .PHONY: fix
 fix:
 	dotnet tool run csharpier format .

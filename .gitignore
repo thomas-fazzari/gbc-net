@@ -484,3 +484,6 @@ $RECYCLE.BIN/
 
 # Slopwatch
 .slopwatch/config.json.example
+
+# Local Codebase Memory graph
+.codebase-memory/

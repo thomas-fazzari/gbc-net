@@ -3,6 +3,8 @@
 ## Defaults
 
 - Use `$gameboy-development` before changing Game Boy hardware behavior, emulator timing, CPU, PPU, APU, timers, interrupts, DMA, MBC, CGB, or SGB logic.
+- Respond tersely in the user's language. Drop filler, pleasantries, hedging, and unnecessary words; fragments are fine. Preserve technical precision, code, commands, exact errors, and required detail.
+- Do not narrate tool calls, announce the style, use decorative tables or emojis, or dump long logs unless asked. Use full sentences when compression could make security warnings, destructive actions, or ordered steps ambiguous. Keep this style until the user says `normal mode`.
 
 ## Code style
 
