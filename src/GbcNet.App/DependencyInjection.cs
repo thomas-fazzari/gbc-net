@@ -1,15 +1,16 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using System.Reflection;
+using GbcNet.App.Audio;
 using GbcNet.App.Configuration;
+using GbcNet.App.Database;
+using GbcNet.App.Input;
+using GbcNet.App.Library;
+using GbcNet.App.Saves;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App;
-
-[AttributeUsage(AttributeTargets.Method)]
-internal sealed class DependencyInjectionModuleAttribute : Attribute;
 
 internal static class DependencyInjection
 {
@@ -20,40 +21,13 @@ internal static class DependencyInjection
         services.AddSingleton(startupConfiguration);
         services.AddSingleton(_ => new AppConfigurationService(startupConfiguration.ConfigPath));
 
-        foreach (var module in DiscoverModules())
-        {
-            module.Invoke(null, [services]);
-        }
+        services.AddAudio();
+        services.AddDatabase();
+        services.AddInput();
+        services.AddLibrary();
+        services.AddSaves();
 
         services.AddTransient<MainWindow>();
         return services.BuildServiceProvider();
-    }
-
-    private static IEnumerable<MethodInfo> DiscoverModules() =>
-        typeof(DependencyInjection)
-            .Assembly.GetTypes()
-            .SelectMany(type => type.GetMethods(BindingFlags.Static | BindingFlags.Public))
-            .Where(method =>
-                Attribute.IsDefined(method, typeof(DependencyInjectionModuleAttribute))
-            )
-            .OrderBy(method => method.DeclaringType?.FullName, StringComparer.Ordinal)
-            .ThenBy(method => method.Name, StringComparer.Ordinal)
-            .Select(ValidateModule);
-
-    private static MethodInfo ValidateModule(MethodInfo method)
-    {
-        var parameters = method.GetParameters();
-        if (
-            method.ReturnType != typeof(IServiceCollection)
-            || parameters is not [{ ParameterType: var parameterType }]
-            || parameterType != typeof(IServiceCollection)
-        )
-        {
-            throw new InvalidOperationException(
-                $"Dependency injection module '{method.DeclaringType?.FullName}.{method.Name}' must be static IServiceCollection Method(IServiceCollection services)."
-            );
-        }
-
-        return method;
     }
 }

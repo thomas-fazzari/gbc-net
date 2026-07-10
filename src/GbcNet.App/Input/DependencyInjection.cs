@@ -8,7 +8,6 @@ namespace GbcNet.App.Input;
 
 internal static class DependencyInjection
 {
-    [DependencyInjectionModule]
     public static IServiceCollection AddInput(this IServiceCollection services)
     {
         services.AddSingleton(provider =>

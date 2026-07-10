@@ -8,7 +8,6 @@ namespace GbcNet.App.Saves;
 
 internal static class DependencyInjection
 {
-    [DependencyInjectionModule]
     public static IServiceCollection AddSaves(this IServiceCollection services)
     {
         services.AddSingleton(new CartridgeBatterySaveFileService(UserDataPaths.SaveDirectoryPath));

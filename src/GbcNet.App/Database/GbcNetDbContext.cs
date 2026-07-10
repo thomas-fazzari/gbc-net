@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.App.Configuration;
+using GbcNet.App.Database.Configurations;
 using GbcNet.App.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -12,13 +13,13 @@ internal sealed class GbcNetDbContext : DbContext
 {
     private readonly TimeProvider? _timeProvider;
 
-    public GbcNetDbContext(DbContextOptions<GbcNetDbContext> options)
-        : this(options, TimeProvider.System) { }
-
-    public GbcNetDbContext(DbContextOptions<GbcNetDbContext> options, TimeProvider? timeProvider)
+    public GbcNetDbContext(
+        DbContextOptions<GbcNetDbContext> options,
+        TimeProvider? timeProvider = null
+    )
         : base(options)
     {
-        _timeProvider = timeProvider;
+        _timeProvider = timeProvider ?? TimeProvider.System;
         ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
     }
 
@@ -40,7 +41,7 @@ internal sealed class GbcNetDbContext : DbContext
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(GbcNetDbContext).Assembly);
+        modelBuilder.ApplyConfiguration(new LibraryRomConfiguration());
 
     private void StampLibraryEntries()
     {

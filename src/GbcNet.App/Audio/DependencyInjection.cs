@@ -7,7 +7,6 @@ namespace GbcNet.App.Audio;
 
 internal static class DependencyInjection
 {
-    [DependencyInjectionModule]
     public static IServiceCollection AddAudio(this IServiceCollection services)
     {
         services.AddSingleton<IAudioOutput, SoundFlowAudioOutput>();

@@ -10,7 +10,6 @@ namespace GbcNet.App.Library;
 
 internal static class DependencyInjection
 {
-    [DependencyInjectionModule]
     public static IServiceCollection AddLibrary(this IServiceCollection services)
     {
         services.AddSingleton<LibraryService>(provider => new LibraryService(

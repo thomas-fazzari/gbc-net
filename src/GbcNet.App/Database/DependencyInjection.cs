@@ -9,7 +9,6 @@ namespace GbcNet.App.Database;
 
 internal static class DependencyInjection
 {
-    [DependencyInjectionModule]
     public static IServiceCollection AddDatabase(this IServiceCollection services) =>
         services.AddDatabase(UserDataPaths.LibraryDatabasePath);
 
@@ -20,24 +19,9 @@ internal static class DependencyInjection
     )
     {
         services.AddSingleton(timeProvider ?? TimeProvider.System);
-        services.AddSingleton<IDbContextFactory<GbcNetDbContext>>(provider =>
-        {
-            var options = new DbContextOptionsBuilder<GbcNetDbContext>()
-                .UseSqlite($"Data Source={databasePath}")
-                .Options;
-            return new RuntimeDbContextFactory(
-                options,
-                provider.GetRequiredService<TimeProvider>()
-            );
-        });
+        services.AddDbContextFactory<GbcNetDbContext>(
+            (_, options) => options.UseSqlite($"Data Source={databasePath}")
+        );
         return services;
-    }
-
-    private sealed class RuntimeDbContextFactory(
-        DbContextOptions<GbcNetDbContext> options,
-        TimeProvider timeProvider
-    ) : IDbContextFactory<GbcNetDbContext>
-    {
-        public GbcNetDbContext CreateDbContext() => new(options, timeProvider);
     }
 }
