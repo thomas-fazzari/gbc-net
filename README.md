@@ -26,3 +26,12 @@
 make install # Also sets up a linting Git hook
 make run
 ```
+
+<h2>Compatibility</h2>
+
+| Target         | Status     | Coverage                                                                                                                                                                                                                                           | Limitations                                             |
+| -------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Game Boy       | Functional | [Mooneye](tests/GbcNet.Tests/RomTesting/Mooneye/MooneyeAcceptanceRomTests.cs), [Blargg](tests/GbcNet.Tests/RomTesting/Blargg), [dmg-acid2](tests/GbcNet.Tests/RomTesting/Visual/DmgAcid2VisualRomTests.cs)                                         | Hardware edge cases may remain                                |
+| Game Boy Color | Functional | [Mooneye CGB](tests/GbcNet.Tests/RomTesting/Mooneye/MooneyeCgbRomTests.cs), [cgb-acid2](tests/GbcNet.Tests/RomTesting/Visual/CgbAcid2VisualRomTests.cs)                                                                                            | Some CGB-specific edge cases remain                           |
+| Super Game Boy | Functional (HLE) | [SGB boot/model](tests/GbcNet.Tests/RomTesting/Mooneye/MooneyeSgbRomTests.cs), [SGB commands](tests/GbcNet.Tests/Sgb/SgbControllerTests.cs)                                                                                                        | Optional SNES-side commands and SGB2 are unsupported          |
+| Cartridges     | Partial    | [MBC1](tests/GbcNet.Tests/Cartridges/Mbc1CartridgeTests.cs), [MBC2](tests/GbcNet.Tests/Cartridges/Mbc2CartridgeTests.cs), [MBC3](tests/GbcNet.Tests/Cartridges/Mbc3CartridgeTests.cs), [MBC5](tests/GbcNet.Tests/Cartridges/Mbc5CartridgeTests.cs) | Uncommon mappers and MBC5 rumble variants are currently unsupported     |

@@ -12,6 +12,10 @@ install:
 	dotnet tool restore
 	git config core.hooksPath .githooks
 
+.PHONY: run
+run:
+	dotnet run --project $(APP) --configuration $(RUN_CONFIGURATION)
+
 .PHONY: lint
 lint:
 	dotnet tool run csharpier check .
@@ -29,10 +33,6 @@ coverage:
 .PHONY: app-bundle
 app-bundle:
 	packaging/macos/create-app-bundle.sh "$(APP)" "$(RUNTIME)"
-
-.PHONY: run
-run:
-	dotnet run --project $(APP) --configuration $(RUN_CONFIGURATION)
 
 .PHONY: index
 index:
