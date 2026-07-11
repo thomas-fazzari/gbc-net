@@ -203,7 +203,9 @@ internal sealed class EmulationSession
                     continue;
                 }
 
-                var delayTimestamp = pacing.GetDelayTimestamp(timestamp, elapsedMachineCycles);
+                var delayTimestamp = pacing.RebaseIfTooLate(timestamp, elapsedMachineCycles)
+                    ? 0
+                    : pacing.GetDelayTimestamp(timestamp, elapsedMachineCycles);
 
                 if (delayTimestamp > 0)
                 {

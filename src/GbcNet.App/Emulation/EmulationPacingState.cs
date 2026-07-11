@@ -11,7 +11,11 @@ namespace GbcNet.App.Emulation;
 internal sealed class EmulationPacingState
 {
     private const int ThrottleIntervalMilliseconds = 8;
+    private const int MaximumCatchUpIntervals = 2;
     private const double ThrottleIntervalSeconds = ThrottleIntervalMilliseconds / 1000.0;
+
+    private static readonly long _maximumCatchUpTimestamp =
+        Stopwatch.Frequency * ThrottleIntervalMilliseconds * MaximumCatchUpIntervals / 1000;
 
     public EmulationPacingState(
         long timestamp,
@@ -53,6 +57,18 @@ internal sealed class EmulationPacingState
         }
 
         Reset(timestamp, elapsedMachineCycles, speedMultiplier, cpuHz, revision);
+        return true;
+    }
+
+    public bool RebaseIfTooLate(long timestamp, long elapsedMachineCycles)
+    {
+        if (timestamp - GetExpectedTimestamp(elapsedMachineCycles) <= _maximumCatchUpTimestamp)
+        {
+            return false;
+        }
+
+        BaseTimestamp = timestamp;
+        BaseMachineCycles = elapsedMachineCycles;
         return true;
     }
 

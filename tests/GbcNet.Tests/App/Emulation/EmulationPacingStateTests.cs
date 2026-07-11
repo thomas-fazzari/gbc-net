@@ -111,4 +111,40 @@ public sealed class EmulationPacingStateTests
         Assert.Equal(116, state.NextThrottleMachineCycles);
         Assert.Equal(0, state.GetDelayTimestamp(timestamp: 50, elapsedMachineCycles: 100));
     }
+
+    [Fact]
+    public void RebaseIfTooLate_PreservesBoundedCatchUpDebt()
+    {
+        const int cpuHz = 1000;
+        var state = new EmulationPacingState(0, 0, 1, cpuHz, revision: 0);
+        var expectedTimestamp = (long)
+            Math.Round(8 * (Stopwatch.Frequency / (double)cpuHz), MidpointRounding.ToEven);
+        var timestamp = expectedTimestamp + (Stopwatch.Frequency * 10 / 1000);
+
+        var rebased = state.RebaseIfTooLate(timestamp, elapsedMachineCycles: 8);
+
+        Assert.False(rebased);
+        Assert.True(state.GetDelayTimestamp(timestamp, elapsedMachineCycles: 8) < 0);
+    }
+
+    [Fact]
+    public void RebaseIfTooLate_DropsExcessDebtAndStartsNextWindowFromNow()
+    {
+        const int cpuHz = 1000;
+        var state = new EmulationPacingState(0, 0, 1, cpuHz, revision: 0);
+        var firstWindowTimestamp = (long)
+            Math.Round(8 * (Stopwatch.Frequency / (double)cpuHz), MidpointRounding.ToEven);
+        var timestamp = firstWindowTimestamp + (Stopwatch.Frequency * 100 / 1000);
+
+        var rebased = state.RebaseIfTooLate(timestamp, elapsedMachineCycles: 8);
+        state.ScheduleNextThrottle(elapsedMachineCycles: 8);
+
+        Assert.True(rebased);
+        Assert.Equal(0, state.GetDelayTimestamp(timestamp, elapsedMachineCycles: 8));
+        Assert.Equal(16, state.NextThrottleMachineCycles);
+        Assert.Equal(
+            firstWindowTimestamp,
+            state.GetDelayTimestamp(timestamp, elapsedMachineCycles: 16)
+        );
+    }
 }
