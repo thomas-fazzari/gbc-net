@@ -142,7 +142,11 @@ internal sealed unsafe class GamepadManager(
     public void SetGameplayEnabled(bool enabled)
     {
         VerifyDispatcherAccess();
-        ThrowIfDisposed();
+
+        if (_disposed)
+        {
+            return;
+        }
 
         if (GameplayEnabled == enabled)
         {
