@@ -34,8 +34,6 @@ public sealed class DmgAcid2VisualRomTests
     [Fact]
     public void DmgAcid2FrameMatchesGolden()
     {
-        SkipIfDmgVisualAssetsAreMissing();
-
         var rom = File.ReadAllBytes(RomPath);
         var expectedPixels = File.ReadAllBytes(DmgGoldenPath);
         Assert.Equal(ExpectedRomSha256, ComputeSha256(rom));
@@ -59,8 +57,6 @@ public sealed class DmgAcid2VisualRomTests
     [Fact]
     public void DmgAcid2FrameMatchesCgbCompatibilityGolden()
     {
-        SkipIfCgbCompatibilityVisualAssetsAreMissing();
-
         var rom = File.ReadAllBytes(RomPath);
         var expectedPixels = File.ReadAllBytes(CgbGoldenPath);
         Assert.Equal(ExpectedRomSha256, ComputeSha256(rom));
@@ -80,26 +76,6 @@ public sealed class DmgAcid2VisualRomTests
             expectedPixels.AsSpan().SequenceEqual(result.Frame.Pixels.Span),
             Rgb555FrameDifference.CreateMessage(result, expectedPixels, MaxReportedDiffOffsets)
         );
-    }
-
-    private static void SkipIfDmgVisualAssetsAreMissing()
-    {
-        if (!File.Exists(RomPath) || !File.Exists(DmgGoldenPath))
-        {
-            Assert.Skip(
-                "Missing dmg-acid2 DMG visual assets. Add dmg-acid2.gb and dmg-acid2.dmgshade.bin."
-            );
-        }
-    }
-
-    private static void SkipIfCgbCompatibilityVisualAssetsAreMissing()
-    {
-        if (!File.Exists(RomPath) || !File.Exists(CgbGoldenPath))
-        {
-            Assert.Skip(
-                "Missing dmg-acid2 CGB compatibility visual assets. Add dmg-acid2.gb and dmg-acid2-cgb.rgb555le.bin."
-            );
-        }
     }
 
     private static string ComputeSha256(ReadOnlySpan<byte> bytes) =>

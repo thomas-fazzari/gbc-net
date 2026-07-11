@@ -28,8 +28,6 @@ public sealed class CgbAcid2VisualRomTests
     [Fact]
     public void CgbAcid2FrameMatchesSameBoyGolden()
     {
-        SkipIfVisualAssetsAreMissing();
-
         var rom = File.ReadAllBytes(RomPath);
         var expectedPixels = File.ReadAllBytes(GoldenPath);
         Assert.Equal(ExpectedRomSha256, ComputeSha256(rom));
@@ -49,16 +47,6 @@ public sealed class CgbAcid2VisualRomTests
             expectedPixels.AsSpan().SequenceEqual(result.Frame.Pixels.Span),
             Rgb555FrameDifference.CreateMessage(result, expectedPixels, MaxReportedDiffOffsets)
         );
-    }
-
-    private static void SkipIfVisualAssetsAreMissing()
-    {
-        if (!File.Exists(RomPath) || !File.Exists(GoldenPath))
-        {
-            Assert.Skip(
-                "Missing cgb-acid2 visual assets. Add cgb-acid2.gbc and cgb-acid2.rgb555le.bin."
-            );
-        }
     }
 
     private static string ComputeSha256(ReadOnlySpan<byte> bytes) =>
