@@ -1,7 +1,6 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using GbcNet.Core;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
@@ -14,6 +13,8 @@ namespace GbcNet.Tests;
 
 public sealed class PostBootStateTests
 {
+    private const ushort AudioMasterControlRegister = 0xFF26;
+
     [Fact]
     public void Apply_SetsDmgCpuRegistersAfterBootHandoff()
     {
@@ -54,8 +55,25 @@ public sealed class PostBootStateTests
 
         Assert.Equal(0x01, cpu.Registers.A);
         Assert.Equal(0x0014, cpu.Registers.BC);
+        Assert.Equal(0x00, cpu.Registers.F);
+        Assert.Equal(0x0000, cpu.Registers.DE);
+        Assert.Equal(0xC060, cpu.Registers.HL);
         Assert.Equal(0x0100, cpu.Registers.PC);
         Assert.Equal(0xFFFE, cpu.Registers.SP);
+    }
+
+    [Fact]
+    public void Apply_SetsSgbIoRegistersAfterBootHandoff()
+    {
+        var cartridge = LoadCartridge(CreateSgbRom());
+        var profile = SgbHardwareProfile.Instance;
+        var bus = new MemoryBus(cartridge, profile);
+        var cpu = new Cpu(bus);
+
+        profile.ApplyPostBootState(cartridge, cpu, bus);
+
+        Assert.Equal(0xFF, bus.ReadByte(AddressMap.JoypadRegister));
+        Assert.Equal(0xF0, bus.ReadByte(AudioMasterControlRegister));
     }
 
     [Fact]

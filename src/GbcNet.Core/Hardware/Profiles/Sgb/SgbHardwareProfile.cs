@@ -60,6 +60,6 @@ internal sealed class SgbHardwareProfile : IHardwareProfile
 
     public void ApplyPostBootState(Cartridge cartridge, Cpu cpu, MemoryBus bus)
     {
-        DmgPostBootState.Apply(cartridge, cpu, bus, registerBc: 0x0014);
+        SgbPostBootState.Apply(cartridge, cpu, bus);
     }
 }

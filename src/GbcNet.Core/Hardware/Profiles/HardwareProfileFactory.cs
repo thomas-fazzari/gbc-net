@@ -21,7 +21,6 @@ internal static class HardwareProfileFactory
         {
             (HardwareModel.Dmg, CgbSupport.None or CgbSupport.Enhanced) =>
                 DmgHardwareProfile.Instance,
-
             (HardwareModel.Dmg, CgbSupport.Required) => throw new NotSupportedException(
                 "CGB-required cartridges cannot run on DMG hardware."
             ),
@@ -29,13 +28,11 @@ internal static class HardwareProfileFactory
             (HardwareModel.Cgb, CgbSupport.None) => new CgbHardwareProfile(
                 CgbOperatingMode.DmgCompatibility
             ),
-
             (HardwareModel.Cgb, CgbSupport.Enhanced or CgbSupport.Required) =>
                 new CgbHardwareProfile(CgbOperatingMode.Cgb),
 
             (HardwareModel.Sgb, CgbSupport.None or CgbSupport.Enhanced) =>
                 SgbHardwareProfile.Instance,
-
             (HardwareModel.Sgb, CgbSupport.Required) => throw new NotSupportedException(
                 "CGB-required cartridges cannot run on SGB hardware."
             ),
