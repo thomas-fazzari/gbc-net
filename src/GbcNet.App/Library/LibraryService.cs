@@ -210,19 +210,42 @@ internal sealed class LibraryService(
 
     public void AssignCoverImage(string romHash, string sourceImagePath)
     {
+        string? destinationPath = null;
+        var databaseUpdated = false;
+
         try
         {
             var previousCoverPath = GetCoverPath(romHash);
             var imageExtension = GetSafeImageExtension(sourceImagePath);
 
             Directory.CreateDirectory(_coverDirectoryPath);
-            var destinationPath = Path.Combine(_coverDirectoryPath, romHash + imageExtension);
-            File.Copy(Path.GetFullPath(sourceImagePath), destinationPath, overwrite: true);
+            destinationPath = Path.Combine(
+                _coverDirectoryPath,
+                $"{romHash}-{Guid.NewGuid():N}{imageExtension}"
+            );
+            File.Copy(Path.GetFullPath(sourceImagePath), destinationPath, overwrite: false);
             SetCoverPath(romHash, destinationPath);
+            databaseUpdated = true;
             DeleteManagedCoverFile(previousCoverPath, destinationPath);
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
+            if (!databaseUpdated)
+            {
+                try
+                {
+                    DeleteManagedCoverFile(destinationPath);
+                }
+                catch (Exception cleanupException)
+                    when (IsExpectedLibraryException(cleanupException))
+                {
+                    throw new InvalidOperationException(
+                        exception.Message,
+                        new AggregateException(exception, cleanupException)
+                    );
+                }
+            }
+
             throw CreateLibraryException(exception);
         }
     }
@@ -233,8 +256,8 @@ internal sealed class LibraryService(
         {
             var previousCoverPath = GetCoverPath(romHash);
 
-            DeleteManagedCoverFile(previousCoverPath);
             SetCoverPath(romHash, coverPath: null);
+            DeleteManagedCoverFile(previousCoverPath);
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {

@@ -5,13 +5,17 @@ using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.Core;
 using GbcNet.Core.Hardware;
+using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App.Configuration;
 
-internal sealed class AppConfigurationService(string configPath)
+internal sealed class AppConfigurationService(
+    string configPath,
+    ILogger<AppConfigurationService> logger
+)
 {
     public BootRomConfig LoadBootRomConfig() =>
-        AppConfigurationFile.LoadOrCreate(configPath).BootRoms;
+        AppConfigurationFile.LoadOrCreate(configPath, logger).BootRoms;
 
     public BootRomOptions LoadBootRomOptions() =>
         LoadBootRomOptions(
@@ -21,16 +25,16 @@ internal sealed class AppConfigurationService(string configPath)
 
     public void SaveBootRomConfig(BootRomConfig config)
     {
-        var appConfig = AppConfigurationFile.LoadOrCreate(configPath);
+        var appConfig = AppConfigurationFile.LoadOrCreate(configPath, logger);
         appConfig.BootRoms = config;
-        AppConfigurationFile.Save(configPath, appConfig);
+        AppConfigurationFile.Save(configPath, appConfig, logger);
     }
 
     public void SaveEmulationConfig(EmulationConfig config)
     {
-        var appConfig = AppConfigurationFile.LoadOrCreate(configPath);
+        var appConfig = AppConfigurationFile.LoadOrCreate(configPath, logger);
         appConfig.Emulation = config;
-        AppConfigurationFile.Save(configPath, appConfig);
+        AppConfigurationFile.Save(configPath, appConfig, logger);
     }
 
     internal static BootRomOptions LoadBootRomOptions(

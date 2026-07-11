@@ -19,7 +19,11 @@ internal static class DependencyInjection
         var services = new ServiceCollection();
         services.AddLogging(static builder => builder.AddDebug());
         services.AddSingleton(startupConfiguration);
-        services.AddSingleton(_ => new AppConfigurationService(startupConfiguration.ConfigPath));
+
+        services.AddSingleton(provider => new AppConfigurationService(
+            startupConfiguration.ConfigPath,
+            provider.GetRequiredService<ILogger<AppConfigurationService>>()
+        ));
 
         services.AddAudio();
         services.AddDatabase();

@@ -7,6 +7,7 @@ using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.Core;
 using GbcNet.Core.Hardware;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GbcNet.Tests.App.Configuration;
 
@@ -19,7 +20,10 @@ public sealed class AppConfigurationServiceTests
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
 
         Directory.CreateDirectory(tempDirectory.Path);
-        var service = new AppConfigurationService(configPath);
+        var service = new AppConfigurationService(
+            configPath,
+            NullLogger<AppConfigurationService>.Instance
+        );
 
         service.SaveBootRomConfig(new BootRomConfig("dmg.bin", "cgb.bin", "sgb.bin"));
 
@@ -61,7 +65,10 @@ public sealed class AppConfigurationServiceTests
             }
             """
         );
-        var service = new AppConfigurationService(configPath);
+        var service = new AppConfigurationService(
+            configPath,
+            NullLogger<AppConfigurationService>.Instance
+        );
 
         service.SaveBootRomConfig(new BootRomConfig("new-dmg.bin", "new-cgb.bin", "new-sgb.bin"));
 
@@ -84,7 +91,10 @@ public sealed class AppConfigurationServiceTests
         const string dmgPath = "dir\\boot\"rom.bin";
 
         Directory.CreateDirectory(tempDirectory.Path);
-        var service = new AppConfigurationService(configPath);
+        var service = new AppConfigurationService(
+            configPath,
+            NullLogger<AppConfigurationService>.Instance
+        );
 
         service.SaveBootRomConfig(new BootRomConfig(dmgPath, CgbPath: "cgb.bin"));
 
@@ -117,7 +127,10 @@ public sealed class AppConfigurationServiceTests
             Path.Combine(tempDirectory.Path, "sgb.bin"),
             CreateBootRom(BootRomOptions.SgbBootRomSize, marker: 0x50)
         );
-        var service = new AppConfigurationService(configPath);
+        var service = new AppConfigurationService(
+            configPath,
+            NullLogger<AppConfigurationService>.Instance
+        );
         service.SaveBootRomConfig(new BootRomConfig("dmg.bin", "cgb.bin", "sgb.bin"));
 
         var options = service.LoadBootRomOptions();
@@ -166,7 +179,10 @@ public sealed class AppConfigurationServiceTests
             }
             """
         );
-        var service = new AppConfigurationService(configPath);
+        var service = new AppConfigurationService(
+            configPath,
+            NullLogger<AppConfigurationService>.Instance
+        );
 
         var exception = Assert.Throws<ConfigurationException>(() => service.LoadBootRomConfig());
 

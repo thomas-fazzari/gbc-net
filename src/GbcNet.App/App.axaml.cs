@@ -9,6 +9,7 @@ using GbcNet.App.Configuration;
 using GbcNet.App.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App;
 
@@ -26,8 +27,14 @@ internal sealed class GbcNetApplication : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            using var startupLoggerFactory = LoggerFactory.Create(static builder =>
+                builder.AddDebug()
+            );
             var startupConfiguration = StartupConfigurationLoader.Load(
-                UserDataPaths.ConfigFilePath
+                UserDataPaths.ConfigFilePath,
+                startupLoggerFactory.CreateLogger(
+                    "GbcNet.App.Configuration.StartupConfigurationLoader"
+                )
             );
             _services = DependencyInjection.BuildServiceProvider(startupConfiguration);
             MigrateDatabase(_services);

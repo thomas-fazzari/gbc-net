@@ -1,10 +1,10 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.Core;
+using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App.Configuration;
 
@@ -21,11 +21,11 @@ internal sealed record StartupConfiguration(
 /// </summary>
 internal static class StartupConfigurationLoader
 {
-    public static StartupConfiguration Load(string configPath)
+    public static StartupConfiguration Load(string configPath, ILogger logger)
     {
         var startupErrors = new List<string>();
         var configDirectoryPath = Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory;
-        var appConfig = LoadConfig(configPath, startupErrors);
+        var appConfig = LoadConfig(configPath, logger, startupErrors);
         var inputConfig = appConfig.Input;
         var bootRomOptions = new BootRomOptions();
 
@@ -59,11 +59,15 @@ internal static class StartupConfigurationLoader
         );
     }
 
-    private static AppConfig LoadConfig(string configPath, List<string> startupErrors)
+    private static AppConfig LoadConfig(
+        string configPath,
+        ILogger logger,
+        List<string> startupErrors
+    )
     {
         try
         {
-            return AppConfigurationFile.LoadOrCreate(configPath);
+            return AppConfigurationFile.LoadOrCreate(configPath, logger);
         }
         catch (ConfigurationException exception)
         {

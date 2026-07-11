@@ -12,6 +12,7 @@ using GbcNet.App.Input;
 using GbcNet.Core;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Joypad;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GbcNet.Tests.App.Configuration;
 
@@ -23,7 +24,7 @@ public sealed class AppConfigurationIntegrationTests
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
 
-        var startupConfiguration = StartupConfigurationLoader.Load(configPath);
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
         Assert.Null(startupConfiguration.StartupErrorMessage);
         Assert.True(File.Exists(configPath));
@@ -50,7 +51,7 @@ public sealed class AppConfigurationIntegrationTests
         Directory.CreateDirectory(tempDirectory.Path);
         File.WriteAllText(configPath, "{");
 
-        var startupConfiguration = StartupConfigurationLoader.Load(configPath);
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
         Assert.Contains(
             "Configuration file could not be parsed",
@@ -87,7 +88,7 @@ public sealed class AppConfigurationIntegrationTests
         );
         File.WriteAllText(configPath, CreateConfig("dmg.bin", "cgb.bin", "sgb.bin"));
 
-        var startupConfiguration = StartupConfigurationLoader.Load(configPath);
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
         Assert.Null(startupConfiguration.StartupErrorMessage);
         Assert.Equal(
@@ -139,7 +140,7 @@ public sealed class AppConfigurationIntegrationTests
             """
         );
 
-        var startupConfiguration = StartupConfigurationLoader.Load(configPath);
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
         Assert.Null(startupConfiguration.StartupErrorMessage);
         Assert.Equal("alternate", startupConfiguration.InputConfig.ActiveProfile);
@@ -181,7 +182,7 @@ public sealed class AppConfigurationIntegrationTests
             """
         );
 
-        var startupConfiguration = StartupConfigurationLoader.Load(configPath);
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
         Assert.Null(startupConfiguration.StartupErrorMessage);
         Assert.True(startupConfiguration.EmulationConfig.FastForwardEnabled);
@@ -221,7 +222,10 @@ public sealed class AppConfigurationIntegrationTests
             }
             """
         );
-        var service = new AppConfigurationService(configPath);
+        var service = new AppConfigurationService(
+            configPath,
+            NullLogger<AppConfigurationService>.Instance
+        );
 
         service.SaveEmulationConfig(
             new EmulationConfig
@@ -263,7 +267,7 @@ public sealed class AppConfigurationIntegrationTests
         File.WriteAllBytes(Path.Combine(tempDirectory.Path, "dmg.bin"), new byte[255]);
         File.WriteAllText(configPath, CreateConfig("dmg.bin", null, null));
 
-        var startupConfiguration = StartupConfigurationLoader.Load(configPath);
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
         Assert.Contains(
             "DMG boot ROM must be 256 bytes",
@@ -287,7 +291,7 @@ public sealed class AppConfigurationIntegrationTests
             CreateConfig("missing-dmg.bin", cgbBootRomPath: null, sgbBootRomPath: null)
         );
 
-        var startupConfiguration = StartupConfigurationLoader.Load(configPath);
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
         Assert.Contains(
             "DMG boot ROM file could not be read",
