@@ -171,6 +171,7 @@ public sealed class SgbControllerTests
         WriteBorderTilePixel(tileTransfer, tileIndex: 1, color: 5);
         WriteUInt16(mapTransfer, offset: 0, (4 << 10) | 1);
         WriteUInt16(mapTransfer, offset: 0x800 + (5 * 2), 0x1234);
+        WriteUInt16(mapTransfer, offset: (7 + (5 * 32)) * 2, (4 << 10) | 1);
 
         WriteSgbPacket(sgb, command: 0x13, [0x00]);
         Assert.True(sgb.HasPendingVramTransfer);
@@ -184,6 +185,98 @@ public sealed class SgbControllerTests
         Assert.False(sgb.HasPendingVramTransfer);
         AssertRgb555(colorized, pixelIndex: 0, expected: 0x1234);
         AssertRgb555(colorized, SgbGameBoyPixelIndex(x: 0, y: 0), expected: 0x7FFF);
+        AssertRgb555(colorized, SgbGameBoyPixelIndex(x: 8, y: 0), expected: 0x1234);
+    }
+
+    [Fact]
+    public void ApplyPalettes_RebuildsCachedBorderAfterTileTransfer()
+    {
+        var sgb = new SgbController(commandsEnabled: true);
+        var firstTiles = new byte[4096];
+        var updatedTiles = new byte[4096];
+        var map = new byte[4096];
+        WriteBorderTilePixel(firstTiles, tileIndex: 1, color: 5);
+        WriteBorderTilePixel(updatedTiles, tileIndex: 1, color: 6);
+        WriteUInt16(map, offset: 0, (4 << 10) | 1);
+        WriteUInt16(map, offset: 0x800 + (5 * 2), 0x1234);
+        WriteUInt16(map, offset: 0x800 + (6 * 2), 0x5678);
+        ApplyBorderTransfers(sgb, firstTiles, map);
+        var firstFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 0));
+
+        WriteSgbPacket(sgb, command: 0x13, [0x00]);
+        sgb.ApplyPendingVramTransfer(updatedTiles);
+        var updatedFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 0));
+
+        AssertRgb555(firstFrame, pixelIndex: 0, expected: 0x1234);
+        AssertRgb555(updatedFrame, pixelIndex: 0, expected: 0x5678);
+    }
+
+    [Fact]
+    public void ApplyPalettes_RebuildsCachedBorderAfterMapTransfer()
+    {
+        var sgb = new SgbController(commandsEnabled: true);
+        var tiles = new byte[4096];
+        var firstMap = new byte[4096];
+        var updatedMap = new byte[4096];
+        WriteBorderTilePixel(tiles, tileIndex: 1, color: 5);
+        WriteUInt16(firstMap, offset: 0, (4 << 10) | 1);
+        WriteUInt16(firstMap, offset: 0x800 + (5 * 2), 0x1234);
+        WriteUInt16(updatedMap, offset: 0, (4 << 10) | 1);
+        WriteUInt16(updatedMap, offset: 0x800 + (5 * 2), 0x5678);
+        ApplyBorderTransfers(sgb, tiles, firstMap);
+        var firstFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 0));
+
+        WriteSgbPacket(sgb, command: 0x14, []);
+        sgb.ApplyPendingVramTransfer(updatedMap);
+        var updatedFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 0));
+
+        AssertRgb555(firstFrame, pixelIndex: 0, expected: 0x1234);
+        AssertRgb555(updatedFrame, pixelIndex: 0, expected: 0x5678);
+    }
+
+    [Fact]
+    public void ApplyPalettes_RebuildsCachedBorderAfterSharedColorZeroChanges()
+    {
+        var sgb = new SgbController(commandsEnabled: true);
+        ApplyBorderTransfers(sgb, new byte[4096], new byte[4096]);
+        var firstFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 1));
+
+        WriteSgbPacket(sgb, command: 0x00, Pal01Payload);
+        var updatedFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 1));
+
+        AssertRgb555(firstFrame, pixelIndex: 0, expected: 0x7FFF);
+        AssertRgb555(updatedFrame, pixelIndex: 0, expected: 0x1111);
+        AssertRgb555(updatedFrame, SgbGameBoyPixelIndex(x: 0, y: 0), expected: 0x2222);
+    }
+
+    [Fact]
+    public void ApplyPalettes_RebuildsCachedBorderAfterPalSet()
+    {
+        var sgb = new SgbController(commandsEnabled: true);
+        var paletteTransfer = new byte[4096];
+        WriteSystemPalette(paletteTransfer, paletteId: 5, 0x1357, 0x2222, 0x3333, 0x4444);
+        WriteSgbPacket(sgb, command: 0x0B, []);
+        sgb.ApplyPendingVramTransfer(paletteTransfer);
+        ApplyBorderTransfers(sgb, new byte[4096], new byte[4096]);
+        var firstFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 1));
+
+        WriteSgbPacket(sgb, command: 0x0A, CreatePalSetPayload(5, 5, 5, 5));
+        var updatedFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 1));
+
+        AssertRgb555(firstFrame, pixelIndex: 0, expected: 0x7FFF);
+        AssertRgb555(updatedFrame, pixelIndex: 0, expected: 0x1357);
+    }
+
+    private static void ApplyBorderTransfers(
+        SgbController sgb,
+        byte[] tileTransfer,
+        byte[] mapTransfer
+    )
+    {
+        WriteSgbPacket(sgb, command: 0x13, [0x00]);
+        sgb.ApplyPendingVramTransfer(tileTransfer);
+        WriteSgbPacket(sgb, command: 0x14, []);
+        sgb.ApplyPendingVramTransfer(mapTransfer);
     }
 
     private static LcdFrame CreateDmgFrame(byte shade)

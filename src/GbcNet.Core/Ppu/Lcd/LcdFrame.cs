@@ -17,6 +17,28 @@ public sealed class LcdFrame
     }
 
     /// <summary>
+    /// Creates a frame that exclusively owns an already completed pixel buffer.
+    /// </summary>
+    internal static LcdFrame FromOwnedPixels(
+        int width,
+        int height,
+        LcdPixelFormat pixelFormat,
+        byte[] pixels
+    )
+    {
+        ArgumentNullException.ThrowIfNull(pixels);
+        return new LcdFrame(width, height, pixelFormat, pixels.AsMemory());
+    }
+
+    private LcdFrame(int width, int height, LcdPixelFormat pixelFormat, ReadOnlyMemory<byte> pixels)
+    {
+        Width = width;
+        Height = height;
+        PixelFormat = pixelFormat;
+        Pixels = pixels;
+    }
+
+    /// <summary>
     /// Frame width in pixels.
     /// </summary>
     public int Width { get; }

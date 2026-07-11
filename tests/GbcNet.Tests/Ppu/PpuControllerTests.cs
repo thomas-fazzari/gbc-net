@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Runtime.InteropServices;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Interrupts;
@@ -501,6 +502,19 @@ public sealed class PpuControllerTests
         pixels[0] = 0x03;
 
         Assert.Equal(0x01, frame.Pixels.Span[0]);
+    }
+
+    [Fact]
+    public void LcdFrame_FromOwnedPixelsUsesProvidedBuffer()
+    {
+        byte[] pixels = [0x01, 0x02];
+
+        var frame = LcdFrame.FromOwnedPixels(1, 1, LcdPixelFormat.Rgb555Le, pixels);
+
+        Assert.True(MemoryMarshal.TryGetArray(frame.Pixels, out var segment));
+        Assert.Same(pixels, segment.Array);
+        Assert.Equal(0, segment.Offset);
+        Assert.Equal(pixels.Length, segment.Count);
     }
 
     [Fact]

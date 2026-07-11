@@ -53,6 +53,9 @@ internal sealed class SgbController(bool commandsEnabled)
     private const int AttributeFileCount = 45;
     private const int AttributeFileTransferSizeBytes = AttributeFilePackedSize * AttributeFileCount;
     private const int Rgb555BytesPerPixel = 2;
+    private const int SgbScreenPixelCount = SgbScreenWidth * SgbScreenHeight;
+    private const int BorderOverlayMaskSizeBytes =
+        ((PpuGeometry.FrameWidth * PpuGeometry.FrameHeight) + 7) / 8;
     private const int VramTransferSizeBytes = 4096;
     private const byte NoPendingVramTransfer = 0;
     private const byte PendingPaletteTransfer = 1;
@@ -70,6 +73,7 @@ internal sealed class SgbController(bool commandsEnabled)
     private readonly byte[] _borderTiles = new byte[256 * SgbBorderTileBytes];
     private readonly ushort[] _borderMap = new ushort[SgbBorderMapEntries];
     private readonly ushort[] _borderPalettes = new ushort[16 * 4];
+    private readonly byte[] _borderOverlayMask = new byte[BorderOverlayMaskSizeBytes];
     private readonly ushort[] _palettes =
     [
         0x7FFF,
@@ -100,6 +104,8 @@ internal sealed class SgbController(bool commandsEnabled)
     private byte _pendingVramTransfer;
     private byte _pendingVramTransferFrameDelay;
     private bool _borderReady;
+    private byte[]? _borderCachePixels;
+    private bool _borderCacheDirty = true;
     private byte[]? _visibleFramePixels;
     private byte[]? _lastBootFramePixels;
 
@@ -237,6 +243,16 @@ internal sealed class SgbController(bool commandsEnabled)
 
                 _borderReady = true;
                 break;
+        }
+
+        if (
+            _pendingVramTransfer
+            is PendingBorderTileLowTransfer
+                or PendingBorderTileHighTransfer
+                or PendingBorderMapTransfer
+        )
+        {
+            _borderCacheDirty = true;
         }
 
         _pendingVramTransfer = NoPendingVramTransfer;
@@ -533,16 +549,18 @@ internal sealed class SgbController(bool commandsEnabled)
 
     private LcdFrame CreateSgbFrame(ReadOnlySpan<byte> gameBoyPixels)
     {
-        var pixels = new byte[SgbScreenWidth * SgbScreenHeight * Rgb555BytesPerPixel];
-        for (var pixel = 0; pixel < SgbScreenWidth * SgbScreenHeight; pixel++)
-        {
-            WriteRgb555(pixels, pixel, _palettes[0]);
-        }
+        var borderPixels = GetBorderCachePixels();
+        var pixels = (byte[])borderPixels.Clone();
 
         CopyGameBoyFrame(pixels, gameBoyPixels);
-        RenderBorder(pixels);
+        CopyBorderOverlay(pixels, borderPixels);
 
-        return new LcdFrame(SgbScreenWidth, SgbScreenHeight, LcdPixelFormat.Rgb555Le, pixels);
+        return LcdFrame.FromOwnedPixels(
+            SgbScreenWidth,
+            SgbScreenHeight,
+            LcdPixelFormat.Rgb555Le,
+            pixels
+        );
     }
 
     private static LcdFrame CreateGameBoyFrame(ReadOnlySpan<byte> gameBoyPixels) =>
@@ -552,6 +570,46 @@ internal sealed class SgbController(bool commandsEnabled)
             LcdPixelFormat.Rgb555Le,
             gameBoyPixels
         );
+
+    private byte[] GetBorderCachePixels()
+    {
+        var pixels = _borderCachePixels ??= new byte[SgbScreenPixelCount * Rgb555BytesPerPixel];
+        if (!_borderCacheDirty)
+        {
+            return pixels;
+        }
+
+        for (var pixel = 0; pixel < SgbScreenPixelCount; pixel++)
+        {
+            WriteRgb555(pixels, pixel, _palettes[0]);
+        }
+
+        Array.Clear(_borderOverlayMask);
+        RenderBorder(pixels);
+        _borderCacheDirty = false;
+        return pixels;
+    }
+
+    private void CopyBorderOverlay(Span<byte> target, ReadOnlySpan<byte> borderPixels)
+    {
+        for (var y = 0; y < PpuGeometry.FrameHeight; y++)
+        {
+            var gameBoyRow = y * PpuGeometry.FrameWidth;
+            var screenRow = (SgbGameBoyY + y) * SgbScreenWidth;
+            for (var x = 0; x < PpuGeometry.FrameWidth; x++)
+            {
+                var gameBoyPixel = gameBoyRow + x;
+                if ((_borderOverlayMask[gameBoyPixel >> 3] & (1 << (gameBoyPixel & 7))) == 0)
+                {
+                    continue;
+                }
+
+                var offset = (screenRow + SgbGameBoyX + x) * Rgb555BytesPerPixel;
+                target[offset] = borderPixels[offset];
+                target[offset + 1] = borderPixels[offset + 1];
+            }
+        }
+    }
 
     private static void CopyGameBoyFrame(Span<byte> target, ReadOnlySpan<byte> source)
     {
@@ -619,6 +677,13 @@ internal sealed class SgbController(bool commandsEnabled)
                     pixel,
                     color == 0 ? _palettes[0] : _borderPalettes[paletteBase + color]
                 );
+                if (coversGameBoyArea)
+                {
+                    var gameBoyPixel =
+                        (((tileY * 8) + y - SgbGameBoyY) * PpuGeometry.FrameWidth)
+                        + ((tileX * 8) + x - SgbGameBoyX);
+                    _borderOverlayMask[gameBoyPixel >> 3] |= (byte)(1 << (gameBoyPixel & 7));
+                }
             }
         }
     }
@@ -636,6 +701,8 @@ internal sealed class SgbController(bool commandsEnabled)
             _palettes[(firstPalette * 4) + color] = ReadUInt16(3 + ((color - 1) * 2));
             _palettes[(secondPalette * 4) + color] = ReadUInt16(9 + ((color - 1) * 2));
         }
+
+        _borderCacheDirty = true;
     }
 
     private void SetSystemPalettes()
@@ -647,6 +714,7 @@ internal sealed class SgbController(bool commandsEnabled)
         _palettes[4] = _palettes[0];
         _palettes[8] = _palettes[0];
         _palettes[12] = _palettes[0];
+        _borderCacheDirty = true;
 
         if ((_command[9] & 0x80) != 0)
         {
