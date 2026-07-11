@@ -22,6 +22,10 @@ lint:
 	dotnet tool run slopwatch analyze --fail-on warning
 	dotnet build $(SOLUTION) --configuration $(CONFIGURATION)
 
+.PHONY: fix
+fix:
+	dotnet tool run csharpier format .
+
 .PHONY: test
 test:
 	dotnet test --solution $(SOLUTION) --configuration $(CONFIGURATION)
@@ -30,17 +34,13 @@ test:
 coverage:
 	dotnet test --project $(TESTS) --configuration $(CONFIGURATION) -- --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --coverage-settings "$(COVERAGE_SETTINGS)"
 
-.PHONY: app-bundle
-app-bundle:
-	packaging/macos/create-app-bundle.sh "$(APP)" "$(RUNTIME)"
-
-.PHONY: index
+.PHONY: mem-index
 index:
 	codebase-memory-mcp cli index_repository --repo-path "$(CURDIR)"
 
-.PHONY: fix
-fix:
-	dotnet tool run csharpier format .
+.PHONY: bundle
+bundle:
+	packaging/macos/create-app-bundle.sh "$(APP)" "$(RUNTIME)"
 
 .PHONY: copyrights
 copyrights:

@@ -7,7 +7,7 @@ runtime=${2:?Usage: create-app-bundle.sh <app-project> <runtime>}
 case "$runtime" in
 osx-*) ;;
 *)
-        echo "app-bundle requires RUNTIME=osx-*." >&2
+        echo "bundle requires RUNTIME=osx-*." >&2
         exit 1
         ;;
 esac
