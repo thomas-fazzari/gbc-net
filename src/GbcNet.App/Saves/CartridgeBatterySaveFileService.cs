@@ -24,17 +24,17 @@ internal sealed class CartridgeBatterySaveFileService
         _saveDirectoryPath = saveDirectoryPath;
     }
 
-    public void Load(Cartridge cartridge, ReadOnlySpan<byte> rom)
+    public string? Load(Cartridge cartridge, ReadOnlySpan<byte> rom)
     {
         if (!cartridge.HasBatteryBackedSave)
         {
-            return;
+            return null;
         }
 
         var path = GetBatterySavePath(cartridge, rom);
         if (!File.Exists(path))
         {
-            return;
+            return path;
         }
 
         try
@@ -61,24 +61,20 @@ internal sealed class CartridgeBatterySaveFileService
         {
             throw new IOException("Save file could not be read: " + exception.Message, exception);
         }
+
+        return path;
     }
 
-    public void Save(Cartridge cartridge, ReadOnlySpan<byte> rom)
+    public async Task SaveAsync(string savePath, ReadOnlyMemory<byte> save)
     {
-        if (!cartridge.HasBatteryBackedSave || !cartridge.IsBatterySaveDirty)
-        {
-            return;
-        }
-
         try
         {
             Directory.CreateDirectory(_saveDirectoryPath);
-            var savePath = GetBatterySavePath(cartridge, rom);
             var temporaryPath = $"{savePath}.{Guid.NewGuid():N}.tmp";
 
-            File.WriteAllBytes(temporaryPath, cartridge.ExportBatterySave());
+            await File.WriteAllBytesAsync(temporaryPath, save, CancellationToken.None)
+                .ConfigureAwait(false);
             File.Move(temporaryPath, savePath, overwrite: true);
-            cartridge.ClearBatterySaveDirty();
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

@@ -12,7 +12,7 @@ namespace GbcNet.Tests.App.Saves;
 public sealed class CartridgeBatterySaveFileServiceTests
 {
     [Fact]
-    public void SaveAndLoad_PersistsBatterySaveByTitleAndRomHash()
+    public async Task SaveAsyncAndLoad_PersistsBatterySaveByTitleAndRomHash()
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var rom = CreateBatteryBackedMbc1Rom();
@@ -21,17 +21,18 @@ public sealed class CartridgeBatterySaveFileServiceTests
         var cartridge = TestRomFactory.LoadCartridge(rom);
         cartridge.WriteRom(0x0000, 0x0A);
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
+        var savePath = saveFiles.Load(cartridge, rom);
 
-        saveFiles.Save(cartridge, rom);
-        Assert.False(cartridge.IsBatterySaveDirty);
-        var savePath = saveFiles.GetBatterySavePath(cartridge, rom);
+        Assert.NotNull(savePath);
+        await saveFiles.SaveAsync(savePath, cartridge.ExportBatterySave());
         Assert.True(File.Exists(savePath));
         Assert.StartsWith("TEST_ROM-", Path.GetFileName(savePath), StringComparison.Ordinal);
 
         var reloaded = TestRomFactory.LoadCartridge(rom);
-        saveFiles.Load(reloaded, rom);
-        Assert.False(reloaded.IsBatterySaveDirty);
+        var reloadedSavePath = saveFiles.Load(reloaded, rom);
 
+        Assert.Equal(savePath, reloadedSavePath);
+        Assert.False(reloaded.IsBatterySaveDirty);
         reloaded.WriteRom(0x0000, 0x0A);
         Assert.Equal(0x42, reloaded.ReadRam(AddressMap.ExternalRamStart));
     }

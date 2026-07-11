@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using GbcNet.App.Audio;
+using GbcNet.App.Saves;
 using GbcNet.Core;
 using GbcNet.Core.Apu;
 using GbcNet.Core.Hardware;
@@ -22,8 +23,7 @@ internal sealed class EmulationSession
     private static readonly long _fastForwardFrameIntervalTimestamp = Stopwatch.Frequency / 60;
     private static readonly TimeSpan _stoppedCpuSleepInterval = TimeSpan.FromMilliseconds(1);
 
-    private readonly Action _flushBatterySave;
-    private readonly Action<Exception> _handleFault;
+    private readonly CartridgeBatterySaveWriter? _batterySaveWriter;
     private readonly Action<Exception> _handleFatalFault;
     private readonly Action<LcdFrame> _handleFrame;
     private readonly GameBoy _gameBoy;
@@ -65,18 +65,16 @@ internal sealed class EmulationSession
         GameBoy gameBoy,
         IAudioOutput audioOutput,
         Action<LcdFrame> handleFrame,
-        Action<Exception> handleFault,
         Action<Exception> handleFatalFault,
-        Action flushBatterySave
+        CartridgeBatterySaveWriter? batterySaveWriter
     )
     {
         _gameBoy = gameBoy;
         _audioOutput = audioOutput;
         _audioOutput.Clear();
         _handleFrame = handleFrame;
-        _handleFault = handleFault;
         _handleFatalFault = handleFatalFault;
-        _flushBatterySave = flushBatterySave;
+        _batterySaveWriter = batterySaveWriter;
         _gameBoy.FrameCompleted += OnFrameCompleted;
         _runTask = Task.Run(RunAsync, CancellationToken.None);
     }
@@ -143,6 +141,7 @@ internal sealed class EmulationSession
             Volatile.Read(ref _pacingRevision)
         );
 
+        Exception? fatalException = null;
         try
         {
             while (!_stopRequested.Task.IsCompleted)
@@ -180,7 +179,7 @@ internal sealed class EmulationSession
 
                 if (elapsedMachineCycles >= nextSaveMachineCycles)
                 {
-                    FlushBatterySave();
+                    _batterySaveWriter?.QueueSave();
                     nextSaveMachineCycles += MachineCyclesPerSaveFlush;
                 }
 
@@ -228,12 +227,21 @@ internal sealed class EmulationSession
         catch (Exception exception)
             when (exception is NotSupportedException or InvalidOperationException)
         {
-            _handleFatalFault(exception);
+            fatalException = exception;
         }
         finally
         {
-            FlushBatterySave();
+            if (_batterySaveWriter is not null)
+            {
+                await _batterySaveWriter.FlushAsync().ConfigureAwait(false);
+            }
+
             _audioOutput.Clear();
+        }
+
+        if (fatalException is not null)
+        {
+            _handleFatalFault(fatalException);
         }
     }
 
@@ -269,18 +277,6 @@ internal sealed class EmulationSession
                 _audioOutput.EnqueueSamples(_audioSamples.AsSpan(0, drained));
             }
         } while (drained == _audioSamples.Length);
-    }
-
-    private void FlushBatterySave()
-    {
-        try
-        {
-            _flushBatterySave();
-        }
-        catch (Exception exception) when (exception is IOException or InvalidOperationException)
-        {
-            _handleFault(exception);
-        }
     }
 
     private void OnFrameCompleted(LcdFrame frame)

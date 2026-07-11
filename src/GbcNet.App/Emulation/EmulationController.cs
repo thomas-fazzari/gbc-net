@@ -78,12 +78,12 @@ internal sealed class EmulationController(
     {
         var rom = await ReadFileAsync(file).ConfigureAwait(true);
         await StopAsync().ConfigureAwait(true);
-        var cartridge = LoadCartridge(rom);
+        var (cartridge, savePath) = LoadCartridge(rom);
 
         _loadedRom = rom;
         _loadedCartridgeHeader = cartridge.Header;
         _loadedRomFileName = file.Name;
-        Start(cartridge, rom);
+        Start(cartridge, savePath);
         return State;
     }
 
@@ -95,10 +95,10 @@ internal sealed class EmulationController(
         }
 
         await StopAsync().ConfigureAwait(true);
-        var cartridge = LoadCartridge(_loadedRom);
+        var (cartridge, savePath) = LoadCartridge(_loadedRom);
 
         _loadedCartridgeHeader = cartridge.Header;
-        Start(cartridge, _loadedRom);
+        Start(cartridge, savePath);
         return State;
     }
 
@@ -126,15 +126,13 @@ internal sealed class EmulationController(
         }
     }
 
-    private Cartridge LoadCartridge(byte[] rom)
+    private (Cartridge Cartridge, string? SavePath) LoadCartridge(byte[] rom)
     {
         var cartridge = Cartridge.LoadOrThrow(rom);
-
-        cartridgeSaveFileService.Load(cartridge, rom);
-        return cartridge;
+        return (cartridge, cartridgeSaveFileService.Load(cartridge, rom));
     }
 
-    private void Start(Cartridge cartridge, byte[] rom)
+    private void Start(Cartridge cartridge, string? savePath)
     {
         var hardwareModel = cartridge.Header.HardwareKind switch
         {
@@ -142,14 +140,23 @@ internal sealed class EmulationController(
             CartridgeHardwareKind.SGB => HardwareModel.Sgb,
             _ => HardwareModel.Dmg,
         };
+        CartridgeBatterySaveWriter? saveWriter = null;
+
+        if (savePath is not null)
+        {
+            saveWriter = new CartridgeBatterySaveWriter(
+                cartridge,
+                save => cartridgeSaveFileService.SaveAsync(savePath, save),
+                handleFault
+            );
+        }
 
         _session = new EmulationSession(
             new GameBoy(cartridge, hardwareModel, _bootRomOptions),
             audioOutput,
             handleFrame,
-            handleFault,
             HandleFatalSessionFault,
-            () => cartridgeSaveFileService.Save(cartridge, rom)
+            saveWriter
         );
         ApplyFastForwardSettings();
     }
