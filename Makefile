@@ -35,7 +35,7 @@ coverage:
 	dotnet test --project $(TESTS) --configuration $(CONFIGURATION) -- --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --coverage-settings "$(COVERAGE_SETTINGS)"
 
 .PHONY: mem-index
-index:
+mem-index:
 	codebase-memory-mcp cli index_repository --repo-path "$(CURDIR)"
 
 .PHONY: bundle
