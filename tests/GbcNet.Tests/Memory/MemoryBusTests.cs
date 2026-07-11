@@ -478,6 +478,32 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
+    public void ReadWriteByte_ContinuesGeneralPurposeCgbVramDmaFromAdvancedAddresses()
+    {
+        var rom = TestRomFactory.Create(bytes =>
+        {
+            for (var offset = 0; offset < 0x20; offset++)
+            {
+                bytes[0x2000 + offset] = (byte)(0x40 + offset);
+            }
+        });
+        var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+
+        bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x20);
+        bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
+
+        bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
+        bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
+
+        Assert.Equal(0x40, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
+        Assert.Equal(0x4F, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F));
+        Assert.Equal(0x50, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x10));
+        Assert.Equal(0x5F, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x1F));
+    }
+
+    [Fact]
     public void ReadWriteByte_CopiesCgbVramDmaFromWorkRam()
     {
         var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));

@@ -3,7 +3,6 @@
 
 using GbcNet.Core;
 using GbcNet.Core.Apu;
-using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
@@ -286,7 +285,7 @@ public sealed class GameBoyTests
     }
 
     [Fact]
-    public void Constructor_SgbHardwareMapsSgbBootRomSlot()
+    public void Constructor_SgbHardwareMapsAndRunsSgbBootRomSlot()
     {
         var cartridge = TestRomFactory.LoadCartridge(
             CreateSgbRom(bytes => bytes[0x0000] = HaltOpcode)
@@ -301,7 +300,13 @@ public sealed class GameBoyTests
         );
 
         Assert.Equal(HardwareModel.Sgb, gameBoy.HardwareModel);
+        Assert.Equal(0x0000, gameBoy.Cpu.Registers.PC);
         Assert.Equal(IncBOpcode, gameBoy.Bus.ReadByte(0x0000));
+
+        gameBoy.Step();
+
+        Assert.Equal(0x01, gameBoy.Cpu.Registers.B);
+        Assert.Equal(0x0001, gameBoy.Cpu.Registers.PC);
     }
 
     [Fact]

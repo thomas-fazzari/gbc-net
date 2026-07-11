@@ -179,25 +179,25 @@ internal sealed class CgbVramDmaController(
 
     private void RunGeneralPurposeDma(byte value)
     {
-        var sourceAddress = GetSourceAddress();
-        var destinationAddress = GetDestinationAddress();
         var blockCount = (value & LengthMask) + 1;
-
         var transferredBlocks = 0;
+
         for (var block = 0; block < blockCount; block++)
         {
-            var currentDestinationAddress = destinationAddress + (block * BlockSize);
-
-            if (currentDestinationAddress > AddressMap.VideoRamEnd)
+            var destinationAddress = GetDestinationAddress();
+            if (destinationAddress > AddressMap.VideoRamEnd)
             {
                 break;
             }
 
-            CopyBlock(
-                (ushort)(sourceAddress + (block * BlockSize)),
-                (ushort)currentDestinationAddress
-            );
+            CopyBlock(GetSourceAddress(), destinationAddress);
             transferredBlocks++;
+            AdvanceSourceAddress();
+
+            if (!TryAdvanceDestinationAddress())
+            {
+                break;
+            }
         }
 
         CompleteTransfer();
