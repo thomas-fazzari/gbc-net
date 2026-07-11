@@ -40,7 +40,11 @@ mem-index:
 
 .PHONY: bundle
 bundle:
-	packaging/macos/create-app-bundle.sh "$(APP)" "$(RUNTIME)"
+	@case "$(RUNTIME)" in \
+		osx-*) packaging/macos/create-app-bundle.sh "$(APP)" "$(RUNTIME)" ;; \
+		linux-*) packaging/linux/create-app-bundle.sh "$(APP)" "$(RUNTIME)" ;; \
+		*) echo "Unsupported RUNTIME: $(RUNTIME)" >&2; exit 1 ;; \
+	esac
 
 .PHONY: copyrights
 copyrights:

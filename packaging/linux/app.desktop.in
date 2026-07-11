@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Version=__VERSION__
+Name=__DISPLAY_NAME__
+Exec=./bin/__EXECUTABLE__
+Icon=io.github.thomas-fazzari.gbc-net
+Terminal=false
+Categories=Game;Emulator;Utility;
