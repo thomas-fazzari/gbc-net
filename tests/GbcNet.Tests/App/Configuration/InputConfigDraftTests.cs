@@ -4,6 +4,7 @@
 using Avalonia.Input;
 using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.Input;
+using GbcNet.App.Input;
 using GbcNet.Core.Joypad;
 
 namespace GbcNet.Tests.App.Configuration;
@@ -14,232 +15,189 @@ public sealed class InputConfigDraftTests
     public void Constructor_RejectsInvalidInputConfig()
     {
         var config = AppConfigurationFile.CreateDefaultInputConfig();
-        config.Profiles = new Dictionary<string, InputProfileConfig>(
-            StringComparer.OrdinalIgnoreCase
-        )
+        config.Keyboard = new KeyboardInputConfig
         {
-            [InputConfig.DefaultProfileName] = new(),
+            ActiveProfile = InputConfig.DefaultProfileName,
+            Profiles = new Dictionary<string, KeyboardProfileConfig>(StringComparer.Ordinal)
+            {
+                [InputConfig.DefaultProfileName] = new(),
+            },
         };
 
         Assert.Throws<ArgumentException>(() => new InputConfigDraft(config));
     }
 
     [Fact]
-    public void Constructor_DeepCopiesInputAndKeepsSelectionIndependentFromActive()
+    public void ProfileLifecycles_AreIndependentAndCloneWithinTheirOwnSection()
     {
-        var keyboard = Bindings();
-        var config = Config(new InputProfileConfig { Keyboard = keyboard });
-        var draft = new InputConfigDraft(config);
+        var draft = new InputConfigDraft(AppConfigurationFile.CreateDefaultInputConfig());
 
-        keyboard[0] = keyboard[0] with { KeyName = "D" };
-        Assert.True(draft.CreateProfile("arcade").Succeeded);
-        Assert.True(draft.SetActiveProfile(InputConfig.DefaultProfileName).Succeeded);
+        Assert.True(draft.CreateKeyboardProfile(" shared ").Succeeded);
+        Assert.True(draft.CreateGamepadProfile("shared").Succeeded);
+        Assert.True(draft.SetKeyboardBinding("shared", JoypadButton.A, Key.C).Succeeded);
+        Assert.True(
+            draft.SetGamepadBinding("shared", JoypadButton.A, GamepadButton.West).Succeeded
+        );
+        Assert.True(draft.SetActiveKeyboardProfile("shared").Succeeded);
 
         var built = draft.Build();
 
-        Assert.Equal(InputConfig.DefaultProfileName, draft.ActiveProfileName);
-        Assert.Equal("arcade", draft.SelectedProfileName);
-        Assert.Equal("Up", built.Profiles[InputConfig.DefaultProfileName].Keyboard[0].KeyName);
+        Assert.Equal("shared", draft.ActiveKeyboardProfileName);
+        Assert.Equal(InputConfig.DefaultProfileName, draft.ActiveGamepadProfileName);
+        Assert.Equal("shared", draft.SelectedKeyboardProfileName);
+        Assert.Equal("shared", draft.SelectedGamepadProfileName);
+        Assert.Equal("C", KeyboardBindingFor(built, "shared", JoypadButton.A));
+        Assert.Equal(
+            "Z",
+            KeyboardBindingFor(built, InputConfig.DefaultProfileName, JoypadButton.A)
+        );
+        Assert.Equal("West", GamepadBindingFor(built, "shared", JoypadButton.A));
+        Assert.Equal(
+            "East",
+            GamepadBindingFor(built, InputConfig.DefaultProfileName, JoypadButton.A)
+        );
+        Assert.True(built.Keyboard.Profiles.ContainsKey("shared"));
+        Assert.True(built.Gamepad.Profiles.ContainsKey("shared"));
     }
 
     [Fact]
-    public void CreateProfile_TrimsNameChecksDuplicatesAndClonesSelectedProfile()
+    public void KeyboardAndGamepadProfiles_CanUseTheSameNameAndHaveIndependentActiveStates()
     {
         var draft = new InputConfigDraft(AppConfigurationFile.CreateDefaultInputConfig());
 
-        var result = draft.CreateProfile(" arcade ");
-        var duplicate = draft.CreateProfile("ARCADE");
-        var blank = draft.CreateProfile("   ");
-        var changeClone = draft.SetKeyboardBinding("arcade", JoypadButton.A, Key.C);
+        Assert.True(draft.CreateKeyboardProfile("arcade").Succeeded);
+        Assert.True(draft.CreateGamepadProfile("arcade").Succeeded);
+        Assert.True(draft.SetActiveKeyboardProfile("arcade").Succeeded);
+        Assert.True(draft.SetActiveGamepadProfile(InputConfig.DefaultProfileName).Succeeded);
+
         var built = draft.Build();
 
-        Assert.True(result.Succeeded);
-        Assert.False(duplicate.Succeeded);
-        Assert.False(blank.Succeeded);
-        Assert.True(changeClone.Succeeded);
-        Assert.Equal("arcade", draft.SelectedProfileName);
-        Assert.Equal("Z", KeyFor(built, InputConfig.DefaultProfileName, JoypadButton.A));
-        Assert.Equal("C", KeyFor(built, "arcade", JoypadButton.A));
-    }
-
-    [Fact]
-    public void RenameProfile_AllowsCaseOnlyNonDefaultRenameAndUpdatesActiveSpelling()
-    {
-        var draft = new InputConfigDraft(AppConfigurationFile.CreateDefaultInputConfig());
-        Assert.True(draft.CreateProfile("Arcade").Succeeded);
-        Assert.True(draft.SetActiveProfile("arcade").Succeeded);
-
-        var result = draft.RenameProfile("ARCADE", "arcade");
-        var built = draft.Build();
-
-        Assert.True(result.Succeeded);
-        Assert.Equal("arcade", draft.ActiveProfileName);
-        Assert.Equal("arcade", draft.SelectedProfileName);
-        Assert.Equal("arcade", built.ActiveProfile);
-        Assert.True(built.Profiles.ContainsKey("arcade"));
-    }
-
-    [Fact]
-    public void RenameProfile_RejectsDefaultBlankMissingAndDuplicateNames()
-    {
-        var draft = new InputConfigDraft(AppConfigurationFile.CreateDefaultInputConfig());
-        Assert.True(draft.CreateProfile("one").Succeeded);
-        Assert.True(draft.CreateProfile("two").Succeeded);
-
-        Assert.False(draft.RenameProfile(InputConfig.DefaultProfileName, "base").Succeeded);
-        Assert.False(draft.RenameProfile("one", " ").Succeeded);
-        Assert.False(draft.RenameProfile("missing", "new").Succeeded);
-        Assert.False(draft.RenameProfile("one", "TWO").Succeeded);
-    }
-
-    [Fact]
-    public void DeleteProfile_RejectsDefaultAndActiveProfiles()
-    {
-        var draft = new InputConfigDraft(AppConfigurationFile.CreateDefaultInputConfig());
-        Assert.True(draft.CreateProfile("arcade").Succeeded);
-        Assert.False(draft.DeleteProfile(InputConfig.DefaultProfileName).Succeeded);
-        Assert.True(draft.SetActiveProfile("arcade").Succeeded);
-
-        var deleteActive = draft.DeleteProfile("ARCADE");
-        Assert.True(draft.SetActiveProfile(InputConfig.DefaultProfileName).Succeeded);
-        var deleteInactive = draft.DeleteProfile("arcade");
-
-        Assert.False(deleteActive.Succeeded);
-        Assert.True(deleteInactive.Succeeded);
-        Assert.Equal(InputConfig.DefaultProfileName, draft.SelectedProfileName);
-        Assert.DoesNotContain(
-            draft.Profiles,
+        Assert.Equal("arcade", built.Keyboard.ActiveProfile);
+        Assert.Equal(InputConfig.DefaultProfileName, built.Gamepad.ActiveProfile);
+        Assert.Contains(
+            draft.KeyboardProfiles,
+            profile => string.Equals(profile.Name, "arcade", StringComparison.Ordinal)
+        );
+        Assert.Contains(
+            draft.GamepadProfiles,
             profile => string.Equals(profile.Name, "arcade", StringComparison.Ordinal)
         );
     }
 
     [Fact]
-    public void SetActiveProfile_IsExplicitAndCaseInsensitive()
+    public void DuplicateAssignments_MutateImmediatelyReportBothRowsAndCanBeSwapped()
     {
         var draft = new InputConfigDraft(AppConfigurationFile.CreateDefaultInputConfig());
-        Assert.True(draft.CreateProfile("Arcade").Succeeded);
-        Assert.Equal(InputConfig.DefaultProfileName, draft.ActiveProfileName);
 
-        var missing = draft.SetActiveProfile("missing");
-        var active = draft.SetActiveProfile("arcade");
-
-        Assert.False(missing.Succeeded);
-        Assert.True(active.Succeeded);
-        Assert.Equal("Arcade", draft.ActiveProfileName);
-        Assert.Equal("Arcade", draft.SelectedProfileName);
-    }
-
-    [Fact]
-    public void SetKeyboardBinding_RejectsDuplicateReservedAndUndefinedWithoutMutation()
-    {
-        var draft = new InputConfigDraft(AppConfigurationFile.CreateDefaultInputConfig());
-        var duplicate = draft.SetKeyboardBinding(
-            InputConfig.DefaultProfileName,
-            JoypadButton.A,
-            Key.X
+        Assert.True(
+            draft
+                .SetKeyboardBinding(InputConfig.DefaultProfileName, JoypadButton.A, Key.X)
+                .Succeeded
         );
-        var reserved = draft.SetKeyboardBinding(
-            InputConfig.DefaultProfileName,
-            JoypadButton.A,
-            Key.Space
+        Assert.True(
+            draft
+                .SetGamepadBinding(
+                    InputConfig.DefaultProfileName,
+                    JoypadButton.A,
+                    GamepadButton.South
+                )
+                .Succeeded
         );
-        var undefinedKey = draft.SetKeyboardBinding(
-            InputConfig.DefaultProfileName,
-            JoypadButton.A,
-            (Key)999999
+
+        Assert.Contains(JoypadButton.A, draft.KeyboardBindingConflicts);
+        Assert.Contains(JoypadButton.B, draft.KeyboardBindingConflicts);
+        Assert.Contains(JoypadButton.A, draft.GamepadBindingConflicts);
+        Assert.Contains(JoypadButton.B, draft.GamepadBindingConflicts);
+        Assert.Contains(
+            draft.Validate(),
+            error => error.Contains("more than once", StringComparison.OrdinalIgnoreCase)
         );
-        var undefinedButton = draft.SetKeyboardBinding(
-            InputConfig.DefaultProfileName,
-            (JoypadButton)999999,
-            Key.C
+
+        Assert.True(
+            draft
+                .SetKeyboardBinding(InputConfig.DefaultProfileName, JoypadButton.B, Key.Z)
+                .Succeeded
         );
-        var built = draft.Build();
+        Assert.True(
+            draft
+                .SetGamepadBinding(
+                    InputConfig.DefaultProfileName,
+                    JoypadButton.B,
+                    GamepadButton.East
+                )
+                .Succeeded
+        );
 
-        Assert.False(duplicate.Succeeded);
-        Assert.False(reserved.Succeeded);
-        Assert.False(undefinedKey.Succeeded);
-        Assert.False(undefinedButton.Succeeded);
-        Assert.Equal("Z", KeyFor(built, InputConfig.DefaultProfileName, JoypadButton.A));
-    }
-
-    [Fact]
-    public void GetKeyboardBinding_ReturnsSelectedProfileKeyWithoutBuildingConfig()
-    {
-        var draft = new InputConfigDraft(AppConfigurationFile.CreateDefaultInputConfig());
-        Assert.True(draft.CreateProfile("arcade").Succeeded);
-        Assert.True(draft.SetKeyboardBinding("arcade", JoypadButton.A, Key.C).Succeeded);
-
-        Assert.Equal(Key.C, draft.GetKeyboardBinding("ARCADE", JoypadButton.A));
+        Assert.Empty(draft.KeyboardBindingConflicts);
+        Assert.Empty(draft.GamepadBindingConflicts);
+        Assert.Empty(draft.Validate());
         Assert.Equal(
-            Key.Z,
+            Key.X,
             draft.GetKeyboardBinding(InputConfig.DefaultProfileName, JoypadButton.A)
         );
+        Assert.Equal(
+            Key.Z,
+            draft.GetKeyboardBinding(InputConfig.DefaultProfileName, JoypadButton.B)
+        );
+        Assert.Equal(
+            GamepadButton.South,
+            draft.GetGamepadBinding(InputConfig.DefaultProfileName, JoypadButton.A)
+        );
+        Assert.Equal(
+            GamepadButton.East,
+            draft.GetGamepadBinding(InputConfig.DefaultProfileName, JoypadButton.B)
+        );
     }
 
     [Fact]
-    public void Build_DeepCopiesStrictDtosInDeterministicButtonOrder()
+    public void Build_DeepCopiesBothProfileSets()
     {
         var source = AppConfigurationFile.CreateDefaultInputConfig();
         var draft = new InputConfigDraft(source);
-        Assert.True(draft.CreateProfile("arcade").Succeeded);
-        Assert.True(draft.SetKeyboardBinding("arcade", JoypadButton.A, Key.C).Succeeded);
+        Assert.True(draft.CreateKeyboardProfile("arcade").Succeeded);
+        Assert.True(draft.CreateGamepadProfile("arcade").Succeeded);
 
         var built = draft.Build();
-        var validation = InputConfigValidator.Validate(built);
-        Assert.True(draft.SetKeyboardBinding("arcade", JoypadButton.A, Key.D).Succeeded);
+        Assert.True(draft.SetKeyboardBinding("arcade", JoypadButton.A, Key.C).Succeeded);
+        Assert.True(
+            draft.SetGamepadBinding("arcade", JoypadButton.A, GamepadButton.North).Succeeded
+        );
         var rebuilt = draft.Build();
 
-        Assert.Empty(validation);
+        Assert.Empty(InputConfigValidator.Validate(built));
         Assert.NotSame(
-            source.Profiles[InputConfig.DefaultProfileName],
-            built.Profiles[InputConfig.DefaultProfileName]
+            source.Keyboard.Profiles[InputConfig.DefaultProfileName],
+            built.Keyboard.Profiles[InputConfig.DefaultProfileName]
         );
         Assert.NotSame(
-            source.Profiles[InputConfig.DefaultProfileName].Keyboard[0],
-            built.Profiles[InputConfig.DefaultProfileName].Keyboard[0]
+            source.Gamepad.Profiles[InputConfig.DefaultProfileName],
+            built.Gamepad.Profiles[InputConfig.DefaultProfileName]
         );
-        Assert.Equal(
-            InputConfigValidator.RequiredButtons,
-            built
-                .Profiles["arcade"]
-                .Keyboard.Select(binding =>
-                    Enum.Parse<JoypadButton>(binding.ButtonName, ignoreCase: true)
-                )
-        );
-        Assert.Equal("C", KeyFor(built, "arcade", JoypadButton.A));
-        Assert.Equal("D", KeyFor(rebuilt, "arcade", JoypadButton.A));
+        Assert.Equal("East", GamepadBindingFor(built, "arcade", JoypadButton.A));
+        Assert.Equal("North", GamepadBindingFor(rebuilt, "arcade", JoypadButton.A));
     }
 
-    private static InputConfig Config(InputProfileConfig profile) =>
-        new()
-        {
-            Profiles = new Dictionary<string, InputProfileConfig>(StringComparer.OrdinalIgnoreCase)
-            {
-                [InputConfig.DefaultProfileName] = profile,
-            },
-        };
-
-    private static string KeyFor(InputConfig config, string profileName, JoypadButton button) =>
+    private static string KeyboardBindingFor(
+        InputConfig config,
+        string profileName,
+        JoypadButton button
+    ) =>
         config
-            .Profiles[profileName]
-            .Keyboard.Single(binding =>
-                string.Equals(
-                    binding.ButtonName,
-                    button.ToString(),
-                    StringComparison.OrdinalIgnoreCase
-                )
+            .Keyboard.Profiles[profileName]
+            .Bindings.Single(binding =>
+                string.Equals(binding.ButtonName, button.ToString(), StringComparison.Ordinal)
             )
             .KeyName;
 
-    private static List<KeyboardInputBindingConfig> Bindings() =>
-        [
-            new("up", "Up"),
-            new("down", "Down"),
-            new("left", "Left"),
-            new("right", "Right"),
-            new("a", "Z"),
-            new("b", "X"),
-            new("start", "Enter"),
-            new("select", "Back"),
-        ];
+    private static string GamepadBindingFor(
+        InputConfig config,
+        string profileName,
+        JoypadButton button
+    ) =>
+        config
+            .Gamepad.Profiles[profileName]
+            .Bindings.Single(binding =>
+                string.Equals(binding.ButtonName, button.ToString(), StringComparison.Ordinal)
+            )
+            .ControlName;
 }

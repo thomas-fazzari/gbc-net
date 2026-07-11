@@ -40,7 +40,15 @@ internal sealed class AppConfigurationService(
             throw new ConfigurationException(string.Join(Environment.NewLine, validation));
         }
 
-        var appConfig = AppConfigurationFile.LoadOrCreate(configPath, logger);
+        AppConfig appConfig;
+        try
+        {
+            appConfig = AppConfigurationFile.LoadOrCreate(configPath, logger);
+        }
+        catch (ConfigurationException)
+        {
+            appConfig = AppConfigurationFile.CreateDefault();
+        }
         appConfig.BootRoms = settings.BootRoms;
         appConfig.Input = CopyInput(settings.Input);
         AppConfigurationFile.Save(configPath, appConfig, logger);
@@ -109,21 +117,46 @@ internal sealed class AppConfigurationService(
         new()
         {
             Version = input.Version,
-            ActiveProfile = input.ActiveProfile,
-            Profiles = input.Profiles.ToDictionary(
-                profile => profile.Key,
-                profile => new InputProfileConfig
-                {
-                    Keyboard =
-                    [
-                        .. profile.Value.Keyboard.Select(binding => new KeyboardInputBindingConfig(
-                            binding.ButtonName,
-                            binding.KeyName
-                        )),
-                    ],
-                },
-                StringComparer.OrdinalIgnoreCase
-            ),
+            Keyboard = new()
+            {
+                ActiveProfile = input.Keyboard.ActiveProfile,
+                Profiles = input.Keyboard.Profiles.ToDictionary(
+                    profile => profile.Key,
+                    profile => new KeyboardProfileConfig
+                    {
+                        Bindings =
+                        [
+                            .. profile.Value.Bindings.Select(
+                                binding => new KeyboardInputBindingConfig(
+                                    binding.ButtonName,
+                                    binding.KeyName
+                                )
+                            ),
+                        ],
+                    },
+                    StringComparer.OrdinalIgnoreCase
+                ),
+            },
+            Gamepad = new()
+            {
+                ActiveProfile = input.Gamepad.ActiveProfile,
+                Profiles = input.Gamepad.Profiles.ToDictionary(
+                    profile => profile.Key,
+                    profile => new GamepadProfileConfig
+                    {
+                        Bindings =
+                        [
+                            .. profile.Value.Bindings.Select(
+                                binding => new GamepadInputBindingConfig(
+                                    binding.ButtonName,
+                                    binding.ControlName
+                                )
+                            ),
+                        ],
+                    },
+                    StringComparer.OrdinalIgnoreCase
+                ),
+            },
         };
 
     private static bool IsExpectedPathException(Exception exception) =>

@@ -93,6 +93,25 @@
       <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
       <Setter Property="Background" Value="{DynamicResource ChromeSelectedBrush}" />
     </Style>
+    <Style Selector="Button.input-tab">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource ChromeCornerRadius}" />
+      <Setter Property="Padding" Value="12,7" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeMutedBrush}" />
+    </Style>
+    <Style Selector="Button.input-tab:pointerover">
+      <Setter Property="Background" Value="{DynamicResource ChromeHoverBrush}" />
+    </Style>
+    <Style Selector="Button.input-tab:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
+    </Style>
+    <Style Selector="Button.input-tab.selected">
+      <Setter Property="Background" Value="{DynamicResource ChromeSelectedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeSelectedBorderBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+    </Style>
   </Window.Styles>
 
   <Grid RowDefinitions="*,Auto" ColumnDefinitions="176,*">
@@ -237,26 +256,57 @@
         </Grid>
       </Grid>
 
-      <Grid x:Name="InputsPage" IsVisible="False" RowDefinitions="Auto,*" RowSpacing="14">
+      <Grid x:Name="InputsPage" IsVisible="False" RowDefinitions="Auto,Auto,*" RowSpacing="14">
         <StackPanel Grid.Row="0" Spacing="4">
           <TextBlock Classes="chrome-label form-label" FontSize="18" Text="Inputs" />
           <TextBlock
             Classes="muted"
-            Text="Manage keyboard profiles and choose which one is active."
+            Text="Manage independent keyboard and gamepad profiles. Selecting a profile does not activate it."
+          />
+          <TextBlock
+            x:Name="InputValidationSummaryTextBlock"
+            Classes="error"
+            IsVisible="False"
+            AutomationProperties.Name="Input validation errors"
           />
         </StackPanel>
 
-        <Grid Grid.Row="1" ColumnDefinitions="260,*" ColumnSpacing="16" MinHeight="0">
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+          <Button
+            x:Name="KeyboardInputTabButton"
+            Classes="input-tab selected"
+            Content="Keyboard"
+            Click="ShowKeyboardInputTab"
+            AutomationProperties.Name="Keyboard input settings"
+            AutomationProperties.AutomationId="InputTabKeyboard"
+            AutomationProperties.HelpText="Show keyboard profiles and bindings"
+          />
+          <Button
+            x:Name="GamepadInputTabButton"
+            Classes="input-tab"
+            Content="Gamepad"
+            Click="ShowGamepadInputTab"
+            AutomationProperties.Name="Gamepad input settings"
+            AutomationProperties.AutomationId="InputTabGamepad"
+            AutomationProperties.HelpText="Show gamepad profiles and bindings"
+          />
+        </StackPanel>
+
+        <Grid Grid.Row="2" ColumnDefinitions="260,*" ColumnSpacing="16" MinHeight="0">
           <Grid RowDefinitions="Auto,*,Auto,Auto,Auto" RowSpacing="10" MinHeight="0">
             <StackPanel Spacing="4">
               <TextBlock Classes="chrome-label form-label" Text="Profiles" />
-              <TextBlock Classes="muted" Text="Select a profile to edit." />
+              <TextBlock
+                x:Name="ProfileRailHelpTextBlock"
+                Classes="muted"
+                Text="Select a keyboard profile to edit."
+              />
             </StackPanel>
             <Border Grid.Row="1" Classes="card" Padding="6" MinHeight="0">
               <ListBox
                 x:Name="ProfileListBox"
                 SelectionChanged="SelectInputProfile"
-                AutomationProperties.Name="Input profiles"
+                AutomationProperties.Name="Keyboard input profiles"
                 AutomationProperties.AutomationId="InputProfiles"
                 AutomationProperties.HelpText="Select a profile to edit. Selection does not activate it."
               />
@@ -337,23 +387,81 @@
             </Grid>
           </Grid>
 
-          <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="10" MinHeight="0">
-            <StackPanel Spacing="4">
-              <TextBlock Classes="chrome-label form-label" Text="Keyboard" />
-              <TextBlock
-                x:Name="KeyboardHelpTextBlock"
-                Classes="muted"
-                Text="Click a button, then press a key."
-              />
-            </StackPanel>
-            <Border Grid.Row="1" Classes="card" Padding="14" MinHeight="0">
-              <ScrollViewer
-                HorizontalScrollBarVisibility="Disabled"
-                VerticalScrollBarVisibility="Auto"
-              >
-                <StackPanel x:Name="KeyboardBindingsPanel" Spacing="10" />
-              </ScrollViewer>
-            </Border>
+          <Grid Grid.Column="1" MinHeight="0">
+            <Grid x:Name="KeyboardInputPage" RowDefinitions="Auto,*" RowSpacing="10">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="chrome-label form-label" Text="Keyboard bindings" />
+                <TextBlock
+                  Classes="muted"
+                  Text="Click a binding, then press a key. Duplicate keys are allowed but must be resolved before saving."
+                />
+              </StackPanel>
+              <Border Grid.Row="1" Classes="card" Padding="14" MinHeight="0">
+                <ScrollViewer
+                  HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto"
+                >
+                  <StackPanel x:Name="KeyboardBindingsPanel" Spacing="10" />
+                </ScrollViewer>
+              </Border>
+            </Grid>
+
+            <Grid
+              x:Name="GamepadInputPage"
+              IsVisible="False"
+              RowDefinitions="Auto,Auto,*"
+              RowSpacing="10"
+            >
+              <StackPanel Spacing="4">
+                <TextBlock Classes="chrome-label form-label" Text="Gamepad bindings" />
+                <TextBlock
+                  Classes="muted"
+                  Text="Choose a connected controller only to capture and display its buttons; the choice is not saved."
+                />
+              </StackPanel>
+              <StackPanel Grid.Row="1" Spacing="6">
+                <ComboBox
+                  x:Name="GamepadDeviceSelector"
+                  SelectionChanged="SelectGamepadDevice"
+                  HorizontalAlignment="Stretch"
+                  AutomationProperties.Name="Connected gamepad for capture"
+                  AutomationProperties.AutomationId="GamepadDeviceSelector"
+                  AutomationProperties.HelpText="Select a temporary connected gamepad for capture and button labels"
+                />
+                <TextBlock
+                  x:Name="GamepadAvailabilityTextBlock"
+                  Classes="error"
+                  IsVisible="False"
+                />
+                <TextBlock x:Name="GamepadNoDevicesTextBlock" Classes="muted" IsVisible="False" />
+                <TextBlock
+                  x:Name="GamepadUnsupportedTextBlock"
+                  Classes="muted"
+                  IsVisible="False"
+                  TextWrapping="Wrap"
+                />
+              </StackPanel>
+              <Border Grid.Row="2" Classes="card" Padding="14" MinHeight="0">
+                <ScrollViewer
+                  HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto"
+                >
+                  <StackPanel Spacing="12">
+                    <TextBlock
+                      Classes="muted"
+                      Text="Directions always use the controller's D-pad or left stick and cannot be remapped."
+                      TextWrapping="Wrap"
+                    />
+                    <TextBlock
+                      Classes="muted"
+                      Text="LT: pause, RT: fast-forward."
+                      TextWrapping="Wrap"
+                    />
+                    <StackPanel x:Name="GamepadBindingsPanel" Spacing="10" />
+                  </StackPanel>
+                </ScrollViewer>
+              </Border>
+            </Grid>
           </Grid>
         </Grid>
       </Grid>

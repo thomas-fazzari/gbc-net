@@ -10,7 +10,6 @@ using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.App.Emulation;
 using GbcNet.App.Input;
 using GbcNet.Core;
-using GbcNet.Core.Hardware;
 using GbcNet.Core.Joypad;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -19,7 +18,7 @@ namespace GbcNet.Tests.App.Configuration;
 public sealed class AppConfigurationIntegrationTests
 {
     [Fact]
-    public void Load_CreatesDefaultJsonConfigFile()
+    public void Load_CreatesDefaultV2JsonConfigFile()
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
@@ -27,18 +26,15 @@ public sealed class AppConfigurationIntegrationTests
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
         Assert.Null(startupConfiguration.StartupErrorMessage);
-        Assert.True(File.Exists(configPath));
         using var configJson = JsonDocument.Parse(File.ReadAllText(configPath));
-        var root = configJson.RootElement;
-        Assert.True(root.TryGetProperty("input", out var input));
-        Assert.Equal(1, input.GetProperty("version").GetInt32());
-        Assert.True(input.TryGetProperty("activeProfile", out var activeProfile));
-        Assert.Equal(JsonValueKind.String, activeProfile.ValueKind);
-        Assert.True(
-            input.GetProperty("profiles").TryGetProperty(activeProfile.GetString()!, out _)
-        );
-        Assert.True(root.TryGetProperty("bootRoms", out var bootRoms));
-        Assert.Equal(JsonValueKind.Object, bootRoms.ValueKind);
+        var input = configJson.RootElement.GetProperty("input");
+        Assert.Equal(2, input.GetProperty("version").GetInt32());
+        Assert.True(input.TryGetProperty("keyboard", out var keyboard));
+        Assert.True(input.TryGetProperty("gamepad", out var gamepad));
+        Assert.False(input.TryGetProperty("activeProfile", out _));
+        Assert.False(input.TryGetProperty("profiles", out _));
+        Assert.Equal("default", keyboard.GetProperty("activeProfile").GetString());
+        Assert.Equal("default", gamepad.GetProperty("activeProfile").GetString());
         AssertInputConfigIsValid(startupConfiguration.InputConfig);
     }
 
@@ -47,7 +43,6 @@ public sealed class AppConfigurationIntegrationTests
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
-
         Directory.CreateDirectory(tempDirectory.Path);
         File.WriteAllText(configPath, "{");
 
@@ -55,11 +50,6 @@ public sealed class AppConfigurationIntegrationTests
 
         Assert.Contains(
             "Configuration file could not be parsed",
-            startupConfiguration.StartupErrorMessage,
-            StringComparison.Ordinal
-        );
-        Assert.DoesNotContain(
-            "Input profile",
             startupConfiguration.StartupErrorMessage,
             StringComparison.Ordinal
         );
@@ -72,7 +62,6 @@ public sealed class AppConfigurationIntegrationTests
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
-
         Directory.CreateDirectory(tempDirectory.Path);
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "dmg.bin"),
@@ -86,7 +75,11 @@ public sealed class AppConfigurationIntegrationTests
             Path.Combine(tempDirectory.Path, "sgb.bin"),
             CreateBootRom(BootRomOptions.SgbBootRomSize, 0x50)
         );
-        File.WriteAllText(configPath, CreateConfig("dmg.bin", "cgb.bin", "sgb.bin"));
+        AppConfigurationFile.Save(
+            configPath,
+            CreateConfig("dmg.bin", "cgb.bin", "sgb.bin"),
+            NullLogger.Instance
+        );
 
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
@@ -109,60 +102,26 @@ public sealed class AppConfigurationIntegrationTests
     }
 
     [Fact]
-    public void Load_UsesActiveInputProfileFromMultipleProfiles()
+    public void Load_UsesActiveKeyboardProfileAndDefaultGamepadProfile()
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
-
-        Directory.CreateDirectory(tempDirectory.Path);
-        File.WriteAllText(
-            configPath,
-            """
-            {
-              "input": {
-                "version": 1,
-                "activeProfile": "alternate",
-                "profiles": {
-                  "default": {
-                    "keyboard": [
-                      { "button": "up", "key": "Up" },
-                      { "button": "down", "key": "Down" },
-                      { "button": "left", "key": "Left" },
-                      { "button": "right", "key": "Right" },
-                      { "button": "a", "key": "Z" },
-                      { "button": "b", "key": "X" },
-                      { "button": "start", "key": "Enter" },
-                      { "button": "select", "key": "Back" }
-                    ]
-                  },
-                  "alternate": {
-                    "keyboard": [
-                      { "button": "up", "key": "Up" },
-                      { "button": "down", "key": "Down" },
-                      { "button": "left", "key": "Left" },
-                      { "button": "right", "key": "Right" },
-                      { "button": "a", "key": "J" },
-                      { "button": "b", "key": "K" },
-                      { "button": "start", "key": "Enter" },
-                      { "button": "select", "key": "Back" }
-                    ]
-                  }
-                }
-              },
-              "bootRoms": {}
-            }
-            """
-        );
+        var input = CreateInputWithAlternateKeyboardProfile();
+        AppConfigurationFile.Save(configPath, new AppConfig { Input = input }, NullLogger.Instance);
 
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
+        var inputMap = InputMap.FromConfig(startupConfiguration.InputConfig);
 
         Assert.Null(startupConfiguration.StartupErrorMessage);
-        Assert.Equal("alternate", startupConfiguration.InputConfig.ActiveProfile);
-        Assert.Equal(2, startupConfiguration.InputConfig.Profiles.Count);
-        var inputMap = InputMap.FromConfig(startupConfiguration.InputConfig);
-        Assert.Equal(8, inputMap.Bindings.Count);
+        Assert.Equal("alternate", startupConfiguration.InputConfig.Keyboard.ActiveProfile);
+        Assert.Equal(
+            InputConfig.DefaultProfileName,
+            startupConfiguration.InputConfig.Gamepad.ActiveProfile
+        );
+        Assert.Equal(8, inputMap.KeyboardBindings.Count);
+        Assert.Equal(4, inputMap.GamepadBindings.Count);
         Assert.Contains(
-            inputMap.Bindings,
+            inputMap.KeyboardBindings,
             binding => binding.Button is JoypadButton.B && binding.Key is Key.K
         );
     }
@@ -172,37 +131,17 @@ public sealed class AppConfigurationIntegrationTests
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
-
-        Directory.CreateDirectory(tempDirectory.Path);
-        File.WriteAllText(
+        AppConfigurationFile.Save(
             configPath,
-            """
+            new AppConfig
             {
-              "input": {
-                "version": 1,
-                "activeProfile": "default",
-                "profiles": {
-                  "default": {
-                    "keyboard": [
-                      { "button": "up", "key": "Up" },
-                      { "button": "down", "key": "Down" },
-                      { "button": "left", "key": "Left" },
-                      { "button": "right", "key": "Right" },
-                      { "button": "a", "key": "Z" },
-                      { "button": "b", "key": "X" },
-                      { "button": "start", "key": "Enter" },
-                      { "button": "select", "key": "Back" }
-                    ]
-                  }
-                }
-              },
-              "emulation": {
-                "fastForwardEnabled": true,
-                "fastForwardSpeed": "eight"
-              },
-              "bootRoms": {}
-            }
-            """
+                Emulation = new()
+                {
+                    FastForwardEnabled = true,
+                    FastForwardSpeed = EmulationSpeed.Eight,
+                },
+            },
+            NullLogger.Instance
         );
 
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
@@ -213,37 +152,18 @@ public sealed class AppConfigurationIntegrationTests
     }
 
     [Fact]
-    public void SaveEmulationConfig_WritesEmulationJsonAndPreservesInputAndBootRoms()
+    public void SaveEmulationConfig_PreservesV2InputAndBootRoms()
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
-
-        Directory.CreateDirectory(tempDirectory.Path);
-        File.WriteAllText(
+        AppConfigurationFile.Save(
             configPath,
-            $$"""
+            new AppConfig
             {
-              "input": {
-                "version": 1,
-                "activeProfile": "alternate",
-                "profiles": {
-                  "default": {
-                    "keyboard": [
-                      { "button": "a", "key": "Z" }
-                    ]
-                  },
-                  "alternate": {
-                    "keyboard": [
-                      { "button": "b", "key": "X" }
-                    ]
-                  }
-                }
-              },
-              "bootRoms": {
-                "{{BootRomConfig.JsonName(HardwareModel.Dmg)}}": "old-dmg.bin"
-              }
-            }
-            """
+                Input = CreateInputWithAlternateKeyboardProfile(),
+                BootRoms = new BootRomConfig("old-dmg.bin"),
+            },
+            NullLogger.Instance
         );
         var service = new AppConfigurationService(
             configPath,
@@ -258,26 +178,19 @@ public sealed class AppConfigurationIntegrationTests
             }
         );
 
-        using var configJson = JsonDocument.Parse(File.ReadAllText(configPath));
-        var root = configJson.RootElement;
-        var emulation = root.GetProperty("emulation");
-        Assert.True(emulation.GetProperty("fastForwardEnabled").GetBoolean());
-        Assert.Equal("eight", emulation.GetProperty("fastForwardSpeed").GetString());
-        Assert.Equal(
-            "alternate",
-            root.GetProperty("input").GetProperty("activeProfile").GetString()
-        );
-        Assert.Equal(
-            "old-dmg.bin",
-            root.GetProperty("bootRoms")
-                .GetProperty(BootRomConfig.JsonName(HardwareModel.Dmg))
-                .GetString()
-        );
-
         var appConfig = AppConfigurationFile.Load(configPath);
-        var binding = Assert.Single(appConfig.Input.Profiles["alternate"].Keyboard);
-        Assert.Equal(new KeyboardInputBindingConfig("b", "X"), binding);
+        using var configJson = JsonDocument.Parse(File.ReadAllText(configPath));
+        var input = configJson.RootElement.GetProperty("input");
+
+        Assert.True(appConfig.Emulation.FastForwardEnabled);
+        Assert.Equal(EmulationSpeed.Eight, appConfig.Emulation.FastForwardSpeed);
+        Assert.Equal("alternate", appConfig.Input.Keyboard.ActiveProfile);
+        Assert.Equal(InputConfig.DefaultProfileName, appConfig.Input.Gamepad.ActiveProfile);
         Assert.Equal("old-dmg.bin", appConfig.BootRoms.DmgPath);
+        Assert.Equal(2, input.GetProperty("version").GetInt32());
+        Assert.True(input.TryGetProperty("keyboard", out _));
+        Assert.True(input.TryGetProperty("gamepad", out _));
+        Assert.False(input.TryGetProperty("activeProfile", out _));
     }
 
     [Fact]
@@ -285,10 +198,13 @@ public sealed class AppConfigurationIntegrationTests
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
-
         Directory.CreateDirectory(tempDirectory.Path);
         File.WriteAllBytes(Path.Combine(tempDirectory.Path, "dmg.bin"), new byte[255]);
-        File.WriteAllText(configPath, CreateConfig("dmg.bin", null, null));
+        AppConfigurationFile.Save(
+            configPath,
+            CreateConfig("dmg.bin", cgbBootRomPath: null, sgbBootRomPath: null),
+            NullLogger.Instance
+        );
 
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
@@ -307,11 +223,10 @@ public sealed class AppConfigurationIntegrationTests
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
-
-        Directory.CreateDirectory(tempDirectory.Path);
-        File.WriteAllText(
+        AppConfigurationFile.Save(
             configPath,
-            CreateConfig("missing-dmg.bin", cgbBootRomPath: null, sgbBootRomPath: null)
+            CreateConfig("missing-dmg.bin", cgbBootRomPath: null, sgbBootRomPath: null),
+            NullLogger.Instance
         );
 
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
@@ -327,22 +242,24 @@ public sealed class AppConfigurationIntegrationTests
     }
 
     [Fact]
-    public void InputValidation_RejectsEmptyActiveKeyboardProfile()
+    public void InputValidation_RejectsMalformedKeyboardAndGamepadSections()
     {
-        InputConfig config = new()
+        var config = new InputConfig
         {
-            Profiles = new Dictionary<string, InputProfileConfig>(StringComparer.Ordinal)
-            {
-                [InputConfig.DefaultProfileName] = new(),
-            },
+            Version = InputConfig.SupportedVersion,
+            Keyboard = null!,
+            Gamepad = null!,
         };
 
         var validation = InputConfigValidator.Validate(config);
 
-        Assert.NotEmpty(validation);
         Assert.Contains(
             validation,
-            error => error.Contains("exactly 8 keyboard bindings", StringComparison.Ordinal)
+            error => error.Contains("Keyboard input config is malformed", StringComparison.Ordinal)
+        );
+        Assert.Contains(
+            validation,
+            error => error.Contains("Gamepad input config is malformed", StringComparison.Ordinal)
         );
     }
 
@@ -353,59 +270,45 @@ public sealed class AppConfigurationIntegrationTests
         return bytes;
     }
 
-    private static string CreateConfig(
+    private static AppConfig CreateConfig(
         string? dmgBootRomPath,
         string? cgbBootRomPath,
         string? sgbBootRomPath
-    )
+    ) => new() { BootRoms = new BootRomConfig(dmgBootRomPath, cgbBootRomPath, sgbBootRomPath) };
+
+    private static InputConfig CreateInputWithAlternateKeyboardProfile()
     {
-        var bootRomProperties = new List<string>();
-        AddBootRomProperty(HardwareModel.Dmg, dmgBootRomPath);
-        AddBootRomProperty(HardwareModel.Cgb, cgbBootRomPath);
-        AddBootRomProperty(HardwareModel.Sgb, sgbBootRomPath);
-        var bootRomsJson = string.Join("," + Environment.NewLine, bootRomProperties);
-
-        return $$"""
-            {
-              "input": {
-                "version": 1,
-                "activeProfile": "{{InputConfig.DefaultProfileName}}",
-                "profiles": {
-                  "{{InputConfig.DefaultProfileName}}": {
-                    "keyboard": [
-                      { "button": "up", "key": "Up" },
-                      { "button": "down", "key": "Down" },
-                      { "button": "left", "key": "Left" },
-                      { "button": "right", "key": "Right" },
-                      { "button": "a", "key": "Z" },
-                      { "button": "b", "key": "X" },
-                      { "button": "start", "key": "Enter" },
-                      { "button": "select", "key": "Back" }
-                    ]
-                  }
-                }
-              },
-              "bootRoms": {
-            {{bootRomsJson}}
-              }
-            }
-            """;
-
-        void AddBootRomProperty(HardwareModel model, string? path)
+        var input = AppConfigurationFile.CreateDefaultInputConfig();
+        var defaultProfile = input.Keyboard.Profiles[InputConfig.DefaultProfileName];
+        input.Keyboard = new KeyboardInputConfig
         {
-            if (path is not null)
+            ActiveProfile = "alternate",
+            Profiles = new Dictionary<string, KeyboardProfileConfig>(StringComparer.Ordinal)
             {
-                bootRomProperties.Add(
-                    $"""    "{BootRomConfig.JsonName(model)}": {JsonSerializer.Serialize(path)}"""
-                );
-            }
-        }
+                [InputConfig.DefaultProfileName] = defaultProfile,
+                ["alternate"] = new()
+                {
+                    Bindings =
+                    [
+                        new("Up", "Up"),
+                        new("Down", "Down"),
+                        new("Left", "Left"),
+                        new("Right", "Right"),
+                        new("A", "J"),
+                        new("B", "K"),
+                        new("Start", "Enter"),
+                        new("Select", "Back"),
+                    ],
+                },
+            },
+        };
+        return input;
     }
 
     private static void AssertInputConfigIsValid(InputConfig config)
     {
         var validation = InputConfigValidator.Validate(config);
 
-        Assert.False(validation.Count != 0, string.Join(Environment.NewLine, validation));
+        Assert.Empty(validation);
     }
 }

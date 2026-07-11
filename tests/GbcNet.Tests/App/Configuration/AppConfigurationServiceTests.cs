@@ -14,16 +14,11 @@ namespace GbcNet.Tests.App.Configuration;
 public sealed class AppConfigurationServiceTests
 {
     [Fact]
-    public void SaveSettingsAndLoadBootRomConfig_RoundTripPaths()
+    public void SaveSettingsAndLoadBootRomConfig_RoundTripsPaths()
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
-
-        Directory.CreateDirectory(tempDirectory.Path);
-        var service = new AppConfigurationService(
-            configPath,
-            NullLogger<AppConfigurationService>.Instance
-        );
+        var service = CreateService(configPath);
 
         service.SaveSettings(
             new SettingsConfig(
@@ -32,9 +27,10 @@ public sealed class AppConfigurationServiceTests
             )
         );
 
-        var config = service.LoadBootRomConfig();
-
-        Assert.Equal(new BootRomConfig("dmg.bin", "cgb.bin", "sgb.bin"), config);
+        Assert.Equal(
+            new BootRomConfig("dmg.bin", "cgb.bin", "sgb.bin"),
+            service.LoadBootRomConfig()
+        );
     }
 
     [Fact]
@@ -43,12 +39,7 @@ public sealed class AppConfigurationServiceTests
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
         const string dmgPath = "dir\\boot\"rom.bin";
-
-        Directory.CreateDirectory(tempDirectory.Path);
-        var service = new AppConfigurationService(
-            configPath,
-            NullLogger<AppConfigurationService>.Instance
-        );
+        var service = CreateService(configPath);
 
         service.SaveSettings(
             new SettingsConfig(
@@ -68,108 +59,27 @@ public sealed class AppConfigurationServiceTests
     }
 
     [Fact]
-    public void LoadSettings_LoadsBootRomsAndInputTogether()
+    public void LoadSettings_LoadsIndependentInputSections()
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
-
-        Directory.CreateDirectory(tempDirectory.Path);
-        File.WriteAllText(
+        var input = CreateStrictInput("SpeedRun");
+        input.Keyboard.ActiveProfile = "SpeedRun";
+        input.Gamepad.ActiveProfile = InputConfig.DefaultProfileName;
+        AppConfigurationFile.Save(
             configPath,
-            $$"""
-            {
-              "input": {
-                "version": 1,
-                "activeProfile": "SpeedRun",
-                "profiles": {
-                  "default": {
-                    "keyboard": [
-                      { "button": "up", "key": "Up" },
-                      { "button": "down", "key": "Down" },
-                      { "button": "left", "key": "Left" },
-                      { "button": "right", "key": "Right" },
-                      { "button": "a", "key": "Z" },
-                      { "button": "b", "key": "X" },
-                      { "button": "start", "key": "Enter" },
-                      { "button": "select", "key": "Back" }
-                    ]
-                  },
-                  "SpeedRun": {
-                    "keyboard": [
-                      { "button": "up", "key": "I" },
-                      { "button": "down", "key": "K" },
-                      { "button": "left", "key": "J" },
-                      { "button": "right", "key": "L" },
-                      { "button": "a", "key": "A" },
-                      { "button": "b", "key": "S" },
-                      { "button": "start", "key": "D" },
-                      { "button": "select", "key": "F" }
-                    ]
-                  }
-                }
-              },
-              "bootRoms": {
-                "{{BootRomConfig.JsonName(HardwareModel.Dmg)}}": "dmg.bin",
-                "{{BootRomConfig.JsonName(HardwareModel.Cgb)}}": "cgb.bin"
-              }
-            }
-            """
+            new AppConfig { BootRoms = new BootRomConfig("dmg.bin", "cgb.bin"), Input = input },
+            NullLogger.Instance
         );
-        var service = new AppConfigurationService(
-            configPath,
-            NullLogger<AppConfigurationService>.Instance
-        );
+        var service = CreateService(configPath);
 
         var settings = service.LoadSettings();
 
         Assert.Equal(new BootRomConfig("dmg.bin", "cgb.bin"), settings.BootRoms);
-        Assert.Equal("SpeedRun", settings.Input.ActiveProfile);
-        Assert.True(settings.Input.Profiles.ContainsKey("default"));
-        Assert.True(settings.Input.Profiles.ContainsKey("SpeedRun"));
-    }
-
-    [Fact]
-    public void LoadSettings_ReturnsStrictInvalidInputForPresenterValidation()
-    {
-        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
-        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
-
-        Directory.CreateDirectory(tempDirectory.Path);
-        File.WriteAllText(
-            configPath,
-            $$"""
-            {
-              "input": {
-                "version": 1,
-                "activeProfile": "default",
-                "profiles": {
-                  "default": {
-                    "keyboard": [
-                      { "button": "a", "key": "Z" }
-                    ]
-                  }
-                }
-              },
-              "bootRoms": {
-                "{{BootRomConfig.JsonName(HardwareModel.Dmg)}}": "dmg.bin"
-              }
-            }
-            """
-        );
-        var service = new AppConfigurationService(
-            configPath,
-            NullLogger<AppConfigurationService>.Instance
-        );
-
-        var settings = service.LoadSettings();
-        var errors = InputConfigValidator.Validate(settings.Input);
-
-        Assert.Equal(new BootRomConfig("dmg.bin"), settings.BootRoms);
-        Assert.Contains(
-            errors,
-            error => error.Contains("exactly 8 keyboard bindings", StringComparison.Ordinal)
-        );
-        Assert.Single(settings.Input.Profiles["default"].Keyboard);
+        Assert.Equal("SpeedRun", settings.Input.Keyboard.ActiveProfile);
+        Assert.Equal(InputConfig.DefaultProfileName, settings.Input.Gamepad.ActiveProfile);
+        Assert.True(settings.Input.Keyboard.Profiles.ContainsKey("SpeedRun"));
+        Assert.True(settings.Input.Gamepad.Profiles.ContainsKey("SpeedRun"));
     }
 
     [Fact]
@@ -177,8 +87,6 @@ public sealed class AppConfigurationServiceTests
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
-
-        Directory.CreateDirectory(tempDirectory.Path);
         AppConfigurationFile.Save(
             configPath,
             new AppConfig
@@ -187,12 +95,9 @@ public sealed class AppConfigurationServiceTests
                 Emulation = new() { FastForwardEnabled = true },
                 Input = CreateStrictInput("Alternate"),
             },
-            NullLogger<AppConfigurationService>.Instance
+            NullLogger.Instance
         );
-        var service = new AppConfigurationService(
-            configPath,
-            NullLogger<AppConfigurationService>.Instance
-        );
+        var service = CreateService(configPath);
 
         service.SaveSettings(
             new SettingsConfig(
@@ -202,15 +107,16 @@ public sealed class AppConfigurationServiceTests
         );
 
         var appConfig = AppConfigurationFile.Load(configPath);
+
         Assert.Equal(
             new BootRomConfig("new-dmg.bin", "new-cgb.bin", "new-sgb.bin"),
             appConfig.BootRoms
         );
         Assert.True(appConfig.Emulation.FastForwardEnabled);
-        Assert.Equal("SpeedRun", appConfig.Input.ActiveProfile);
-        Assert.Equal(["default", "SpeedRun"], appConfig.Input.Profiles.Keys);
-        Assert.Equal(8, appConfig.Input.Profiles["default"].Keyboard.Count);
-        Assert.Equal(8, appConfig.Input.Profiles["SpeedRun"].Keyboard.Count);
+        Assert.Equal("SpeedRun", appConfig.Input.Keyboard.ActiveProfile);
+        Assert.Equal("SpeedRun", appConfig.Input.Gamepad.ActiveProfile);
+        Assert.True(appConfig.Input.Keyboard.Profiles.ContainsKey("SpeedRun"));
+        Assert.True(appConfig.Input.Gamepad.Profiles.ContainsKey("SpeedRun"));
     }
 
     [Fact]
@@ -218,60 +124,60 @@ public sealed class AppConfigurationServiceTests
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
-
-        Directory.CreateDirectory(tempDirectory.Path);
-        File.WriteAllText(
-            configPath,
-            """
-            {
-              "bootRoms": {
-                "dmg": "original-dmg.bin"
-              }
-            }
-            """
-        );
+        var originalConfig = AppConfigurationFile.CreateDefault();
+        originalConfig.BootRoms = new BootRomConfig("original-dmg.bin");
+        AppConfigurationFile.Save(configPath, originalConfig, NullLogger.Instance);
         var originalBytes = File.ReadAllBytes(configPath);
-        var service = new AppConfigurationService(
-            configPath,
-            NullLogger<AppConfigurationService>.Instance
-        );
-        var invalidInput = new InputConfig
+        var invalidInput = AppConfigurationFile.CreateDefaultInputConfig();
+        invalidInput.Gamepad = new GamepadInputConfig
         {
-            ActiveProfile = "SpeedRun",
-            Profiles = new Dictionary<string, InputProfileConfig>(StringComparer.Ordinal)
+            ActiveProfile = InputConfig.DefaultProfileName,
+            Profiles = new Dictionary<string, GamepadProfileConfig>(StringComparer.Ordinal)
             {
-                ["default"] = CreateProfile(
-                    "Up",
-                    "Down",
-                    "Left",
-                    "Right",
-                    "Z",
-                    "X",
-                    "Enter",
-                    "Back"
-                ),
-                ["SpeedRun"] = new()
-                {
-                    Keyboard =
-                    [
-                        new("down", "K"),
-                        new("left", "J"),
-                        new("right", "L"),
-                        new("a", "A"),
-                        new("b", "S"),
-                        new("start", "D"),
-                        new("select", "F"),
-                    ],
-                },
+                [InputConfig.DefaultProfileName] = new() { Bindings = [new("A", "East")] },
             },
         };
+        var service = CreateService(configPath);
 
         var exception = Assert.Throws<ConfigurationException>(() =>
             service.SaveSettings(new SettingsConfig(new BootRomConfig("new-dmg.bin"), invalidInput))
         );
 
-        Assert.Contains("exactly 8 keyboard bindings", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("exactly 4 bindings", exception.Message, StringComparison.Ordinal);
         Assert.Equal(originalBytes, File.ReadAllBytes(configPath));
+    }
+
+    [Theory]
+    [InlineData("{")]
+    [InlineData("{\"input\":{\"version\":1,\"activeProfile\":\"default\",\"profiles\":{}}}")]
+    public void SaveSettings_WhenExistingConfigIsUnreadableOrOld_ReplacesItWithV2(
+        string existingContents
+    )
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllText(configPath, existingContents);
+        var service = CreateService(configPath);
+
+        service.SaveSettings(
+            new SettingsConfig(
+                new BootRomConfig("replacement-dmg.bin"),
+                AppConfigurationFile.CreateDefaultInputConfig()
+            )
+        );
+
+        var saved = AppConfigurationFile.Load(configPath);
+        using var json = JsonDocument.Parse(File.ReadAllText(configPath));
+        var input = json.RootElement.GetProperty("input");
+
+        Assert.Equal(new BootRomConfig("replacement-dmg.bin"), saved.BootRoms);
+        Assert.Empty(InputConfigValidator.Validate(saved.Input));
+        Assert.Equal(2, input.GetProperty("version").GetInt32());
+        Assert.True(input.TryGetProperty("keyboard", out _));
+        Assert.True(input.TryGetProperty("gamepad", out _));
+        Assert.False(input.TryGetProperty("activeProfile", out _));
+        Assert.False(File.Exists(configPath + ".tmp"));
     }
 
     [Fact]
@@ -279,7 +185,6 @@ public sealed class AppConfigurationServiceTests
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
-
         Directory.CreateDirectory(tempDirectory.Path);
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "dmg.bin"),
@@ -293,10 +198,7 @@ public sealed class AppConfigurationServiceTests
             Path.Combine(tempDirectory.Path, "sgb.bin"),
             CreateBootRom(BootRomOptions.SgbBootRomSize, marker: 0x50)
         );
-        var service = new AppConfigurationService(
-            configPath,
-            NullLogger<AppConfigurationService>.Instance
-        );
+        var service = CreateService(configPath);
         service.SaveSettings(
             new SettingsConfig(
                 new BootRomConfig("dmg.bin", "cgb.bin", "sgb.bin"),
@@ -338,72 +240,41 @@ public sealed class AppConfigurationServiceTests
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
-
         Directory.CreateDirectory(tempDirectory.Path);
-        File.WriteAllText(
-            configPath,
-            """
-            {
-              "bootRoms": {
-                "invalid": "boot.bin"
-              }
-            }
-            """
-        );
-        var service = new AppConfigurationService(
-            configPath,
-            NullLogger<AppConfigurationService>.Instance
-        );
+        File.WriteAllText(configPath, """{ "bootRoms": { "invalid": "boot.bin" } }""");
+        var service = CreateService(configPath);
 
         var exception = Assert.Throws<ConfigurationException>(() => service.LoadBootRomConfig());
 
         Assert.Contains("could not be parsed", exception.Message, StringComparison.Ordinal);
     }
 
-    private static InputConfig CreateStrictInput(string activeProfileName) =>
-        new()
-        {
-            ActiveProfile = activeProfileName,
-            Profiles = new Dictionary<string, InputProfileConfig>(StringComparer.Ordinal)
-            {
-                ["default"] = CreateProfile(
-                    "Up",
-                    "Down",
-                    "Left",
-                    "Right",
-                    "Z",
-                    "X",
-                    "Enter",
-                    "Back"
-                ),
-                [activeProfileName] = CreateProfile("I", "K", "J", "L", "A", "S", "D", "F"),
-            },
-        };
+    private static AppConfigurationService CreateService(string configPath) =>
+        new(configPath, NullLogger<AppConfigurationService>.Instance);
 
-    private static InputProfileConfig CreateProfile(
-        string up,
-        string down,
-        string left,
-        string right,
-        string a,
-        string b,
-        string start,
-        string select
-    ) =>
-        new()
+    private static InputConfig CreateStrictInput(string activeProfileName)
+    {
+        var input = AppConfigurationFile.CreateDefaultInputConfig();
+        var defaultKeyboardProfile = input.Keyboard.Profiles[InputConfig.DefaultProfileName];
+        var defaultGamepadProfile = input.Gamepad.Profiles[InputConfig.DefaultProfileName];
+        input.Keyboard.ActiveProfile = activeProfileName;
+        input.Gamepad.ActiveProfile = activeProfileName;
+        input.Keyboard.Profiles = new Dictionary<string, KeyboardProfileConfig>(
+            StringComparer.Ordinal
+        )
         {
-            Keyboard =
-            [
-                new("up", up),
-                new("down", down),
-                new("left", left),
-                new("right", right),
-                new("a", a),
-                new("b", b),
-                new("start", start),
-                new("select", select),
-            ],
+            [InputConfig.DefaultProfileName] = defaultKeyboardProfile,
+            [activeProfileName] = defaultKeyboardProfile,
         };
+        input.Gamepad.Profiles = new Dictionary<string, GamepadProfileConfig>(
+            StringComparer.Ordinal
+        )
+        {
+            [InputConfig.DefaultProfileName] = defaultGamepadProfile,
+            [activeProfileName] = defaultGamepadProfile,
+        };
+        return input;
+    }
 
     private static byte[] CreateBootRom(int length, byte marker)
     {

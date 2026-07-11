@@ -160,10 +160,8 @@ internal sealed class EmulationController(
         handleFault(exception);
     }
 
-    private void ApplyFastForwardSettings()
-    {
+    private void ApplyFastForwardSettings() =>
         _session?.SetFastForward(_fastForwardEnabled, _fastForwardSpeed);
-    }
 }
 
 internal readonly record struct EmulationControllerState(

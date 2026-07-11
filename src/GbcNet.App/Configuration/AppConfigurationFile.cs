@@ -112,21 +112,47 @@ internal static class AppConfigurationFile
     public static InputConfig CreateDefaultInputConfig() =>
         new()
         {
-            Profiles = new Dictionary<string, InputProfileConfig>(StringComparer.OrdinalIgnoreCase)
+            Version = InputConfig.SupportedVersion,
+            Keyboard = new()
             {
-                [InputConfig.DefaultProfileName] = new()
+                ActiveProfile = InputConfig.DefaultProfileName,
+                Profiles = new Dictionary<string, KeyboardProfileConfig>(
+                    StringComparer.OrdinalIgnoreCase
+                )
                 {
-                    Keyboard =
-                    [
-                        new("up", "Up"),
-                        new("down", "Down"),
-                        new("left", "Left"),
-                        new("right", "Right"),
-                        new("a", "Z"),
-                        new("b", "X"),
-                        new("start", "Enter"),
-                        new("select", "Back"),
-                    ],
+                    [InputConfig.DefaultProfileName] = new()
+                    {
+                        Bindings =
+                        [
+                            new("Up", "Up"),
+                            new("Down", "Down"),
+                            new("Left", "Left"),
+                            new("Right", "Right"),
+                            new("A", "Z"),
+                            new("B", "X"),
+                            new("Start", "Enter"),
+                            new("Select", "Back"),
+                        ],
+                    },
+                },
+            },
+            Gamepad = new()
+            {
+                ActiveProfile = InputConfig.DefaultProfileName,
+                Profiles = new Dictionary<string, GamepadProfileConfig>(
+                    StringComparer.OrdinalIgnoreCase
+                )
+                {
+                    [InputConfig.DefaultProfileName] = new()
+                    {
+                        Bindings =
+                        [
+                            new("A", "East"),
+                            new("B", "South"),
+                            new("Start", "Start"),
+                            new("Select", "Back"),
+                        ],
+                    },
                 },
             },
         };

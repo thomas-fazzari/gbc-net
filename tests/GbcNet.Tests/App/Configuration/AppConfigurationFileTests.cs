@@ -36,6 +36,29 @@ public sealed class AppConfigurationFileTests
     }
 
     [Fact]
+    public void Save_WritesExactV2InputShape()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+
+        AppConfigurationFile.Save(
+            configPath,
+            AppConfigurationFile.CreateDefault(),
+            NullLogger.Instance
+        );
+
+        using var json = JsonDocument.Parse(File.ReadAllText(configPath));
+        var input = json.RootElement.GetProperty("input");
+
+        Assert.Equal(2, input.GetProperty("version").GetInt32());
+        Assert.False(input.TryGetProperty("activeProfile", out _));
+        Assert.False(input.TryGetProperty("profiles", out _));
+        Assert.Equal(3, input.EnumerateObject().Count());
+        AssertSectionHasDefaultProfile(input.GetProperty("keyboard"), "bindings");
+        AssertSectionHasDefaultProfile(input.GetProperty("gamepad"), "bindings");
+    }
+
+    [Fact]
     public void Save_WhenTemporaryFileCannotBeCreated_LeavesExistingConfigUnchanged()
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
@@ -57,5 +80,14 @@ public sealed class AppConfigurationFileTests
         Assert.Equal(originalBytes, File.ReadAllBytes(configPath));
         Assert.Equal(originalConfig.BootRoms, AppConfigurationFile.Load(configPath).BootRoms);
         Assert.True(Directory.Exists(temporaryPath));
+    }
+
+    private static void AssertSectionHasDefaultProfile(JsonElement section, string bindingsProperty)
+    {
+        Assert.Equal(2, section.EnumerateObject().Count());
+        Assert.Equal("default", section.GetProperty("activeProfile").GetString());
+        var profile = section.GetProperty("profiles").GetProperty("default");
+        Assert.Single(profile.EnumerateObject());
+        Assert.Equal(JsonValueKind.Array, profile.GetProperty(bindingsProperty).ValueKind);
     }
 }

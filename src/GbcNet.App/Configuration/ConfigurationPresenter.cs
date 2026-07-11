@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using Avalonia.Controls;
 using GbcNet.App.Configuration.Sections.Input;
+using GbcNet.App.Input;
 using GbcNet.App.Shell.Chrome;
 using GbcNet.Core;
 
@@ -14,7 +15,8 @@ internal sealed class ConfigurationPresenter(
     string configPath,
     StatusBarPresenter statusBar,
     Action<BootRomOptions> setBootRomOptions,
-    Action<InputConfig> applyInputConfig
+    Action<InputConfig> applyInputConfig,
+    GamepadManager gamepadManager
 )
 {
     public async Task OpenAsync(Window owner)
@@ -27,12 +29,24 @@ internal sealed class ConfigurationPresenter(
         catch (ConfigurationException exception)
         {
             statusBar.ShowError(exception.Message);
-            return;
+            var defaults = AppConfigurationFile.CreateDefault();
+            settings = new SettingsConfig(defaults.BootRoms, defaults.Input);
         }
 
-        var savedConfig = await new SettingsWindow(settings)
-            .ShowDialog<SettingsConfig?>(owner)
-            .ConfigureAwait(true);
+        var gameplayEnabled = gamepadManager.GameplayEnabled;
+        gamepadManager.SetGameplayEnabled(false);
+
+        SettingsConfig? savedConfig;
+        try
+        {
+            savedConfig = await new SettingsWindow(settings, gamepadManager)
+                .ShowDialog<SettingsConfig?>(owner)
+                .ConfigureAwait(true);
+        }
+        finally
+        {
+            gamepadManager.SetGameplayEnabled(gameplayEnabled);
+        }
 
         if (savedConfig is null)
         {

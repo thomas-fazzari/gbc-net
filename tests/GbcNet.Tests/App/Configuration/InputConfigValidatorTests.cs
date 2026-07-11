@@ -11,78 +11,95 @@ namespace GbcNet.Tests.App.Configuration;
 public sealed class InputConfigValidatorTests
 {
     [Fact]
-    public void Validate_AcceptsCompleteDefaultConfig()
-    {
-        var config = AppConfigurationFile.CreateDefaultInputConfig();
-        var errors = InputConfigValidator.Validate(config);
-
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public void CreateDefaultInputConfig_UsesCaseInsensitiveProfileLookup()
+    public void CreateDefaultInputConfig_StrictlyValidatesBothSections()
     {
         var config = AppConfigurationFile.CreateDefaultInputConfig();
 
-        Assert.True(config.Profiles.ContainsKey("DEFAULT"));
+        Assert.Empty(InputConfigValidator.Validate(config));
+        Assert.Equal(InputConfig.DefaultProfileName, config.Keyboard.ActiveProfile);
+        Assert.Equal(InputConfig.DefaultProfileName, config.Gamepad.ActiveProfile);
+        Assert.True(config.Keyboard.Profiles.ContainsKey(InputConfig.DefaultProfileName));
+        Assert.True(config.Gamepad.Profiles.ContainsKey(InputConfig.DefaultProfileName));
     }
 
     [Fact]
-    public void Validate_AcceptsCompleteConfigWithCaseInsensitiveActiveProfile()
+    public void CreateDefaultInputConfig_UsesExpectedGamepadMappings()
     {
-        var config = ValidConfig();
-        config.ActiveProfile = "DEFAULT";
-        config.Profiles = new Dictionary<string, InputProfileConfig>(StringComparer.Ordinal)
+        var bindings = AppConfigurationFile
+            .CreateDefaultInputConfig()
+            .Gamepad.Profiles[InputConfig.DefaultProfileName]
+            .Bindings.ToDictionary(
+                binding => binding.ButtonName,
+                binding => binding.ControlName,
+                StringComparer.Ordinal
+            );
+
+        Assert.Equal("East", bindings["A"]);
+        Assert.Equal("South", bindings["B"]);
+        Assert.Equal("Start", bindings["Start"]);
+        Assert.Equal("Back", bindings["Select"]);
+    }
+
+    [Fact]
+    public void Validate_AcceptsIndependentKeyboardAndGamepadProfilesWithSharedNames()
+    {
+        var config = AppConfigurationFile.CreateDefaultInputConfig();
+        config.Keyboard = new KeyboardInputConfig
         {
-            ["default"] = CompleteProfile(),
+            ActiveProfile = "keyboard-only",
+            Profiles = new Dictionary<string, KeyboardProfileConfig>(StringComparer.Ordinal)
+            {
+                [InputConfig.DefaultProfileName] = CompleteKeyboardProfile(),
+                ["shared"] = CompleteKeyboardProfile(),
+                ["keyboard-only"] = CompleteKeyboardProfile(),
+            },
+        };
+        config.Gamepad = new GamepadInputConfig
+        {
+            ActiveProfile = "shared",
+            Profiles = new Dictionary<string, GamepadProfileConfig>(StringComparer.Ordinal)
+            {
+                [InputConfig.DefaultProfileName] = CompleteGamepadProfile(),
+                ["shared"] = CompleteGamepadProfile(),
+            },
         };
 
         var errors = InputConfigValidator.Validate(config);
 
         Assert.Empty(errors);
+        Assert.Equal("keyboard-only", config.Keyboard.ActiveProfile);
+        Assert.Equal("shared", config.Gamepad.ActiveProfile);
     }
 
     [Theory]
-    [InlineData(0, "version")]
-    [InlineData(2, "version")]
-    public void Validate_RejectsUnsupportedVersion(int version, string expected)
+    [InlineData(0)]
+    [InlineData(1)]
+    public void Validate_RejectsUnsupportedVersion(int version)
     {
-        var config = ValidConfig();
+        var config = AppConfigurationFile.CreateDefaultInputConfig();
         config.Version = version;
 
         var errors = InputConfigValidator.Validate(config);
 
         Assert.Contains(
             errors,
-            error => error.Contains(expected, StringComparison.OrdinalIgnoreCase)
+            error => error.Contains("version", StringComparison.OrdinalIgnoreCase)
         );
     }
 
     [Fact]
-    public void Validate_RejectsEmptyProfiles()
+    public void Validate_RejectsInvalidKeyboardProfiles()
     {
-        var config = new InputConfig
+        var config = AppConfigurationFile.CreateDefaultInputConfig();
+        config.Keyboard = new KeyboardInputConfig
         {
-            Profiles = new Dictionary<string, InputProfileConfig>(StringComparer.OrdinalIgnoreCase),
-        };
-
-        var errors = InputConfigValidator.Validate(config);
-
-        Assert.Contains(
-            errors,
-            error => error.Contains("at least one profile", StringComparison.Ordinal)
-        );
-    }
-
-    [Fact]
-    public void Validate_RejectsMissingDefaultProfile()
-    {
-        var config = new InputConfig
-        {
-            ActiveProfile = "custom",
-            Profiles = new Dictionary<string, InputProfileConfig>(StringComparer.OrdinalIgnoreCase)
+            ActiveProfile = "missing",
+            Profiles = new Dictionary<string, KeyboardProfileConfig>(StringComparer.Ordinal)
             {
-                ["custom"] = CompleteProfile(),
+                [InputConfig.DefaultProfileName] = new()
+                {
+                    Bindings = [new("A", "Z"), new("B", "Z")],
+                },
             },
         };
 
@@ -90,21 +107,62 @@ public sealed class InputConfigValidatorTests
 
         Assert.Contains(
             errors,
-            error => error.Contains("default", StringComparison.OrdinalIgnoreCase)
+            error => error.Contains("exactly 8", StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.Contains(
+            errors,
+            error => error.Contains("more than once", StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.Contains(
+            errors,
+            error => error.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
         );
     }
 
     [Fact]
-    public void Validate_RejectsBlankTrimmedAndDuplicateProfileNames()
+    public void Validate_AcceptsAllowedDistinctGamepadControls()
     {
-        var config = new InputConfig
+        var config = AppConfigurationFile.CreateDefaultInputConfig();
+        config.Gamepad = new GamepadInputConfig
         {
-            Profiles = new Dictionary<string, InputProfileConfig>(StringComparer.Ordinal)
+            ActiveProfile = InputConfig.DefaultProfileName,
+            Profiles = new Dictionary<string, GamepadProfileConfig>(StringComparer.Ordinal)
             {
-                [InputConfig.DefaultProfileName] = CompleteProfile(),
-                [" arcade "] = CompleteProfile(),
-                ["Arcade"] = CompleteProfile(),
-                [""] = CompleteProfile(),
+                [InputConfig.DefaultProfileName] = new()
+                {
+                    Bindings =
+                    [
+                        new("A", "North"),
+                        new("B", "West"),
+                        new("Start", "LeftShoulder"),
+                        new("Select", "RightShoulder"),
+                    ],
+                },
+            },
+        };
+
+        Assert.Empty(InputConfigValidator.Validate(config));
+    }
+
+    [Fact]
+    public void Validate_RejectsGamepadProfilesWithoutFourAllowedDistinctControls()
+    {
+        var config = AppConfigurationFile.CreateDefaultInputConfig();
+        config.Gamepad = new GamepadInputConfig
+        {
+            ActiveProfile = InputConfig.DefaultProfileName,
+            Profiles = new Dictionary<string, GamepadProfileConfig>(StringComparer.Ordinal)
+            {
+                [InputConfig.DefaultProfileName] = new()
+                {
+                    Bindings =
+                    [
+                        new("A", "East"),
+                        new("B", "East"),
+                        new("Start", "Start"),
+                        new("Up", "North"),
+                    ],
+                },
             },
         };
 
@@ -112,139 +170,40 @@ public sealed class InputConfigValidatorTests
 
         Assert.Contains(
             errors,
-            error => error.Contains("must be trimmed", StringComparison.Ordinal)
+            error => error.Contains("control 'East' more than once", StringComparison.Ordinal)
         );
         Assert.Contains(
             errors,
-            error => error.Contains("more than once", StringComparison.Ordinal)
+            error => error.Contains("cannot bind joypad button 'Up'", StringComparison.Ordinal)
         );
         Assert.Contains(
             errors,
-            error => error.Contains("must not be blank", StringComparison.Ordinal)
+            error => error.Contains("missing joypad button 'Select'", StringComparison.Ordinal)
         );
     }
 
     [Fact]
-    public void Validate_RejectsMissingActiveProfile()
+    public void Validate_ReportsMalformedNullSectionsWithoutThrowing()
     {
-        var config = ValidConfig();
-        config.ActiveProfile = "missing";
-
-        var errors = InputConfigValidator.Validate(config);
-
-        Assert.Contains(
-            errors,
-            error => error.Contains("does not exist", StringComparison.Ordinal)
-        );
-    }
-
-    [Fact]
-    public void Validate_RejectsInvalidInactiveProfile()
-    {
-        var config = ValidConfig();
-        config.Profiles = new Dictionary<string, InputProfileConfig>(
-            StringComparer.OrdinalIgnoreCase
-        )
+        var config = new InputConfig
         {
-            [InputConfig.DefaultProfileName] = CompleteProfile(),
-            ["inactive"] = Profile((JoypadButton.A, Key.Z)),
+            Version = InputConfig.SupportedVersion,
+            Keyboard = null!,
+            Gamepad = null!,
         };
-
-        var errors = InputConfigValidator.Validate(config);
-
-        Assert.Contains(errors, error => error.Contains("inactive", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Validate_RejectsProfilesThatDoNotHaveExactlyEightKeyboardBindings()
-    {
-        var config = ValidConfig();
-        config.Profiles = new Dictionary<string, InputProfileConfig>(
-            StringComparer.OrdinalIgnoreCase
-        )
-        {
-            [InputConfig.DefaultProfileName] = Profile((JoypadButton.A, Key.Z)),
-        };
-
-        var errors = InputConfigValidator.Validate(config);
-
-        Assert.Contains(errors, error => error.Contains("exactly 8", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Validate_RejectsDuplicateAndMissingButtons()
-    {
-        var bindings = Bindings();
-        bindings[0] = new KeyboardInputBindingConfig("a", "Up");
-        var config = ConfigWithProfile(new InputProfileConfig { Keyboard = bindings });
-
-        var errors = InputConfigValidator.Validate(config);
-
-        Assert.Contains(
-            errors,
-            error => error.Contains("bound more than once", StringComparison.Ordinal)
-        );
-        Assert.Contains(
-            errors,
-            error => error.Contains("missing joypad button", StringComparison.Ordinal)
-        );
-    }
-
-    [Fact]
-    public void Validate_RejectsDuplicateReservedNoneAndUndefinedKeys()
-    {
-        var bindings = Bindings();
-        bindings[0] = bindings[0] with { KeyName = "Z" };
-        bindings[1] = bindings[1] with { KeyName = "Space" };
-        bindings[2] = bindings[2] with { KeyName = "None" };
-        bindings[3] = bindings[3] with { KeyName = "999999" };
-        var config = ConfigWithProfile(new InputProfileConfig { Keyboard = bindings });
-
-        var errors = InputConfigValidator.Validate(config);
-
-        Assert.Contains(
-            errors,
-            error => error.Contains("bound more than once", StringComparison.Ordinal)
-        );
-        Assert.Contains(errors, error => error.Contains("reserved", StringComparison.Ordinal));
-        Assert.Contains(errors, error => error.Contains("None", StringComparison.Ordinal));
-        Assert.Contains(errors, error => error.Contains("999999", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Validate_RejectsNumericAndUndefinedJoypadButtonText()
-    {
-        var bindings = Bindings();
-        bindings[0] = bindings[0] with { ButtonName = "0" };
-        bindings[1] = bindings[1] with { ButtonName = "NotAButton" };
-        var config = ConfigWithProfile(new InputProfileConfig { Keyboard = bindings });
-
-        var errors = InputConfigValidator.Validate(config);
-
-        Assert.Contains(errors, error => error.Contains('0', StringComparison.Ordinal));
-        Assert.Contains(errors, error => error.Contains("NotAButton", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Validate_ReportsMalformedNullMembersWithoutThrowing()
-    {
-        var config = ConfigWithProfile(
-            new InputProfileConfig
-            {
-                Keyboard =
-                [
-                    null!,
-                    new KeyboardInputBindingConfig(null!, "Z"),
-                    new KeyboardInputBindingConfig("a", null!),
-                ],
-            }
-        );
 
         var exception = Record.Exception(() => InputConfigValidator.Validate(config));
         var errors = InputConfigValidator.Validate(config);
 
         Assert.Null(exception);
-        Assert.NotEmpty(errors);
+        Assert.Contains(
+            errors,
+            error => error.Contains("Keyboard input config is malformed", StringComparison.Ordinal)
+        );
+        Assert.Contains(
+            errors,
+            error => error.Contains("Gamepad input config is malformed", StringComparison.Ordinal)
+        );
     }
 
     [Theory]
@@ -256,40 +215,31 @@ public sealed class InputConfigValidatorTests
         Assert.Equal(expected, InputConfigValidator.IsReservedKey(key));
     }
 
-    private static InputConfig ValidConfig() => ConfigWithProfile(CompleteProfile());
-
-    private static InputConfig ConfigWithProfile(InputProfileConfig profile) =>
+    private static KeyboardProfileConfig CompleteKeyboardProfile() =>
         new()
         {
-            Profiles = new Dictionary<string, InputProfileConfig>(StringComparer.OrdinalIgnoreCase)
-            {
-                [InputConfig.DefaultProfileName] = profile,
-            },
-        };
-
-    private static InputProfileConfig CompleteProfile() => new() { Keyboard = Bindings() };
-
-    private static InputProfileConfig Profile(params (JoypadButton Button, Key Key)[] bindings) =>
-        new()
-        {
-            Keyboard =
+            Bindings =
             [
-                .. bindings.Select(binding => new KeyboardInputBindingConfig(
-                    binding.Button.ToString(),
-                    binding.Key.ToString()
-                )),
+                new("Up", "Up"),
+                new("Down", "Down"),
+                new("Left", "Left"),
+                new("Right", "Right"),
+                new("A", "Z"),
+                new("B", "X"),
+                new("Start", "Enter"),
+                new("Select", "Back"),
             ],
         };
 
-    private static List<KeyboardInputBindingConfig> Bindings() =>
-        [
-            new("up", "Up"),
-            new("down", "Down"),
-            new("left", "Left"),
-            new("right", "Right"),
-            new("a", "Z"),
-            new("b", "X"),
-            new("start", "Enter"),
-            new("select", "Back"),
-        ];
+    private static GamepadProfileConfig CompleteGamepadProfile() =>
+        new()
+        {
+            Bindings =
+            [
+                new("A", "East"),
+                new("B", "South"),
+                new("Start", "Start"),
+                new("Select", "Back"),
+            ],
+        };
 }

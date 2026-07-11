@@ -24,6 +24,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 {
     private readonly ConfigurationPresenter _configurationPresenter;
     private readonly EmulationSessionPresenter _emulationSession;
+    private readonly GamepadManager _gamepadManager;
     private readonly LcdFramePresenter _framePresenter;
     private readonly ShellOperationRunner _operationRunner;
     private readonly StatusBarPresenter _statusBar;
@@ -40,7 +41,8 @@ internal sealed partial class MainWindow : Window, IDisposable
         CartridgeBatterySaveFileService cartridgeSaveFileService,
         LibraryService libraryService,
         IAudioOutput audioOutput,
-        ILogger<MainWindow> logger
+        ILogger<MainWindow> logger,
+        ILoggerFactory loggerFactory
     )
     {
         InitializeComponent();
@@ -76,7 +78,11 @@ internal sealed partial class MainWindow : Window, IDisposable
             startupConfiguration.EmulationConfig.FastForwardEnabled,
             startupConfiguration.EmulationConfig.FastForwardSpeed
         );
-        var inputRouter = new InputRouter(inputMap.Bindings, emulationController.SetButtonState);
+        var inputRouter = new InputRouter(
+            inputMap.KeyboardBindings,
+            inputMap.GamepadBindings,
+            emulationController.SetButtonState
+        );
         _emulationSession = new EmulationSessionPresenter(
             emulationController,
             inputRouter,
@@ -86,6 +92,14 @@ internal sealed partial class MainWindow : Window, IDisposable
             MainMenu,
             _operationRunner
         );
+        _gamepadManager = new GamepadManager(
+            inputRouter,
+            _emulationSession.TogglePause,
+            _emulationSession.ToggleFastForward,
+            loggerFactory.CreateLogger<GamepadManager>()
+        );
+
+        _gamepadManager.Start();
 
         var libraryPresenter = new LibraryPresenter(
             libraryView,
@@ -124,7 +138,15 @@ internal sealed partial class MainWindow : Window, IDisposable
             startupConfiguration.ConfigPath,
             _statusBar,
             _emulationSession.SetBootRomOptions,
-            input => inputRouter.ReplaceBindings(InputMap.FromConfig(input).Bindings)
+            input =>
+            {
+                var replacementMap = InputMap.FromConfig(input);
+                inputRouter.ReplaceBindings(
+                    replacementMap.KeyboardBindings,
+                    replacementMap.GamepadBindings
+                );
+            },
+            _gamepadManager
         );
 
         ConfigureMenu(emulationView);
@@ -160,6 +182,8 @@ internal sealed partial class MainWindow : Window, IDisposable
             _emulationSession.SetFastForwardSpeed(e.Speed);
             Dispatcher.UIThread.Post(() => emulationView.Focus(), DispatcherPriority.Input);
         };
+        Activated += (_, _) => _gamepadManager.SetGameplayEnabled(true);
+        Deactivated += (_, _) => _gamepadManager.SetGameplayEnabled(false);
         MainMenu.FullscreenRequested += (_, _) => ToggleFullscreen();
         MainMenu.MenuBarRequested += (_, _) => ToggleMenuBar();
         MainMenu.StatusBarRequested += (_, _) => ToggleStatusBar();
@@ -321,6 +345,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     public void Dispose()
     {
+        _gamepadManager.Dispose();
         _statusBar.Dispose();
         _framePresenter.Dispose();
     }
