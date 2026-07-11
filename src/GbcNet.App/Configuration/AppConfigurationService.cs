@@ -3,6 +3,7 @@
 
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Emulation;
+using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.Core;
 using GbcNet.Core.Hardware;
 using Microsoft.Extensions.Logging;
@@ -17,16 +18,31 @@ internal sealed class AppConfigurationService(
     public BootRomConfig LoadBootRomConfig() =>
         AppConfigurationFile.LoadOrCreate(configPath, logger).BootRoms;
 
+    public SettingsConfig LoadSettings()
+    {
+        var appConfig = AppConfigurationFile.LoadOrCreate(configPath, logger);
+        return new SettingsConfig(appConfig.BootRoms, appConfig.Input);
+    }
+
     public BootRomOptions LoadBootRomOptions() =>
         LoadBootRomOptions(
             LoadBootRomConfig(),
             Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory
         );
 
-    public void SaveBootRomConfig(BootRomConfig config)
+    public void SaveSettings(SettingsConfig settings)
     {
+        ArgumentNullException.ThrowIfNull(settings);
+
+        var validation = InputConfigValidator.Validate(settings.Input);
+        if (validation.Count != 0)
+        {
+            throw new ConfigurationException(string.Join(Environment.NewLine, validation));
+        }
+
         var appConfig = AppConfigurationFile.LoadOrCreate(configPath, logger);
-        appConfig.BootRoms = config;
+        appConfig.BootRoms = settings.BootRoms;
+        appConfig.Input = CopyInput(settings.Input);
         AppConfigurationFile.Save(configPath, appConfig, logger);
     }
 
@@ -88,6 +104,27 @@ internal sealed class AppConfigurationService(
                 $"{label} boot ROM must be {expectedLength} bytes, but was {bytes.Length} bytes."
             );
     }
+
+    private static InputConfig CopyInput(InputConfig input) =>
+        new()
+        {
+            Version = input.Version,
+            ActiveProfile = input.ActiveProfile,
+            Profiles = input.Profiles.ToDictionary(
+                profile => profile.Key,
+                profile => new InputProfileConfig
+                {
+                    Keyboard =
+                    [
+                        .. profile.Value.Keyboard.Select(binding => new KeyboardInputBindingConfig(
+                            binding.ButtonName,
+                            binding.KeyName
+                        )),
+                    ],
+                },
+                StringComparer.OrdinalIgnoreCase
+            ),
+        };
 
     private static bool IsExpectedPathException(Exception exception) =>
         exception

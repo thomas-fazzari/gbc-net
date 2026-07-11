@@ -3,12 +3,10 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   x:Class="GbcNet.App.Configuration.SettingsWindow"
   Title="Configuration"
-  Width="720"
-  Height="360"
-  MinWidth="680"
-  MinHeight="320"
-  MaxWidth="760"
-  MaxHeight="400"
+  Width="960"
+  Height="640"
+  MinWidth="760"
+  MinHeight="520"
   CanResize="True"
   WindowStartupLocation="CenterOwner"
   RequestedThemeVariant="Dark"
@@ -24,23 +22,31 @@
       <Setter Property="FontSize" Value="14" />
       <Setter Property="Foreground" Value="{DynamicResource ChromeMutedBrush}" />
     </Style>
-    <Style Selector="TextBlock.sidebar-label.selected">
+    <Style Selector="Button.sidebar-item">
+      <Setter Property="Height" Value="34" />
+      <Setter Property="CornerRadius" Value="{DynamicResource ChromeCornerRadius}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeMutedBrush}" />
+    </Style>
+    <Style Selector="Button.sidebar-item:pointerover">
+      <Setter Property="Background" Value="{DynamicResource ChromeHoverBrush}" />
+    </Style>
+    <Style Selector="Button.sidebar-item:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
+    </Style>
+    <Style Selector="Button.sidebar-item.selected">
+      <Setter Property="Background" Value="{DynamicResource ChromeSelectedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeSelectedBorderBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
     </Style>
     <Style Selector="TextBlock.form-label">
       <Setter Property="FontSize" Value="13" />
       <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
-    </Style>
-    <Style Selector="Border.sidebar-item">
-      <Setter Property="Height" Value="34" />
-      <Setter Property="CornerRadius" Value="{DynamicResource ChromeCornerRadius}" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderBrush" Value="Transparent" />
-      <Setter Property="Padding" Value="12,0" />
-    </Style>
-    <Style Selector="Border.sidebar-item.selected">
-      <Setter Property="Background" Value="{DynamicResource ChromeSelectedBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeSelectedBorderBrush}" />
     </Style>
     <Style Selector="TextBox.path-box">
       <Setter Property="PlaceholderText" Value="No file selected" />
@@ -53,27 +59,59 @@
       <Setter Property="VerticalContentAlignment" Value="Center" />
       <Setter Property="FocusAdorner" Value="{x:Null}" />
     </Style>
-    <Style Selector="Border.path-well">
-      <Setter Property="Height" Value="32" />
+    <Style Selector="Border.path-well, Border.card">
       <Setter Property="Background" Value="{DynamicResource ChromeSurfaceBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="{DynamicResource ChromeCornerRadius}" />
     </Style>
-    <Style Selector="Border.path-well:focus-within">
+    <Style Selector="Border.path-well">
+      <Setter Property="Height" Value="32" />
+    </Style>
+    <Style Selector="Border.path-well:focus-within, Border.card:focus-within">
       <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="{DynamicResource ChromeMutedBrush}" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="TextBlock.error">
+      <Setter Property="Foreground" Value="{DynamicResource ChromeErrorBrush}" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="Button.capture-button">
+      <Setter Property="MinWidth" Value="120" />
+    </Style>
+    <Style Selector="Button.chrome-button:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
+    </Style>
+    <Style Selector="Button.capture-button.error">
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeErrorBrush}" />
+    </Style>
+    <Style Selector="Button.capture-button.capturing">
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
+      <Setter Property="Background" Value="{DynamicResource ChromeSelectedBrush}" />
     </Style>
   </Window.Styles>
 
-  <Grid ColumnDefinitions="152,*">
+  <Grid RowDefinitions="*,Auto" ColumnDefinitions="176,*">
     <Border
+      Grid.RowSpan="2"
       Background="{DynamicResource ChromePanelBrush}"
       BorderBrush="{DynamicResource ChromeHairBrush}"
       BorderThickness="0,0,1,0"
       Padding="8"
     >
-      <StackPanel Spacing="6">
-        <Border Classes="sidebar-item selected">
+      <StackPanel HorizontalAlignment="Stretch" Spacing="6">
+        <Button
+          x:Name="BootRomNavButton"
+          Classes="sidebar-item selected"
+          Click="ShowBootRomPage"
+          AutomationProperties.Name="Boot ROM settings"
+          AutomationProperties.AutomationId="SettingsNavBootRoms"
+          AutomationProperties.HelpText="Show boot ROM path settings"
+        >
           <Grid ColumnDefinitions="16,*" ColumnSpacing="9">
             <PathIcon
               Width="15"
@@ -81,14 +119,17 @@
               Data="{StaticResource IconSettings}"
               Foreground="{DynamicResource ChromeMutedBrush}"
             />
-            <TextBlock
-              Grid.Column="1"
-              Classes="chrome-label sidebar-label selected"
-              Text="Boot ROMs"
-            />
+            <TextBlock Grid.Column="1" Classes="chrome-label sidebar-label" Text="Boot ROMs" />
           </Grid>
-        </Border>
-        <Border Classes="sidebar-item">
+        </Button>
+        <Button
+          x:Name="InputsNavButton"
+          Classes="sidebar-item"
+          Click="ShowInputsPage"
+          AutomationProperties.Name="Input settings"
+          AutomationProperties.AutomationId="SettingsNavInputs"
+          AutomationProperties.HelpText="Show keyboard input profile settings"
+        >
           <Grid ColumnDefinitions="16,*" ColumnSpacing="9">
             <PathIcon
               Width="15"
@@ -98,85 +139,249 @@
             />
             <TextBlock Grid.Column="1" Classes="chrome-label sidebar-label" Text="Inputs" />
           </Grid>
-        </Border>
+        </Button>
       </StackPanel>
     </Border>
 
-    <Grid
-      Grid.Column="1"
-      RowDefinitions="Auto,*,Auto"
-      MaxWidth="680"
-      HorizontalAlignment="Stretch"
-      Margin="32,28,32,24"
-    >
-      <Grid
-        RowDefinitions="Auto,Auto,Auto"
-        ColumnDefinitions="48,*,72,64"
-        RowSpacing="12"
-        ColumnSpacing="8"
-      >
-        <TextBlock Grid.Row="0" Classes="chrome-label form-label" Text="DMG" />
-        <Border Grid.Row="0" Grid.Column="1" Classes="path-well">
-          <TextBox x:Name="DmgBootRomPathTextBox" Classes="path-box" />
-        </Border>
-        <Button
-          Grid.Row="0"
-          Grid.Column="2"
-          Classes="chrome-button"
-          Content="Browse"
-          Click="BrowseDmgBootRomPathAsync"
-        />
-        <Button
-          Grid.Row="0"
-          Grid.Column="3"
-          Classes="chrome-button"
-          Content="Clear"
-          Click="ClearDmgBootRomPath"
-        />
+    <Grid Grid.Column="1" RowDefinitions="*" Margin="32,28,32,18">
+      <Grid x:Name="BootRomPage" RowDefinitions="Auto,*">
+        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,18">
+          <TextBlock Classes="chrome-label form-label" FontSize="18" Text="Boot ROMs" />
+          <TextBlock
+            Classes="muted"
+            Text="Optional ROM paths. Blank values are saved as not configured."
+          />
+        </StackPanel>
 
-        <TextBlock Grid.Row="1" Classes="chrome-label form-label" Text="CGB" />
-        <Border Grid.Row="1" Grid.Column="1" Classes="path-well">
-          <TextBox x:Name="CgbBootRomPathTextBox" Classes="path-box" />
-        </Border>
-        <Button
+        <Grid
           Grid.Row="1"
-          Grid.Column="2"
-          Classes="chrome-button"
-          Content="Browse"
-          Click="BrowseCgbBootRomPathAsync"
-        />
-        <Button
-          Grid.Row="1"
-          Grid.Column="3"
-          Classes="chrome-button"
-          Content="Clear"
-          Click="ClearCgbBootRomPath"
-        />
+          RowDefinitions="Auto,Auto,Auto"
+          ColumnDefinitions="48,*,72,64"
+          RowSpacing="12"
+          ColumnSpacing="8"
+        >
+          <TextBlock Grid.Row="0" Classes="chrome-label form-label" Text="DMG" />
+          <Border Grid.Row="0" Grid.Column="1" Classes="path-well">
+            <TextBox
+              x:Name="DmgBootRomPathTextBox"
+              Classes="path-box"
+              AutomationProperties.Name="DMG boot ROM path"
+            />
+          </Border>
+          <Button
+            Grid.Row="0"
+            Grid.Column="2"
+            Classes="chrome-button"
+            Content="Browse"
+            Click="BrowseDmgBootRomPathAsync"
+            AutomationProperties.Name="Browse DMG boot ROM"
+          />
+          <Button
+            Grid.Row="0"
+            Grid.Column="3"
+            Classes="chrome-button"
+            Content="Clear"
+            Click="ClearDmgBootRomPath"
+            AutomationProperties.Name="Clear DMG boot ROM"
+          />
 
-        <TextBlock Grid.Row="2" Classes="chrome-label form-label" Text="SGB" />
-        <Border Grid.Row="2" Grid.Column="1" Classes="path-well">
-          <TextBox x:Name="SgbBootRomPathTextBox" Classes="path-box" />
-        </Border>
-        <Button
-          Grid.Row="2"
-          Grid.Column="2"
-          Classes="chrome-button"
-          Content="Browse"
-          Click="BrowseSgbBootRomPathAsync"
-        />
-        <Button
-          Grid.Row="2"
-          Grid.Column="3"
-          Classes="chrome-button"
-          Content="Clear"
-          Click="ClearSgbBootRomPath"
-        />
+          <TextBlock Grid.Row="1" Classes="chrome-label form-label" Text="CGB" />
+          <Border Grid.Row="1" Grid.Column="1" Classes="path-well">
+            <TextBox
+              x:Name="CgbBootRomPathTextBox"
+              Classes="path-box"
+              AutomationProperties.Name="CGB boot ROM path"
+            />
+          </Border>
+          <Button
+            Grid.Row="1"
+            Grid.Column="2"
+            Classes="chrome-button"
+            Content="Browse"
+            Click="BrowseCgbBootRomPathAsync"
+            AutomationProperties.Name="Browse CGB boot ROM"
+          />
+          <Button
+            Grid.Row="1"
+            Grid.Column="3"
+            Classes="chrome-button"
+            Content="Clear"
+            Click="ClearCgbBootRomPath"
+            AutomationProperties.Name="Clear CGB boot ROM"
+          />
+
+          <TextBlock Grid.Row="2" Classes="chrome-label form-label" Text="SGB" />
+          <Border Grid.Row="2" Grid.Column="1" Classes="path-well">
+            <TextBox
+              x:Name="SgbBootRomPathTextBox"
+              Classes="path-box"
+              AutomationProperties.Name="SGB boot ROM path"
+            />
+          </Border>
+          <Button
+            Grid.Row="2"
+            Grid.Column="2"
+            Classes="chrome-button"
+            Content="Browse"
+            Click="BrowseSgbBootRomPathAsync"
+            AutomationProperties.Name="Browse SGB boot ROM"
+          />
+          <Button
+            Grid.Row="2"
+            Grid.Column="3"
+            Classes="chrome-button"
+            Content="Clear"
+            Click="ClearSgbBootRomPath"
+            AutomationProperties.Name="Clear SGB boot ROM"
+          />
+        </Grid>
       </Grid>
 
-      <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-        <Button Classes="chrome-button" Content="Cancel" Click="CancelSettings" />
-        <Button Classes="chrome-button accent" Content="Save" Click="SaveSettings" />
-      </StackPanel>
+      <Grid x:Name="InputsPage" IsVisible="False" RowDefinitions="Auto,*" RowSpacing="14">
+        <StackPanel Grid.Row="0" Spacing="4">
+          <TextBlock Classes="chrome-label form-label" FontSize="18" Text="Inputs" />
+          <TextBlock
+            Classes="muted"
+            Text="Manage keyboard profiles and choose which one is active."
+          />
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnDefinitions="260,*" ColumnSpacing="16" MinHeight="0">
+          <Grid RowDefinitions="Auto,*,Auto,Auto,Auto" RowSpacing="10" MinHeight="0">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="chrome-label form-label" Text="Profiles" />
+              <TextBlock Classes="muted" Text="Select a profile to edit." />
+            </StackPanel>
+            <Border Grid.Row="1" Classes="card" Padding="6" MinHeight="0">
+              <ListBox
+                x:Name="ProfileListBox"
+                SelectionChanged="SelectInputProfile"
+                AutomationProperties.Name="Input profiles"
+                AutomationProperties.AutomationId="InputProfiles"
+                AutomationProperties.HelpText="Select a profile to edit. Selection does not activate it."
+              />
+            </Border>
+            <Grid
+              x:Name="NameEditorPanel"
+              Grid.Row="2"
+              IsVisible="False"
+              RowDefinitions="Auto,Auto"
+              RowSpacing="6"
+            >
+              <TextBox
+                x:Name="ProfileNameTextBox"
+                PlaceholderText="Profile name"
+                KeyDown="HandleProfileNameKeyDown"
+                AutomationProperties.Name="Input profile name"
+                AutomationProperties.AutomationId="InputProfileNameEditor"
+              />
+              <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+                <Button
+                  x:Name="CommitNameButton"
+                  Classes="chrome-button accent"
+                  Content="OK"
+                  Click="CommitProfileNameEdit"
+                />
+                <Button Classes="chrome-button" Content="Cancel" Click="CancelProfileNameEdit" />
+              </StackPanel>
+            </Grid>
+            <TextBlock
+              x:Name="ProfileErrorTextBlock"
+              Grid.Row="3"
+              Classes="error"
+              IsVisible="False"
+            />
+            <Grid
+              Grid.Row="4"
+              ColumnDefinitions="*,*"
+              RowDefinitions="30,30"
+              ColumnSpacing="8"
+              RowSpacing="8"
+            >
+              <Button
+                x:Name="NewProfileButton"
+                Grid.Row="0"
+                Grid.Column="0"
+                Classes="chrome-button"
+                Content="New"
+                Click="StartNewProfile"
+                AutomationProperties.Name="New input profile"
+              />
+              <Button
+                x:Name="RenameProfileButton"
+                Grid.Row="0"
+                Grid.Column="1"
+                Classes="chrome-button"
+                Content="Rename"
+                Click="StartRenameProfile"
+                AutomationProperties.Name="Rename selected input profile"
+              />
+              <Button
+                x:Name="DeleteProfileButton"
+                Grid.Row="1"
+                Grid.Column="0"
+                Classes="chrome-button"
+                Content="Delete"
+                Click="DeleteSelectedProfileAsync"
+                AutomationProperties.Name="Delete selected input profile"
+              />
+              <Button
+                x:Name="SetActiveProfileButton"
+                Grid.Row="1"
+                Grid.Column="1"
+                Classes="chrome-button accent"
+                Content="Set active"
+                Click="SetActiveProfile"
+                AutomationProperties.Name="Set selected input profile active"
+              />
+            </Grid>
+          </Grid>
+
+          <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="10" MinHeight="0">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="chrome-label form-label" Text="Keyboard" />
+              <TextBlock
+                x:Name="KeyboardHelpTextBlock"
+                Classes="muted"
+                Text="Click a button, then press a key."
+              />
+            </StackPanel>
+            <Border Grid.Row="1" Classes="card" Padding="14" MinHeight="0">
+              <ScrollViewer
+                HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto"
+              >
+                <StackPanel x:Name="KeyboardBindingsPanel" Spacing="10" />
+              </ScrollViewer>
+            </Border>
+          </Grid>
+        </Grid>
+      </Grid>
     </Grid>
+
+    <Border
+      Grid.Row="1"
+      Grid.Column="1"
+      Background="{DynamicResource ChromeBackgroundBrush}"
+      BorderBrush="{DynamicResource ChromeHairBrush}"
+      BorderThickness="0,1,0,0"
+      Padding="32,12"
+    >
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <Button
+          Classes="chrome-button"
+          Content="Cancel"
+          Click="CancelSettings"
+          AutomationProperties.Name="Cancel settings"
+        />
+        <Button
+          x:Name="SaveButton"
+          Classes="chrome-button accent"
+          Content="Save"
+          Click="SaveSettings"
+          AutomationProperties.Name="Save settings"
+        />
+      </StackPanel>
+    </Border>
   </Grid>
 </Window>

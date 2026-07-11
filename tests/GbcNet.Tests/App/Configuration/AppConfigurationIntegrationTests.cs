@@ -125,12 +125,26 @@ public sealed class AppConfigurationIntegrationTests
                 "profiles": {
                   "default": {
                     "keyboard": [
-                      { "button": "a", "key": "Z" }
+                      { "button": "up", "key": "Up" },
+                      { "button": "down", "key": "Down" },
+                      { "button": "left", "key": "Left" },
+                      { "button": "right", "key": "Right" },
+                      { "button": "a", "key": "Z" },
+                      { "button": "b", "key": "X" },
+                      { "button": "start", "key": "Enter" },
+                      { "button": "select", "key": "Back" }
                     ]
                   },
                   "alternate": {
                     "keyboard": [
-                      { "button": "b", "key": "X" }
+                      { "button": "up", "key": "Up" },
+                      { "button": "down", "key": "Down" },
+                      { "button": "left", "key": "Left" },
+                      { "button": "right", "key": "Right" },
+                      { "button": "a", "key": "J" },
+                      { "button": "b", "key": "K" },
+                      { "button": "start", "key": "Enter" },
+                      { "button": "select", "key": "Back" }
                     ]
                   }
                 }
@@ -146,9 +160,11 @@ public sealed class AppConfigurationIntegrationTests
         Assert.Equal("alternate", startupConfiguration.InputConfig.ActiveProfile);
         Assert.Equal(2, startupConfiguration.InputConfig.Profiles.Count);
         var inputMap = InputMap.FromConfig(startupConfiguration.InputConfig);
-        var binding = Assert.Single(inputMap.Bindings);
-        Assert.Equal(JoypadButton.B, binding.Button);
-        Assert.Equal(Key.X, binding.Key);
+        Assert.Equal(8, inputMap.Bindings.Count);
+        Assert.Contains(
+            inputMap.Bindings,
+            binding => binding.Button is JoypadButton.B && binding.Key is Key.K
+        );
     }
 
     [Fact]
@@ -168,7 +184,14 @@ public sealed class AppConfigurationIntegrationTests
                 "profiles": {
                   "default": {
                     "keyboard": [
-                      { "button": "a", "key": "Z" }
+                      { "button": "up", "key": "Up" },
+                      { "button": "down", "key": "Down" },
+                      { "button": "left", "key": "Left" },
+                      { "button": "right", "key": "Right" },
+                      { "button": "a", "key": "Z" },
+                      { "button": "b", "key": "X" },
+                      { "button": "start", "key": "Enter" },
+                      { "button": "select", "key": "Back" }
                     ]
                   }
                 }
@@ -318,9 +341,8 @@ public sealed class AppConfigurationIntegrationTests
 
         Assert.NotEmpty(validation);
         Assert.Contains(
-            "must contain at least one keyboard binding",
-            validation.Single(),
-            StringComparison.Ordinal
+            validation,
+            error => error.Contains("exactly 8 keyboard bindings", StringComparison.Ordinal)
         );
     }
 

@@ -59,7 +59,7 @@
       </MenuItem>
 
       <MenuItem Header="_Help">
-        <MenuItem x:Name="GitHubRepositoryMenuItem" Header="_GitHub Repository" />
+        <MenuItem x:Name="GitHubRepositoryMenuItem" Header="_View on GitHub" />
       </MenuItem>
     </Menu>
   </Border>

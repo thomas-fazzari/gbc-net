@@ -112,7 +112,7 @@ internal static class AppConfigurationFile
     public static InputConfig CreateDefaultInputConfig() =>
         new()
         {
-            Profiles = new Dictionary<string, InputProfileConfig>(StringComparer.Ordinal)
+            Profiles = new Dictionary<string, InputProfileConfig>(StringComparer.OrdinalIgnoreCase)
             {
                 [InputConfig.DefaultProfileName] = new()
                 {

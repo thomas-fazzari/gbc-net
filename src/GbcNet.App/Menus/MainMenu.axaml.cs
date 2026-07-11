@@ -376,7 +376,7 @@ internal sealed partial class MainMenu : UserControl
 
     private NativeMenu CreateNativeHelpMenu()
     {
-        var item = new NativeMenuItem("GitHub Repository");
+        var item = new NativeMenuItem("View on GitHub");
         item.Click += (_, _) => GitHubRepositoryRequested?.Invoke(this, EventArgs.Empty);
         return [item];
     }

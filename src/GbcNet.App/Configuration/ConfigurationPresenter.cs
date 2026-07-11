@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 using Avalonia.Controls;
-using GbcNet.App.Configuration.Sections.BootRom;
+using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.App.Shell.Chrome;
 using GbcNet.Core;
 
@@ -13,15 +13,16 @@ internal sealed class ConfigurationPresenter(
     AppConfigurationService configurationService,
     string configPath,
     StatusBarPresenter statusBar,
-    Action<BootRomOptions> setBootRomOptions
+    Action<BootRomOptions> setBootRomOptions,
+    Action<InputConfig> applyInputConfig
 )
 {
     public async Task OpenAsync(Window owner)
     {
-        BootRomConfig bootRomConfig;
+        SettingsConfig settings;
         try
         {
-            bootRomConfig = configurationService.LoadBootRomConfig();
+            settings = LoadSettingsDraft();
         }
         catch (ConfigurationException exception)
         {
@@ -29,8 +30,8 @@ internal sealed class ConfigurationPresenter(
             return;
         }
 
-        var savedConfig = await new SettingsWindow(bootRomConfig)
-            .ShowDialog<BootRomConfig?>(owner)
+        var savedConfig = await new SettingsWindow(settings)
+            .ShowDialog<SettingsConfig?>(owner)
             .ConfigureAwait(true);
 
         if (savedConfig is null)
@@ -38,17 +39,7 @@ internal sealed class ConfigurationPresenter(
             return;
         }
 
-        try
-        {
-            configurationService.SaveBootRomConfig(savedConfig.Value);
-        }
-        catch (ConfigurationException exception)
-        {
-            statusBar.ShowError(exception.Message);
-            return;
-        }
-
-        ReloadBootRomOptions();
+        SaveAndApply(savedConfig);
     }
 
     public Task OpenConfigurationDirectoryAsync()
@@ -69,6 +60,42 @@ internal sealed class ConfigurationPresenter(
             );
 
         return Task.CompletedTask;
+    }
+
+    private void SaveAndApply(SettingsConfig settings)
+    {
+        try
+        {
+            configurationService.SaveSettings(settings);
+        }
+        catch (ConfigurationException exception)
+        {
+            statusBar.ShowError(exception.Message);
+            return;
+        }
+
+        applyInputConfig(settings.Input);
+        ReloadBootRomOptions();
+    }
+
+    private SettingsConfig LoadSettingsDraft()
+    {
+        var settings = configurationService.LoadSettings();
+        if (settings.Input is null)
+        {
+            const string error = "Input config must contain at least one profile.";
+            statusBar.ShowError(error);
+            return settings with { Input = AppConfigurationFile.CreateDefaultInputConfig() };
+        }
+
+        var errors = InputConfigValidator.Validate(settings.Input);
+        if (errors.Count == 0)
+        {
+            return settings;
+        }
+
+        statusBar.ShowError(string.Join(Environment.NewLine, errors));
+        return settings with { Input = AppConfigurationFile.CreateDefaultInputConfig() };
     }
 
     private void ReloadBootRomOptions()

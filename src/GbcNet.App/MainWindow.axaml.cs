@@ -76,9 +76,10 @@ internal sealed partial class MainWindow : Window, IDisposable
             startupConfiguration.EmulationConfig.FastForwardEnabled,
             startupConfiguration.EmulationConfig.FastForwardSpeed
         );
+        var inputRouter = new InputRouter(inputMap.Bindings, emulationController.SetButtonState);
         _emulationSession = new EmulationSessionPresenter(
             emulationController,
-            new InputRouter(inputMap.Bindings, emulationController.SetButtonState),
+            inputRouter,
             libraryService,
             configurationService,
             _statusBar,
@@ -122,7 +123,8 @@ internal sealed partial class MainWindow : Window, IDisposable
             configurationService,
             startupConfiguration.ConfigPath,
             _statusBar,
-            _emulationSession.SetBootRomOptions
+            _emulationSession.SetBootRomOptions,
+            input => inputRouter.ReplaceBindings(InputMap.FromConfig(input).Bindings)
         );
 
         ConfigureMenu(emulationView);

@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Avalonia.Input;
+using GbcNet.App.Utils;
 using GbcNet.Core.Joypad;
 
 namespace GbcNet.App.Configuration.Sections.Input;
@@ -29,7 +30,7 @@ internal sealed class InputConfig
     /// Available input profiles keyed by profile name.
     /// </summary>
     public IReadOnlyDictionary<string, InputProfileConfig> Profiles { get; set; } =
-        new Dictionary<string, InputProfileConfig>(StringComparer.Ordinal);
+        new Dictionary<string, InputProfileConfig>(StringComparer.OrdinalIgnoreCase);
 }
 
 /// <summary>
@@ -37,54 +38,179 @@ internal sealed class InputConfig
 /// </summary>
 internal static class InputConfigValidator
 {
+    public static IReadOnlyList<JoypadButton> RequiredButtons { get; } =
+    [
+        JoypadButton.Up,
+        JoypadButton.Down,
+        JoypadButton.Left,
+        JoypadButton.Right,
+        JoypadButton.A,
+        JoypadButton.B,
+        JoypadButton.Start,
+        JoypadButton.Select,
+    ];
+
+    public static bool IsReservedKey(Key key) => key is Key.Space or Key.Tab;
+
     public static IReadOnlyList<string> Validate(InputConfig config)
     {
         ArgumentNullException.ThrowIfNull(config);
 
+        var errors = new List<string>();
+
         if (config.Version != InputConfig.SupportedVersion)
         {
-            return
-            [
+            errors.Add(
                 string.Create(
                     CultureInfo.InvariantCulture,
                     $"Input config version {config.Version} is not supported."
-                ),
-            ];
+                )
+            );
         }
 
-        if (!config.Profiles.TryGetValue(config.ActiveProfile, out var profile))
+        if (config.Profiles is null)
         {
-            return [$"Input profile '{config.ActiveProfile}' does not exist."];
+            errors.Add("Input config must contain at least one profile.");
+            return errors;
         }
 
-        if (profile.Keyboard.Count == 0)
+        if (config.Profiles.Count == 0)
         {
-            return
-            [
-                $"Input profile '{config.ActiveProfile}' must contain at least one keyboard binding.",
-            ];
+            errors.Add("Input config must contain at least one profile.");
         }
 
+        var profileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var hasDefaultProfile = false;
+        var hasActiveProfile = false;
+
+        foreach (var (name, profile) in config.Profiles)
+        {
+            var trimmedName = name?.Trim();
+
+            if (string.IsNullOrWhiteSpace(trimmedName))
+            {
+                errors.Add("Input profile name must not be blank.");
+                continue;
+            }
+
+            if (!string.Equals(name, trimmedName, StringComparison.Ordinal))
+            {
+                errors.Add($"Input profile name '{name}' must be trimmed.");
+            }
+
+            if (!profileNames.Add(trimmedName))
+            {
+                errors.Add($"Input profile name '{trimmedName}' is used more than once.");
+            }
+
+            if (
+                string.Equals(
+                    trimmedName,
+                    InputConfig.DefaultProfileName,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                hasDefaultProfile = true;
+            }
+
+            if (
+                string.Equals(
+                    trimmedName,
+                    config.ActiveProfile?.Trim(),
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                hasActiveProfile = true;
+            }
+
+            ValidateProfile(trimmedName, profile, errors);
+        }
+
+        if (!hasDefaultProfile)
+        {
+            errors.Add(
+                $"Input config must contain protected '{InputConfig.DefaultProfileName}' profile."
+            );
+        }
+
+        if (string.IsNullOrWhiteSpace(config.ActiveProfile))
+        {
+            errors.Add("Active input profile must not be blank.");
+        }
+        else if (!hasActiveProfile)
+        {
+            errors.Add($"Input profile '{config.ActiveProfile}' does not exist.");
+        }
+
+        return errors;
+    }
+
+    private static void ValidateProfile(
+        string profileName,
+        InputProfileConfig? profile,
+        List<string> errors
+    )
+    {
+        if (profile is null)
+        {
+            errors.Add($"Input profile '{profileName}' is malformed.");
+            return;
+        }
+
+        if (profile.Keyboard is null)
+        {
+            errors.Add($"Input profile '{profileName}' keyboard bindings are malformed.");
+            return;
+        }
+
+        if (profile.Keyboard.Count != RequiredButtons.Count)
+        {
+            errors.Add(
+                $"Input profile '{profileName}' must contain exactly {RequiredButtons.Count} keyboard bindings."
+            );
+        }
+
+        var usedButtons = new HashSet<JoypadButton>();
         var usedKeys = new HashSet<Key>();
 
         foreach (var binding in profile.Keyboard)
         {
-            if (!Enum.TryParse(binding.ButtonName, ignoreCase: true, out JoypadButton _))
+            if (binding is null)
             {
-                return [$"Unknown joypad button '{binding.ButtonName}'."];
+                errors.Add($"Input profile '{profileName}' contains a malformed keyboard binding.");
+                continue;
             }
 
-            if (!Enum.TryParse(binding.KeyName, ignoreCase: false, out Key key))
+            if (!EnumParser.TryParseDefinedName(binding.ButtonName, out JoypadButton button))
             {
-                return [$"Unknown keyboard key '{binding.KeyName}'."];
+                errors.Add($"Unknown joypad button '{binding.ButtonName}'.");
+            }
+            else if (!usedButtons.Add(button))
+            {
+                errors.Add($"Joypad button '{binding.ButtonName}' is bound more than once.");
             }
 
-            if (!usedKeys.Add(key))
+            if (!EnumParser.TryParseDefinedName(binding.KeyName, out Key key) || key is Key.None)
             {
-                return [$"Keyboard key '{binding.KeyName}' is bound more than once."];
+                errors.Add($"Unknown keyboard key '{binding.KeyName}'.");
+                continue;
+            }
+
+            if (IsReservedKey(key))
+            {
+                errors.Add($"Keyboard key '{binding.KeyName}' is reserved.");
+            }
+            else if (!usedKeys.Add(key))
+            {
+                errors.Add($"Keyboard key '{binding.KeyName}' is bound more than once.");
             }
         }
 
-        return [];
+        foreach (var button in RequiredButtons.Where(button => !usedButtons.Contains(button)))
+        {
+            errors.Add($"Input profile '{profileName}' is missing joypad button '{button}'.");
+        }
     }
 }

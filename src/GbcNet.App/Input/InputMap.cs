@@ -16,7 +16,17 @@ internal sealed class InputMap(IReadOnlyList<InputBinding> bindings)
 
     public static InputMap FromConfig(InputConfig config)
     {
-        var profile = config.Profiles[config.ActiveProfile];
+        var profile = config.Profiles.TryGetValue(config.ActiveProfile, out var exactProfile)
+            ? exactProfile
+            : config
+                .Profiles.First(profile =>
+                    string.Equals(
+                        profile.Key,
+                        config.ActiveProfile,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                .Value;
 
         return new InputMap([
             .. profile.Keyboard.Select(binding => new InputBinding(

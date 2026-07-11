@@ -16,10 +16,7 @@ internal sealed class InputRouter(
 {
     private readonly HashSet<Key> _activeKeys = [];
     private readonly Dictionary<JoypadButton, int> _activeInputCountByButton = CreateButtonCounts();
-    private readonly Dictionary<Key, JoypadButton> _buttonByKey = bindings.ToDictionary(
-        binding => binding.Key,
-        binding => binding.Button
-    );
+    private Dictionary<Key, JoypadButton> _buttonByKey = CreateButtonLookup(bindings);
 
     public bool Apply(Key key, bool pressed)
     {
@@ -47,6 +44,14 @@ internal sealed class InputRouter(
         return true;
     }
 
+    public void ReplaceBindings(IReadOnlyList<InputBinding> bindings)
+    {
+        var replacement = CreateButtonLookup(bindings);
+
+        Clear();
+        _buttonByKey = replacement;
+    }
+
     public void Clear()
     {
         _activeKeys.Clear();
@@ -61,6 +66,10 @@ internal sealed class InputRouter(
             _activeInputCountByButton[button] = 0;
         }
     }
+
+    private static Dictionary<Key, JoypadButton> CreateButtonLookup(
+        IReadOnlyList<InputBinding> bindings
+    ) => bindings.ToDictionary(binding => binding.Key, binding => binding.Button);
 
     private static Dictionary<JoypadButton, int> CreateButtonCounts() =>
         Enum.GetValues<JoypadButton>().ToDictionary(button => button, static _ => 0);
