@@ -19,7 +19,7 @@ internal sealed class NoMbcMemoryController(
     public ICartridgeMemoryControllerState CaptureState() =>
         new NoMbcMemoryControllerState(_cartridgeRam.CaptureState());
 
-    public void RestoreState(ICartridgeMemoryControllerState state)
+    public void ValidateState(ICartridgeMemoryControllerState state)
     {
         if (state is not NoMbcMemoryControllerState noMbcState)
         {
@@ -30,6 +30,12 @@ internal sealed class NoMbcMemoryController(
         }
 
         _cartridgeRam.ValidateState(noMbcState.Ram);
+    }
+
+    public void RestoreState(ICartridgeMemoryControllerState state)
+    {
+        ValidateState(state);
+        var noMbcState = (NoMbcMemoryControllerState)state;
         _cartridgeRam.RestoreState(noMbcState.Ram);
     }
 

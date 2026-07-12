@@ -284,6 +284,15 @@ public sealed class OamDmaControllerTests
         );
     }
 
+    [Fact]
+    public void RestoreState_RejectsActiveTransferAtCompletedOffset()
+    {
+        var dma = new OamDmaController();
+        var state = dma.CaptureState() with { NextOffset = 0xA0, IsActive = true };
+
+        Assert.Throws<ArgumentException>(() => dma.RestoreState(state));
+    }
+
     private static byte ReadLowByte(ushort address) => (byte)address;
 
     private static byte ReadSourceHighByte(ushort address) => (byte)(address >> 8);

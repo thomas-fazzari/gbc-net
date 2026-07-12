@@ -19,6 +19,7 @@ internal sealed class EmulationController(
     BootRomOptions bootRomOptions,
     IAudioOutput audioOutput,
     CartridgeBatterySaveFileService cartridgeSaveFileService,
+    SaveStateFileService saveStateFileService,
     Action<LcdFrame> handleFrame,
     Action<Exception> handleFault,
     bool fastForwardEnabled,
@@ -30,6 +31,8 @@ internal sealed class EmulationController(
     private byte[]? _loadedRom;
     private CartridgeHeader? _loadedCartridgeHeader;
     private string _loadedRomFileName = string.Empty;
+    private RomStorageIdentity? _loadedRomStorageIdentity;
+
     private bool _fastForwardEnabled = fastForwardEnabled;
     private EmulationSpeed _fastForwardSpeed = Enum.IsDefined(fastForwardSpeed)
         ? fastForwardSpeed
@@ -83,6 +86,8 @@ internal sealed class EmulationController(
         _loadedRom = rom;
         _loadedCartridgeHeader = cartridge.Header;
         _loadedRomFileName = file.Name;
+        _loadedRomStorageIdentity = RomStorageIdentity.Create(cartridge.Header.Title, rom);
+
         Start(cartridge, savePath);
         return State;
     }
@@ -114,6 +119,34 @@ internal sealed class EmulationController(
         await session.StopAsync().ConfigureAwait(true);
     }
 
+    public async Task SaveStateAsync(int slot, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var (session, rom) = GetSaveStateTarget();
+        var state = await session.CaptureSaveStateAsync().ConfigureAwait(true);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await saveStateFileService
+            .SaveAsync(rom, slot, session.HardwareModel, state, cancellationToken)
+            .ConfigureAwait(true);
+    }
+
+    public async Task LoadStateAsync(int slot, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var (session, rom) = GetSaveStateTarget();
+        var state = await saveStateFileService
+            .LoadAsync(rom, slot, session.HardwareModel, cancellationToken)
+            .ConfigureAwait(true);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await session.RestoreSaveStateAsync(state).ConfigureAwait(true);
+    }
+
     private static async Task<byte[]> ReadFileAsync(IStorageFile file)
     {
         var stream = await file.OpenReadAsync().ConfigureAwait(false);
@@ -130,6 +163,16 @@ internal sealed class EmulationController(
     {
         var cartridge = Cartridge.LoadOrThrow(rom);
         return (cartridge, cartridgeSaveFileService.Load(cartridge, rom));
+    }
+
+    private (EmulationSession Session, RomStorageIdentity Rom) GetSaveStateTarget()
+    {
+        if (_session is not { } session || _loadedRomStorageIdentity is not { } rom)
+        {
+            throw new InvalidOperationException("No ROM is loaded.");
+        }
+
+        return (session, rom);
     }
 
     private void Start(Cartridge cartridge, string? savePath)

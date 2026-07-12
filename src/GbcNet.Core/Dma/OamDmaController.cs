@@ -46,8 +46,33 @@ internal sealed class OamDmaController
             IsActive
         );
 
+    internal static void ValidateState(OamDmaControllerState state)
+    {
+        if (state.NextOffset is < 0 or > TransferLength)
+        {
+            throw new ArgumentException("State OAM DMA offset is out of range.", nameof(state));
+        }
+
+        if (state.IsActive && state.NextOffset == TransferLength)
+        {
+            throw new ArgumentException(
+                "State active OAM DMA must have bytes remaining.",
+                nameof(state)
+            );
+        }
+
+        if (
+            state.StartupDelayMachineCycles is < 0 or > StartupDelayMachineCycles
+            || state.RestartDelayMachineCycles is < 0 or > StartupDelayMachineCycles
+        )
+        {
+            throw new ArgumentException("State OAM DMA delay is out of range.", nameof(state));
+        }
+    }
+
     internal void RestoreState(OamDmaControllerState state)
     {
+        ValidateState(state);
         _registerSourceHighByte = state.RegisterSourceHighByte;
         _activeSourceHighByte = state.ActiveSourceHighByte;
         _pendingRestartSourceHighByte = state.PendingRestartSourceHighByte;

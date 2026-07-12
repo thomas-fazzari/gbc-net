@@ -111,6 +111,43 @@ public sealed class CgbVramDmaControllerTests
         Assert.Empty(destinationWrites);
     }
 
+    [Fact]
+    public void RestoreState_RejectsActiveHblankDmaWithoutRemainingBlocks()
+    {
+        var dma = CreateController([], []);
+        var state = dma.CaptureState() with { IsHblankDmaActive = true };
+
+        Assert.Throws<ArgumentException>(() => dma.RestoreState(state));
+    }
+
+    [Fact]
+    public void RestoreState_RejectsNonInertStateWhenRegistersAreDisabled()
+    {
+        var dma = CreateDisabledController();
+        var state = dma.CaptureState() with { SourceHigh = 0xC0 };
+
+        Assert.Throws<ArgumentException>(() => dma.RestoreState(state));
+    }
+
+    [Fact]
+    public void RestoreState_AllowsCpuHaltedStateWhenRegistersAreDisabled()
+    {
+        var dma = CreateDisabledController();
+        var state = dma.CaptureState() with { CpuHalted = true };
+
+        dma.RestoreState(state);
+
+        Assert.Equal(state, dma.CaptureState());
+    }
+
+    private static CgbVramDmaController CreateDisabledController() =>
+        new(
+            isRegisterEnabled: false,
+            isDoubleSpeed: () => false,
+            readSourceByte: _ => 0,
+            writeDestinationByte: (_, _) => { }
+        );
+
     private static CgbVramDmaController CreateController(
         List<ushort> sourceReads,
         List<(ushort Address, byte Value)> destinationWrites

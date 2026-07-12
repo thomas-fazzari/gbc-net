@@ -29,6 +29,16 @@ internal sealed partial class MainMenu : UserControl
         IsEnabled = false,
     };
 
+    private readonly NativeMenuItem _nativeSaveStateMenuItem = new("Save State")
+    {
+        IsEnabled = false,
+    };
+
+    private readonly NativeMenuItem _nativeLoadStateMenuItem = new("Load State")
+    {
+        IsEnabled = false,
+    };
+
     private readonly NativeMenuItem _nativeFastForwardMenuItem = new("Fast Forward")
     {
         Gesture = _fastForwardGesture,
@@ -93,6 +103,10 @@ internal sealed partial class MainMenu : UserControl
 
     public event EventHandler? ResetRequested;
 
+    public event EventHandler? SaveStateRequested;
+
+    public event EventHandler? LoadStateRequested;
+
     public event EventHandler? FastForwardRequested;
 
     public event EventHandler<FastForwardSpeedSelectedEventArgs>? FastForwardSpeedSelected;
@@ -151,6 +165,9 @@ internal sealed partial class MainMenu : UserControl
     {
         SetPauseState(isEnabled, isPaused: false);
         SetEnabled(_nativeResetMenuItem, ResetEmulationMenuItem, isEnabled);
+        SetEnabled(_nativeSaveStateMenuItem, SaveStateMenuItem, isEnabled);
+        SetEnabled(_nativeLoadStateMenuItem, LoadStateMenuItem, isEnabled);
+
         SetEnabled(_nativeCloseMenuItem, CloseWindowMenuItem, isEnabled);
     }
 
@@ -249,6 +266,9 @@ internal sealed partial class MainMenu : UserControl
     {
         PauseEmulationMenuItem.Click += (_, _) => PauseRequested?.Invoke(this, EventArgs.Empty);
         ResetEmulationMenuItem.Click += (_, _) => ResetRequested?.Invoke(this, EventArgs.Empty);
+        SaveStateMenuItem.Click += (_, _) => SaveStateRequested?.Invoke(this, EventArgs.Empty);
+        LoadStateMenuItem.Click += (_, _) => LoadStateRequested?.Invoke(this, EventArgs.Empty);
+
         FastForwardMenuItem.InputGesture = _fastForwardGesture;
         FastForwardMenuItem.Click += (_, _) => FastForwardRequested?.Invoke(this, EventArgs.Empty);
         ConfigureFastForwardSpeedMenuItems();
@@ -351,6 +371,11 @@ internal sealed partial class MainMenu : UserControl
     {
         _nativePauseMenuItem.Click += (_, _) => PauseRequested?.Invoke(this, EventArgs.Empty);
         _nativeResetMenuItem.Click += (_, _) => ResetRequested?.Invoke(this, EventArgs.Empty);
+        _nativeSaveStateMenuItem.Click += (_, _) =>
+            SaveStateRequested?.Invoke(this, EventArgs.Empty);
+        _nativeLoadStateMenuItem.Click += (_, _) =>
+            LoadStateRequested?.Invoke(this, EventArgs.Empty);
+
         _nativeFastForwardMenuItem.Click += (_, _) =>
             FastForwardRequested?.Invoke(this, EventArgs.Empty);
 
@@ -358,6 +383,9 @@ internal sealed partial class MainMenu : UserControl
         [
             _nativePauseMenuItem,
             _nativeResetMenuItem,
+            new NativeMenuItemSeparator(),
+            _nativeSaveStateMenuItem,
+            _nativeLoadStateMenuItem,
             new NativeMenuItemSeparator(),
             _nativeFastForwardMenuItem,
             new NativeMenuItem("Fast Forward Speed") { Menu = _nativeFastForwardSpeedMenu },

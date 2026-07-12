@@ -37,7 +37,7 @@ internal sealed class Mbc5MemoryController(
             _ramBank
         );
 
-    public void RestoreState(ICartridgeMemoryControllerState state)
+    public void ValidateState(ICartridgeMemoryControllerState state)
     {
         if (state is not Mbc5MemoryControllerState mbc5State)
         {
@@ -58,7 +58,12 @@ internal sealed class Mbc5MemoryController(
         {
             throw new ArgumentException("RAM bank must be in the 0-15 range.", nameof(state));
         }
+    }
 
+    public void RestoreState(ICartridgeMemoryControllerState state)
+    {
+        ValidateState(state);
+        var mbc5State = (Mbc5MemoryControllerState)state;
         _externalRam.RestoreState(mbc5State.ExternalRam);
         _romBankLow = mbc5State.RomBankLow;
         _romBankHigh = mbc5State.RomBankHigh;

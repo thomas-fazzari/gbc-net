@@ -82,8 +82,45 @@ internal sealed class SerialController(
             _transferActive
         );
 
+    internal void ValidateState(SerialControllerState state)
+    {
+        var controlMask = isHighSpeedClockEnabled ? CgbControlWriteMask : DmgControlWriteMask;
+        if ((state.Control & ~controlMask) != 0)
+        {
+            throw new ArgumentException(
+                "State serial control contains unsupported bits.",
+                nameof(state)
+            );
+        }
+
+        if (state.TransferredBitCount is < 0 or >= TransferBitCount)
+        {
+            throw new ArgumentException(
+                "State serial transfer bit count is out of range.",
+                nameof(state)
+            );
+        }
+
+        if (state.TransferActive != ((state.Control & TransferStartMask) != 0))
+        {
+            throw new ArgumentException(
+                "State serial transfer activity does not match its control register.",
+                nameof(state)
+            );
+        }
+
+        if (!state.TransferActive && state.TransferredBitCount != 0)
+        {
+            throw new ArgumentException(
+                "State inactive serial transfer cannot have shifted bits.",
+                nameof(state)
+            );
+        }
+    }
+
     internal void RestoreState(SerialControllerState state)
     {
+        ValidateState(state);
         _control = state.Control;
         TransferData = state.TransferData;
         _outgoingTransferData = state.OutgoingTransferData;

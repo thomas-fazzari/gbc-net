@@ -38,7 +38,7 @@ internal sealed class Mbc1MemoryController(
             _bankingMode
         );
 
-    public void RestoreState(ICartridgeMemoryControllerState state)
+    public void ValidateState(ICartridgeMemoryControllerState state)
     {
         if (state is not Mbc1MemoryControllerState mbc1State)
         {
@@ -60,7 +60,12 @@ internal sealed class Mbc1MemoryController(
                 nameof(state)
             );
         }
+    }
 
+    public void RestoreState(ICartridgeMemoryControllerState state)
+    {
+        ValidateState(state);
+        var mbc1State = (Mbc1MemoryControllerState)state;
         _externalRam.RestoreState(mbc1State.ExternalRam);
         _romBankLow = mbc1State.RomBankLow;
         _bankHigh = mbc1State.BankHigh;

@@ -129,7 +129,7 @@ internal sealed class Mbc3MemoryController : ICartridgeMemoryController, ICartri
             _rtcLatchArmed
         );
 
-    public void RestoreState(ICartridgeMemoryControllerState state)
+    public void ValidateState(ICartridgeMemoryControllerState state)
     {
         if (state is not Mbc3MemoryControllerState mbc3State)
         {
@@ -140,6 +140,12 @@ internal sealed class Mbc3MemoryController : ICartridgeMemoryController, ICartri
         }
 
         ValidateState(mbc3State);
+    }
+
+    public void RestoreState(ICartridgeMemoryControllerState state)
+    {
+        ValidateState(state);
+        var mbc3State = (Mbc3MemoryControllerState)state;
 
         if (mbc3State.RealTimeClock is { } realTimeClockState)
         {

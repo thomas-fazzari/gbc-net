@@ -27,6 +27,7 @@
     <PackageReference Include="ppy.SDL3-CS" />
     <PackageReference Include="SoundFlow" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
+    <PackageReference Include="ZstdSharp.Port" />
   </ItemGroup>
 
   <ItemGroup>

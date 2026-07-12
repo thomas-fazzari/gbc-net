@@ -1,6 +1,8 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Text.Json.Serialization;
+
 namespace GbcNet.Core.Cartridges.Memory;
 
 /// <summary>
@@ -12,6 +14,11 @@ internal interface ICartridgeMemoryController
     /// Captures all mutable state owned by this controller.
     /// </summary>
     ICartridgeMemoryControllerState CaptureState();
+
+    /// <summary>
+    /// Validates controller state without mutating the controller.
+    /// </summary>
+    void ValidateState(ICartridgeMemoryControllerState state);
 
     /// <summary>
     /// Restores previously captured state for this controller.
@@ -47,7 +54,10 @@ internal interface ICartridgeMemoryController
 /// <summary>
 /// Mutable state for one supported cartridge memory controller.
 /// </summary>
-/// <remarks>
-/// Derived types are ordered for stable future MessagePack union tags: NoMbc, Mbc1, Mbc2, Mbc3, Mbc5.
-/// </remarks>
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+[JsonDerivedType(typeof(NoMbcMemoryControllerState), "no-mbc")]
+[JsonDerivedType(typeof(Mbc1MemoryControllerState), "mbc1")]
+[JsonDerivedType(typeof(Mbc2MemoryControllerState), "mbc2")]
+[JsonDerivedType(typeof(Mbc3MemoryControllerState), "mbc3")]
+[JsonDerivedType(typeof(Mbc5MemoryControllerState), "mbc5")]
 internal interface ICartridgeMemoryControllerState;

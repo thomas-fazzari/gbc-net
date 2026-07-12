@@ -160,8 +160,25 @@ internal sealed class TimerController(
     internal TimerControllerState CaptureState() =>
         new(_timerCounter, TimerModulo, _timerControl, _reloadState);
 
+    internal static void ValidateState(TimerControllerState state)
+    {
+        if ((state.TimerControl & ~TimerControlWriteMask) != 0)
+        {
+            throw new ArgumentException(
+                "State timer control contains unsupported bits.",
+                nameof(state)
+            );
+        }
+
+        if (!Enum.IsDefined(state.ReloadState))
+        {
+            throw new ArgumentException("State timer reload state is invalid.", nameof(state));
+        }
+    }
+
     internal void RestoreState(TimerControllerState state)
     {
+        ValidateState(state);
         _timerCounter = state.TimerCounter;
         TimerModulo = state.TimerModulo;
         _timerControl = state.TimerControl;

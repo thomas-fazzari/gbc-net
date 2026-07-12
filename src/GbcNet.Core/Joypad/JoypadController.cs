@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core.Interrupts;
-using GbcNet.Core.Sgb;
+using GbcNet.Core.Snes;
 
 namespace GbcNet.Core.Joypad;
 
@@ -69,11 +69,23 @@ internal sealed class JoypadController(InterruptController interrupts, SgbContro
     /// </summary>
     internal JoypadControllerState CaptureState() => new(_selectedGroups, _pressedButtons);
 
+    internal static void ValidateState(JoypadControllerState state)
+    {
+        if ((state.SelectedGroups & ~SelectBitsMask) != 0)
+        {
+            throw new ArgumentException(
+                "State JOYP selection contains unsupported bits.",
+                nameof(state)
+            );
+        }
+    }
+
     /// <summary>
     /// Restores the JOYP selection and button states without transitions.
     /// </summary>
     internal void RestoreState(JoypadControllerState state)
     {
+        ValidateState(state);
         _selectedGroups = (byte)(state.SelectedGroups & SelectBitsMask);
         _pressedButtons = state.PressedButtons;
     }

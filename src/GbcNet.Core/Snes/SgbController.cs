@@ -3,7 +3,7 @@
 
 using GbcNet.Core.Ppu;
 
-namespace GbcNet.Core.Sgb;
+namespace GbcNet.Core.Snes;
 
 /// <summary>
 /// Receives high-level SGB command packets through JOYP and tracks SNES-side state.
@@ -110,6 +110,136 @@ internal sealed class SgbController(bool commandsEnabled)
     private byte[]? _lastBootFramePixels;
 
     public bool HasPendingVramTransfer => _pendingVramTransfer != NoPendingVramTransfer;
+
+    internal SgbControllerState CaptureState() =>
+        new(
+            (byte[])_command.Clone(),
+            (ushort[])_systemPalettes.Clone(),
+            (byte[])_attributeFiles.Clone(),
+            (byte[])_borderTiles.Clone(),
+            (ushort[])_borderMap.Clone(),
+            (ushort[])_borderPalettes.Clone(),
+            (ushort[])_palettes.Clone(),
+            (byte[])_attributeMap.Clone(),
+            _commandWriteBitIndex,
+            _readyForPulse,
+            _readyForWrite,
+            _readyForStop,
+            _playerCount,
+            _currentPlayer,
+            _maskMode,
+            _pendingVramTransfer,
+            _pendingVramTransferFrameDelay,
+            _borderReady,
+            _visibleFramePixels is null ? null : (byte[])_visibleFramePixels.Clone(),
+            _lastBootFramePixels is null ? null : (byte[])_lastBootFramePixels.Clone()
+        );
+
+    internal void ValidateState(SgbControllerState state)
+    {
+        if (
+            state.Command is null
+            || state.Command.Length != _command.Length
+            || state.SystemPalettes is null
+            || state.SystemPalettes.Length != _systemPalettes.Length
+            || state.AttributeFiles is null
+            || state.AttributeFiles.Length != _attributeFiles.Length
+            || state.BorderTiles is null
+            || state.BorderTiles.Length != _borderTiles.Length
+            || state.BorderMap is null
+            || state.BorderMap.Length != _borderMap.Length
+            || state.BorderPalettes is null
+            || state.BorderPalettes.Length != _borderPalettes.Length
+            || state.Palettes is null
+            || state.Palettes.Length != _palettes.Length
+            || state.AttributeMap is null
+            || state.AttributeMap.Length != _attributeMap.Length
+            || (
+                state.VisibleFramePixels is not null
+                && state.VisibleFramePixels.Length
+                    != PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * Rgb555BytesPerPixel
+            )
+            || (
+                state.LastBootFramePixels is not null
+                && state.LastBootFramePixels.Length
+                    != PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * Rgb555BytesPerPixel
+            )
+        )
+        {
+            throw new ArgumentException("SGB state has an invalid buffer shape.", nameof(state));
+        }
+
+        if (state.CommandWriteBitIndex is < 0 or > MaxCommandSizeBytes * 8)
+        {
+            throw new ArgumentOutOfRangeException(nameof(state));
+        }
+
+        if (
+            state.PlayerCount is not (1 or 2 or 4)
+            || state.CurrentPlayer < 0
+            || state.CurrentPlayer >= state.PlayerCount
+        )
+        {
+            throw new ArgumentOutOfRangeException(nameof(state));
+        }
+
+        if (state.MaskMode > MaskColor0 || state.PendingVramTransfer > PendingBorderMapTransfer)
+        {
+            throw new ArgumentOutOfRangeException(nameof(state));
+        }
+
+        if (
+            (
+                state.PendingVramTransfer == NoPendingVramTransfer
+                && state.PendingVramTransferFrameDelay != 0
+            )
+            || (
+                state.PendingVramTransfer != NoPendingVramTransfer
+                && state.PendingVramTransferFrameDelay is < 1 or > VramTransferFrameDelay
+            )
+        )
+        {
+            throw new ArgumentOutOfRangeException(nameof(state));
+        }
+
+        if (state.AttributeMap.Any(static attribute => attribute > 3))
+        {
+            throw new ArgumentOutOfRangeException(nameof(state));
+        }
+    }
+
+    internal void RestoreState(SgbControllerState state)
+    {
+        ValidateState(state);
+
+        state.Command.CopyTo(_command, 0);
+        state.SystemPalettes.CopyTo(_systemPalettes, 0);
+        state.AttributeFiles.CopyTo(_attributeFiles, 0);
+        state.BorderTiles.CopyTo(_borderTiles, 0);
+        state.BorderMap.CopyTo(_borderMap, 0);
+        state.BorderPalettes.CopyTo(_borderPalettes, 0);
+        state.Palettes.CopyTo(_palettes, 0);
+        state.AttributeMap.CopyTo(_attributeMap, 0);
+        _visibleFramePixels = state.VisibleFramePixels is null
+            ? null
+            : (byte[])state.VisibleFramePixels.Clone();
+        _lastBootFramePixels = state.LastBootFramePixels is null
+            ? null
+            : (byte[])state.LastBootFramePixels.Clone();
+        _commandWriteBitIndex = state.CommandWriteBitIndex;
+        _readyForPulse = state.ReadyForPulse;
+        _readyForWrite = state.ReadyForWrite;
+        _readyForStop = state.ReadyForStop;
+        _playerCount = state.PlayerCount;
+        _currentPlayer = state.CurrentPlayer;
+        _maskMode = state.MaskMode;
+        _pendingVramTransfer = state.PendingVramTransfer;
+        _pendingVramTransferFrameDelay = state.PendingVramTransferFrameDelay;
+        _borderReady = state.BorderReady;
+        _borderCachePixels = null;
+        Array.Clear(_borderOverlayMask);
+        _borderCacheDirty = true;
+    }
 
     public void Write(byte value, byte previousSelectedGroups)
     {
@@ -989,3 +1119,26 @@ internal sealed class SgbController(bool commandsEnabled)
         pixels[offset + 1] = (byte)(color >> 8);
     }
 }
+
+internal readonly record struct SgbControllerState(
+    byte[] Command,
+    ushort[] SystemPalettes,
+    byte[] AttributeFiles,
+    byte[] BorderTiles,
+    ushort[] BorderMap,
+    ushort[] BorderPalettes,
+    ushort[] Palettes,
+    byte[] AttributeMap,
+    int CommandWriteBitIndex,
+    bool ReadyForPulse,
+    bool ReadyForWrite,
+    bool ReadyForStop,
+    int PlayerCount,
+    int CurrentPlayer,
+    byte MaskMode,
+    byte PendingVramTransfer,
+    byte PendingVramTransferFrameDelay,
+    bool BorderReady,
+    byte[]? VisibleFramePixels,
+    byte[]? LastBootFramePixels
+);

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core.Ppu;
-using GbcNet.Core.Sgb;
+using GbcNet.Core.Snes;
 
 namespace GbcNet.Tests.Sgb;
 

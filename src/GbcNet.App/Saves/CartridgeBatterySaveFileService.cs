@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
 using GbcNet.Core.Cartridges;
 
 namespace GbcNet.App.Saves;
@@ -14,8 +12,6 @@ namespace GbcNet.App.Saves;
 internal sealed class CartridgeBatterySaveFileService
 {
     private const string SaveFileExtension = ".sav";
-    private const int ShortHashHexLength = 8;
-    private const string FallbackSaveName = "GAME";
 
     private readonly string _saveDirectoryPath;
 
@@ -87,33 +83,8 @@ internal sealed class CartridgeBatterySaveFileService
 
     internal string GetBatterySavePath(Cartridge cartridge, ReadOnlySpan<byte> rom)
     {
-        var hash = SHA256.HashData(rom);
-        var fileName = string.Concat(
-            SanitizeName(cartridge.Header.Title),
-            "-",
-            Convert.ToHexString(hash.AsSpan(0, ShortHashHexLength / 2)),
-            SaveFileExtension
-        );
+        var identity = RomStorageIdentity.Create(cartridge.Header.Title, rom);
 
-        return Path.Combine(_saveDirectoryPath, fileName);
-    }
-
-    private static string SanitizeName(string name)
-    {
-        StringBuilder builder = new(name.Length);
-
-        foreach (var character in name)
-        {
-            if (char.IsAsciiLetterOrDigit(character))
-            {
-                builder.Append(char.ToUpperInvariant(character));
-            }
-            else if (character is ' ' or '-' or '_')
-            {
-                builder.Append('_');
-            }
-        }
-
-        return builder.Length == 0 ? FallbackSaveName : builder.ToString();
+        return Path.Combine(_saveDirectoryPath, identity.FileStem + SaveFileExtension);
     }
 }

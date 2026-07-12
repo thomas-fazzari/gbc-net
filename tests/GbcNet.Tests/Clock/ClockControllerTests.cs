@@ -120,6 +120,20 @@ public sealed class ClockControllerTests
         Assert.Equal(2043, clock.SpeedSwitchPauseCycles);
     }
 
+    [Fact]
+    public void RestoreState_RejectsKey1StateWhenRegisterIsDisabled()
+    {
+        var clock = CreateClock(isKey1RegisterEnabled: false);
+        var state = clock.CaptureState() with
+        {
+            CgbDoubleSpeed = true,
+            SpeedSwitchArmed = true,
+            SpeedSwitchPauseCycles = 1,
+        };
+
+        Assert.Throws<ArgumentException>(() => clock.RestoreState(state));
+    }
+
     private static ClockController CreateClock(bool isKey1RegisterEnabled)
     {
         var interrupts = new InterruptController();

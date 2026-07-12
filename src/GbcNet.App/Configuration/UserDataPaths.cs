@@ -13,6 +13,7 @@ internal static class UserDataPaths
     private const string LinuxDirectoryName = "gbc-net";
     private const string DesktopDirectoryName = "GbcNet";
     private const string SaveDirectoryName = "saves";
+    private const string SaveStateDirectoryName = "states";
     private const string CoverDirectoryName = "covers";
     private const string LibraryDatabaseFileName = "gbcnet.sqlite";
 
@@ -25,6 +26,11 @@ internal static class UserDataPaths
     /// Per-user battery save directory path for the current OS.
     /// </summary>
     public static string SaveDirectoryPath { get; } = GetSaveDirectoryPath();
+
+    /// <summary>
+    /// Per-user manual save-state directory path for the current OS.
+    /// </summary>
+    public static string SaveStateDirectoryPath { get; } = GetSaveStateDirectoryPath();
 
     /// <summary>
     /// ROM library SQLite database path for the current OS.
@@ -41,6 +47,9 @@ internal static class UserDataPaths
 
     private static string GetSaveDirectoryPath() =>
         Path.Combine(GetDataDirectoryPath(), SaveDirectoryName);
+
+    private static string GetSaveStateDirectoryPath() =>
+        Path.Combine(GetDataDirectoryPath(), SaveStateDirectoryName);
 
     private static string GetCoverDirectoryPath() =>
         Path.Combine(GetDataDirectoryPath(), CoverDirectoryName);

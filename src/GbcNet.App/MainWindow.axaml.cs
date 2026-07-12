@@ -39,6 +39,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         StartupConfiguration startupConfiguration,
         AppConfigurationService configurationService,
         CartridgeBatterySaveFileService cartridgeSaveFileService,
+        SaveStateFileService saveStateFileService,
         LibraryService libraryService,
         IAudioOutput audioOutput,
         ILogger<MainWindow> logger,
@@ -67,12 +68,13 @@ internal sealed partial class MainWindow : Window, IDisposable
             logger
         );
 
-        SetStatusBarAvailable(false);
+        SetStatusBarAvailable(isAvailable: false);
 
         var emulationController = new EmulationController(
             startupConfiguration.BootRomOptions,
             audioOutput,
             cartridgeSaveFileService,
+            saveStateFileService,
             OnFrameCompleted,
             OnEmulationFaulted,
             startupConfiguration.EmulationConfig.FastForwardEnabled,
@@ -176,6 +178,10 @@ internal sealed partial class MainWindow : Window, IDisposable
             _operationRunner.Run(_configurationPresenter.OpenConfigurationDirectoryAsync);
         MainMenu.PauseRequested += (_, _) => _emulationSession.TogglePause();
         MainMenu.ResetRequested += (_, _) => _operationRunner.Run(_emulationSession.ResetAsync);
+        MainMenu.SaveStateRequested += (_, _) =>
+            _operationRunner.Run(_emulationSession.SaveStateAsync);
+        MainMenu.LoadStateRequested += (_, _) =>
+            _operationRunner.Run(_emulationSession.LoadStateAsync);
         MainMenu.FastForwardRequested += (_, _) => _emulationSession.ToggleFastForward();
         MainMenu.FastForwardSpeedSelected += (_, e) =>
         {

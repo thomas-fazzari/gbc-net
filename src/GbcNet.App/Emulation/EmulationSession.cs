@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Threading.Channels;
 using GbcNet.App.Audio;
 using GbcNet.App.Saves;
 using GbcNet.Core;
@@ -31,12 +32,19 @@ internal sealed class EmulationSession
     private readonly ApuStereoSample[] _audioSamples = new ApuStereoSample[
         AudioDrainSampleCapacity
     ];
+
     private readonly ConcurrentQueue<(JoypadButton Button, bool Pressed)> _pendingButtonStates =
         new();
+    private readonly Channel<EmulationOperation> _pendingMachineOperations =
+        Channel.CreateUnbounded<EmulationOperation>(
+            new UnboundedChannelOptions { SingleReader = true }
+        );
+
     private readonly TaskCompletionSource _stopRequested = new(
         TaskCreationOptions.RunContinuationsAsynchronously
     );
     private readonly Task _runTask;
+
     private int _isPaused;
     private int _isStopped;
     private int _isFastForwardEnabled;
@@ -44,6 +52,7 @@ internal sealed class EmulationSession
     private int _pacingRevision;
     private int _videoFrameRenderRequested = 1;
     private long _nextFastForwardFrameTimestamp;
+    private bool _pacingResetRequested;
 
     public bool IsPaused
     {
@@ -84,11 +93,31 @@ internal sealed class EmulationSession
         if (Interlocked.Exchange(ref _isStopped, 1) == 0)
         {
             _gameBoy.FrameCompleted -= OnFrameCompleted;
+            _pendingMachineOperations.Writer.TryComplete();
             _stopRequested.SetResult();
         }
 
         // Wait for the emulation loop to run its final save before the next session loads SRAM.
         await _runTask.ConfigureAwait(false);
+    }
+
+    public Task<byte[]> CaptureSaveStateAsync() =>
+        QueueMachineOperation(gameBoy => gameBoy.CaptureSaveState());
+
+    public Task RestoreSaveStateAsync(byte[] state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+
+        return QueueMachineOperation(gameBoy =>
+        {
+            gameBoy.RestoreSaveState(state);
+            _audioOutput.Clear();
+            _batterySaveWriter?.QueueSave(force: true);
+            Volatile.Write(ref _videoFrameRenderRequested, 1);
+            Volatile.Write(ref _nextFastForwardFrameTimestamp, 0);
+            _pacingResetRequested = true;
+            return true;
+        });
     }
 
     public void SetButtonState(JoypadButton button, bool pressed)
@@ -146,6 +175,22 @@ internal sealed class EmulationSession
         {
             while (!_stopRequested.Task.IsCompleted)
             {
+                ProcessPendingMachineOperations();
+                if (_pacingResetRequested)
+                {
+                    _pacingResetRequested = false;
+                    timestamp = Stopwatch.GetTimestamp();
+                    elapsedMachineCycles = 0;
+                    nextSaveMachineCycles = MachineCyclesPerSaveFlush;
+                    pacing = new(
+                        timestamp,
+                        elapsedMachineCycles,
+                        GetSpeedMultiplier(),
+                        _gameBoy.CpuMachineCyclesPerSecond,
+                        Volatile.Read(ref _pacingRevision)
+                    );
+                }
+
                 if (IsPaused)
                 {
                     await Task.WhenAny(
@@ -233,6 +278,11 @@ internal sealed class EmulationSession
         }
         finally
         {
+            Interlocked.Exchange(ref _isStopped, 1);
+            _pendingMachineOperations.Writer.TryComplete();
+
+            FailPendingMachineOperations();
+
             if (_batterySaveWriter is not null)
             {
                 await _batterySaveWriter.FlushAsync().ConfigureAwait(false);
@@ -245,6 +295,74 @@ internal sealed class EmulationSession
         {
             _handleFatalFault(fatalException);
         }
+    }
+
+    private Task<T> QueueMachineOperation<T>(Func<GameBoy, T> operation)
+    {
+        if (Volatile.Read(ref _isStopped) != 0)
+        {
+            return Task.FromException<T>(
+                new InvalidOperationException("Emulation session is stopped.")
+            );
+        }
+
+        var completion = new TaskCompletionSource<T>(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        var pendingOperation = new EmulationOperation(
+            gameBoy =>
+            {
+                try
+                {
+                    completion.TrySetResult(operation(gameBoy));
+                }
+                catch (Exception exception)
+                    when (exception
+                            is ArgumentException
+                                or InvalidDataException
+                                or NotSupportedException
+                    )
+                {
+                    completion.TrySetException(exception);
+                }
+            },
+            exception => completion.TrySetException(exception)
+        );
+
+        if (!_pendingMachineOperations.Writer.TryWrite(pendingOperation))
+        {
+            completion.TrySetException(
+                new InvalidOperationException("Emulation session is stopped.")
+            );
+        }
+
+        return completion.Task;
+    }
+
+    private void ProcessPendingMachineOperations()
+    {
+        while (_pendingMachineOperations.Reader.TryRead(out var operation))
+        {
+            operation.Execute(_gameBoy);
+        }
+    }
+
+    private void FailPendingMachineOperations()
+    {
+        var exception = new OperationCanceledException(
+            "Emulation session stopped before handling a request."
+        );
+        while (_pendingMachineOperations.Reader.TryRead(out var operation))
+        {
+            operation.Fail(exception);
+        }
+    }
+
+    private sealed class EmulationOperation(Action<GameBoy> execute, Action<Exception> fail)
+    {
+        public void Execute(GameBoy gameBoy) => execute(gameBoy);
+
+        public void Fail(Exception exception) => fail(exception);
     }
 
     private double GetSpeedMultiplier()

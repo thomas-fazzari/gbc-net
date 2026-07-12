@@ -201,8 +201,33 @@ internal sealed class ClockController
             Timers.CaptureState()
         );
 
+    internal void ValidateState(ClockControllerState state)
+    {
+        if (state.SpeedSwitchPauseCycles is < 0 or > SpeedSwitchPauseDuration)
+        {
+            throw new ArgumentException(
+                "State speed-switch pause duration is out of range.",
+                nameof(state)
+            );
+        }
+
+        if (
+            !_isKey1RegisterEnabled
+            && (state.CgbDoubleSpeed || state.SpeedSwitchArmed || state.SpeedSwitchPauseCycles != 0)
+        )
+        {
+            throw new ArgumentException(
+                "State KEY1 must be inactive when its register is disabled.",
+                nameof(state)
+            );
+        }
+
+        TimerController.ValidateState(state.TimerState);
+    }
+
     internal void RestoreState(ClockControllerState state)
     {
+        ValidateState(state);
         _systemCounter.SetCounter(state.DividerCounter);
         CgbDoubleSpeed = state.CgbDoubleSpeed;
         _speedSwitchArmed = state.SpeedSwitchArmed;

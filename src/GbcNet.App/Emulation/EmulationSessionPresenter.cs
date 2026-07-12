@@ -27,6 +27,8 @@ internal sealed class EmulationSessionPresenter(
 )
 {
     private const int RecentRomLimit = 5;
+    private const int SaveStateSlot = 0;
+
     private string? _loadedRomCoverPath;
 
     private static readonly FilePickerFileType _gameBoyRomFileType = new("Game Boy ROM")
@@ -134,6 +136,12 @@ internal sealed class EmulationSessionPresenter(
         SyncMenuState();
         SessionClosed?.Invoke(this, EventArgs.Empty);
     }
+
+    public Task SaveStateAsync() =>
+        controller.SaveStateAsync(SaveStateSlot, CancellationToken.None);
+
+    public Task LoadStateAsync() =>
+        controller.LoadStateAsync(SaveStateSlot, CancellationToken.None);
 
     public void TogglePause()
     {

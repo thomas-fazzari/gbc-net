@@ -11,7 +11,7 @@ using GbcNet.Core.Interrupts;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Ppu;
 using GbcNet.Core.Serial;
-using GbcNet.Core.Sgb;
+using GbcNet.Core.Snes;
 using GbcNet.Core.Timers;
 
 namespace GbcNet.Core.Memory;
@@ -33,6 +33,7 @@ internal sealed class MemoryBus
     private readonly IoRegisters _ioRegisters;
     private readonly BootRom? _bootRom;
     private readonly SgbController? _sgb;
+    private readonly CgbMiscRegisters _cgbMiscRegisters;
 
     /// <summary>
     /// Interrupt request and enable registers routed through FF0F and FFFF.
@@ -98,7 +99,7 @@ internal sealed class MemoryBus
             hardwareProfile.IsWorkRamBankRegisterEnabled
         );
 
-        var cgbMiscRegisters = new CgbMiscRegisters(
+        _cgbMiscRegisters = new CgbMiscRegisters(
             hardwareProfile.IsCgbHardwareMiscRegisterEnabled,
             hardwareProfile.IsCgbUndocumentedFf74RegisterEnabled
         );
@@ -153,7 +154,7 @@ internal sealed class MemoryBus
             Apu,
             Ppu,
             _workRam,
-            cgbMiscRegisters,
+            _cgbMiscRegisters,
             OamDma,
             VramDma
         );
@@ -255,6 +256,89 @@ internal sealed class MemoryBus
         {
             CompletedFrame = _sgb.ApplyPalettes(frame),
         };
+    }
+
+    internal MemoryBusState CaptureState() =>
+        new(
+            _cartridge.CaptureState(),
+            _highRam.CaptureState(),
+            _workRam.CaptureState(),
+            _bootRom?.CaptureState(),
+            _cgbMiscRegisters.CaptureState(),
+            Interrupts.CaptureState(),
+            Clock.CaptureState(),
+            Joypad.CaptureState(),
+            Serial.CaptureState(),
+            Apu.CaptureState(),
+            Ppu.CaptureState(),
+            OamDma.CaptureState(),
+            VramDma.CaptureState(),
+            _sgb?.CaptureState()
+        );
+
+    internal void ValidateState(MemoryBusState state)
+    {
+        _cartridge.ValidateState(state.Cartridge);
+        _highRam.ValidateState(state.HighRam);
+        _workRam.ValidateState(state.WorkRam);
+        CgbMiscRegisters.ValidateState(state.CgbMiscRegisters);
+        Clock.ValidateState(state.Clock);
+        JoypadController.ValidateState(state.Joypad);
+        Serial.ValidateState(state.Serial);
+        Apu.ValidateState(state.Apu);
+        Ppu.ValidateState(state.Ppu);
+        OamDmaController.ValidateState(state.OamDma);
+        VramDma.ValidateState(state.VramDma);
+
+        if (state.BootRom.HasValue != (_bootRom is not null))
+        {
+            throw new ArgumentException(
+                "State boot ROM topology does not match this Game Boy.",
+                nameof(state)
+            );
+        }
+
+        if (state.Sgb.HasValue != (_sgb is not null))
+        {
+            throw new ArgumentException(
+                "State Super Game Boy topology does not match this Game Boy.",
+                nameof(state)
+            );
+        }
+
+        if (state.Sgb is { } sgbState)
+        {
+            _sgb!.ValidateState(sgbState);
+        }
+    }
+
+    internal void RestoreState(MemoryBusState state)
+    {
+        ValidateState(state);
+        _cartridge.RestoreState(state.Cartridge);
+        _highRam.RestoreState(state.HighRam);
+        _workRam.RestoreState(state.WorkRam);
+
+        if (state.BootRom is { } bootRomState)
+        {
+            _bootRom!.RestoreState(bootRomState);
+        }
+
+        _cgbMiscRegisters.RestoreState(state.CgbMiscRegisters);
+        Interrupts.RestoreState(state.Interrupts);
+        Clock.RestoreState(state.Clock);
+        Serial.RestoreState(state.Serial);
+        Apu.RestoreState(state.Apu);
+        Ppu.RestoreState(state.Ppu);
+
+        if (state.Sgb is { } sgbState)
+        {
+            _sgb!.RestoreState(sgbState);
+        }
+
+        Joypad.RestoreState(state.Joypad);
+        OamDma.RestoreState(state.OamDma);
+        VramDma.RestoreState(state.VramDma);
     }
 
     private bool IsCpuWriteBlocked(ushort address) =>
@@ -399,6 +483,26 @@ internal sealed class MemoryBus
         }
     }
 }
+
+/// <summary>
+/// Captures all mutable state owned by a CPU-visible memory bus.
+/// </summary>
+internal readonly record struct MemoryBusState(
+    CartridgeState Cartridge,
+    MappedMemoryState HighRam,
+    WorkRamState WorkRam,
+    BootRomState? BootRom,
+    CgbMiscRegistersState CgbMiscRegisters,
+    InterruptControllerState Interrupts,
+    ClockControllerState Clock,
+    JoypadControllerState Joypad,
+    SerialControllerState Serial,
+    ApuControllerState Apu,
+    PpuControllerState Ppu,
+    OamDmaControllerState OamDma,
+    CgbVramDmaControllerState VramDma,
+    SgbControllerState? Sgb
+);
 
 /// <summary>
 /// Provides the address and value from an accepted CPU-visible memory write.

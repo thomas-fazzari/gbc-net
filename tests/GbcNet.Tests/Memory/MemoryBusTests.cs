@@ -1446,6 +1446,26 @@ public sealed class MemoryBusTests
         Assert.Equal(0x42, bus.ReadByte(AddressMap.ExternalRamStart));
     }
 
+    [Fact]
+    public void RestoreState_RejectsInvalidCgbMiscStateBeforeMutatingBusMemory()
+    {
+        var bus = CreateBus();
+        bus.WriteByte(AddressMap.HighRamStart, 0x11);
+        var state = bus.CaptureState();
+        bus.WriteByte(AddressMap.HighRamStart, 0x22);
+
+        Assert.Throws<ArgumentException>(() =>
+            bus.RestoreState(
+                state with
+                {
+                    CgbMiscRegisters = new CgbMiscRegistersState(0, 0, 0, 0x01),
+                }
+            )
+        );
+
+        Assert.Equal(0x22, bus.ReadByte(AddressMap.HighRamStart));
+    }
+
     private static MemoryBus CreateBus() => CreateBus(TestRomFactory.Create());
 
     private static MemoryBus CreateBus(IHardwareProfile profile) =>

@@ -208,6 +208,12 @@ public sealed class Cartridge
     internal CartridgeState CaptureState() => new(_memoryController.CaptureState());
 
     /// <summary>
+    /// Validates cartridge state without mutating the cartridge.
+    /// </summary>
+    internal void ValidateState(CartridgeState state) =>
+        _memoryController.ValidateState(state.Controller);
+
+    /// <summary>
     /// Restores the cartridge's mutable state.
     /// </summary>
     internal void RestoreState(CartridgeState state)

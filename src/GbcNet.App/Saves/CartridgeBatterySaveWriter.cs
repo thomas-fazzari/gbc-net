@@ -22,13 +22,13 @@ internal sealed class CartridgeBatterySaveWriter(
     /// <summary>
     /// Captures dirty cartridge state without waiting for file I/O.
     /// </summary>
-    public void QueueSave()
+    public void QueueSave(bool force = false)
     {
         byte[]? save = null;
 
         try
         {
-            if (cartridge.IsBatterySaveDirty)
+            if (force || cartridge.IsBatterySaveDirty)
             {
                 save = cartridge.ExportBatterySave();
                 cartridge.ClearBatterySaveDirty();

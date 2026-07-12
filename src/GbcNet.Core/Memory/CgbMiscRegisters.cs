@@ -74,8 +74,20 @@ internal sealed class CgbMiscRegisters(bool isCgbHardwareRegisterEnabled, bool i
 
     internal CgbMiscRegistersState CaptureState() => new(_ff72, _ff73, _ff74, _ff75);
 
+    internal static void ValidateState(CgbMiscRegistersState state)
+    {
+        if ((state.Ff75 & ~Ff75WritableMask) != 0)
+        {
+            throw new ArgumentException(
+                "State FF75 must contain only writable bits.",
+                nameof(state)
+            );
+        }
+    }
+
     internal void RestoreState(CgbMiscRegistersState state)
     {
+        ValidateState(state);
         _ff72 = state.Ff72;
         _ff73 = state.Ff73;
         _ff74 = state.Ff74;

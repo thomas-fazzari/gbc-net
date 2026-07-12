@@ -37,6 +37,9 @@
           IsEnabled="False"
         />
         <Separator />
+        <MenuItem x:Name="SaveStateMenuItem" Header="Save _State" IsEnabled="False" />
+        <MenuItem x:Name="LoadStateMenuItem" Header="_Load State" IsEnabled="False" />
+        <Separator />
         <MenuItem x:Name="FastForwardMenuItem" Header="_Fast Forward" ToggleType="CheckBox" />
         <MenuItem x:Name="FastForwardSpeedMenuItem" Header="Fast Forward _Speed" />
       </MenuItem>

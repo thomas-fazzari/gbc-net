@@ -51,7 +51,7 @@ internal sealed class WorkRam
 
     internal WorkRamState CaptureState() => new((byte[])_banks.Clone(), _bankRegister);
 
-    internal void RestoreState(WorkRamState state)
+    internal void ValidateState(WorkRamState state)
     {
         var banks = state.Banks;
         if (banks is null || banks.Length != _banks.Length)
@@ -62,7 +62,20 @@ internal sealed class WorkRam
             );
         }
 
-        banks.CopyTo(_banks, 0);
+        if ((state.BankRegister & ~BankSelectMask) != 0)
+        {
+            throw new ArgumentException(
+                "State work RAM bank register contains unsupported bits.",
+                nameof(state)
+            );
+        }
+    }
+
+    internal void RestoreState(WorkRamState state)
+    {
+        ValidateState(state);
+
+        state.Banks.CopyTo(_banks, 0);
 
         _bankRegister = state.BankRegister;
         _selectedSwitchableBank = GetSelectedSwitchableBank(_bankRegister);

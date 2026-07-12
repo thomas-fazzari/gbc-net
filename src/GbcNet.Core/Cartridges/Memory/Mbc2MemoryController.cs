@@ -70,7 +70,7 @@ internal sealed class Mbc2MemoryController(
     public ICartridgeMemoryControllerState CaptureState() =>
         new Mbc2MemoryControllerState(_ram.CaptureState(), _romBank, _ramEnabled);
 
-    public void RestoreState(ICartridgeMemoryControllerState state)
+    public void ValidateState(ICartridgeMemoryControllerState state)
     {
         if (state is not Mbc2MemoryControllerState mbc2State)
         {
@@ -86,7 +86,12 @@ internal sealed class Mbc2MemoryController(
         {
             throw new ArgumentException("MBC2 ROM bank must be in the 1-15 range.", nameof(state));
         }
+    }
 
+    public void RestoreState(ICartridgeMemoryControllerState state)
+    {
+        ValidateState(state);
+        var mbc2State = (Mbc2MemoryControllerState)state;
         _ram.RestoreState(mbc2State.Ram);
         _romBank = mbc2State.RomBank;
         _ramEnabled = mbc2State.RamEnabled;

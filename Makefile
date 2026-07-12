@@ -49,3 +49,7 @@ bundle package pack:
 .PHONY: copyrights
 copyrights:
 	dotnet fsi scripts/copyrights.fsx --
+
+.PHONY: contributors
+contributors:
+	dotnet fsi scripts/list-contributors.fsx --

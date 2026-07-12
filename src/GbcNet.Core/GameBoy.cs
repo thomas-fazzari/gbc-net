@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Text.Json;
 using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Clock;
@@ -40,6 +41,7 @@ public static class GameBoyTiming
 public sealed class GameBoy
 {
     private readonly MachineClock _clock;
+    private bool _isStepping;
 
     /// <summary>
     /// Creates a Game Boy instance using the supplied cartridge and hardware model.
@@ -120,14 +122,73 @@ public sealed class GameBoy
     /// </returns>
     public int Step()
     {
-        var machineCycles = Bus.Clock.TryStepSpeedSwitchPause() ? 1 : Cpu.Step();
-
-        while (_clock.TryDequeueCompletedFrame(out var frame))
+        if (_isStepping)
         {
-            FrameCompleted?.Invoke(frame);
+            throw new InvalidOperationException("Game Boy steps cannot be reentered.");
         }
 
-        return machineCycles;
+        _isStepping = true;
+
+        try
+        {
+            var machineCycles = Bus.Clock.TryStepSpeedSwitchPause() ? 1 : Cpu.Step();
+
+            while (_clock.TryDequeueCompletedFrame(out var frame))
+            {
+                FrameCompleted?.Invoke(frame);
+            }
+
+            return machineCycles;
+        }
+        finally
+        {
+            _isStepping = false;
+        }
+    }
+
+    /// <summary>
+    /// Captures an opaque, complete machine continuation state.
+    /// </summary>
+    public GameBoyState CaptureState()
+    {
+        ThrowIfStepping();
+        return new GameBoyState(HardwareModel, Cpu.CaptureState(), Bus.CaptureState());
+    }
+
+    /// <summary>
+    /// Encodes a complete machine continuation state into the core's versioned payload format.
+    /// </summary>
+    public byte[] CaptureSaveState() => GameBoyStateCodec.Encode(CaptureState());
+
+    /// <summary>
+    /// Decodes and restores a previously captured save-state payload.
+    /// </summary>
+    public void RestoreSaveState(ReadOnlySpan<byte> state)
+    {
+        ThrowIfStepping();
+        RestoreState(GameBoyStateCodec.Decode(state));
+    }
+
+    /// <summary>
+    /// Restores a state captured from a compatible Game Boy without executing hardware or
+    /// notifying host observers.
+    /// </summary>
+    public void RestoreState(GameBoyState state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ThrowIfStepping();
+
+        if (state.HardwareModel != HardwareModel)
+        {
+            throw new ArgumentException(
+                "State hardware model does not match this Game Boy.",
+                nameof(state)
+            );
+        }
+
+        Bus.ValidateState(state.Bus);
+        Bus.RestoreState(state.Bus);
+        Cpu.RestoreState(state.Cpu);
     }
 
     /// <summary>
@@ -161,6 +222,135 @@ public sealed class GameBoy
 
     internal Cpu Cpu { get; }
 
+    private void ThrowIfStepping()
+    {
+        if (_isStepping)
+        {
+            throw new InvalidOperationException(
+                "Game Boy state operations require an instruction boundary."
+            );
+        }
+    }
+
     private void OnSerialByteTransferred(byte transferredByte) =>
         SerialByteTransferred?.Invoke(transferredByte);
 }
+
+/// <summary>
+/// Opaque continuation state for one Game Boy instance.
+/// </summary>
+public sealed class GameBoyState
+{
+    internal GameBoyState(HardwareModel hardwareModel, CpuState cpu, MemoryBusState bus)
+    {
+        HardwareModel = hardwareModel;
+        Cpu = cpu;
+        Bus = bus;
+    }
+
+    internal HardwareModel HardwareModel { get; }
+
+    internal CpuState Cpu { get; }
+
+    internal MemoryBusState Bus { get; }
+}
+
+internal static class GameBoyStateCodec
+{
+    private const int FormatVersion = 1;
+
+    private static readonly JsonSerializerOptions _options = new()
+    {
+        UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow,
+    };
+
+    internal static byte[] Encode(GameBoyState state) =>
+        JsonSerializer.SerializeToUtf8Bytes(
+            new GameBoyStatePayload(FormatVersion, state.HardwareModel, state.Cpu, state.Bus),
+            _options
+        );
+
+    internal static GameBoyState Decode(ReadOnlySpan<byte> bytes)
+    {
+        try
+        {
+            var reader = new Utf8JsonReader(bytes);
+            using var document = JsonDocument.ParseValue(ref reader);
+
+            if (reader.Read())
+            {
+                throw new JsonException("Save-state payload contains trailing JSON.");
+            }
+
+            var payload = document.RootElement.Deserialize<GameBoyStatePayload>(_options);
+            using var normalized = JsonDocument.Parse(
+                JsonSerializer.SerializeToUtf8Bytes(payload, _options)
+            );
+
+            ValidateRequiredMembers(document.RootElement, normalized.RootElement);
+
+            if (payload.FormatVersion != FormatVersion)
+            {
+                throw new InvalidDataException(
+                    $"Unsupported Game Boy state format version {payload.FormatVersion}."
+                );
+            }
+
+            return new GameBoyState(payload.HardwareModel, payload.Cpu, payload.Bus);
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidDataException("Game Boy state payload is malformed.", exception);
+        }
+    }
+
+    private static void ValidateRequiredMembers(JsonElement input, JsonElement normalized)
+    {
+        if (input.ValueKind != normalized.ValueKind)
+        {
+            throw new JsonException("Save-state member has an invalid JSON type.");
+        }
+
+        if (normalized.ValueKind is JsonValueKind.Object)
+        {
+            foreach (var property in normalized.EnumerateObject())
+            {
+                if (!input.TryGetProperty(property.Name, out var inputProperty))
+                {
+                    throw new JsonException($"Save-state member '{property.Name}' is missing.");
+                }
+
+                ValidateRequiredMembers(inputProperty, property.Value);
+            }
+
+            return;
+        }
+
+        if (
+            normalized.ValueKind is not JsonValueKind.Array
+            || normalized.GetArrayLength() == 0
+            || normalized[0].ValueKind is not (JsonValueKind.Array or JsonValueKind.Object)
+        )
+        {
+            return;
+        }
+
+        var inputItems = input.EnumerateArray();
+        foreach (var normalizedItem in normalized.EnumerateArray())
+        {
+            if (!inputItems.MoveNext())
+            {
+                throw new JsonException("Save-state array member is missing.");
+            }
+
+            ValidateRequiredMembers(inputItems.Current, normalizedItem);
+        }
+    }
+}
+
+internal readonly record struct GameBoyStatePayload(
+    int FormatVersion,
+    HardwareModel HardwareModel,
+    CpuState Cpu,
+    MemoryBusState Bus
+);

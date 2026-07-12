@@ -231,6 +231,10 @@ public sealed class CartridgeTests
         cartridge.ClearBatterySaveDirty();
 
         Assert.Throws<ArgumentException>(() =>
+            cartridge.ValidateState(new CartridgeState(default!))
+        );
+
+        Assert.Throws<ArgumentException>(() =>
             cartridge.RestoreState(new CartridgeState(default!))
         );
 
@@ -250,6 +254,10 @@ public sealed class CartridgeTests
         cartridge.ClearBatterySaveDirty();
         var differentMapper = TestRomFactory.LoadCartridge(bytes =>
             bytes[0x0147] = (byte)CartridgeType.Mbc1
+        );
+
+        Assert.Throws<ArgumentException>(() =>
+            cartridge.ValidateState(differentMapper.CaptureState())
         );
 
         Assert.Throws<ArgumentException>(() =>

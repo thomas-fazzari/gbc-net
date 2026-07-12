@@ -51,8 +51,77 @@ internal sealed class CgbVramDmaController(
             _cpuHalted
         );
 
+    internal void ValidateState(CgbVramDmaControllerState state)
+    {
+        if ((state.SourceLow & ~SourceLowMask) != 0)
+        {
+            throw new ArgumentException(
+                "State VRAM DMA source low register contains unsupported bits.",
+                nameof(state)
+            );
+        }
+
+        if (
+            (state.DestinationHigh & ~DestinationHighMask) != 0
+            || (state.DestinationLow & ~DestinationLowMask) != 0
+        )
+        {
+            throw new ArgumentException(
+                "State VRAM DMA destination registers contain unsupported bits.",
+                nameof(state)
+            );
+        }
+
+        if (state.HblankBlocksRemaining is < 0 or > LengthMask + 1)
+        {
+            throw new ArgumentException(
+                "State VRAM DMA HBlank block count is out of range.",
+                nameof(state)
+            );
+        }
+
+        if (state.IsHblankDmaActive && state.HblankBlocksRemaining == 0)
+        {
+            throw new ArgumentException(
+                "State active VRAM HBlank DMA must have blocks remaining.",
+                nameof(state)
+            );
+        }
+
+        if (
+            state.CpuStallMachineCycles is < 0 or > (LengthMask + 1) * DoubleSpeedBlockMachineCycles
+        )
+        {
+            throw new ArgumentException(
+                "State VRAM DMA CPU stall duration is out of range.",
+                nameof(state)
+            );
+        }
+
+        if (
+            !isRegisterEnabled
+            && (
+                state.SourceHigh != 0
+                || state.SourceLow != 0
+                || state.DestinationHigh != 0
+                || state.DestinationLow != 0
+                || state.LengthModeReadValue != CompletedReadValue
+                || state.HblankBlocksRemaining != 0
+                || state.CpuStallMachineCycles != 0
+                || state.IsHblankDmaActive
+            )
+        )
+        {
+            throw new ArgumentException(
+                "State VRAM DMA must be inert when its registers are disabled.",
+                nameof(state)
+            );
+        }
+    }
+
     internal void RestoreState(CgbVramDmaControllerState state)
     {
+        ValidateState(state);
         _sourceHigh = state.SourceHigh;
         _sourceLow = state.SourceLow;
         _destinationHigh = state.DestinationHigh;
