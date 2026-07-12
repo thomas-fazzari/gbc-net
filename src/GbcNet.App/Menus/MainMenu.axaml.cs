@@ -16,6 +16,16 @@ internal sealed partial class MainMenu : UserControl
         OperatingSystem.IsMacOS() ? "Meta+I" : "Ctrl+I"
     );
     private static readonly KeyGesture _menuBarGesture = KeyGesture.Parse("Ctrl+M");
+    private const int StateSlotCount = 10;
+
+    private readonly MenuItem[] _saveStateSlotMenuItems = new MenuItem[StateSlotCount];
+    private readonly MenuItem[] _loadStateSlotMenuItems = new MenuItem[StateSlotCount];
+    private readonly NativeMenuItem[] _nativeSaveStateSlotMenuItems = new NativeMenuItem[
+        StateSlotCount
+    ];
+    private readonly NativeMenuItem[] _nativeLoadStateSlotMenuItems = new NativeMenuItem[
+        StateSlotCount
+    ];
 
     private readonly NativeMenuItem _nativePauseMenuItem = new("Pause")
     {
@@ -29,15 +39,11 @@ internal sealed partial class MainMenu : UserControl
         IsEnabled = false,
     };
 
-    private readonly NativeMenuItem _nativeSaveStateMenuItem = new("Save State")
-    {
-        IsEnabled = false,
-    };
+    private readonly NativeMenu _nativeSaveStateMenu = [];
+    private readonly NativeMenu _nativeLoadStateMenu = [];
 
-    private readonly NativeMenuItem _nativeLoadStateMenuItem = new("Load State")
-    {
-        IsEnabled = false,
-    };
+    private readonly NativeMenuItem _nativeSaveStateMenuItem;
+    private readonly NativeMenuItem _nativeLoadStateMenuItem;
 
     private readonly NativeMenuItem _nativeFastForwardMenuItem = new("Fast Forward")
     {
@@ -83,6 +89,16 @@ internal sealed partial class MainMenu : UserControl
             IsEnabled = false,
             Menu = _nativeOpenRecentMenu,
         };
+        _nativeSaveStateMenuItem = new NativeMenuItem("Save State")
+        {
+            IsEnabled = false,
+            Menu = _nativeSaveStateMenu,
+        };
+        _nativeLoadStateMenuItem = new NativeMenuItem("Load State")
+        {
+            IsEnabled = false,
+            Menu = _nativeLoadStateMenu,
+        };
         ConfigureWindowMenu();
         _nativeMenu = CreateNativeMenu();
     }
@@ -103,9 +119,9 @@ internal sealed partial class MainMenu : UserControl
 
     public event EventHandler? ResetRequested;
 
-    public event EventHandler? SaveStateRequested;
+    public event EventHandler<StateSlotSelectedEventArgs>? SaveStateRequested;
 
-    public event EventHandler? LoadStateRequested;
+    public event EventHandler<StateSlotSelectedEventArgs>? LoadStateRequested;
 
     public event EventHandler? FastForwardRequested;
 
@@ -169,6 +185,20 @@ internal sealed partial class MainMenu : UserControl
         SetEnabled(_nativeLoadStateMenuItem, LoadStateMenuItem, isEnabled);
 
         SetEnabled(_nativeCloseMenuItem, CloseWindowMenuItem, isEnabled);
+    }
+
+    public void SetSaveStateDates(IReadOnlyList<DateTime?> dates)
+    {
+        for (var slotIndex = 0; slotIndex < StateSlotCount; slotIndex++)
+        {
+            var header = dates[slotIndex] is { } date
+                ? $"Slot {slotIndex + 1} — {date:g}"
+                : $"Slot {slotIndex + 1}";
+            _saveStateSlotMenuItems[slotIndex].Header = header;
+            _loadStateSlotMenuItems[slotIndex].Header = header;
+            _nativeSaveStateSlotMenuItems[slotIndex].Header = header;
+            _nativeLoadStateSlotMenuItems[slotIndex].Header = header;
+        }
     }
 
     public void SetPauseState(bool isEnabled, bool isPaused)
@@ -266,8 +296,7 @@ internal sealed partial class MainMenu : UserControl
     {
         PauseEmulationMenuItem.Click += (_, _) => PauseRequested?.Invoke(this, EventArgs.Empty);
         ResetEmulationMenuItem.Click += (_, _) => ResetRequested?.Invoke(this, EventArgs.Empty);
-        SaveStateMenuItem.Click += (_, _) => SaveStateRequested?.Invoke(this, EventArgs.Empty);
-        LoadStateMenuItem.Click += (_, _) => LoadStateRequested?.Invoke(this, EventArgs.Empty);
+        ConfigureStateSlotMenuItems();
 
         FastForwardMenuItem.InputGesture = _fastForwardGesture;
         FastForwardMenuItem.Click += (_, _) => FastForwardRequested?.Invoke(this, EventArgs.Empty);
@@ -289,6 +318,46 @@ internal sealed partial class MainMenu : UserControl
         GitHubRepositoryMenuItem.Click += (_, _) =>
             GitHubRepositoryRequested?.Invoke(this, EventArgs.Empty);
     }
+
+    private void ConfigureStateSlotMenuItems()
+    {
+        for (var slotIndex = 0; slotIndex < StateSlotCount; slotIndex++)
+        {
+            var saveItem = CreateWindowStateSlotMenuItem(slotIndex, OnSaveStateRequested);
+            var loadItem = CreateWindowStateSlotMenuItem(slotIndex, OnLoadStateRequested);
+            var nativeSaveItem = CreateNativeStateSlotMenuItem(slotIndex, OnSaveStateRequested);
+            var nativeLoadItem = CreateNativeStateSlotMenuItem(slotIndex, OnLoadStateRequested);
+
+            _saveStateSlotMenuItems[slotIndex] = saveItem;
+            _loadStateSlotMenuItems[slotIndex] = loadItem;
+            _nativeSaveStateSlotMenuItems[slotIndex] = nativeSaveItem;
+            _nativeLoadStateSlotMenuItems[slotIndex] = nativeLoadItem;
+            SaveStateMenuItem.Items.Add(saveItem);
+            LoadStateMenuItem.Items.Add(loadItem);
+            _nativeSaveStateMenu.Add(nativeSaveItem);
+            _nativeLoadStateMenu.Add(nativeLoadItem);
+        }
+    }
+
+    private static MenuItem CreateWindowStateSlotMenuItem(int slotIndex, Action<int> request)
+    {
+        var item = new MenuItem { Header = $"Slot {slotIndex + 1}" };
+        item.Click += (_, _) => request(slotIndex);
+        return item;
+    }
+
+    private static NativeMenuItem CreateNativeStateSlotMenuItem(int slotIndex, Action<int> request)
+    {
+        NativeMenuItem item = new($"Slot {slotIndex + 1}");
+        item.Click += (_, _) => request(slotIndex);
+        return item;
+    }
+
+    private void OnSaveStateRequested(int slotIndex) =>
+        SaveStateRequested?.Invoke(this, new StateSlotSelectedEventArgs(slotIndex));
+
+    private void OnLoadStateRequested(int slotIndex) =>
+        LoadStateRequested?.Invoke(this, new StateSlotSelectedEventArgs(slotIndex));
 
     private void ConfigureFastForwardSpeedMenuItems()
     {
@@ -371,10 +440,6 @@ internal sealed partial class MainMenu : UserControl
     {
         _nativePauseMenuItem.Click += (_, _) => PauseRequested?.Invoke(this, EventArgs.Empty);
         _nativeResetMenuItem.Click += (_, _) => ResetRequested?.Invoke(this, EventArgs.Empty);
-        _nativeSaveStateMenuItem.Click += (_, _) =>
-            SaveStateRequested?.Invoke(this, EventArgs.Empty);
-        _nativeLoadStateMenuItem.Click += (_, _) =>
-            LoadStateRequested?.Invoke(this, EventArgs.Empty);
 
         _nativeFastForwardMenuItem.Click += (_, _) =>
             FastForwardRequested?.Invoke(this, EventArgs.Empty);
@@ -428,6 +493,11 @@ internal sealed partial class MainMenu : UserControl
         return item;
     }
     #endregion Native menu
+
+    internal sealed class StateSlotSelectedEventArgs(int slotIndex) : EventArgs
+    {
+        public int SlotIndex { get; } = slotIndex;
+    }
 
     internal sealed class RecentRomSelectedEventArgs(string path) : EventArgs
     {

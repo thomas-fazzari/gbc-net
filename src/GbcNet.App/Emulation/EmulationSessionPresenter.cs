@@ -27,7 +27,7 @@ internal sealed class EmulationSessionPresenter(
 )
 {
     private const int RecentRomLimit = 5;
-    private const int SaveStateSlot = 0;
+    private const int SaveStateSlotCount = 10;
 
     private string? _loadedRomCoverPath;
 
@@ -137,11 +137,14 @@ internal sealed class EmulationSessionPresenter(
         SessionClosed?.Invoke(this, EventArgs.Empty);
     }
 
-    public Task SaveStateAsync() =>
-        controller.SaveStateAsync(SaveStateSlot, CancellationToken.None);
+    public async Task SaveStateAsync(int slot)
+    {
+        await controller.SaveStateAsync(slot, CancellationToken.None).ConfigureAwait(true);
 
-    public Task LoadStateAsync() =>
-        controller.LoadStateAsync(SaveStateSlot, CancellationToken.None);
+        SyncSaveStateDates();
+    }
+
+    public Task LoadStateAsync(int slot) => controller.LoadStateAsync(slot, CancellationToken.None);
 
     public void TogglePause()
     {
@@ -212,13 +215,24 @@ internal sealed class EmulationSessionPresenter(
     public void SyncMenuState()
     {
         var state = controller.State;
+
         menu.SetEmulationActionsEnabled(state.HasSession);
         menu.SetPauseState(state.HasSession, state.IsPaused);
         menu.SetFastForwardState(state.FastForwardEnabled, state.FastForwardSpeed);
+
+        SyncSaveStateDates();
+
         statusBar.ShowSpeed(
             state.HasSession ? $"Speed {state.EffectiveSpeed.GetDisplayName()}" : string.Empty
         );
     }
+
+    private void SyncSaveStateDates() =>
+        menu.SetSaveStateDates(
+            controller.State.HasSession
+                ? controller.GetSaveStateDates(SaveStateSlotCount)
+                : new DateTime?[SaveStateSlotCount]
+        );
 
     public void SyncRecentRoms()
     {

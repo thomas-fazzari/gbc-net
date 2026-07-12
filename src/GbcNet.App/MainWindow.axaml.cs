@@ -178,10 +178,10 @@ internal sealed partial class MainWindow : Window, IDisposable
             _operationRunner.Run(_configurationPresenter.OpenConfigurationDirectoryAsync);
         MainMenu.PauseRequested += (_, _) => _emulationSession.TogglePause();
         MainMenu.ResetRequested += (_, _) => _operationRunner.Run(_emulationSession.ResetAsync);
-        MainMenu.SaveStateRequested += (_, _) =>
-            _operationRunner.Run(_emulationSession.SaveStateAsync);
-        MainMenu.LoadStateRequested += (_, _) =>
-            _operationRunner.Run(_emulationSession.LoadStateAsync);
+        MainMenu.SaveStateRequested += (_, e) =>
+            _operationRunner.Run(() => _emulationSession.SaveStateAsync(e.SlotIndex));
+        MainMenu.LoadStateRequested += (_, e) =>
+            _operationRunner.Run(() => _emulationSession.LoadStateAsync(e.SlotIndex));
         MainMenu.FastForwardRequested += (_, _) => _emulationSession.ToggleFastForward();
         MainMenu.FastForwardSpeedSelected += (_, e) =>
         {

@@ -20,6 +20,8 @@ public sealed class SaveStateFileServiceTests
         );
         var rom = RomStorageIdentity.Create("Test Rom", [0x01, 0x02]);
 
+        Assert.Null(saveStates.GetSaveStateDate(rom, 3));
+
         await saveStates.SaveAsync(
             rom,
             3,
@@ -36,6 +38,7 @@ public sealed class SaveStateFileServiceTests
 
         Assert.Equal([0x10, 0x20, 0x30], payload);
         Assert.Equal("TEST_ROM-", Path.GetFileName(saveStates.GetSaveStatePath(rom, 3))[..9]);
+        Assert.NotNull(saveStates.GetSaveStateDate(rom, 3));
     }
 
     [Fact]

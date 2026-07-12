@@ -192,6 +192,12 @@ internal sealed class SaveStateFileService(
         );
     }
 
+    internal DateTime? GetSaveStateDate(RomStorageIdentity rom, int slot)
+    {
+        var path = GetSaveStatePath(rom, slot);
+        return File.Exists(path) ? File.GetLastWriteTime(path) : null;
+    }
+
     private static byte[] Compress(ReadOnlySpan<byte> payload)
     {
         using var compressor = new ZstdSharp.Compressor();

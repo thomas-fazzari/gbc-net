@@ -147,6 +147,21 @@ internal sealed class EmulationController(
         await session.RestoreSaveStateAsync(state).ConfigureAwait(true);
     }
 
+    public DateTime?[] GetSaveStateDates(int slotCount)
+    {
+        if (_loadedRomStorageIdentity is not { } rom)
+        {
+            return new DateTime?[slotCount];
+        }
+
+        return
+        [
+            .. Enumerable
+                .Range(0, slotCount)
+                .Select(slot => saveStateFileService.GetSaveStateDate(rom, slot)),
+        ];
+    }
+
     private static async Task<byte[]> ReadFileAsync(IStorageFile file)
     {
         var stream = await file.OpenReadAsync().ConfigureAwait(false);
