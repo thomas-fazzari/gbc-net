@@ -47,6 +47,25 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
         new() { PC = AddressMap.CartridgeEntryPointAddress, SP = AddressMap.HighRamEnd };
 
     /// <summary>
+    /// Captures CPU execution state without allocating.
+    /// </summary>
+    internal CpuState CaptureState() =>
+        new(Registers.CaptureState(), Halted, Stopped, HaltBugPending, Ime, ImeEnablePending);
+
+    /// <summary>
+    /// Restores CPU execution state without executing instructions or raising events.
+    /// </summary>
+    internal void RestoreState(CpuState state)
+    {
+        Registers.RestoreState(state.Registers);
+        Halted = state.Halted;
+        Stopped = state.Stopped;
+        HaltBugPending = state.HaltBugPending;
+        Ime = state.Ime;
+        ImeEnablePending = state.ImeEnablePending;
+    }
+
+    /// <summary>
     /// Raised after an instruction has executed for debugger and breakpoint instrumentation.
     /// </summary>
     internal event EventHandler<CpuInstructionExecutedEventArgs>? InstructionExecuted;
@@ -363,6 +382,18 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
         _currentInstructionMachineCycles++;
     }
 }
+
+/// <summary>
+/// Captures SM83 CPU execution state.
+/// </summary>
+internal readonly record struct CpuState(
+    RegistersState Registers,
+    bool Halted,
+    bool Stopped,
+    bool HaltBugPending,
+    bool Ime,
+    bool ImeEnablePending
+);
 
 /// <summary>
 /// Provides the opcode and register state observed after one completed instruction.

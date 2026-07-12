@@ -3,6 +3,15 @@
 
 namespace GbcNet.Core.Ppu.Engines;
 
+internal sealed record CgbPpuEngineState(
+    PpuEngineBaseState Common,
+    byte[] BackgroundColorFifo,
+    byte[] BackgroundAttributeFifo,
+    CgbObjectLayerState Objects,
+    byte FetchedTileId,
+    byte FetchedTileAttributes
+) : IPpuEngineState;
+
 /// <summary>
 /// CGB LCD engine for BG/window/OBJ RGB555 rendering with CGB tile attributes.
 /// </summary>
@@ -20,6 +29,67 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
     private readonly CgbObjectLayer _objects = new();
     private byte _fetcherTileId;
     private byte _fetcherTileAttributes;
+
+    public override IPpuEngineState CaptureState() =>
+        new CgbPpuEngineState(
+            CapturePpuEngineBaseState(),
+            [.. _backgroundColorFifo],
+            [.. _backgroundAttributeFifo],
+            _objects.CaptureState(),
+            _fetcherTileId,
+            _fetcherTileAttributes
+        );
+
+    public override void ValidateState(IPpuEngineState state)
+    {
+        if (state is not CgbPpuEngineState cgbState)
+        {
+            throw new ArgumentException(
+                "PPU engine state must be for the CGB engine.",
+                nameof(state)
+            );
+        }
+
+        ValidateCgbState(cgbState);
+    }
+
+    public override void RestoreState(IPpuEngineState state)
+    {
+        if (state is not CgbPpuEngineState cgbState)
+        {
+            throw new ArgumentException(
+                "PPU engine state must be for the CGB engine.",
+                nameof(state)
+            );
+        }
+
+        ValidateCgbState(cgbState);
+        RestorePpuEngineBaseState(cgbState.Common);
+        cgbState.BackgroundColorFifo.CopyTo(_backgroundColorFifo, 0);
+        cgbState.BackgroundAttributeFifo.CopyTo(_backgroundAttributeFifo, 0);
+        _objects.RestoreState(cgbState.Objects);
+        _fetcherTileId = cgbState.FetchedTileId;
+        _fetcherTileAttributes = cgbState.FetchedTileAttributes;
+    }
+
+    private void ValidateCgbState(CgbPpuEngineState state)
+    {
+        ValidatePpuEngineBaseState(state.Common);
+        _objects.ValidateState(state.Objects);
+        ValidateBackgroundFifo(state.BackgroundColorFifo, nameof(state));
+        ValidateBackgroundFifo(state.BackgroundAttributeFifo, nameof(state));
+    }
+
+    private static void ValidateBackgroundFifo(byte[]? fifo, string parameterName)
+    {
+        if (fifo is null || fifo.Length != BackgroundFifoCapacity)
+        {
+            throw new ArgumentException(
+                "Background FIFO length must match the engine FIFO capacity.",
+                parameterName
+            );
+        }
+    }
 
     protected override int ObjectPenaltyDots => _objects.PenaltyDots;
 

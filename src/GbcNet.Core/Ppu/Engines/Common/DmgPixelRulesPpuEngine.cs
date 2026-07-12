@@ -3,6 +3,13 @@
 
 namespace GbcNet.Core.Ppu.Engines;
 
+internal readonly record struct DmgPixelRulesPpuEngineState(
+    PpuEngineBaseState Common,
+    byte[] BackgroundFifo,
+    DmgObjectLayerState Objects,
+    byte FetchedTileId
+);
+
 /// <summary>
 /// Shared DMG pixel-rule renderer used by DMG hardware and CGB DMG compatibility output.
 /// </summary>
@@ -13,6 +20,37 @@ internal abstract class DmgPixelRulesPpuEngine<TPixelOutput>()
     private readonly byte[] _backgroundFifo = new byte[BackgroundFifoCapacity];
     private readonly DmgObjectLayer _objects = new();
     private byte _fetcherTileId;
+
+    protected DmgPixelRulesPpuEngineState CaptureDmgPixelRulesPpuEngineState() =>
+        new(
+            CapturePpuEngineBaseState(),
+            [.. _backgroundFifo],
+            _objects.CaptureState(),
+            _fetcherTileId
+        );
+
+    protected void ValidateDmgPixelRulesPpuEngineState(DmgPixelRulesPpuEngineState state)
+    {
+        ValidatePpuEngineBaseState(state.Common);
+        _objects.ValidateState(state.Objects);
+
+        if (state.BackgroundFifo is null || state.BackgroundFifo.Length != _backgroundFifo.Length)
+        {
+            throw new ArgumentException(
+                "Background FIFO length must match the engine FIFO capacity.",
+                nameof(state)
+            );
+        }
+    }
+
+    protected void RestoreDmgPixelRulesPpuEngineState(DmgPixelRulesPpuEngineState state)
+    {
+        ValidateDmgPixelRulesPpuEngineState(state);
+        RestorePpuEngineBaseState(state.Common);
+        state.BackgroundFifo.CopyTo(_backgroundFifo, 0);
+        _objects.RestoreState(state.Objects);
+        _fetcherTileId = state.FetchedTileId;
+    }
 
     protected override int ObjectPenaltyDots => _objects.PenaltyDots;
 

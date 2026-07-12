@@ -6,6 +6,8 @@ using System.Globalization;
 
 namespace GbcNet.Core.Cartridges.Memory;
 
+internal readonly record struct Mbc2RamState(byte[] Bytes, bool IsDirty);
+
 /// <summary>
 /// MBC2 built-in 512 x 4-bit RAM with optional battery-backed persistence.
 /// </summary>
@@ -75,5 +77,49 @@ internal sealed class Mbc2Ram(bool hasBattery) : ICartridgeSaveData
     public void ClearBatterySaveDirty()
     {
         _dirty = false;
+    }
+
+    internal Mbc2RamState CaptureState() => new((byte[])_bytes.Clone(), _dirty);
+
+    internal void RestoreState(Mbc2RamState state)
+    {
+        ValidateState(state);
+        state.Bytes.CopyTo(_bytes, 0);
+        _dirty = state.IsDirty;
+    }
+
+    internal void ValidateState(Mbc2RamState state)
+    {
+        if (state.Bytes is null)
+        {
+            throw new ArgumentException("MBC2 RAM state bytes must not be null.", nameof(state));
+        }
+
+        if (state.Bytes.Length != RamSize)
+        {
+            throw new ArgumentException(
+                $"MBC2 RAM state must contain exactly {RamSize} bytes.",
+                nameof(state)
+            );
+        }
+
+        foreach (var value in state.Bytes)
+        {
+            if ((value & ~StoredNibbleMask) != 0)
+            {
+                throw new ArgumentException(
+                    "MBC2 RAM state bytes must contain only low nibbles.",
+                    nameof(state)
+                );
+            }
+        }
+
+        if (state.IsDirty && !hasBattery)
+        {
+            throw new ArgumentException(
+                "MBC2 RAM state cannot be dirty without battery-backed RAM.",
+                nameof(state)
+            );
+        }
     }
 }

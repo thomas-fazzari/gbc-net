@@ -3,6 +3,8 @@
 
 namespace GbcNet.Core.Interrupts;
 
+internal readonly record struct InterruptControllerState(byte InterruptEnable, byte InterruptFlag);
+
 /// <summary>
 /// Stores Game Boy interrupt request and enable registers.
 /// </summary>
@@ -45,6 +47,20 @@ internal sealed class InterruptController
     internal void SetInterruptFlag(byte value)
     {
         InterruptFlag = (byte)(value & RequestedInterruptMask);
+    }
+
+    /// <summary>
+    /// Captures the interrupt register state.
+    /// </summary>
+    internal InterruptControllerState CaptureState() => new(InterruptEnable, InterruptFlag);
+
+    /// <summary>
+    /// Restores the interrupt register state without requesting or acknowledging interrupts.
+    /// </summary>
+    internal void RestoreState(InterruptControllerState state)
+    {
+        InterruptEnable = state.InterruptEnable;
+        InterruptFlag = (byte)(state.InterruptFlag & RequestedInterruptMask);
     }
 
     /// <summary>

@@ -6,6 +6,15 @@ using System.Globalization;
 
 namespace GbcNet.Core.Cartridges.Memory;
 
+internal sealed record Mbc3MemoryControllerState(
+    CartridgeRamWindowState ExternalRam,
+    Mbc3RealTimeClockState? RealTimeClock,
+    byte RomBank,
+    byte RamBankOrRtcRegister,
+    bool RamAndTimerEnabled,
+    bool RtcLatchArmed
+) : ICartridgeMemoryControllerState;
+
 /// <summary>
 /// MBC3 cartridge controller for ROM banking, optional RAM banking, and optional RTC mapping.
 /// </summary>
@@ -117,6 +126,71 @@ internal sealed class Mbc3MemoryController : ICartridgeMemoryController, ICartri
     {
         _externalRam.Ram.ClearBatterySaveDirty();
         _realTimeClock?.ClearDirty();
+    }
+
+    public ICartridgeMemoryControllerState CaptureState() =>
+        new Mbc3MemoryControllerState(
+            _externalRam.CaptureState(),
+            _realTimeClock?.CaptureState(),
+            _romBank,
+            _ramBankOrRtcRegister,
+            _ramAndTimerEnabled,
+            _rtcLatchArmed
+        );
+
+    public void RestoreState(ICartridgeMemoryControllerState state)
+    {
+        if (state is not Mbc3MemoryControllerState mbc3State)
+        {
+            throw new ArgumentException(
+                "Cartridge memory controller state is invalid.",
+                nameof(state)
+            );
+        }
+
+        ValidateState(mbc3State);
+
+        if (mbc3State.RealTimeClock is { } realTimeClockState)
+        {
+            _realTimeClock!.RestoreState(realTimeClockState);
+        }
+
+        _externalRam.RestoreState(mbc3State.ExternalRam);
+        _romBank = mbc3State.RomBank;
+        _ramBankOrRtcRegister = mbc3State.RamBankOrRtcRegister;
+        _ramAndTimerEnabled = mbc3State.RamAndTimerEnabled;
+        _rtcLatchArmed = mbc3State.RtcLatchArmed;
+    }
+
+    private void ValidateState(Mbc3MemoryControllerState state)
+    {
+        if (state.RomBank > RomBankMask)
+        {
+            throw new ArgumentException("MBC3 ROM bank must be in the 00-7F range.", nameof(state));
+        }
+
+        if (state.ExternalRam.Enabled != state.RamAndTimerEnabled)
+        {
+            throw new ArgumentException(
+                "MBC3 external RAM enable state must match the RAM and timer enable latch.",
+                nameof(state)
+            );
+        }
+
+        if (state.RealTimeClock.HasValue != (_realTimeClock is not null))
+        {
+            throw new ArgumentException(
+                "MBC3 real-time clock state does not match the cartridge hardware.",
+                nameof(state)
+            );
+        }
+
+        _externalRam.ValidateState(state.ExternalRam);
+
+        if (state.RealTimeClock is { } realTimeClockState)
+        {
+            Mbc3RealTimeClock.ValidateState(realTimeClockState);
+        }
     }
 
     public byte ReadRom(ushort address)

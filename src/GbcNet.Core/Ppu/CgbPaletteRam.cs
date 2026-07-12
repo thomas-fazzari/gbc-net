@@ -3,6 +3,8 @@
 
 namespace GbcNet.Core.Ppu;
 
+internal readonly record struct CgbPaletteRamState(byte[] Bytes, byte Index);
+
 /// <summary>
 /// Stores one CGB color palette RAM, with index visibility separated from data access.
 /// </summary>
@@ -55,6 +57,35 @@ internal sealed class CgbPaletteRam(bool isIndexRegisterEnabled, bool isDataRegi
         var offset = GetColorOffset(paletteIndex, colorId);
         _bytes[offset] = (byte)color;
         _bytes[offset + 1] = (byte)(color >> 8);
+    }
+
+    internal CgbPaletteRamState CaptureState() => new((byte[])_bytes.Clone(), _index);
+
+    internal void ValidateState(CgbPaletteRamState state)
+    {
+        var bytes = state.Bytes;
+        if (bytes is null || bytes.Length != _bytes.Length)
+        {
+            throw new ArgumentException(
+                "State bytes must match the CGB palette RAM length.",
+                nameof(state)
+            );
+        }
+
+        if ((state.Index & ~(AutoIncrementMask | IndexMask)) != 0)
+        {
+            throw new ArgumentException(
+                "State palette index contains unsupported bits.",
+                nameof(state)
+            );
+        }
+    }
+
+    internal void RestoreState(CgbPaletteRamState state)
+    {
+        ValidateState(state);
+        state.Bytes.CopyTo(_bytes, 0);
+        _index = state.Index;
     }
 
     private static int GetColorOffset(int paletteIndex, byte colorId) =>

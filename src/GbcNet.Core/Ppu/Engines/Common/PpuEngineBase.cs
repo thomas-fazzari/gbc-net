@@ -3,6 +3,16 @@
 
 namespace GbcNet.Core.Ppu.Engines;
 
+internal readonly record struct PpuEngineBaseState(
+    PpuTimingState Timing,
+    PpuStatInterruptLatchState StatInterruptLatch,
+    BackgroundWindowFetcherState BackgroundWindowFetcher,
+    byte[] FrameBuffer,
+    int RenderedPixels,
+    bool RenderingScanline,
+    bool RenderCurrentFrame
+);
+
 /// <summary>
 /// Shared LCD timing and render orchestration for the current PPU engines.
 /// </summary>
@@ -52,6 +62,58 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
     protected PpuTiming Timing { get; } = new();
 
     protected int RenderedPixels { get; set; }
+
+    public abstract IPpuEngineState CaptureState();
+
+    public abstract void ValidateState(IPpuEngineState state);
+
+    public abstract void RestoreState(IPpuEngineState state);
+
+    protected PpuEngineBaseState CapturePpuEngineBaseState() =>
+        new(
+            Timing.CaptureState(),
+            _statInterruptState.CaptureState(),
+            BgWindowFetcher.CaptureState(),
+            [.. FrameBuffer],
+            RenderedPixels,
+            _renderingScanline,
+            _renderCurrentFrame
+        );
+
+    protected void ValidatePpuEngineBaseState(PpuEngineBaseState state)
+    {
+        PpuTiming.ValidateState(state.Timing);
+        PpuStatInterruptState.ValidateState(state.StatInterruptLatch);
+        BackgroundWindowFetcher.ValidateState(state.BackgroundWindowFetcher);
+
+        if (state.FrameBuffer is null || state.FrameBuffer.Length != FrameBuffer.Length)
+        {
+            throw new ArgumentException(
+                "Frame buffer length must match this engine's output format.",
+                nameof(state)
+            );
+        }
+
+        if (state.RenderedPixels is < 0 or > PpuGeometry.FrameWidth)
+        {
+            throw new ArgumentException(
+                "Rendered pixels must be within the scanline width.",
+                nameof(state)
+            );
+        }
+    }
+
+    protected void RestorePpuEngineBaseState(PpuEngineBaseState state)
+    {
+        ValidatePpuEngineBaseState(state);
+        Timing.RestoreState(state.Timing);
+        _statInterruptState.RestoreState(state.StatInterruptLatch);
+        BgWindowFetcher.RestoreState(state.BackgroundWindowFetcher);
+        state.FrameBuffer.CopyTo(FrameBuffer, 0);
+        RenderedPixels = state.RenderedPixels;
+        _renderingScanline = state.RenderingScanline;
+        _renderCurrentFrame = state.RenderCurrentFrame;
+    }
 
     protected abstract int ObjectPenaltyDots { get; }
 

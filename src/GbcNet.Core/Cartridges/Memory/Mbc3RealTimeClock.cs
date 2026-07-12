@@ -5,6 +5,22 @@ using System.Buffers.Binary;
 
 namespace GbcNet.Core.Cartridges.Memory;
 
+internal readonly record struct Mbc3RealTimeClockState(
+    int Seconds,
+    int Minutes,
+    int Hours,
+    int Day,
+    bool Halted,
+    bool Carry,
+    int LatchedSeconds,
+    int LatchedMinutes,
+    int LatchedHours,
+    int LatchedDay,
+    bool LatchedHalted,
+    bool LatchedCarry,
+    bool IsDirty
+);
+
 /// <summary>
 /// MBC3 real-time clock registers, latch behavior, and persistence state.
 /// </summary>
@@ -193,6 +209,92 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
     }
 
     /// <summary>
+    /// Captures the RTC without changing its clock anchor or persistence state.
+    /// </summary>
+    internal Mbc3RealTimeClockState CaptureState()
+    {
+        var now = getUnixTimeSeconds();
+        var seconds = _seconds;
+        var minutes = _minutes;
+        var hours = _hours;
+        var day = _day;
+        var carry = _carry;
+        var advanced = now > _lastUnixTimeSeconds && !_halted;
+
+        if (advanced)
+        {
+            Advance(
+                now - _lastUnixTimeSeconds,
+                ref seconds,
+                ref minutes,
+                ref hours,
+                ref day,
+                ref carry
+            );
+        }
+
+        return new(
+            seconds,
+            minutes,
+            hours,
+            day,
+            _halted,
+            carry,
+            _latchedSeconds,
+            _latchedMinutes,
+            _latchedHours,
+            _latchedDay,
+            _latchedHalted,
+            _latchedCarry,
+            IsDirty || advanced
+        );
+    }
+
+    /// <summary>
+    /// Validates an RTC save state without observing the injected clock.
+    /// </summary>
+    internal static void ValidateState(Mbc3RealTimeClockState state)
+    {
+        if (
+            (uint)state.Seconds > SecondsMask
+            || (uint)state.Minutes > MinutesMask
+            || (uint)state.Hours > HoursMask
+            || (uint)state.Day > MaxDay
+            || (uint)state.LatchedSeconds > SecondsMask
+            || (uint)state.LatchedMinutes > MinutesMask
+            || (uint)state.LatchedHours > HoursMask
+            || (uint)state.LatchedDay > MaxDay
+        )
+        {
+            throw new ArgumentException("RTC register value is out of range.", nameof(state));
+        }
+    }
+
+    /// <summary>
+    /// Restores the RTC at the destination clock's current time without catch-up.
+    /// </summary>
+    internal void RestoreState(Mbc3RealTimeClockState state)
+    {
+        ValidateState(state);
+        var now = getUnixTimeSeconds();
+
+        _seconds = state.Seconds;
+        _minutes = state.Minutes;
+        _hours = state.Hours;
+        _day = state.Day;
+        _halted = state.Halted;
+        _carry = state.Carry;
+        _latchedSeconds = state.LatchedSeconds;
+        _latchedMinutes = state.LatchedMinutes;
+        _latchedHours = state.LatchedHours;
+        _latchedDay = state.LatchedDay;
+        _latchedHalted = state.LatchedHalted;
+        _latchedCarry = state.LatchedCarry;
+        _lastUnixTimeSeconds = now;
+        IsDirty = state.IsDirty;
+    }
+
+    /// <summary>
     /// Marks RTC persistence state clean after save data has been written.
     /// </summary>
     public void ClearDirty()
@@ -221,38 +323,45 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
             return;
         }
 
-        Advance(elapsedSeconds);
+        Advance(elapsedSeconds, ref _seconds, ref _minutes, ref _hours, ref _day, ref _carry);
         IsDirty = true;
     }
 
-    private void Advance(long elapsedSeconds)
+    private static void Advance(
+        long elapsedSeconds,
+        ref int seconds,
+        ref int minutes,
+        ref int hours,
+        ref int day,
+        ref bool carry
+    )
     {
-        var totalSeconds = _seconds + elapsedSeconds;
-        _seconds = (int)(totalSeconds % 60);
+        var totalSeconds = seconds + elapsedSeconds;
+        seconds = (int)(totalSeconds % 60);
 
-        var totalMinutes = _minutes + (totalSeconds / 60);
-        _minutes = (int)(totalMinutes % 60);
+        var totalMinutes = minutes + (totalSeconds / 60);
+        minutes = (int)(totalMinutes % 60);
 
-        var totalHours = _hours + (totalMinutes / 60);
-        _hours = (int)(totalHours % 24);
+        var totalHours = hours + (totalMinutes / 60);
+        hours = (int)(totalHours % 24);
 
-        AddDays(totalHours / 24);
+        AddDays(totalHours / 24, ref day, ref carry);
     }
 
-    private void AddDays(long days)
+    private static void AddDays(long days, ref int day, ref bool carry)
     {
         if (days == 0)
         {
             return;
         }
 
-        var totalDays = _day + days;
+        var totalDays = day + days;
         if (totalDays > MaxDay)
         {
-            _carry = true;
+            carry = true;
         }
 
-        _day = (int)(totalDays & MaxDay);
+        day = (int)(totalDays & MaxDay);
     }
 
     private static byte GetDayHigh(int day, bool halted, bool carry) =>

@@ -827,6 +827,76 @@ public sealed class CpuTests
     }
 
     [Fact]
+    public void CaptureState_RestoresRegisterFileForStackBasedContinuation()
+    {
+        var (source, sourceBus) = CpuTestFactory.CreateCpuWithBus(bytes =>
+        {
+            bytes[0x0100] = 0xC5;
+            bytes[0x0101] = 0xD5;
+            bytes[0x0102] = 0xE5;
+            bytes[0x0103] = 0xF5;
+            bytes[0x0104] = 0xC5;
+            bytes[0x0105] = 0xD5;
+            bytes[0x0106] = 0xE5;
+            bytes[0x0107] = 0xF5;
+        });
+        var (restored, restoredBus) = CpuTestFactory.CreateCpuWithBus(bytes =>
+        {
+            bytes[0x0100] = 0xC5;
+            bytes[0x0101] = 0xD5;
+            bytes[0x0102] = 0xE5;
+            bytes[0x0103] = 0xF5;
+            bytes[0x0104] = 0xC5;
+            bytes[0x0105] = 0xD5;
+            bytes[0x0106] = 0xE5;
+            bytes[0x0107] = 0xF5;
+        });
+
+        source.Registers.AF = 0x12FF;
+        source.Registers.BC = 0x3456;
+        source.Registers.DE = 0x789A;
+        source.Registers.HL = 0xBCDE;
+        source.Registers.SP = 0xC100;
+        restored.Registers.AF = 0x12FF;
+        restored.Registers.BC = 0x3456;
+        restored.Registers.DE = 0x789A;
+        restored.Registers.HL = 0xBCDE;
+        restored.Registers.SP = 0xC100;
+
+        for (var instruction = 0; instruction < 4; instruction++)
+        {
+            Assert.Equal(4, source.Step());
+            Assert.Equal(4, restored.Step());
+        }
+
+        var state = source.CaptureState();
+        restored.Registers.AF = 0;
+        restored.Registers.BC = 0;
+        restored.Registers.DE = 0;
+        restored.Registers.HL = 0;
+        restored.Registers.PC = 0x0100;
+        restored.Registers.SP = 0xC100;
+        restored.RestoreState(state with { Registers = state.Registers with { AF = 0x12FF } });
+
+        for (var instruction = 0; instruction < 4; instruction++)
+        {
+            Assert.Equal(source.Step(), restored.Step());
+        }
+
+        Assert.Equal(0x34, restoredBus.ReadByte(0xC0F7));
+        Assert.Equal(0x56, restoredBus.ReadByte(0xC0F6));
+        Assert.Equal(0x78, restoredBus.ReadByte(0xC0F5));
+        Assert.Equal(0x9A, restoredBus.ReadByte(0xC0F4));
+        Assert.Equal(0xBC, restoredBus.ReadByte(0xC0F3));
+        Assert.Equal(0xDE, restoredBus.ReadByte(0xC0F2));
+        Assert.Equal(0x12, restoredBus.ReadByte(0xC0F1));
+        Assert.Equal(0xF0, restoredBus.ReadByte(0xC0F0));
+        Assert.Equal(sourceBus.ReadByte(0xC0F0), restoredBus.ReadByte(0xC0F0));
+        Assert.Equal(0x0108, restored.Registers.PC);
+        Assert.Equal(0xC0F0, restored.Registers.SP);
+    }
+
+    [Fact]
     public void Step_RejectsUnsupportedOpcode()
     {
         const byte opcode = 0xD3;

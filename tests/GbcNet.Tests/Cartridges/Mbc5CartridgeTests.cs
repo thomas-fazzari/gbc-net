@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Cartridges.Memory;
 using GbcNet.Core.Memory;
 
 namespace GbcNet.Tests.Cartridges;
@@ -169,5 +170,95 @@ public sealed class Mbc5CartridgeTests
 
         reloaded.WriteRom(0x4000, 0x01);
         Assert.Equal(0x22, reloaded.ReadRam(AddressMap.ExternalRamStart));
+    }
+
+    [Theory]
+    [InlineData(CartridgeType.Mbc5Ram)]
+    [InlineData(CartridgeType.Mbc5RamBattery)]
+    public void CaptureRestore_ContinuesFullMbc5MapperAndRamState(CartridgeType cartridgeType)
+    {
+        const int bank23 = 0x023;
+        const int bank100 = 0x100;
+        const int bank123 = 0x123;
+        const ushort ramOffset = 0x0010;
+        const ushort ramAddress = AddressMap.ExternalRamStart + ramOffset;
+
+        var rom = TestRomFactory.Create(
+            romSizeCode: 0x08,
+            bytes =>
+            {
+                bytes[0x0147] = (byte)cartridgeType;
+                bytes[0x0149] = 0x03;
+                bytes[0 * RomBankSize] = 0x00;
+                bytes[bank23 * RomBankSize] = 0x23;
+                bytes[bank100 * RomBankSize] = 0x80;
+                bytes[bank123 * RomBankSize] = 0xA3;
+            }
+        );
+        var cartridge = TestRomFactory.LoadCartridge(rom);
+
+        cartridge.WriteRom(0x0000, 0x0A);
+        cartridge.WriteRom(0x4000, 0x00);
+        cartridge.WriteRam(ramAddress, 0x11);
+        cartridge.WriteRom(0x4000, 0x0F);
+        cartridge.WriteRam(ramAddress, 0x7F);
+        cartridge.WriteRom(0x2000, 0x23);
+        cartridge.WriteRom(0x3000, 0x01);
+
+        var state = cartridge.CaptureState();
+
+        cartridge.WriteRom(0x2000, 0x00);
+        cartridge.WriteRom(0x3000, 0x00);
+        cartridge.WriteRom(0x4000, 0x00);
+        cartridge.WriteRam(ramAddress, 0xAA);
+        cartridge.ClearBatterySaveDirty();
+
+        cartridge.RestoreState(state);
+
+        Assert.Equal(0xA3, cartridge.ReadRom(0x4000));
+        Assert.Equal(0x7F, cartridge.ReadRam(ramAddress));
+        cartridge.WriteRom(0x4000, 0x00);
+        Assert.Equal(0x11, cartridge.ReadRam(ramAddress));
+        cartridge.WriteRom(0x4000, 0x0F);
+        Assert.Equal(cartridgeType == CartridgeType.Mbc5RamBattery, cartridge.IsBatterySaveDirty);
+
+        cartridge.WriteRom(0x2000, 0x00);
+        Assert.Equal(0x80, cartridge.ReadRom(0x4000));
+        cartridge.WriteRom(0x2000, 0x23);
+        cartridge.WriteRom(0x3000, 0x00);
+        Assert.Equal(0x23, cartridge.ReadRom(0x4000));
+        cartridge.WriteRom(0x2000, 0x00);
+        Assert.Equal(0x00, cartridge.ReadRom(0x4000));
+
+        cartridge.WriteRom(0x3000, 0x01);
+        var zeroLowState = cartridge.CaptureState();
+        cartridge.WriteRom(0x3000, 0x00);
+        cartridge.RestoreState(zeroLowState);
+        Assert.Equal(0x80, cartridge.ReadRom(0x4000));
+
+        var validState = cartridge.CaptureState();
+        var validMbc5State = (Mbc5MemoryControllerState)validState.Controller;
+        var invalidRomHighState = new CartridgeState(
+            new Mbc5MemoryControllerState(
+                validMbc5State.ExternalRam,
+                validMbc5State.RomBankLow,
+                0x02,
+                validMbc5State.RamBank
+            )
+        );
+        var invalidRamBankState = new CartridgeState(
+            new Mbc5MemoryControllerState(
+                validMbc5State.ExternalRam,
+                validMbc5State.RomBankLow,
+                validMbc5State.RomBankHigh,
+                0x10
+            )
+        );
+
+        Assert.Throws<ArgumentException>(() => cartridge.RestoreState(invalidRomHighState));
+        Assert.Throws<ArgumentException>(() => cartridge.RestoreState(invalidRamBankState));
+        Assert.Equal(0x80, cartridge.ReadRom(0x4000));
+        Assert.Equal(0x7F, cartridge.ReadRam(ramAddress));
+        Assert.Equal(cartridgeType == CartridgeType.Mbc5RamBattery, cartridge.IsBatterySaveDirty);
     }
 }

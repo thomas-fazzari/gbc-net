@@ -164,6 +164,63 @@ public sealed class SerialControllerTests
         Assert.Null(transferredByte);
     }
 
+    [Theory]
+    [InlineData(false, 576, 448)]
+    [InlineData(true, 18, 14)]
+    public void RestoreState_ResumesMidBitTransferAtExactRemainingTiming(
+        bool highSpeed,
+        int snapshotMachineCycles,
+        int remainingMachineCycles
+    )
+    {
+        var sourceInterrupts = new InterruptController();
+        var sourceSerial = new SerialController(sourceInterrupts, isHighSpeedClockEnabled: true);
+        var sourceClock = new ClockController(
+            sourceInterrupts,
+            sourceSerial,
+            new ApuController(ApuModelSpec.Cgb),
+            isKey1RegisterEnabled: true
+        );
+        sourceSerial.TransferData = 0xA5;
+        sourceSerial.WriteControl((byte)(0x81 | (highSpeed ? 0x02 : 0x00)));
+        sourceSerial.TransferData = 0x00;
+        TickMachineCycles(sourceClock, snapshotMachineCycles);
+
+        var clockState = sourceClock.CaptureState();
+        var serialState = sourceSerial.CaptureState();
+
+        var restoredInterrupts = new InterruptController();
+        var restoredSerial = new SerialController(
+            restoredInterrupts,
+            isHighSpeedClockEnabled: true
+        );
+        var restoredClock = new ClockController(
+            restoredInterrupts,
+            restoredSerial,
+            new ApuController(ApuModelSpec.Cgb),
+            isKey1RegisterEnabled: true
+        );
+        var transferredBytes = new List<byte>();
+        restoredSerial.ByteTransferred += transferredBytes.Add;
+
+        restoredClock.RestoreState(clockState);
+        restoredSerial.RestoreState(serialState);
+
+        Assert.Empty(transferredBytes);
+        Assert.Equal(0x00, restoredInterrupts.InterruptFlag);
+
+        TickMachineCycles(restoredClock, remainingMachineCycles - 1);
+        Assert.NotEqual(0, restoredSerial.ReadControl() & 0x80);
+        Assert.Empty(transferredBytes);
+
+        TickMachineCycles(restoredClock, 1);
+
+        Assert.Equal(0xFF, restoredSerial.TransferData);
+        Assert.Equal(0, restoredSerial.ReadControl() & 0x80);
+        Assert.Equal(0b0000_1000, restoredInterrupts.InterruptFlag);
+        Assert.Equal(new byte[] { 0xA5 }, transferredBytes);
+    }
+
     private static void TickMachineCycles(ClockController clock, int machineCycles)
     {
         for (var cycle = 0; cycle < machineCycles; cycle++)

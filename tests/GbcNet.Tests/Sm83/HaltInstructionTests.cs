@@ -164,4 +164,58 @@ public sealed class HaltInstructionTests
         Assert.Equal(0x01, bus.ReadByte(StackReturnHighByteAddress));
         Assert.Equal(0xE0, bus.ReadByte(AddressMap.InterruptFlagRegister));
     }
+
+    [Fact]
+    public void CaptureState_ResumesHaltedCpuByServicingPendingInterrupt()
+    {
+        var (source, sourceBus) = CpuTestFactory.CreateCpuWithBus(bytes =>
+            bytes[0x0100] = HaltOpcode
+        );
+        source.Ime = true;
+
+        Assert.Equal(1, source.Step());
+        var state = source.CaptureState();
+
+        var (restored, restoredBus) = CpuTestFactory.CreateCpuWithBus(bytes =>
+            bytes[0x0100] = HaltOpcode
+        );
+        restored.RestoreState(state);
+        sourceBus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        sourceBus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+        restoredBus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        restoredBus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+
+        Assert.Equal(source.Step(), restored.Step());
+        Assert.Equal(VBlankVector, restored.Registers.PC);
+        Assert.Equal(StackReturnLowByteAddress, restored.Registers.SP);
+        Assert.Equal(0x01, restoredBus.ReadByte(StackReturnLowByteAddress));
+        Assert.Equal(0x01, restoredBus.ReadByte(StackReturnHighByteAddress));
+        Assert.Equal(0xE0, restoredBus.ReadByte(AddressMap.InterruptFlagRegister));
+    }
+
+    [Fact]
+    public void CaptureState_PreservesPendingHaltBugForNextInstruction()
+    {
+        var (source, sourceBus) = CpuTestFactory.CreateCpuWithBus(bytes =>
+        {
+            bytes[0x0100] = HaltOpcode;
+            bytes[0x0101] = IncrementBOpcode;
+        });
+        sourceBus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        sourceBus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+
+        Assert.Equal(1, source.Step());
+        var state = source.CaptureState();
+
+        var restored = CpuTestFactory.CreateCpu(bytes =>
+        {
+            bytes[0x0100] = HaltOpcode;
+            bytes[0x0101] = IncrementBOpcode;
+        });
+        restored.RestoreState(state);
+
+        Assert.Equal(source.Step(), restored.Step());
+        Assert.Equal(1, restored.Registers.B);
+        Assert.Equal(0x0101, restored.Registers.PC);
+    }
 }

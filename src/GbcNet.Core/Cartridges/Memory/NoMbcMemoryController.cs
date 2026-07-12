@@ -3,6 +3,9 @@
 
 namespace GbcNet.Core.Cartridges.Memory;
 
+internal sealed record NoMbcMemoryControllerState(CartridgeRamState Ram)
+    : ICartridgeMemoryControllerState;
+
 /// <summary>
 /// No-MBC cartridge controller with direct ROM mapping and optional fixed cartridge RAM.
 /// </summary>
@@ -15,6 +18,23 @@ internal sealed class NoMbcMemoryController(
     private readonly CartridgeRam _cartridgeRam = new(header.RamSizeBytes, hasBatteryBackedRam);
 
     public ICartridgeSaveData SaveData => _cartridgeRam;
+
+    public ICartridgeMemoryControllerState CaptureState() =>
+        new NoMbcMemoryControllerState(_cartridgeRam.CaptureState());
+
+    public void RestoreState(ICartridgeMemoryControllerState state)
+    {
+        if (state is not NoMbcMemoryControllerState noMbcState)
+        {
+            throw new ArgumentException(
+                "Cartridge memory controller state is invalid.",
+                nameof(state)
+            );
+        }
+
+        _cartridgeRam.ValidateState(noMbcState.Ram);
+        _cartridgeRam.RestoreState(noMbcState.Ram);
+    }
 
     public byte ReadRom(ushort address) => rom[address];
 

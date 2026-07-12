@@ -5,6 +5,16 @@ using GbcNet.Core.Interrupts;
 
 namespace GbcNet.Core.Serial;
 
+internal readonly record struct SerialControllerState(
+    byte Control,
+    byte TransferData,
+    byte OutgoingTransferData,
+    int TransferredBitCount,
+    bool NormalMasterClockHigh,
+    bool HighSpeedMasterClockHigh,
+    bool TransferActive
+);
+
 /// <summary>
 /// Emulates the serial transfer data and control registers.
 /// </summary>
@@ -70,6 +80,28 @@ internal sealed class SerialController(
     /// SB register at FF01, holding outgoing and incoming serial data.
     /// </summary>
     public byte TransferData { get; set; }
+
+    internal SerialControllerState CaptureState() =>
+        new(
+            _control,
+            TransferData,
+            _outgoingTransferData,
+            _transferredBitCount,
+            _normalMasterClockHigh,
+            _highSpeedMasterClockHigh,
+            _transferActive
+        );
+
+    internal void RestoreState(SerialControllerState state)
+    {
+        _control = state.Control;
+        TransferData = state.TransferData;
+        _outgoingTransferData = state.OutgoingTransferData;
+        _transferredBitCount = state.TransferredBitCount;
+        _normalMasterClockHigh = state.NormalMasterClockHigh;
+        _highSpeedMasterClockHigh = state.HighSpeedMasterClockHigh;
+        _transferActive = state.TransferActive;
+    }
 
     /// <summary>
     /// Reads SC with unused bits set.

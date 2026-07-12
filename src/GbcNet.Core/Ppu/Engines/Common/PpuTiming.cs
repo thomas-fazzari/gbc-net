@@ -3,6 +3,13 @@
 
 namespace GbcNet.Core.Ppu.Engines;
 
+internal readonly record struct PpuTimingState(
+    int LineDots,
+    byte LcdYCoordinate,
+    PpuMode StatusMode,
+    bool FirstScanlineAfterLcdEnable
+);
+
 /// <summary>
 /// Owns implemented LCD scanline dot timing, LY progression, and CPU-visible STAT mode timing.
 /// </summary>
@@ -58,6 +65,49 @@ internal sealed class PpuTiming
     /// Indicates that timing is on the shortened first scanline after LCD enable.
     /// </summary>
     public bool FirstScanlineAfterLcdEnable { get; private set; }
+
+    internal PpuTimingState CaptureState() =>
+        new(LineDots, LcdYCoordinate, StatusMode, FirstScanlineAfterLcdEnable);
+
+    internal static void ValidateState(PpuTimingState state)
+    {
+        var scanlineDots = state.FirstScanlineAfterLcdEnable
+            ? FirstScanlineAfterLcdEnableDots
+            : PpuGeometry.ScanlineDots;
+
+        if (state.LineDots < 0 || state.LineDots >= scanlineDots)
+        {
+            throw new ArgumentException(
+                "Line dots must be within the current scanline.",
+                nameof(state)
+            );
+        }
+
+        if (state.LcdYCoordinate > PpuGeometry.LastScanline)
+        {
+            throw new ArgumentException(
+                "LCD Y coordinate must be within the frame.",
+                nameof(state)
+            );
+        }
+
+        if (
+            state.StatusMode
+            is not (PpuMode.HBlank or PpuMode.VBlank or PpuMode.OamScan or PpuMode.Drawing)
+        )
+        {
+            throw new ArgumentException("Status mode is invalid.", nameof(state));
+        }
+    }
+
+    internal void RestoreState(PpuTimingState state)
+    {
+        ValidateState(state);
+        LineDots = state.LineDots;
+        LcdYCoordinate = state.LcdYCoordinate;
+        StatusMode = state.StatusMode;
+        FirstScanlineAfterLcdEnable = state.FirstScanlineAfterLcdEnable;
+    }
 
     /// <summary>
     /// Starts timing at the shortened first scanline after LCD enable.

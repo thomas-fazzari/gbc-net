@@ -5,6 +5,8 @@ using GbcNet.Core.Memory;
 
 namespace GbcNet.Core.Ppu;
 
+internal readonly record struct VideoRamState(byte[] Banks, int SelectedBank);
+
 /// <summary>
 /// Stores CPU-visible VRAM with optional CGB bank selection through VBK.
 /// </summary>
@@ -55,6 +57,35 @@ internal sealed class VideoRam
         {
             SelectedBank = value & BankSelectMask;
         }
+    }
+
+    internal VideoRamState CaptureState() => new((byte[])_banks.Clone(), SelectedBank);
+
+    internal void ValidateState(VideoRamState state)
+    {
+        var banks = state.Banks;
+        if (banks is null || banks.Length != _banks.Length)
+        {
+            throw new ArgumentException(
+                "State banks must match the video RAM length.",
+                nameof(state)
+            );
+        }
+
+        if (state.SelectedBank < 0 || state.SelectedBank >= _bankCount)
+        {
+            throw new ArgumentException(
+                "State selected bank must identify an available video RAM bank.",
+                nameof(state)
+            );
+        }
+    }
+
+    internal void RestoreState(VideoRamState state)
+    {
+        ValidateState(state);
+        state.Banks.CopyTo(_banks, 0);
+        SelectedBank = state.SelectedBank;
     }
 
     private static int GetOffset(int bank, ushort address) =>

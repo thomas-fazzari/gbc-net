@@ -100,4 +100,39 @@ public sealed class StopInstructionTests
 
         Assert.Equal(0x00, bus.ReadByte(AddressMap.DividerRegister));
     }
+
+    [Fact]
+    public void CaptureState_PreservesStoppedWaitAndJoypadWakeContinuation()
+    {
+        var (source, sourceBus) = CpuTestFactory.CreateCpuWithBus(rom =>
+        {
+            rom[EntryPoint] = StopOpcode;
+            rom[EntryPoint + 1] = NopOpcode;
+            rom[EntryPoint + 2] = IncBOpcode;
+        });
+        sourceBus.WriteByte(AddressMap.JoypadRegister, 0x20);
+
+        Assert.Equal(2, source.Step());
+        var state = source.CaptureState();
+
+        var (restored, restoredBus) = CpuTestFactory.CreateCpuWithBus(rom =>
+        {
+            rom[EntryPoint] = StopOpcode;
+            rom[EntryPoint + 1] = NopOpcode;
+            rom[EntryPoint + 2] = IncBOpcode;
+        });
+        restoredBus.WriteByte(AddressMap.JoypadRegister, 0x20);
+        restored.RestoreState(state);
+
+        Assert.Equal(source.Step(), restored.Step());
+        Assert.True(restored.Stopped);
+
+        sourceBus.Joypad.SetButtonState(JoypadButton.Right, pressed: true);
+        restoredBus.Joypad.SetButtonState(JoypadButton.Right, pressed: true);
+
+        Assert.Equal(source.Step(), restored.Step());
+        Assert.False(restored.Stopped);
+        Assert.Equal(source.Step(), restored.Step());
+        Assert.Equal(1, restored.Registers.B);
+    }
 }

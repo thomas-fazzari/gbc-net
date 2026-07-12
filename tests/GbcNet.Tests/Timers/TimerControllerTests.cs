@@ -244,6 +244,69 @@ public sealed class TimerControllerTests
         Assert.Equal(0b1111_1101, timers.ReadTimerControl());
     }
 
+    [Fact]
+    public void CaptureRestoreState_PreservesRawRegistersForNextDividerFallingEdge()
+    {
+        var (sourceCounter, sourceTimers) = CreateTimers();
+        sourceCounter.SetCounter(0x00FC);
+        sourceTimers.TimerCounter = 0x3A;
+        sourceTimers.TimerModulo = 0x6D;
+        sourceTimers.SetTimerControlState(0b0000_0101);
+
+        var (restoredCounter, restoredTimers) = CreateTimers();
+        restoredCounter.SetCounter(0x00FC);
+        restoredTimers.RestoreState(sourceTimers.CaptureState());
+        restoredTimers.TickSystemCounter(restoredCounter.AdvanceMachineCycle());
+
+        Assert.Equal(0x3B, restoredTimers.TimerCounter);
+        Assert.Equal(0x6D, restoredTimers.TimerModulo);
+    }
+
+    [Fact]
+    public void CaptureRestoreState_PreservesPendingOverflowWithoutRequestingInterrupt()
+    {
+        var (sourceCounter, sourceTimers) = CreateTimers();
+        sourceTimers.TimerCounter = 0xFF;
+        sourceTimers.TimerModulo = 0x42;
+        sourceTimers.SetTimerControlState(0b0000_0101);
+        TickMachineCycles(sourceCounter, sourceTimers, 4);
+
+        var interrupts = new InterruptController();
+        var (_, restoredTimers) = CreateTimers(interrupts);
+        restoredTimers.RestoreState(sourceTimers.CaptureState());
+
+        Assert.Equal(0x00, restoredTimers.TimerCounter);
+        Assert.Equal(0x00, interrupts.InterruptFlag);
+
+        restoredTimers.AdvanceOverflowReload();
+
+        Assert.Equal(0x42, restoredTimers.TimerCounter);
+        Assert.Equal(TimerInterrupt, interrupts.InterruptFlag);
+    }
+
+    [Fact]
+    public void CaptureRestoreState_PreservesReloadWriteBlockedPhase()
+    {
+        var (sourceCounter, sourceTimers) = CreateTimers();
+        sourceTimers.TimerCounter = 0xFF;
+        sourceTimers.TimerModulo = 0x42;
+        sourceTimers.SetTimerControlState(0b0000_0101);
+        TickMachineCycles(sourceCounter, sourceTimers, 5);
+
+        var interrupts = new InterruptController();
+        var (_, restoredTimers) = CreateTimers(interrupts);
+        restoredTimers.RestoreState(sourceTimers.CaptureState());
+
+        Assert.Equal(0x00, interrupts.InterruptFlag);
+        restoredTimers.WriteTimerCounter(0x99);
+        Assert.Equal(0x42, restoredTimers.TimerCounter);
+
+        restoredTimers.AdvanceOverflowReload();
+        restoredTimers.WriteTimerCounter(0x99);
+
+        Assert.Equal(0x99, restoredTimers.TimerCounter);
+    }
+
     private static (SystemCounter Counter, TimerController Timers) CreateTimers(
         InterruptController? interrupts = null,
         bool ticksOnTacDisableWhenInputHigh = true,

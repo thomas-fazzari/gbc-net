@@ -6,6 +6,20 @@ using GbcNet.Core.Interrupts;
 
 namespace GbcNet.Core.Timers;
 
+internal readonly record struct TimerControllerState(
+    byte TimerCounter,
+    byte TimerModulo,
+    byte TimerControl,
+    TimerOverflowReloadState ReloadState
+);
+
+internal enum TimerOverflowReloadState
+{
+    Running = 0,
+    OverflowReloadPending = 1,
+    OverflowReloadWriteBlocked = 2,
+}
+
 /// <summary>
 /// Emulates the DMG divider and programmable timer registers.
 /// </summary>
@@ -150,6 +164,17 @@ internal sealed class TimerController(
         _timerControl = (byte)(value & TimerControlWriteMask);
     }
 
+    internal TimerControllerState CaptureState() =>
+        new(_timerCounter, TimerModulo, _timerControl, _reloadState);
+
+    internal void RestoreState(TimerControllerState state)
+    {
+        _timerCounter = state.TimerCounter;
+        TimerModulo = state.TimerModulo;
+        _timerControl = state.TimerControl;
+        _reloadState = state.ReloadState;
+    }
+
     /// <summary>
     /// Advances the delayed TIMA overflow reload by one CPU machine cycle.
     /// </summary>
@@ -211,12 +236,5 @@ internal sealed class TimerController(
 
         _timerCounter = TimerModulo;
         _reloadState = TimerOverflowReloadState.OverflowReloadPending;
-    }
-
-    private enum TimerOverflowReloadState
-    {
-        Running = 0,
-        OverflowReloadPending = 1,
-        OverflowReloadWriteBlocked = 2,
     }
 }

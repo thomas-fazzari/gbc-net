@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Cartridges.Memory;
 using GbcNet.Core.Memory;
 
 namespace GbcNet.Tests.Cartridges;
@@ -267,5 +268,127 @@ public sealed class Mbc1CartridgeTests
         var result = cartridge.TryImportBatterySave(new byte[1], out _);
 
         Assert.False(result);
+    }
+
+    [Fact]
+    public void CaptureRestoreState_ContinuesMbc1AdvancedRamAndRomBanking()
+    {
+        const int fixedBank = 0x20;
+        const int switchableBank = 0x21;
+        const int nextSwitchableBank = 0x22;
+        var rom = TestRomFactory.Create(
+            romSizeCode: 0x05,
+            bytes =>
+            {
+                bytes[0x0147] = (byte)CartridgeType.Mbc1RamBattery;
+                bytes[0x0149] = 0x03;
+                bytes[(fixedBank * RomBankSize) + AddressMap.CartridgeEntryPointAddress] = 0x20;
+                bytes[switchableBank * RomBankSize] = 0x21;
+                bytes[nextSwitchableBank * RomBankSize] = 0x22;
+            }
+        );
+        var cartridge = TestRomFactory.LoadCartridge(rom);
+
+        cartridge.WriteRom(0x0000, 0x0A);
+        cartridge.WriteRom(0x6000, 0x01);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x10);
+        cartridge.WriteRom(0x4000, 0x01);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x11);
+        cartridge.WriteRom(0x2000, 0x00);
+        var state = cartridge.CaptureState();
+        cartridge.ClearBatterySaveDirty();
+
+        cartridge.WriteRom(0x0000, 0x00);
+        cartridge.WriteRom(0x6000, 0x00);
+        cartridge.WriteRom(0x4000, 0x00);
+        cartridge.WriteRom(0x2000, 0x02);
+
+        cartridge.RestoreState(state);
+
+        Assert.True(cartridge.IsBatterySaveDirty);
+        Assert.Equal(0x20, cartridge.ReadRom(AddressMap.CartridgeEntryPointAddress));
+        Assert.Equal(0x21, cartridge.ReadRom(0x4000));
+        Assert.Equal(0x11, cartridge.ReadRam(AddressMap.ExternalRamStart));
+
+        cartridge.WriteRom(0x4000, 0x00);
+        Assert.Equal(0x10, cartridge.ReadRam(AddressMap.ExternalRamStart));
+
+        cartridge.WriteRom(0x4000, 0x01);
+        cartridge.WriteRom(0x2000, 0x02);
+        Assert.Equal(0x22, cartridge.ReadRom(0x4000));
+    }
+
+    [Fact]
+    public void CaptureRestoreState_PreservesLowBankTenWhenRomWrappingSelectsBankZero()
+    {
+        var rom = TestRomFactory.Create(
+            romSizeCode: 0x01,
+            bytes =>
+            {
+                bytes[0x0147] = (byte)CartridgeType.Mbc1;
+                bytes[0 * RomBankSize] = 0x00;
+                bytes[2 * RomBankSize] = 0x22;
+            }
+        );
+        var cartridge = TestRomFactory.LoadCartridge(rom);
+
+        cartridge.WriteRom(0x2000, 0x10);
+        var state = cartridge.CaptureState();
+        cartridge.WriteRom(0x2000, 0x02);
+
+        Assert.Equal(0x22, cartridge.ReadRom(0x4000));
+
+        cartridge.RestoreState(state);
+
+        Assert.Equal(0x00, cartridge.ReadRom(0x4000));
+    }
+
+    [Fact]
+    public void RestoreState_RejectsMalformedMbc1StateWithoutChangingController()
+    {
+        const int fixedBank = 0x20;
+        const int switchableBank = 0x21;
+        var rom = TestRomFactory.Create(
+            romSizeCode: 0x05,
+            bytes =>
+            {
+                bytes[0x0147] = (byte)CartridgeType.Mbc1RamBattery;
+                bytes[0x0149] = 0x03;
+                bytes[(fixedBank * RomBankSize) + AddressMap.CartridgeEntryPointAddress] = 0x20;
+                bytes[switchableBank * RomBankSize] = 0x21;
+            }
+        );
+        var cartridge = TestRomFactory.LoadCartridge(rom);
+        cartridge.WriteRom(0x0000, 0x0A);
+        cartridge.WriteRom(0x6000, 0x01);
+        cartridge.WriteRom(0x4000, 0x01);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x11);
+        cartridge.WriteRom(0x2000, 0x00);
+        var controllerState = (Mbc1MemoryControllerState)cartridge.CaptureState().Controller;
+
+        var malformedRam = new CartridgeState(
+            new Mbc1MemoryControllerState(
+                new CartridgeRamWindowState(new CartridgeRamState([0xFF], false), false),
+                0x02,
+                0,
+                0
+            )
+        );
+        var malformedRegister = new CartridgeState(
+            new Mbc1MemoryControllerState(
+                controllerState.ExternalRam,
+                0x20,
+                controllerState.BankHigh,
+                controllerState.BankingMode
+            )
+        );
+
+        Assert.Throws<ArgumentException>(() => cartridge.RestoreState(malformedRam));
+        Assert.Throws<ArgumentException>(() => cartridge.RestoreState(malformedRegister));
+
+        Assert.True(cartridge.IsBatterySaveDirty);
+        Assert.Equal(0x20, cartridge.ReadRom(AddressMap.CartridgeEntryPointAddress));
+        Assert.Equal(0x21, cartridge.ReadRom(0x4000));
+        Assert.Equal(0x11, cartridge.ReadRam(AddressMap.ExternalRamStart));
     }
 }

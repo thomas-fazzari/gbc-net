@@ -9,6 +9,11 @@ using GbcNet.Core.Memory;
 namespace GbcNet.Core.Cartridges;
 
 /// <summary>
+/// Mutable save state owned by a cartridge.
+/// </summary>
+internal readonly record struct CartridgeState(ICartridgeMemoryControllerState Controller);
+
+/// <summary>
 /// Loaded Game Boy cartridge image with mutable MBC/RAM state.
 /// </summary>
 public sealed class Cartridge
@@ -200,6 +205,19 @@ public sealed class Cartridge
         }
 
         return _memoryController.ReadRamOffset(offset);
+    }
+
+    /// <summary>
+    /// Captures the cartridge's mutable state.
+    /// </summary>
+    internal CartridgeState CaptureState() => new(_memoryController.CaptureState());
+
+    /// <summary>
+    /// Restores the cartridge's mutable state.
+    /// </summary>
+    internal void RestoreState(CartridgeState state)
+    {
+        _memoryController.RestoreState(state.Controller);
     }
 
     /// <summary>

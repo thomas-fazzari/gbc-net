@@ -5,6 +5,8 @@ using GbcNet.Core.Memory;
 
 namespace GbcNet.Core.Cartridges.Memory;
 
+internal readonly record struct CartridgeRamWindowState(CartridgeRamState Ram, bool Enabled);
+
 /// <summary>
 /// External cartridge RAM window shared by banked MBC implementations.
 /// </summary>
@@ -13,6 +15,8 @@ internal sealed class CartridgeRamWindow(int sizeBytes, bool hasBattery)
     private const int RamBankSize = AddressMap.ExternalRamWindowSize;
     private const byte RamEnableValue = 0x0A;
     private const byte RamEnableMask = 0x0F;
+
+    private bool _enabled;
 
     /// <summary>
     /// Backing RAM behind the CPU-visible A000-BFFF window.
@@ -24,7 +28,7 @@ internal sealed class CartridgeRamWindow(int sizeBytes, bool hasBattery)
     /// </summary>
     public void WriteEnableRegister(byte value)
     {
-        CanAccess = (value & RamEnableMask) == RamEnableValue;
+        _enabled = (value & RamEnableMask) == RamEnableValue;
     }
 
     /// <summary>
@@ -44,10 +48,20 @@ internal sealed class CartridgeRamWindow(int sizeBytes, bool hasBattery)
         }
     }
 
-    private bool CanAccess
+    private bool CanAccess => _enabled && Ram.Size != 0;
+
+    internal CartridgeRamWindowState CaptureState() => new(Ram.CaptureState(), _enabled);
+
+    internal void ValidateState(CartridgeRamWindowState state)
     {
-        get => field && Ram.Size != 0;
-        set;
+        Ram.ValidateState(state.Ram);
+    }
+
+    internal void RestoreState(CartridgeRamWindowState state)
+    {
+        ValidateState(state);
+        Ram.RestoreState(state.Ram);
+        _enabled = state.Enabled;
     }
 
     private int GetEffectiveOffset(ushort offset, int bank)

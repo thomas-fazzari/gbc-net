@@ -8,6 +8,26 @@ using GbcNet.Core.Ppu.Engines;
 
 namespace GbcNet.Core.Ppu;
 
+internal readonly record struct PpuControllerState(
+    VideoRamState VideoRam,
+    CgbPaletteRamState BackgroundPaletteRam,
+    CgbPaletteRamState ObjectPaletteRam,
+    MappedMemoryState ObjectAttributeMemory,
+    IPpuEngineState Engine,
+    byte Control,
+    byte StatusInterruptSelect,
+    byte ScrollY,
+    byte ScrollX,
+    byte LcdYCompare,
+    byte BackgroundPalette,
+    byte ObjectPalette0,
+    byte ObjectPalette1,
+    byte WindowY,
+    byte WindowX,
+    ObjectPriorityMode ObjectPriorityMode,
+    bool VideoRenderingEnabled
+);
+
 /// <summary>
 /// Stores CPU-visible Liquid Crystal Display/Pixel Processing Unit registers and delegates model-specific behavior.
 /// </summary>
@@ -262,6 +282,86 @@ internal sealed class PpuController(
                 SetReadWriteRegister(address, value);
                 return;
         }
+    }
+
+    internal PpuControllerState CaptureState() =>
+        new(
+            VideoRam.CaptureState(),
+            BgPaletteRam.CaptureState(),
+            ObjectPaletteRam.CaptureState(),
+            ObjectAttributeMemory.CaptureState(),
+            engine.CaptureState(),
+            _control,
+            _statusInterruptSelect,
+            _scrollY,
+            _scrollX,
+            _lcdYCompare,
+            _backgroundPalette,
+            _objectPalette0,
+            _objectPalette1,
+            _windowY,
+            _windowX,
+            _objectPriorityMode,
+            VideoRenderingEnabled
+        );
+
+    internal void ValidateState(PpuControllerState state)
+    {
+        if ((state.StatusInterruptSelect & ~PpuStatusRegister.InterruptSelectMask) != 0)
+        {
+            throw new ArgumentException(
+                "State status interrupt select contains unsupported bits.",
+                nameof(state)
+            );
+        }
+
+        if (
+            state.ObjectPriorityMode
+            is not (ObjectPriorityMode.OamOrder or ObjectPriorityMode.LowerXWins)
+        )
+        {
+            throw new ArgumentException("State object priority mode is undefined.", nameof(state));
+        }
+
+        if (
+            !isObjectPriorityModeRegisterEnabled
+            && state.ObjectPriorityMode != ObjectPriorityMode.OamOrder
+        )
+        {
+            throw new ArgumentException(
+                "State object priority mode requires an enabled OPRI register.",
+                nameof(state)
+            );
+        }
+
+        VideoRam.ValidateState(state.VideoRam);
+        BgPaletteRam.ValidateState(state.BackgroundPaletteRam);
+        ObjectPaletteRam.ValidateState(state.ObjectPaletteRam);
+        ObjectAttributeMemory.ValidateState(state.ObjectAttributeMemory);
+
+        engine.ValidateState(state.Engine);
+    }
+
+    internal void RestoreState(PpuControllerState state)
+    {
+        ValidateState(state);
+        VideoRam.RestoreState(state.VideoRam);
+        BgPaletteRam.RestoreState(state.BackgroundPaletteRam);
+        ObjectPaletteRam.RestoreState(state.ObjectPaletteRam);
+        ObjectAttributeMemory.RestoreState(state.ObjectAttributeMemory);
+        engine.RestoreState(state.Engine);
+        _control = state.Control;
+        _statusInterruptSelect = state.StatusInterruptSelect;
+        _scrollY = state.ScrollY;
+        _scrollX = state.ScrollX;
+        _lcdYCompare = state.LcdYCompare;
+        _backgroundPalette = state.BackgroundPalette;
+        _objectPalette0 = state.ObjectPalette0;
+        _objectPalette1 = state.ObjectPalette1;
+        _windowY = state.WindowY;
+        _windowX = state.WindowX;
+        _objectPriorityMode = state.ObjectPriorityMode;
+        VideoRenderingEnabled = state.VideoRenderingEnabled;
     }
 
     private static void SetPalette(

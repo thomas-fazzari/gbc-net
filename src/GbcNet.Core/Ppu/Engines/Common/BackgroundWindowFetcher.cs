@@ -3,6 +3,25 @@
 
 namespace GbcNet.Core.Ppu.Engines;
 
+internal readonly record struct BackgroundWindowFetcherState(
+    byte LatchedScrollX,
+    byte LatchedScrollY,
+    int WindowLine,
+    int ActiveWindowLine,
+    int FetcherStepDots,
+    int FetcherTileX,
+    int DiscardedPixels,
+    bool WindowYCondition,
+    bool WindowActiveThisLine,
+    BackgroundFetcherStep FetcherStep,
+    PixelFetcherSource FetcherSource,
+    int WindowPenaltyDots,
+    int BackgroundFifoCount,
+    int BackgroundFifoReadIndex,
+    byte FetchedTileDataLow,
+    byte FetchedTileDataHigh
+);
+
 /// <summary>
 /// Owns BG/window fetch sequencing, window startup state, and background FIFO cursor state.
 /// </summary>
@@ -40,6 +59,130 @@ internal sealed class BackgroundWindowFetcher
     internal byte FetchedTileDataLow { get; private set; }
 
     internal byte FetchedTileDataHigh { get; private set; }
+
+    internal BackgroundWindowFetcherState CaptureState() =>
+        new(
+            _latchedScrollX,
+            _latchedScrollY,
+            _windowLine,
+            _activeWindowLine,
+            _fetcherStepDots,
+            _fetcherTileX,
+            _discardedPixels,
+            _windowYCondition,
+            _windowActiveThisLine,
+            _fetcherStep,
+            _fetcherSource,
+            WindowPenaltyDots,
+            BackgroundFifoCount,
+            BackgroundFifoReadIndex,
+            FetchedTileDataLow,
+            FetchedTileDataHigh
+        );
+
+    internal static void ValidateState(BackgroundWindowFetcherState state)
+    {
+        if (state.WindowLine is < 0 or > PpuGeometry.FrameHeight)
+        {
+            throw new ArgumentException(
+                "Window line must be within the visible frame.",
+                nameof(state)
+            );
+        }
+
+        if (state.ActiveWindowLine is < 0 or >= PpuGeometry.FrameHeight)
+        {
+            throw new ArgumentException(
+                "Active window line must be within the visible frame.",
+                nameof(state)
+            );
+        }
+
+        if (state.FetcherStepDots is < 0 or >= 2)
+        {
+            throw new ArgumentException(
+                "Fetcher step dots must be within a two-dot fetch step.",
+                nameof(state)
+            );
+        }
+
+        if (state.FetcherTileX is < 0 or >= PpuTileData.TilesPerMapRow)
+        {
+            throw new ArgumentException(
+                "Fetcher tile X must be within a tile map row.",
+                nameof(state)
+            );
+        }
+
+        if (state.DiscardedPixels is < 0 or > ScrollXLowBitsMask)
+        {
+            throw new ArgumentException(
+                "Discarded pixels must be within the scroll offset.",
+                nameof(state)
+            );
+        }
+
+        if (state.WindowPenaltyDots is not (0 or WindowStartupPenaltyDots))
+        {
+            throw new ArgumentException("Window penalty dots are invalid.", nameof(state));
+        }
+
+        if (state.BackgroundFifoCount is < 0 or > BackgroundFifoCapacity)
+        {
+            throw new ArgumentException(
+                "Background FIFO count must be within its capacity.",
+                nameof(state)
+            );
+        }
+
+        if (state.BackgroundFifoReadIndex is < 0 or >= BackgroundFifoCapacity)
+        {
+            throw new ArgumentException(
+                "Background FIFO read index must be within its capacity.",
+                nameof(state)
+            );
+        }
+
+        if (
+            state.FetcherStep
+            is not (
+                BackgroundFetcherStep.GetTile
+                or BackgroundFetcherStep.GetTileDataLow
+                or BackgroundFetcherStep.GetTileDataHigh
+                or BackgroundFetcherStep.Sleep
+                or BackgroundFetcherStep.Push
+            )
+        )
+        {
+            throw new ArgumentException("Fetcher step is invalid.", nameof(state));
+        }
+
+        if (state.FetcherSource is not (PixelFetcherSource.Background or PixelFetcherSource.Window))
+        {
+            throw new ArgumentException("Fetcher source is invalid.", nameof(state));
+        }
+    }
+
+    internal void RestoreState(BackgroundWindowFetcherState state)
+    {
+        ValidateState(state);
+        _latchedScrollX = state.LatchedScrollX;
+        _latchedScrollY = state.LatchedScrollY;
+        _windowLine = state.WindowLine;
+        _activeWindowLine = state.ActiveWindowLine;
+        _fetcherStepDots = state.FetcherStepDots;
+        _fetcherTileX = state.FetcherTileX;
+        _discardedPixels = state.DiscardedPixels;
+        _windowYCondition = state.WindowYCondition;
+        _windowActiveThisLine = state.WindowActiveThisLine;
+        _fetcherStep = state.FetcherStep;
+        _fetcherSource = state.FetcherSource;
+        WindowPenaltyDots = state.WindowPenaltyDots;
+        BackgroundFifoCount = state.BackgroundFifoCount;
+        BackgroundFifoReadIndex = state.BackgroundFifoReadIndex;
+        FetchedTileDataLow = state.FetchedTileDataLow;
+        FetchedTileDataHigh = state.FetchedTileDataHigh;
+    }
 
     internal static ushort GetBackgroundTileDataAddress(
         PpuEngineInputs inputs,

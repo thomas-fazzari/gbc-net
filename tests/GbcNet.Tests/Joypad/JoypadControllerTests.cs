@@ -93,4 +93,35 @@ public sealed class JoypadControllerTests
 
         Assert.Equal(0b0001_0000, interrupts.InterruptFlag);
     }
+
+    [Fact]
+    public void RestoreState_RestoresSelectionAndButtonsWithoutRequestingAnInterrupt()
+    {
+        var interrupts = new InterruptController();
+        var joypad = new JoypadController(interrupts);
+        joypad.Write(0x00, requestInterruptOnTransition: false);
+        joypad.SetButtonState(JoypadButton.Right, pressed: true);
+        joypad.SetButtonState(JoypadButton.B, pressed: true);
+        var state = joypad.CaptureState();
+        joypad.Write(0x30, requestInterruptOnTransition: false);
+        joypad.SetButtonState(JoypadButton.Right, pressed: false);
+        joypad.SetButtonState(JoypadButton.B, pressed: false);
+        interrupts.SetInterruptFlag(0);
+
+        joypad.RestoreState(state);
+
+        Assert.Equal(0, interrupts.InterruptFlag);
+
+        Assert.Equal(0xCC, joypad.Read());
+        joypad.Write(0x20, requestInterruptOnTransition: false);
+        Assert.Equal(0xEE, joypad.Read());
+        joypad.Write(0x10, requestInterruptOnTransition: false);
+        Assert.Equal(0xDD, joypad.Read());
+        Assert.Equal(0, interrupts.InterruptFlag);
+
+        joypad.Write(0x00, requestInterruptOnTransition: false);
+        joypad.SetButtonState(JoypadButton.Up, pressed: true);
+
+        Assert.Equal((byte)0b0001_0000, interrupts.InterruptFlag);
+    }
 }

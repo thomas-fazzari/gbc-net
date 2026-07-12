@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Cartridges.Memory;
 using GbcNet.Core.Memory;
 
 namespace GbcNet.Tests.Cartridges;
@@ -160,6 +161,164 @@ public sealed class Mbc2CartridgeTests
         var result = cartridge.TryImportBatterySave(new byte[1], out _);
 
         Assert.False(result);
+    }
+
+    [Fact]
+    public void State_RestoresEnabledMbc2ContinuationAndCapturedRamIsIndependent()
+    {
+        var controller = CreateMbc2Controller(
+            CartridgeType.Mbc2Battery,
+            0x03,
+            bytes =>
+            {
+                bytes[2 * RomBankSize] = 0x22;
+                bytes[3 * RomBankSize] = 0x33;
+            }
+        );
+        controller.WriteRom(0x2100, 0x03);
+        controller.WriteRom(0x0000, 0x0A);
+        controller.WriteRamOffset(0x0201, 0xAB);
+
+        var state = controller.CaptureState();
+        var restoreState = controller.CaptureState();
+        ((Mbc2MemoryControllerState)state).Ram.Bytes[1] = 0x00;
+
+        Assert.Equal(0xFB, controller.ReadRamOffset(0x0001));
+        Assert.True(controller.SaveData.IsBatterySaveDirty);
+
+        controller.WriteRom(0x2100, 0x02);
+        controller.WriteRom(0x0000, 0x00);
+        controller.WriteRom(0x0000, 0x0A);
+        controller.WriteRamOffset(0x0001, 0x04);
+        controller.SaveData.ClearBatterySaveDirty();
+
+        controller.RestoreState(restoreState);
+
+        Assert.Equal(0x33, controller.ReadRom(0x4000));
+        Assert.Equal(0xFB, controller.ReadRamOffset(0x0201));
+        Assert.True(controller.SaveData.IsBatterySaveDirty);
+
+        controller.WriteRamOffset(0x0001, 0xAC);
+
+        Assert.Equal(0xFC, controller.ReadRamOffset(0x0201));
+    }
+
+    [Fact]
+    public void State_RestoresDisabledMbc2Continuation()
+    {
+        var controller = CreateMbc2Controller(
+            CartridgeType.Mbc2,
+            0x03,
+            bytes =>
+            {
+                bytes[2 * RomBankSize] = 0x22;
+                bytes[3 * RomBankSize] = 0x33;
+            }
+        );
+        controller.WriteRom(0x2100, 0x02);
+        controller.WriteRom(0x0000, 0x0A);
+        controller.WriteRamOffset(0x0001, 0x0B);
+        controller.WriteRom(0x0000, 0x00);
+
+        var state = controller.CaptureState();
+
+        controller.WriteRom(0x2100, 0x03);
+        controller.WriteRom(0x0000, 0x0A);
+        controller.WriteRamOffset(0x0001, 0x0C);
+
+        controller.RestoreState(state);
+
+        Assert.Equal(0x22, controller.ReadRom(0x4000));
+        Assert.Equal(0xFF, controller.ReadRamOffset(0x0001));
+
+        controller.WriteRamOffset(0x0001, 0x0D);
+        controller.WriteRom(0x0000, 0x0A);
+
+        Assert.Equal(0xFB, controller.ReadRamOffset(0x0001));
+    }
+
+    [Fact]
+    public void State_RestoresAllVolatileMbc2NibblesWithoutDirtying()
+    {
+        var controller = CreateMbc2Controller(CartridgeType.Mbc2);
+        controller.WriteRom(0x0000, 0x0A);
+        for (ushort offset = 0; offset < 512; offset++)
+        {
+            controller.WriteRamOffset(offset, (byte)offset);
+        }
+
+        var state = controller.CaptureState();
+        for (ushort offset = 0; offset < 512; offset++)
+        {
+            controller.WriteRamOffset(offset, 0);
+        }
+
+        controller.RestoreState(state);
+
+        Assert.False(controller.SaveData.IsBatterySaveDirty);
+        for (ushort offset = 0; offset < 512; offset++)
+        {
+            Assert.Equal((byte)(0xF0 | (offset & 0x0F)), controller.ReadRamOffset(offset));
+        }
+
+        var dirtyState = new Mbc2MemoryControllerState(
+            new Mbc2RamState(((Mbc2MemoryControllerState)state).Ram.Bytes, true),
+            1,
+            true
+        );
+
+        Assert.Throws<ArgumentException>(() => controller.RestoreState(dirtyState));
+        Assert.False(controller.SaveData.IsBatterySaveDirty);
+    }
+
+    [Fact]
+    public void State_RejectsInvalidMbc2NibbleWithoutMutatingContinuation()
+    {
+        var controller = CreateMbc2Controller(
+            CartridgeType.Mbc2Battery,
+            0x03,
+            bytes =>
+            {
+                bytes[2 * RomBankSize] = 0x22;
+                bytes[3 * RomBankSize] = 0x33;
+            }
+        );
+        controller.WriteRom(0x2100, 0x02);
+        controller.WriteRom(0x0000, 0x0A);
+        controller.WriteRamOffset(0x0001, 0x07);
+
+        var bytes = (byte[])
+            ((Mbc2MemoryControllerState)controller.CaptureState()).Ram.Bytes.Clone();
+        bytes[511] = 0x10;
+        var invalidState = new Mbc2MemoryControllerState(
+            new Mbc2RamState(bytes, true),
+            0x03,
+            false
+        );
+
+        Assert.Throws<ArgumentException>(() => controller.RestoreState(invalidState));
+
+        Assert.Equal(0x22, controller.ReadRom(0x4000));
+        Assert.Equal(0xF7, controller.ReadRamOffset(0x0001));
+        Assert.True(controller.SaveData.IsBatterySaveDirty);
+    }
+
+    private static Mbc2MemoryController CreateMbc2Controller(
+        CartridgeType cartridgeType,
+        byte romSizeCode = 0x00,
+        Action<byte[]>? configure = null
+    )
+    {
+        var rom = TestRomFactory.Create(
+            romSizeCode,
+            bytes =>
+            {
+                bytes[0x0147] = (byte)cartridgeType;
+                configure?.Invoke(bytes);
+            }
+        );
+        var header = TestRomFactory.LoadCartridge(rom).Header;
+        return new Mbc2MemoryController(rom, header, cartridgeType is CartridgeType.Mbc2Battery);
     }
 
     private static Cartridge LoadMbc2WithEnabledRam(CartridgeType cartridgeType)

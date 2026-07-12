@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Cartridges.Memory;
 
 namespace GbcNet.Tests.Cartridges;
 
@@ -196,5 +197,66 @@ public sealed class CartridgeTests
         Assert.Equal(0x31, cartridge.ReadRom(0x0000));
         Assert.Equal(0xC3, cartridge.ReadRom(0x4000));
         Assert.Equal(rom[0x7FFF], cartridge.ReadRom(0x7FFF));
+    }
+
+    [Fact]
+    public void State_RestoresMatchingCartridgeThroughPolymorphicController()
+    {
+        var cartridge = TestRomFactory.LoadCartridge(bytes =>
+        {
+            bytes[0x0147] = (byte)CartridgeType.RomRamBattery;
+            bytes[0x0149] = 0x02;
+        });
+        cartridge.WriteRam(0xA000, 0x23);
+        cartridge.ClearBatterySaveDirty();
+        var state = cartridge.CaptureState();
+
+        cartridge.WriteRam(0xA000, 0xB4);
+
+        cartridge.RestoreState(state);
+
+        Assert.Equal(0x23, cartridge.ReadRam(0xA000));
+        Assert.False(cartridge.IsBatterySaveDirty);
+    }
+
+    [Fact]
+    public void State_RejectsDefaultControllerStateWithoutChangingCartridge()
+    {
+        var cartridge = TestRomFactory.LoadCartridge(bytes =>
+        {
+            bytes[0x0147] = (byte)CartridgeType.RomRamBattery;
+            bytes[0x0149] = 0x02;
+        });
+        cartridge.WriteRam(0xA000, 0x3C);
+        cartridge.ClearBatterySaveDirty();
+
+        Assert.Throws<ArgumentException>(() =>
+            cartridge.RestoreState(new CartridgeState(default!))
+        );
+
+        Assert.Equal(0x3C, cartridge.ReadRam(0xA000));
+        Assert.False(cartridge.IsBatterySaveDirty);
+    }
+
+    [Fact]
+    public void State_RejectsDifferentMapperStateWithoutChangingCartridge()
+    {
+        var cartridge = TestRomFactory.LoadCartridge(bytes =>
+        {
+            bytes[0x0147] = (byte)CartridgeType.RomRamBattery;
+            bytes[0x0149] = 0x02;
+        });
+        cartridge.WriteRam(0xA000, 0x3C);
+        cartridge.ClearBatterySaveDirty();
+        var differentMapper = TestRomFactory.LoadCartridge(bytes =>
+            bytes[0x0147] = (byte)CartridgeType.Mbc1
+        );
+
+        Assert.Throws<ArgumentException>(() =>
+            cartridge.RestoreState(differentMapper.CaptureState())
+        );
+
+        Assert.Equal(0x3C, cartridge.ReadRam(0xA000));
+        Assert.False(cartridge.IsBatterySaveDirty);
     }
 }

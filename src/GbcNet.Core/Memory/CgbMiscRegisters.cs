@@ -71,4 +71,16 @@ internal sealed class CgbMiscRegisters(bool isCgbHardwareRegisterEnabled, bool i
                 return;
         }
     }
+
+    internal CgbMiscRegistersState CaptureState() => new(_ff72, _ff73, _ff74, _ff75);
+
+    internal void RestoreState(CgbMiscRegistersState state)
+    {
+        _ff72 = state.Ff72;
+        _ff73 = state.Ff73;
+        _ff74 = state.Ff74;
+        _ff75 = state.Ff75;
+    }
 }
+
+internal readonly record struct CgbMiscRegistersState(byte Ff72, byte Ff73, byte Ff74, byte Ff75);

@@ -9,6 +9,16 @@ namespace GbcNet.Core.Cartridges.Memory;
 internal interface ICartridgeMemoryController
 {
     /// <summary>
+    /// Captures all mutable state owned by this controller.
+    /// </summary>
+    ICartridgeMemoryControllerState CaptureState();
+
+    /// <summary>
+    /// Restores previously captured state for this controller.
+    /// </summary>
+    void RestoreState(ICartridgeMemoryControllerState state);
+
+    /// <summary>
     /// Reads a byte from the CPU-visible cartridge ROM area at 0000-7FFF.
     /// </summary>
     byte ReadRom(ushort address);
@@ -33,3 +43,11 @@ internal interface ICartridgeMemoryController
     /// </summary>
     ICartridgeSaveData SaveData { get; }
 }
+
+/// <summary>
+/// Mutable state for one supported cartridge memory controller.
+/// </summary>
+/// <remarks>
+/// Derived types are ordered for stable future MessagePack union tags: NoMbc, Mbc1, Mbc2, Mbc3, Mbc5.
+/// </remarks>
+internal interface ICartridgeMemoryControllerState;

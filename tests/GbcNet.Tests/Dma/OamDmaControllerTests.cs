@@ -226,6 +226,64 @@ public sealed class OamDmaControllerTests
         Assert.Equal((AddressMap.ObjectAttributeMemoryStart, (byte)0xD0), writes[160]);
     }
 
+    [Fact]
+    public void CaptureRestoreState_ResumesAfterRemainingStartupDelay()
+    {
+        var source = new OamDmaController();
+        source.StartOamTransfer(0xC0);
+        source.Tick(1, ReadSourceHighByte, (_, _) => throw new InvalidOperationException());
+
+        var restored = new OamDmaController();
+        var writes = new List<(ushort Address, byte Value)>();
+        restored.RestoreState(source.CaptureState());
+
+        Assert.Equal(0xC0, restored.ReadRegister());
+        Assert.True(restored.IsActive);
+        Assert.False(restored.IsCpuOamBlocked);
+        Assert.Empty(writes);
+
+        restored.Tick(1, ReadSourceHighByte, (address, value) => writes.Add((address, value)));
+        Assert.Empty(writes);
+
+        restored.Tick(1, ReadSourceHighByte, (address, value) => writes.Add((address, value)));
+        Assert.Equal([(AddressMap.ObjectAttributeMemoryStart, (byte)0xC0)], writes);
+    }
+
+    [Fact]
+    public void CaptureRestoreState_ResumesPendingRestartFromOldSourceThenRestartsAtOamStart()
+    {
+        var source = new OamDmaController();
+        source.StartOamTransfer(0xC0);
+        source.Tick(2, ReadSourceHighByte, (_, _) => throw new InvalidOperationException());
+        source.Tick(1, ReadSourceHighByte, (_, _) => { });
+        source.StartOamTransfer(0xD0);
+        source.Tick(1, ReadSourceHighByte, (_, _) => { });
+
+        var restored = new OamDmaController();
+        var writes = new List<(ushort Address, byte Value)>();
+        restored.RestoreState(source.CaptureState());
+
+        Assert.Empty(writes);
+        Assert.Equal(0xD0, restored.ReadRegister());
+        Assert.True(restored.IsActive);
+        Assert.True(restored.IsCpuOamBlocked);
+        Assert.True(restored.TryGetCpuConflictSourceAddress(out var conflictSourceAddress));
+        Assert.Equal(0xC001, conflictSourceAddress);
+
+        restored.Tick(1, ReadSourceHighByte, (address, value) => writes.Add((address, value)));
+        Assert.Equal([(AddressMap.ObjectAttributeMemoryStart + 2, (byte)0xC0)], writes);
+        Assert.True(restored.IsActive);
+
+        restored.Tick(1, ReadSourceHighByte, (address, value) => writes.Add((address, value)));
+        Assert.Equal(
+            [
+                (AddressMap.ObjectAttributeMemoryStart + 2, (byte)0xC0),
+                (AddressMap.ObjectAttributeMemoryStart, (byte)0xD0),
+            ],
+            writes
+        );
+    }
+
     private static byte ReadLowByte(ushort address) => (byte)address;
 
     private static byte ReadSourceHighByte(ushort address) => (byte)(address >> 8);

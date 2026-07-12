@@ -16,4 +16,26 @@ internal sealed class MappedMemory(ushort startAddress, ushort endAddress)
     {
         _bytes[address - startAddress] = value;
     }
+
+    internal MappedMemoryState CaptureState() => new(_bytes.ToArray());
+
+    internal void ValidateState(MappedMemoryState state)
+    {
+        var bytes = state.Bytes;
+        if (bytes is null || bytes.Length != _bytes.Length)
+        {
+            throw new ArgumentException(
+                "State bytes must match the mapped memory length.",
+                nameof(state)
+            );
+        }
+    }
+
+    internal void RestoreState(MappedMemoryState state)
+    {
+        ValidateState(state);
+        state.Bytes.CopyTo(_bytes, 0);
+    }
 }
+
+internal readonly record struct MappedMemoryState(byte[] Bytes);

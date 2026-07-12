@@ -3,6 +3,13 @@
 
 namespace GbcNet.Core.Cartridges.Memory;
 
+internal sealed record Mbc5MemoryControllerState(
+    CartridgeRamWindowState ExternalRam,
+    byte RomBankLow,
+    byte RomBankHigh,
+    byte RamBank
+) : ICartridgeMemoryControllerState;
+
 /// <summary>
 /// MBC5 cartridge controller for 9-bit ROM banking and optional external RAM banking.
 /// </summary>
@@ -28,6 +35,42 @@ internal sealed class Mbc5MemoryController(
     );
 
     public ICartridgeSaveData SaveData => _externalRam.Ram;
+
+    public ICartridgeMemoryControllerState CaptureState() =>
+        new Mbc5MemoryControllerState(
+            _externalRam.CaptureState(),
+            _romBankLow,
+            _romBankHigh,
+            _ramBank
+        );
+
+    public void RestoreState(ICartridgeMemoryControllerState state)
+    {
+        if (state is not Mbc5MemoryControllerState mbc5State)
+        {
+            throw new ArgumentException(
+                "Cartridge memory controller state is invalid.",
+                nameof(state)
+            );
+        }
+
+        _externalRam.ValidateState(mbc5State.ExternalRam);
+
+        if (mbc5State.RomBankHigh > RomBankHighMask)
+        {
+            throw new ArgumentException("ROM bank high bit must be 0 or 1.", nameof(state));
+        }
+
+        if (mbc5State.RamBank > RamBankMask)
+        {
+            throw new ArgumentException("RAM bank must be in the 0-15 range.", nameof(state));
+        }
+
+        _externalRam.RestoreState(mbc5State.ExternalRam);
+        _romBankLow = mbc5State.RomBankLow;
+        _romBankHigh = mbc5State.RomBankHigh;
+        _ramBank = mbc5State.RamBank;
+    }
 
     public byte ReadRom(ushort address)
     {

@@ -5,6 +5,17 @@ using GbcNet.Core.Memory;
 
 namespace GbcNet.Core.Dma;
 
+internal readonly record struct OamDmaControllerState(
+    byte RegisterSourceHighByte,
+    byte ActiveSourceHighByte,
+    byte PendingRestartSourceHighByte,
+    int NextOffset,
+    int StartupDelayMachineCycles,
+    int RestartDelayMachineCycles,
+    bool RestartPending,
+    bool IsActive
+);
+
 /// <summary>
 /// Copies bytes from the FF46-selected source page into OAM over machine cycles.
 /// </summary>
@@ -33,6 +44,30 @@ internal sealed class OamDmaController
     /// Indicates that OAM DMA has been requested and has not completed yet.
     /// </summary>
     public bool IsActive { get; private set; }
+
+    internal OamDmaControllerState CaptureState() =>
+        new(
+            _registerSourceHighByte,
+            _activeSourceHighByte,
+            _pendingRestartSourceHighByte,
+            _nextOffset,
+            _startupDelayMachineCycles,
+            _restartDelayMachineCycles,
+            _restartPending,
+            IsActive
+        );
+
+    internal void RestoreState(OamDmaControllerState state)
+    {
+        _registerSourceHighByte = state.RegisterSourceHighByte;
+        _activeSourceHighByte = state.ActiveSourceHighByte;
+        _pendingRestartSourceHighByte = state.PendingRestartSourceHighByte;
+        _nextOffset = state.NextOffset;
+        _startupDelayMachineCycles = state.StartupDelayMachineCycles;
+        _restartDelayMachineCycles = state.RestartDelayMachineCycles;
+        _restartPending = state.RestartPending;
+        IsActive = state.IsActive;
+    }
 
     /// <summary>
     /// Indicates that CPU OAM reads return FF and CPU OAM writes are ignored during OAM DMA.

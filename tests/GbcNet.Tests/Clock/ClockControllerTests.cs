@@ -68,6 +68,58 @@ public sealed class ClockControllerTests
         Assert.False(clock.CgbDoubleSpeed);
     }
 
+    [Fact]
+    public void CaptureRestoreState_RestoresRawDividerPhaseAndNestedTimerAtNextFallingEdge()
+    {
+        var clock = CreateClock(isKey1RegisterEnabled: true);
+        clock.SetCounter(0x00FC);
+        clock.Timers.TimerCounter = 0x3A;
+        clock.Timers.TimerModulo = 0x6D;
+        clock.Timers.SetTimerControlState(0b0000_0101);
+        var state = clock.CaptureState();
+
+        clock.SetCounter(0);
+        clock.Timers.TimerCounter = 0;
+        clock.Timers.TimerModulo = 0;
+        clock.Timers.SetTimerControlState(0);
+        clock.RestoreState(state);
+        clock.TickMachineCycle();
+
+        Assert.Equal(0x01, clock.ReadDivider());
+        Assert.Equal(0x3B, clock.Timers.TimerCounter);
+        Assert.Equal(0x6D, clock.Timers.TimerModulo);
+    }
+
+    [Fact]
+    public void CaptureRestoreState_RestoresDoubleSpeedArmingAndRemainingPause()
+    {
+        var clock = CreateClock(isKey1RegisterEnabled: true);
+        clock.WriteKey1(0x01);
+        Assert.True(clock.TryStartSpeedSwitch());
+
+        for (var cycle = 0; cycle < 6; cycle++)
+        {
+            Assert.True(clock.TryStepSpeedSwitchPause());
+        }
+
+        clock.WriteKey1(0x01);
+        var state = clock.CaptureState();
+
+        for (var cycle = 0; cycle < 2044; cycle++)
+        {
+            Assert.True(clock.TryStepSpeedSwitchPause());
+        }
+
+        clock.SetKey1State(0);
+        clock.RestoreState(state);
+
+        Assert.True(clock.CgbDoubleSpeed);
+        Assert.Equal(0xFF, clock.ReadKey1());
+        Assert.Equal(2044, clock.SpeedSwitchPauseCycles);
+        Assert.True(clock.TryStepSpeedSwitchPause());
+        Assert.Equal(2043, clock.SpeedSwitchPauseCycles);
+    }
+
     private static ClockController CreateClock(bool isKey1RegisterEnabled)
     {
         var interrupts = new InterruptController();

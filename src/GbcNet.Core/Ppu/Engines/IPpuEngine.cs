@@ -44,6 +44,21 @@ internal interface IPpuEngine
     bool IsCpuObjectAttributeMemoryWriteBlocked { get; }
 
     /// <summary>
+    /// Captures all mutable state owned by this engine.
+    /// </summary>
+    IPpuEngineState CaptureState();
+
+    /// <summary>
+    /// Validates a state without mutating this engine.
+    /// </summary>
+    void ValidateState(IPpuEngineState state);
+
+    /// <summary>
+    /// Restores a previously captured state without advancing timing or raising interrupts.
+    /// </summary>
+    void RestoreState(IPpuEngineState state);
+
+    /// <summary>
     /// Advances LCD timing by elapsed T-cycles and returns interrupt requests or a completed frame.
     /// </summary>
     PpuEngineTickResult Tick(int tCycles, PpuEngineInputs inputs, bool renderFrame);
@@ -83,3 +98,11 @@ internal interface IPpuEngine
     /// </summary>
     void SetLycCompareState(PpuEngineInputs inputs, bool lcdEnabled);
 }
+
+/// <summary>
+/// Mutable state for one PPU engine implementation.
+/// </summary>
+/// <remarks>
+/// Future MessagePack union tags follow subtype ordering: DMG, CGB DMG compatibility, CGB.
+/// </remarks>
+internal interface IPpuEngineState;

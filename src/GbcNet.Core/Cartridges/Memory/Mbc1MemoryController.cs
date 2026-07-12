@@ -3,6 +3,13 @@
 
 namespace GbcNet.Core.Cartridges.Memory;
 
+internal sealed record Mbc1MemoryControllerState(
+    CartridgeRamWindowState ExternalRam,
+    byte RomBankLow,
+    byte BankHigh,
+    byte BankingMode
+) : ICartridgeMemoryControllerState;
+
 /// <summary>
 /// MBC1 cartridge controller for ROM banking and optional external RAM banking.
 /// </summary>
@@ -29,6 +36,43 @@ internal sealed class Mbc1MemoryController(
     );
 
     public ICartridgeSaveData SaveData => _externalRam.Ram;
+
+    public ICartridgeMemoryControllerState CaptureState() =>
+        new Mbc1MemoryControllerState(
+            _externalRam.CaptureState(),
+            _romBankLow,
+            _bankHigh,
+            _bankingMode
+        );
+
+    public void RestoreState(ICartridgeMemoryControllerState state)
+    {
+        if (state is not Mbc1MemoryControllerState mbc1State)
+        {
+            throw new ArgumentException(
+                "Cartridge memory controller state is invalid.",
+                nameof(state)
+            );
+        }
+
+        _externalRam.ValidateState(mbc1State.ExternalRam);
+        if (
+            mbc1State.RomBankLow > RomBankLowMask
+            || mbc1State.BankHigh > BankHighMask
+            || mbc1State.BankingMode > BankingModeMask
+        )
+        {
+            throw new ArgumentException(
+                "State contains an invalid MBC1 register value.",
+                nameof(state)
+            );
+        }
+
+        _externalRam.RestoreState(mbc1State.ExternalRam);
+        _romBankLow = mbc1State.RomBankLow;
+        _bankHigh = mbc1State.BankHigh;
+        _bankingMode = mbc1State.BankingMode;
+    }
 
     public byte ReadRom(ushort address)
     {

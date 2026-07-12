@@ -121,6 +121,39 @@ public sealed class InterruptServiceTests
     }
 
     [Fact]
+    public void CaptureState_PreservesDelayedInterruptEnableForContinuation()
+    {
+        var (source, sourceBus) = CpuTestFactory.CreateCpuWithBus(bytes =>
+        {
+            bytes[0x0100] = 0xFB;
+            bytes[0x0101] = 0x00;
+        });
+        sourceBus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        sourceBus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+
+        Assert.Equal(1, source.Step());
+        var state = source.CaptureState();
+
+        var (restored, restoredBus) = CpuTestFactory.CreateCpuWithBus(bytes =>
+        {
+            bytes[0x0100] = 0xFB;
+            bytes[0x0101] = 0x00;
+        });
+        restoredBus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        restoredBus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+        restored.RestoreState(state);
+
+        Assert.Equal(source.Step(), restored.Step());
+        Assert.True(restored.Ime);
+        Assert.False(restored.ImeEnablePending);
+
+        Assert.Equal(source.Step(), restored.Step());
+        Assert.False(restored.Ime);
+        Assert.Equal(VBlankVector, restored.Registers.PC);
+        Assert.Equal(0xE0, restoredBus.ReadByte(AddressMap.InterruptFlagRegister));
+    }
+
+    [Fact]
     public void Step_CancelsInterruptDispatchWhenHighBytePushDisablesAllPendingInterrupts()
     {
         var (cpu, bus) = CpuTestFactory.CreateCpuWithBus();

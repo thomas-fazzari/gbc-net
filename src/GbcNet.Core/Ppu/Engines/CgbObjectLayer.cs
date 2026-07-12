@@ -3,6 +3,11 @@
 
 namespace GbcNet.Core.Ppu.Engines;
 
+internal readonly record struct CgbObjectLayerState(
+    ScanlineObjectSelectorState Selector,
+    int PenaltyDots
+);
+
 /// <summary>
 /// CGB object layer state for one selected scanline.
 /// </summary>
@@ -11,6 +16,25 @@ internal sealed class CgbObjectLayer
     private readonly ScanlineObjectSelector _selector = new();
 
     public int PenaltyDots { get; private set; }
+
+    internal CgbObjectLayerState CaptureState() => new(_selector.CaptureState(), PenaltyDots);
+
+    internal void ValidateState(CgbObjectLayerState state)
+    {
+        _selector.ValidateState(state.Selector);
+
+        if (state.PenaltyDots < 0)
+        {
+            throw new ArgumentException("State penalty dots must be nonnegative.", nameof(state));
+        }
+    }
+
+    internal void RestoreState(CgbObjectLayerState state)
+    {
+        ValidateState(state);
+        _selector.RestoreState(state.Selector);
+        PenaltyDots = state.PenaltyDots;
+    }
 
     public void Clear()
     {

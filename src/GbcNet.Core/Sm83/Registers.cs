@@ -123,6 +123,24 @@ internal sealed class Registers
     public ushort SP { get; set; }
 
     /// <summary>
+    /// Captures the register file without allocating.
+    /// </summary>
+    internal RegistersState CaptureState() => new(AF, BC, DE, HL, PC, SP);
+
+    /// <summary>
+    /// Restores the register file from a captured state.
+    /// </summary>
+    internal void RestoreState(RegistersState state)
+    {
+        AF = state.AF;
+        BC = state.BC;
+        DE = state.DE;
+        HL = state.HL;
+        PC = state.PC;
+        SP = state.SP;
+    }
+
+    /// <summary>
     /// Returns whether a CPU flag is set in F.
     /// </summary>
     public bool IsFlagSet(CpuFlag flag) => (F & (byte)flag) != 0;
@@ -287,6 +305,18 @@ internal sealed class Registers
     private static ushort JoinBytes(byte highByte, byte lowByte) =>
         (ushort)((highByte << 8) | lowByte);
 }
+
+/// <summary>
+/// Captures the SM83 register file.
+/// </summary>
+internal readonly record struct RegistersState(
+    ushort AF,
+    ushort BC,
+    ushort DE,
+    ushort HL,
+    ushort PC,
+    ushort SP
+);
 
 /// <summary>
 /// SM83 flags stored in the upper nibble of the F register.

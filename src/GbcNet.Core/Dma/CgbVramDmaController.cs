@@ -5,6 +5,18 @@ using GbcNet.Core.Memory;
 
 namespace GbcNet.Core.Dma;
 
+internal readonly record struct CgbVramDmaControllerState(
+    byte SourceHigh,
+    byte SourceLow,
+    byte DestinationHigh,
+    byte DestinationLow,
+    byte LengthModeReadValue,
+    int HblankBlocksRemaining,
+    int CpuStallMachineCycles,
+    bool IsHblankDmaActive,
+    bool CpuHalted
+);
+
 /// <summary>
 /// Stores CGB HDMA registers and transfers General Purpose DMA / visible-HBlank blocks into the selected VRAM bank.
 /// </summary>
@@ -37,6 +49,32 @@ internal sealed class CgbVramDmaController(
 
     private bool _isHblankDmaActive;
     private bool _cpuHalted;
+
+    internal CgbVramDmaControllerState CaptureState() =>
+        new(
+            _sourceHigh,
+            _sourceLow,
+            _destinationHigh,
+            _destinationLow,
+            _lengthModeReadValue,
+            _hblankBlocksRemaining,
+            _cpuStallMachineCycles,
+            _isHblankDmaActive,
+            _cpuHalted
+        );
+
+    internal void RestoreState(CgbVramDmaControllerState state)
+    {
+        _sourceHigh = state.SourceHigh;
+        _sourceLow = state.SourceLow;
+        _destinationHigh = state.DestinationHigh;
+        _destinationLow = state.DestinationLow;
+        _lengthModeReadValue = state.LengthModeReadValue;
+        _hblankBlocksRemaining = state.HblankBlocksRemaining;
+        _cpuStallMachineCycles = state.CpuStallMachineCycles;
+        _isHblankDmaActive = state.IsHblankDmaActive;
+        _cpuHalted = state.CpuHalted;
+    }
 
     /// <summary>
     /// Reads CPU-visible HDMA registers. HDMA1-HDMA4 are write-only.

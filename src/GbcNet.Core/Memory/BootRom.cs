@@ -100,4 +100,10 @@ internal sealed class BootRom
             _mapped = false;
         }
     }
+
+    internal BootRomState CaptureState() => new(_mapped);
+
+    internal void RestoreState(BootRomState state) => _mapped = state.IsMapped;
 }
+
+internal readonly record struct BootRomState(bool IsMapped);

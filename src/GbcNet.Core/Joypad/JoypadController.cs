@@ -6,6 +6,8 @@ using GbcNet.Core.Sgb;
 
 namespace GbcNet.Core.Joypad;
 
+internal readonly record struct JoypadControllerState(byte SelectedGroups, byte PressedButtons);
+
 /// <summary>
 /// Emulates the DMG P1/JOYP button matrix register.
 /// </summary>
@@ -63,6 +65,20 @@ internal sealed class JoypadController(InterruptController interrupts, SgbContro
     /// Indicates that at least one selected button line is pulled low.
     /// </summary>
     internal bool HasSelectedLineLow => ReadLowNibble() != ReleasedLowNibble;
+
+    /// <summary>
+    /// Captures the JOYP selection and button states.
+    /// </summary>
+    internal JoypadControllerState CaptureState() => new(_selectedGroups, _pressedButtons);
+
+    /// <summary>
+    /// Restores the JOYP selection and button states without transitions.
+    /// </summary>
+    internal void RestoreState(JoypadControllerState state)
+    {
+        _selectedGroups = (byte)(state.SelectedGroups & SelectBitsMask);
+        _pressedButtons = state.PressedButtons;
+    }
 
     /// <summary>
     /// Writes JOYP selection bits, ignoring read-only button state bits.

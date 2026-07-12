@@ -3,6 +3,8 @@
 
 namespace GbcNet.Core.Memory;
 
+internal readonly record struct WorkRamState(byte[] Banks, byte BankRegister);
+
 /// <summary>
 /// Stores banked work RAM and mirrors E000-FDFF onto C000-DDFF.
 /// </summary>
@@ -49,17 +51,41 @@ internal sealed class WorkRam
         }
     }
 
+    internal WorkRamState CaptureState() => new((byte[])_banks.Clone(), _bankRegister);
+
+    internal void RestoreState(WorkRamState state)
+    {
+        var banks = state.Banks;
+        if (banks is null || banks.Length != _banks.Length)
+        {
+            throw new ArgumentException(
+                "State banks must match the work RAM length.",
+                nameof(state)
+            );
+        }
+
+        banks.CopyTo(_banks, 0);
+
+        _bankRegister = state.BankRegister;
+        _selectedSwitchableBank = GetSelectedSwitchableBank(_bankRegister);
+    }
+
     internal void SelectSwitchableBank(byte value)
     {
         _bankRegister = (byte)(value & BankSelectMask);
 
-        int selectedBank = _bankRegister;
+        _selectedSwitchableBank = GetSelectedSwitchableBank(_bankRegister);
+    }
+
+    private int GetSelectedSwitchableBank(byte bankRegister)
+    {
+        int selectedBank = bankRegister;
         if (selectedBank == 0 || selectedBank >= _bankCount)
         {
             selectedBank = 1;
         }
 
-        _selectedSwitchableBank = selectedBank;
+        return selectedBank;
     }
 
     private int GetOffset(ushort address)

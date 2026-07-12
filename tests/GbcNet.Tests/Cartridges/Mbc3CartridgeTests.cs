@@ -483,6 +483,189 @@ public sealed class Mbc3CartridgeTests
         Assert.False(result);
     }
 
+    [Fact]
+    public void CaptureRestore_PreservesVolatileRamBanksRomSelectionAndEnableState()
+    {
+        var rom = TestRomFactory.Create(
+            romSizeCode: 0x01,
+            bytes =>
+            {
+                bytes[0x0147] = (byte)CartridgeType.Mbc3Ram;
+                bytes[0x0149] = 0x03;
+                bytes[2 * RomBankSize] = 0x22;
+            }
+        );
+        var source = TestRomFactory.LoadCartridge(rom);
+
+        source.WriteRom(0x0000, 0x0A);
+        source.WriteRam(AddressMap.ExternalRamStart, 0x11);
+        source.WriteRom(0x4000, 0x01);
+        source.WriteRam(AddressMap.ExternalRamStart, 0x33);
+        source.WriteRom(0x2000, 0x02);
+        source.WriteRom(0x0000, 0x00);
+
+        var restored = TestRomFactory.LoadCartridge(rom);
+        restored.RestoreState(source.CaptureState());
+
+        Assert.Equal(0x22, restored.ReadRom(0x4000));
+        Assert.Equal(0xFF, restored.ReadRam(AddressMap.ExternalRamStart));
+
+        restored.WriteRom(0x0000, 0x0A);
+        Assert.Equal(0x33, restored.ReadRam(AddressMap.ExternalRamStart));
+        restored.WriteRom(0x4000, 0x00);
+        Assert.Equal(0x11, restored.ReadRam(AddressMap.ExternalRamStart));
+    }
+
+    [Fact]
+    public void CaptureRestore_PreservesUnsupportedMbc3RamSelector()
+    {
+        var rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0147] = (byte)CartridgeType.Mbc3Ram;
+            bytes[0x0149] = 0x02;
+        });
+        var source = TestRomFactory.LoadCartridge(rom);
+
+        source.WriteRom(0x0000, 0x0A);
+        source.WriteRam(AddressMap.ExternalRamStart, 0x5A);
+        source.WriteRom(0x4000, 0x0D);
+
+        var restored = TestRomFactory.LoadCartridge(rom);
+        restored.RestoreState(source.CaptureState());
+
+        Assert.Equal(0xFF, restored.ReadRam(AddressMap.ExternalRamStart));
+        restored.WriteRam(AddressMap.ExternalRamStart, 0x99);
+        restored.WriteRom(0x4000, 0x00);
+        Assert.Equal(0x5A, restored.ReadRam(AddressMap.ExternalRamStart));
+    }
+
+    [Fact]
+    public void CaptureRestore_RtcPreservesDistinctLiveAndLatchedRegisters()
+    {
+        FakeClock sourceClock = new();
+        var source = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, sourceClock);
+        source.WriteRom(0x0000, 0x0A);
+        WriteRtcRegister(source, Mbc3RealTimeClock.SecondsRegister, 10);
+        LatchRtc(source);
+        sourceClock.UnixTimeSeconds += 5;
+        Assert.True(source.IsBatterySaveDirty);
+
+        FakeClock destinationClock = new() { UnixTimeSeconds = 1000 };
+        var restored = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, destinationClock);
+        restored.RestoreState(source.CaptureState());
+
+        Assert.Equal(10, ReadRtcRegister(restored, Mbc3RealTimeClock.SecondsRegister));
+        LatchRtc(restored);
+        Assert.Equal(15, ReadRtcRegister(restored, Mbc3RealTimeClock.SecondsRegister));
+    }
+
+    [Fact]
+    public void CaptureRestore_RtcPreservesArmedLatchTransition()
+    {
+        FakeClock clock = new();
+        var source = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        source.WriteRom(0x0000, 0x0A);
+        WriteRtcRegister(source, Mbc3RealTimeClock.SecondsRegister, 7);
+        LatchRtc(source);
+        WriteRtcRegister(source, Mbc3RealTimeClock.SecondsRegister, 9);
+        source.WriteRom(0x6000, 0x00);
+
+        var restored = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        restored.RestoreState(source.CaptureState());
+        restored.WriteRom(0x6000, 0x01);
+
+        Assert.Equal(9, ReadRtcRegister(restored, Mbc3RealTimeClock.SecondsRegister));
+    }
+
+    [Fact]
+    public void CaptureRestore_RtcPreservesUnarmedLatchTransition()
+    {
+        FakeClock clock = new();
+        var source = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        source.WriteRom(0x0000, 0x0A);
+        WriteRtcRegister(source, Mbc3RealTimeClock.SecondsRegister, 7);
+        source.WriteRom(0x6000, 0x01);
+
+        var restored = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        restored.RestoreState(source.CaptureState());
+        WriteRtcRegister(restored, Mbc3RealTimeClock.SecondsRegister, 9);
+        restored.WriteRom(0x6000, 0x01);
+
+        Assert.Equal(0, ReadRtcRegister(restored, Mbc3RealTimeClock.SecondsRegister));
+    }
+
+    [Fact]
+    public void RestoreState_RejectsRtcCapabilityMismatchWithoutMutation()
+    {
+        FakeClock clock = new();
+        var timerCartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        var incompatibleState = timerCartridge.CaptureState();
+        var rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0147] = (byte)CartridgeType.Mbc3Ram;
+            bytes[0x0149] = 0x02;
+        });
+        var cartridge = TestRomFactory.LoadCartridge(rom);
+        cartridge.WriteRom(0x0000, 0x0A);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x5A);
+
+        Assert.Throws<ArgumentException>(() => cartridge.RestoreState(incompatibleState));
+        Assert.Equal(0x5A, cartridge.ReadRam(AddressMap.ExternalRamStart));
+    }
+
+    [Fact]
+    public void RestoreState_RejectsContradictoryEnableStateWithoutMutation()
+    {
+        var rom = TestRomFactory.Create(
+            romSizeCode: 0x01,
+            bytes =>
+            {
+                bytes[0x0147] = (byte)CartridgeType.Mbc3Ram;
+                bytes[0x0149] = 0x02;
+                bytes[2 * RomBankSize] = 0x22;
+            }
+        );
+        var source = TestRomFactory.LoadCartridge(rom);
+        source.WriteRom(0x0000, 0x0A);
+        var state = source.CaptureState();
+        var mbc3State = (Mbc3MemoryControllerState)state.Controller;
+        var contradictoryState = state with
+        {
+            Controller = mbc3State with { RamAndTimerEnabled = false },
+        };
+        var cartridge = TestRomFactory.LoadCartridge(rom);
+        cartridge.WriteRom(0x0000, 0x0A);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x5A);
+        cartridge.WriteRom(0x2000, 0x02);
+
+        Assert.Throws<ArgumentException>(() => cartridge.RestoreState(contradictoryState));
+        Assert.Equal(0x22, cartridge.ReadRom(0x4000));
+        Assert.Equal(0x5A, cartridge.ReadRam(AddressMap.ExternalRamStart));
+    }
+
+    [Fact]
+    public void RestoreState_RejectsOutOfRangeRtcWithoutMutation()
+    {
+        FakeClock clock = new();
+        var source = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        var state = source.CaptureState();
+        var mbc3State = (Mbc3MemoryControllerState)state.Controller;
+        var invalidState = state with
+        {
+            Controller = mbc3State with
+            {
+                RealTimeClock = mbc3State.RealTimeClock!.Value with { Seconds = 0x40 },
+            },
+        };
+        var cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);
+        cartridge.WriteRom(0x0000, 0x0A);
+        WriteRtcRegister(cartridge, Mbc3RealTimeClock.SecondsRegister, 7);
+        LatchRtc(cartridge);
+
+        Assert.Throws<ArgumentException>(() => cartridge.RestoreState(invalidState));
+        Assert.Equal(7, ReadRtcRegister(cartridge, Mbc3RealTimeClock.SecondsRegister));
+    }
+
     private static Cartridge LoadMbc3TimerCartridge(CartridgeType cartridgeType, FakeClock clock)
     {
         var rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)cartridgeType);

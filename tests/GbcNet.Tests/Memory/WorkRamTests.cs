@@ -106,4 +106,56 @@ public sealed class WorkRamTests
 
         Assert.Equal(0x88, workRam.Read(0xD000));
     }
+
+    [Fact]
+    public void CaptureRestoreState_RestoresBanksAndRawBankRegisterIndependently()
+    {
+        var source = new WorkRam(bankCount: 8, isBankRegisterEnabled: true);
+        source.Write(AddressMap.WorkRamStart, 0x10);
+        source.WriteBankRegister(1);
+        source.Write(AddressMap.WorkRamSwitchableBankStart, 0x11);
+        source.WriteBankRegister(7);
+        source.Write(AddressMap.WorkRamSwitchableBankStart, 0x77);
+        source.WriteBankRegister(0);
+
+        var state = source.CaptureState();
+
+        source.Write(AddressMap.WorkRamStart, 0x20);
+        source.Write(AddressMap.WorkRamSwitchableBankStart, 0x22);
+        source.WriteBankRegister(7);
+        source.Write(AddressMap.WorkRamSwitchableBankStart, 0x88);
+
+        var restored = new WorkRam(bankCount: 8, isBankRegisterEnabled: true);
+        restored.WriteBankRegister(7);
+        restored.RestoreState(state);
+
+        state.Banks[0] = 0x30;
+        state.Banks[0x1000] = 0x33;
+        state.Banks[7 * 0x1000] = 0x99;
+
+        Assert.Equal(0x10, restored.Read(AddressMap.WorkRamStart));
+        Assert.Equal(0xF8, restored.ReadBankRegister());
+        Assert.Equal(0x11, restored.Read(AddressMap.WorkRamSwitchableBankStart));
+
+        restored.WriteBankRegister(7);
+
+        Assert.Equal(0x77, restored.Read(AddressMap.WorkRamSwitchableBankStart));
+    }
+
+    [Fact]
+    public void RestoreState_RejectsWrongBankLengthWithoutMutating()
+    {
+        var workRam = new WorkRam(bankCount: 8, isBankRegisterEnabled: true);
+        workRam.Write(AddressMap.WorkRamStart, 0xAA);
+        workRam.WriteBankRegister(7);
+        workRam.Write(AddressMap.WorkRamSwitchableBankStart, 0xBB);
+
+        Assert.Throws<ArgumentException>(() =>
+            workRam.RestoreState(new WorkRamState(new byte[0x1000], 0))
+        );
+
+        Assert.Equal(0xAA, workRam.Read(AddressMap.WorkRamStart));
+        Assert.Equal(0xFF, workRam.ReadBankRegister());
+        Assert.Equal(0xBB, workRam.Read(AddressMap.WorkRamSwitchableBankStart));
+    }
 }

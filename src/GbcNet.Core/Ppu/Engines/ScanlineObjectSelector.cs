@@ -5,6 +5,13 @@ using GbcNet.Core.Memory;
 
 namespace GbcNet.Core.Ppu.Engines;
 
+internal readonly record struct ScanlineObjectSelectorState(
+    ScanlineObject[] Objects,
+    int ObjectCount,
+    bool Selected,
+    int ObjectHeight
+);
+
 /// <summary>
 /// Selects up to ten OAM objects visible on one LCD scanline.
 /// </summary>
@@ -39,6 +46,70 @@ internal sealed class ScanlineObjectSelector
     internal ReadOnlySpan<ScanlineObject> Objects => _objects.AsSpan(0, _objectCount);
 
     internal int ObjectHeight { get; private set; } = PpuObjectAttributes.Size8;
+
+    internal ScanlineObjectSelectorState CaptureState() =>
+        new((ScanlineObject[])_objects.Clone(), _objectCount, _selected, ObjectHeight);
+
+    internal void ValidateState(ScanlineObjectSelectorState state)
+    {
+        var objects = state.Objects;
+        if (objects is null || objects.Length != _objects.Length)
+        {
+            throw new ArgumentException(
+                "State objects must match the scanline object capacity.",
+                nameof(state)
+            );
+        }
+
+        if ((uint)state.ObjectCount > _objects.Length)
+        {
+            throw new ArgumentException(
+                "State object count must be within the scanline object capacity.",
+                nameof(state)
+            );
+        }
+
+        if (state.ObjectHeight is not (PpuObjectAttributes.Size8 or PpuObjectAttributes.Size16))
+        {
+            throw new ArgumentException(
+                "State object height must be 8 or 16 pixels.",
+                nameof(state)
+            );
+        }
+
+        ulong selectedObjectIndices = 0;
+        for (var objectSlot = 0; objectSlot < state.ObjectCount; objectSlot++)
+        {
+            var objectIndex = objects[objectSlot].Index;
+            if ((uint)objectIndex >= PpuObjectAttributes.ObjectCount)
+            {
+                throw new ArgumentException(
+                    "State object indices must identify OAM entries.",
+                    nameof(state)
+                );
+            }
+
+            var objectIndexBit = 1UL << objectIndex;
+            if ((selectedObjectIndices & objectIndexBit) != 0)
+            {
+                throw new ArgumentException(
+                    "State selected objects must not duplicate OAM entries.",
+                    nameof(state)
+                );
+            }
+
+            selectedObjectIndices |= objectIndexBit;
+        }
+    }
+
+    internal void RestoreState(ScanlineObjectSelectorState state)
+    {
+        ValidateState(state);
+        state.Objects.CopyTo(_objects, 0);
+        _objectCount = state.ObjectCount;
+        _selected = state.Selected;
+        ObjectHeight = state.ObjectHeight;
+    }
 
     internal void Clear()
     {

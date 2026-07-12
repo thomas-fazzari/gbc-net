@@ -6,6 +6,8 @@ using System.Globalization;
 
 namespace GbcNet.Core.Cartridges.Memory;
 
+internal readonly record struct CartridgeRamState(byte[] Bytes, bool IsDirty);
+
 /// <summary>
 /// Cartridge RAM storage, including battery-backed persistence state.
 /// </summary>
@@ -46,6 +48,35 @@ internal sealed class CartridgeRam(int sizeBytes, bool hasBattery) : ICartridgeS
     {
         _bytes[offset] = value;
         _dirty |= HasBatteryBackedSave;
+    }
+
+    internal CartridgeRamState CaptureState() => new((byte[])_bytes.Clone(), _dirty);
+
+    internal void ValidateState(CartridgeRamState state)
+    {
+        var bytes = state.Bytes;
+        if (bytes is null || bytes.Length != _bytes.Length)
+        {
+            throw new ArgumentException(
+                "State bytes must match the cartridge RAM length.",
+                nameof(state)
+            );
+        }
+
+        if (state.IsDirty && !HasBatteryBackedSave)
+        {
+            throw new ArgumentException(
+                "Non-battery-backed cartridge RAM cannot be dirty.",
+                nameof(state)
+            );
+        }
+    }
+
+    internal void RestoreState(CartridgeRamState state)
+    {
+        ValidateState(state);
+        state.Bytes.CopyTo(_bytes, 0);
+        _dirty = state.IsDirty;
     }
 
     /// <summary>

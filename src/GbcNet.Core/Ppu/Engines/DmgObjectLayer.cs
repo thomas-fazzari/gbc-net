@@ -3,6 +3,11 @@
 
 namespace GbcNet.Core.Ppu.Engines;
 
+internal readonly record struct DmgObjectLayerState(
+    ScanlineObjectSelectorState Selector,
+    int PenaltyDots
+);
+
 /// <summary>
 /// DMG object layer state for one selected scanline.
 /// </summary>
@@ -14,6 +19,25 @@ internal sealed class DmgObjectLayer
     /// Additional Mode 3 dots caused by OBJ fetches on the selected scanline.
     /// </summary>
     public int PenaltyDots { get; private set; }
+
+    internal DmgObjectLayerState CaptureState() => new(_selector.CaptureState(), PenaltyDots);
+
+    internal void ValidateState(DmgObjectLayerState state)
+    {
+        _selector.ValidateState(state.Selector);
+
+        if (state.PenaltyDots < 0)
+        {
+            throw new ArgumentException("State penalty dots must be nonnegative.", nameof(state));
+        }
+    }
+
+    internal void RestoreState(DmgObjectLayerState state)
+    {
+        ValidateState(state);
+        _selector.RestoreState(state.Selector);
+        PenaltyDots = state.PenaltyDots;
+    }
 
     /// <summary>
     /// Clears scanline-local OBJ selection and fetch penalty state.

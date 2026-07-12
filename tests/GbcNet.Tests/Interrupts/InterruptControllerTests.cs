@@ -51,6 +51,52 @@ public sealed class InterruptControllerTests
     }
 
     [Fact]
+    public void RestoreState_ResumesPriorityAndRetainsRemainingRequests()
+    {
+        var interrupts = new InterruptController { InterruptEnable = 0xFF };
+        interrupts.SetInterruptFlag(0x1F);
+        var state = interrupts.CaptureState();
+        interrupts.InterruptEnable = 0;
+        interrupts.SetInterruptFlag(0);
+
+        interrupts.RestoreState(state);
+
+        Assert.Equal(0xFF, interrupts.InterruptEnable);
+        Assert.True(
+            InterruptController.TryGetHighestPriority(
+                interrupts.RequestedAndEnabledMask,
+                out var source,
+                out var vector
+            )
+        );
+        Assert.Equal(InterruptSource.VBlank, source);
+        Assert.Equal(0x0040, vector);
+
+        interrupts.Clear(source);
+
+        Assert.True(
+            InterruptController.TryGetHighestPriority(
+                interrupts.RequestedAndEnabledMask,
+                out source,
+                out vector
+            )
+        );
+        Assert.Equal(InterruptSource.LcdStat, source);
+        Assert.Equal(0x0048, vector);
+    }
+
+    [Fact]
+    public void RestoreState_StoresOnlyRequestedInterruptFlagBits()
+    {
+        var interrupts = new InterruptController();
+
+        interrupts.RestoreState(new InterruptControllerState(0xFF, 0xFF));
+
+        Assert.Equal(0x1F, interrupts.InterruptFlag);
+        Assert.Equal(0xFF, interrupts.ReadInterruptFlag());
+    }
+
+    [Fact]
     public void TryGetHighestPriority_ReturnsLowestPendingBitAndVector()
     {
         var found = InterruptController.TryGetHighestPriority(
