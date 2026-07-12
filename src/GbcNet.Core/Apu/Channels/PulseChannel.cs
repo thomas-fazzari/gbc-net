@@ -204,4 +204,60 @@ internal sealed class PulseChannel
         _suppressInitialOutput = false;
         IsActive = false;
     }
+
+    internal PulseChannelState CaptureState() =>
+        new(
+            _length.CaptureState(),
+            _envelope.CaptureState(),
+            _periodTimer,
+            _tCycleAccumulator,
+            _duty,
+            _dutyStep,
+            _suppressInitialOutput,
+            IsActive,
+            Period
+        );
+
+    internal void ValidateState(PulseChannelState state)
+    {
+        _length.ValidateState(state.Length);
+        VolumeEnvelope.ValidateState(state.Envelope);
+
+        if (
+            state.PeriodTimer < 0
+            || state.PeriodTimer > PeriodReloadBase
+            || state.Duty > 0x03
+            || state.DutyStep > 0x07
+            || state.Period >= PeriodReloadBase
+        )
+        {
+            throw new ArgumentOutOfRangeException(nameof(state));
+        }
+    }
+
+    internal void RestoreState(PulseChannelState state)
+    {
+        ValidateState(state);
+        _length.RestoreState(state.Length);
+        _envelope.RestoreState(state.Envelope);
+        _periodTimer = state.PeriodTimer;
+        _tCycleAccumulator = state.TCycleAccumulator;
+        _duty = state.Duty;
+        _dutyStep = state.DutyStep;
+        _suppressInitialOutput = state.SuppressInitialOutput;
+        IsActive = state.IsActive;
+        Period = state.Period;
+    }
 }
+
+internal readonly record struct PulseChannelState(
+    LengthCounterState Length,
+    VolumeEnvelopeState Envelope,
+    int PeriodTimer,
+    int TCycleAccumulator,
+    byte Duty,
+    byte DutyStep,
+    bool SuppressInitialOutput,
+    bool IsActive,
+    ushort Period
+);

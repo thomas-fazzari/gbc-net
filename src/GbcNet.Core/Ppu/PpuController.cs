@@ -8,26 +8,6 @@ using GbcNet.Core.Ppu.Engines;
 
 namespace GbcNet.Core.Ppu;
 
-internal readonly record struct PpuControllerState(
-    VideoRamState VideoRam,
-    CgbPaletteRamState BackgroundPaletteRam,
-    CgbPaletteRamState ObjectPaletteRam,
-    MappedMemoryState ObjectAttributeMemory,
-    IPpuEngineState Engine,
-    byte Control,
-    byte StatusInterruptSelect,
-    byte ScrollY,
-    byte ScrollX,
-    byte LcdYCompare,
-    byte BackgroundPalette,
-    byte ObjectPalette0,
-    byte ObjectPalette1,
-    byte WindowY,
-    byte WindowX,
-    ObjectPriorityMode ObjectPriorityMode,
-    bool VideoRenderingEnabled
-);
-
 /// <summary>
 /// Stores CPU-visible Liquid Crystal Display/Pixel Processing Unit registers and delegates model-specific behavior.
 /// </summary>
@@ -480,3 +460,23 @@ internal sealed class PpuController(
     private static ArgumentOutOfRangeException CreateUnsupportedRegisterException(ushort address) =>
         new(nameof(address), address, "Address must target an LCD/PPU register.");
 }
+
+internal readonly record struct PpuControllerState(
+    VideoRamState VideoRam,
+    CgbPaletteRamState BackgroundPaletteRam,
+    CgbPaletteRamState ObjectPaletteRam,
+    MappedMemoryState ObjectAttributeMemory,
+    IPpuEngineState Engine,
+    byte Control,
+    byte StatusInterruptSelect,
+    byte ScrollY,
+    byte ScrollX,
+    byte LcdYCompare,
+    byte BackgroundPalette,
+    byte ObjectPalette0,
+    byte ObjectPalette1,
+    byte WindowY,
+    byte WindowX,
+    ObjectPriorityMode ObjectPriorityMode,
+    bool VideoRenderingEnabled
+);

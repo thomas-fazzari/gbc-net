@@ -384,18 +384,6 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
 }
 
 /// <summary>
-/// Captures SM83 CPU execution state.
-/// </summary>
-internal readonly record struct CpuState(
-    RegistersState Registers,
-    bool Halted,
-    bool Stopped,
-    bool HaltBugPending,
-    bool Ime,
-    bool ImeEnablePending
-);
-
-/// <summary>
 /// Provides the opcode and register state observed after one completed instruction.
 /// </summary>
 internal sealed class CpuInstructionExecutedEventArgs(byte opcode, Registers registers) : EventArgs
@@ -410,3 +398,15 @@ internal sealed class CpuInstructionExecutedEventArgs(byte opcode, Registers reg
     /// </summary>
     public Registers Registers { get; } = registers;
 }
+
+/// <summary>
+/// Captures SM83 CPU execution state.
+/// </summary>
+internal readonly record struct CpuState(
+    RegistersState Registers,
+    bool Halted,
+    bool Stopped,
+    bool HaltBugPending,
+    bool Ime,
+    bool ImeEnablePending
+);

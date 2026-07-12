@@ -3,16 +3,6 @@
 
 namespace GbcNet.Core.Ppu.Engines;
 
-internal readonly record struct PpuEngineBaseState(
-    PpuTimingState Timing,
-    PpuStatInterruptLatchState StatInterruptLatch,
-    BackgroundWindowFetcherState BackgroundWindowFetcher,
-    byte[] FrameBuffer,
-    int RenderedPixels,
-    bool RenderingScanline,
-    bool RenderCurrentFrame
-);
-
 /// <summary>
 /// Shared LCD timing and render orchestration for the current PPU engines.
 /// </summary>
@@ -447,3 +437,13 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
         _renderingScanline = false;
     }
 }
+
+internal readonly record struct PpuEngineBaseState(
+    PpuTimingState Timing,
+    PpuStatInterruptLatchState StatInterruptLatch,
+    BackgroundWindowFetcherState BackgroundWindowFetcher,
+    byte[] FrameBuffer,
+    int RenderedPixels,
+    bool RenderingScanline,
+    bool RenderCurrentFrame
+);

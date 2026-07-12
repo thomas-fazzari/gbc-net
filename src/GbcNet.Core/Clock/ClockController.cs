@@ -8,14 +8,6 @@ using GbcNet.Core.Timers;
 
 namespace GbcNet.Core.Clock;
 
-internal readonly record struct ClockControllerState(
-    ushort DividerCounter,
-    bool CgbDoubleSpeed,
-    bool SpeedSwitchArmed,
-    int SpeedSwitchPauseCycles,
-    TimerControllerState TimerState
-);
-
 /// <summary>
 /// Owns the shared system counter and dispatches DIV falling-edge effects.
 /// </summary>
@@ -225,3 +217,11 @@ internal sealed class ClockController
         _apu.TickSystemCounter(new ApuTickInputs(fallingEdges, CgbDoubleSpeed));
     }
 }
+
+internal readonly record struct ClockControllerState(
+    ushort DividerCounter,
+    bool CgbDoubleSpeed,
+    bool SpeedSwitchArmed,
+    int SpeedSwitchPauseCycles,
+    TimerControllerState TimerState
+);

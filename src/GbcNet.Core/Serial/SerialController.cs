@@ -5,16 +5,6 @@ using GbcNet.Core.Interrupts;
 
 namespace GbcNet.Core.Serial;
 
-internal readonly record struct SerialControllerState(
-    byte Control,
-    byte TransferData,
-    byte OutgoingTransferData,
-    int TransferredBitCount,
-    bool NormalMasterClockHigh,
-    bool HighSpeedMasterClockHigh,
-    bool TransferActive
-);
-
 /// <summary>
 /// Emulates the serial transfer data and control registers.
 /// </summary>
@@ -224,3 +214,13 @@ internal sealed class SerialController(
         ByteTransferred?.Invoke(_outgoingTransferData);
     }
 }
+
+internal readonly record struct SerialControllerState(
+    byte Control,
+    byte TransferData,
+    byte OutgoingTransferData,
+    int TransferredBitCount,
+    bool NormalMasterClockHigh,
+    bool HighSpeedMasterClockHigh,
+    bool TransferActive
+);

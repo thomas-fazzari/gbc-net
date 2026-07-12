@@ -18,6 +18,8 @@ internal sealed class NoiseChannel
     private const int ClockShift = 4;
     private const int MaxLength = 64;
     private const int LfsrResetValue = 0;
+    private const int MaxLfsrValue = 0x7FFF;
+    private const int MaxTimer = (16 * DivisorCodeMask) << 15;
 
     private readonly LengthCounter _length = new(MaxLength);
     private readonly VolumeEnvelope _envelope = new();
@@ -49,6 +51,59 @@ internal sealed class NoiseChannel
     /// Current CH4 digital output from the last LFSR bit shifted out.
     /// </summary>
     public byte DigitalOutput => IsActive && _currentLfsrSample ? _envelope.Volume : (byte)0;
+
+    /// <summary>
+    /// Captures all mutable CH4 state without advancing generation.
+    /// </summary>
+    internal NoiseChannelState CaptureState() =>
+        new(
+            _length.CaptureState(),
+            _envelope.CaptureState(),
+            _lfsr,
+            _timer,
+            _tCycleAccumulator,
+            _clockShift,
+            _divisorCode,
+            _widthMode,
+            _currentLfsrSample,
+            IsActive
+        );
+
+    /// <summary>
+    /// Validates a captured CH4 state without changing this channel.
+    /// </summary>
+    internal void ValidateState(NoiseChannelState state)
+    {
+        _length.ValidateState(state.Length);
+        VolumeEnvelope.ValidateState(state.Envelope);
+        if (
+            state.Lfsr is < 0 or > MaxLfsrValue
+            || state.Timer is < 0 or > MaxTimer
+            || state.ClockShift > 15
+            || state.DivisorCode > DivisorCodeMask
+        )
+        {
+            throw new ArgumentOutOfRangeException(nameof(state));
+        }
+    }
+
+    /// <summary>
+    /// Restores CH4 state without register writes, clocks, or triggering.
+    /// </summary>
+    internal void RestoreState(NoiseChannelState state)
+    {
+        ValidateState(state);
+        _length.RestoreState(state.Length);
+        _envelope.RestoreState(state.Envelope);
+        _lfsr = state.Lfsr;
+        _timer = state.Timer;
+        _tCycleAccumulator = state.TCycleAccumulator;
+        _clockShift = state.ClockShift;
+        _divisorCode = state.DivisorCode;
+        _widthMode = state.WidthMode;
+        _currentLfsrSample = state.CurrentLfsrSample;
+        IsActive = state.IsActive;
+    }
 
     /// <summary>
     /// Loads NR41 initial length.
@@ -179,3 +234,16 @@ internal sealed class NoiseChannel
         }
     }
 }
+
+internal readonly record struct NoiseChannelState(
+    LengthCounterState Length,
+    VolumeEnvelopeState Envelope,
+    int Lfsr,
+    int Timer,
+    int TCycleAccumulator,
+    byte ClockShift,
+    byte DivisorCode,
+    bool WidthMode,
+    bool CurrentLfsrSample,
+    bool IsActive
+);

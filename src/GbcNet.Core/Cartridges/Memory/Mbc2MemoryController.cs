@@ -3,9 +3,6 @@
 
 namespace GbcNet.Core.Cartridges.Memory;
 
-internal sealed record Mbc2MemoryControllerState(Mbc2RamState Ram, byte RomBank, bool RamEnabled)
-    : ICartridgeMemoryControllerState;
-
 /// <summary>
 /// MBC2 cartridge controller with 4-bit built-in RAM and 4-bit ROM banking.
 /// </summary>
@@ -95,3 +92,6 @@ internal sealed class Mbc2MemoryController(
         _ramEnabled = mbc2State.RamEnabled;
     }
 }
+
+internal sealed record Mbc2MemoryControllerState(Mbc2RamState Ram, byte RomBank, bool RamEnabled)
+    : ICartridgeMemoryControllerState;

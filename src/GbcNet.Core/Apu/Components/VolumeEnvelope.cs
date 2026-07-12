@@ -88,4 +88,38 @@ internal sealed class VolumeEnvelope
         DacEnabled = false;
         Volume = 0;
     }
+
+    internal VolumeEnvelopeState CaptureState() =>
+        new(_period, _timer, _increases, DacEnabled, Volume);
+
+    internal static void ValidateState(VolumeEnvelopeState state)
+    {
+        if (
+            state.Period > EnvelopePeriodMask
+            || state.Volume > MaxVolume
+            || (state.Period == 0 && state.Timer != 0)
+            || (state.Period != 0 && (state.Timer < 1 || state.Timer > state.Period))
+        )
+        {
+            throw new ArgumentOutOfRangeException(nameof(state));
+        }
+    }
+
+    internal void RestoreState(VolumeEnvelopeState state)
+    {
+        ValidateState(state);
+        _period = state.Period;
+        _timer = state.Timer;
+        _increases = state.Increases;
+        DacEnabled = state.DacEnabled;
+        Volume = state.Volume;
+    }
 }
+
+internal readonly record struct VolumeEnvelopeState(
+    byte Period,
+    int Timer,
+    bool Increases,
+    bool DacEnabled,
+    byte Volume
+);

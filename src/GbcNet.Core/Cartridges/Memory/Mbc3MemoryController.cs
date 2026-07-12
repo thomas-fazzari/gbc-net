@@ -6,15 +6,6 @@ using System.Globalization;
 
 namespace GbcNet.Core.Cartridges.Memory;
 
-internal sealed record Mbc3MemoryControllerState(
-    CartridgeRamWindowState ExternalRam,
-    Mbc3RealTimeClockState? RealTimeClock,
-    byte RomBank,
-    byte RamBankOrRtcRegister,
-    bool RamAndTimerEnabled,
-    bool RtcLatchArmed
-) : ICartridgeMemoryControllerState;
-
 /// <summary>
 /// MBC3 cartridge controller for ROM banking, optional RAM banking, and optional RTC mapping.
 /// </summary>
@@ -270,3 +261,12 @@ internal sealed class Mbc3MemoryController : ICartridgeMemoryController, ICartri
     private bool IsRtcRegisterSelected =>
         _ramBankOrRtcRegister is >= FirstRtcRegister and <= LastRtcRegister;
 }
+
+internal sealed record Mbc3MemoryControllerState(
+    CartridgeRamWindowState ExternalRam,
+    Mbc3RealTimeClockState? RealTimeClock,
+    byte RomBank,
+    byte RamBankOrRtcRegister,
+    bool RamAndTimerEnabled,
+    bool RtcLatchArmed
+) : ICartridgeMemoryControllerState;

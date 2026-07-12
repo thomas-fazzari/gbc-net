@@ -3,11 +3,6 @@
 
 namespace GbcNet.Core.Ppu.Engines;
 
-internal readonly record struct DmgObjectLayerState(
-    ScanlineObjectSelectorState Selector,
-    int PenaltyDots
-);
-
 /// <summary>
 /// DMG object layer state for one selected scanline.
 /// </summary>
@@ -169,3 +164,8 @@ internal readonly struct DmgObjectPixel(byte colorId, bool usesPalette1, bool ha
     /// </summary>
     public bool HasBackgroundPriority { get; } = hasBackgroundPriority;
 }
+
+internal readonly record struct DmgObjectLayerState(
+    ScanlineObjectSelectorState Selector,
+    int PenaltyDots
+);

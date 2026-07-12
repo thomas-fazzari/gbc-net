@@ -141,4 +141,84 @@ public sealed class SampleBufferTests
             new SampleBuffer<ApuStereoSample>(SourceClockHz, SampleRate, capacity)
         );
     }
+
+    [Fact]
+    public void State_RestoresWrappedSamplesAndNextSampleBoundary()
+    {
+        SampleBuffer<ApuStereoSample> source = new(SourceClockHz, SampleRate, capacity: 3);
+        Span<ApuStereoSample> discarded = stackalloc ApuStereoSample[1];
+
+        source.Add(new ApuStereoSample(1, 2));
+        source.Add(new ApuStereoSample(3, 4));
+        source.Drain(discarded);
+        source.Add(new ApuStereoSample(5, 6));
+        source.Add(new ApuStereoSample(7, 8));
+        Assert.Equal(0, source.Tick(9));
+
+        var state = source.CaptureState();
+        SampleBuffer<ApuStereoSample> restored = new(SourceClockHz, SampleRate, capacity: 3);
+        var destination = new ApuStereoSample[3];
+
+        restored.RestoreState(state);
+
+        Assert.Equal(3, restored.Drain(destination));
+        Assert.Equal(
+            [new ApuStereoSample(3, 4), new ApuStereoSample(5, 6), new ApuStereoSample(7, 8)],
+            destination
+        );
+        Assert.Equal(1, restored.Tick(1));
+    }
+
+    [Fact]
+    public void State_CaptureAndRestoreDoNotAliasBufferedSamples()
+    {
+        SampleBuffer<ApuStereoSample> source = new(SourceClockHz, SampleRate);
+        source.Add(new ApuStereoSample(1, 2));
+        var state = source.CaptureState();
+        var sourceDestination = new ApuStereoSample[1];
+
+        state.BufferedSamples[0] = new ApuStereoSample(3, 4);
+
+        Assert.Equal(1, source.Drain(sourceDestination));
+        Assert.Equal([new ApuStereoSample(1, 2)], sourceDestination);
+
+        SampleBuffer<ApuStereoSample> restored = new(SourceClockHz, SampleRate);
+        restored.RestoreState(state);
+        state.BufferedSamples[0] = new ApuStereoSample(5, 6);
+        var restoredDestination = new ApuStereoSample[1];
+
+        Assert.Equal(1, restored.Drain(restoredDestination));
+        Assert.Equal([new ApuStereoSample(3, 4)], restoredDestination);
+    }
+
+    [Fact]
+    public void State_RestoreRejectsMalformedInputWithoutChangingBuffer()
+    {
+        SampleBuffer<ApuStereoSample> buffer = new(SourceClockHz, SampleRate, capacity: 2);
+        buffer.Add(new ApuStereoSample(1, 2));
+        Assert.Equal(0, buffer.Tick(9));
+
+        Assert.Throws<ArgumentException>(() =>
+            buffer.ValidateState(new SampleBufferState<ApuStereoSample>(null!, 0))
+        );
+        Assert.Throws<ArgumentException>(() =>
+            buffer.ValidateState(
+                new SampleBufferState<ApuStereoSample>(
+                    [new ApuStereoSample(), new ApuStereoSample(), new ApuStereoSample()],
+                    0
+                )
+            )
+        );
+        Assert.Throws<ArgumentException>(() =>
+            buffer.ValidateState(new SampleBufferState<ApuStereoSample>([], -1))
+        );
+        Assert.Throws<ArgumentException>(() =>
+            buffer.RestoreState(new SampleBufferState<ApuStereoSample>([], SourceClockHz))
+        );
+
+        var destination = new ApuStereoSample[1];
+        Assert.Equal(1, buffer.Drain(destination));
+        Assert.Equal([new ApuStereoSample(1, 2)], destination);
+        Assert.Equal(1, buffer.Tick(1));
+    }
 }

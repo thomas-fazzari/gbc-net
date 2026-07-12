@@ -5,8 +5,6 @@ using GbcNet.Core.Memory;
 
 namespace GbcNet.Core.Cartridges.Memory;
 
-internal readonly record struct CartridgeRamWindowState(CartridgeRamState Ram, bool Enabled);
-
 /// <summary>
 /// External cartridge RAM window shared by banked MBC implementations.
 /// </summary>
@@ -70,3 +68,5 @@ internal sealed class CartridgeRamWindow(int sizeBytes, bool hasBattery)
         return effectiveOffset % Ram.Size;
     }
 }
+
+internal readonly record struct CartridgeRamWindowState(CartridgeRamState Ram, bool Enabled);

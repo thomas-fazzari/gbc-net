@@ -3,13 +3,6 @@
 
 namespace GbcNet.Core.Cartridges.Memory;
 
-internal sealed record Mbc5MemoryControllerState(
-    CartridgeRamWindowState ExternalRam,
-    byte RomBankLow,
-    byte RomBankHigh,
-    byte RamBank
-) : ICartridgeMemoryControllerState;
-
 /// <summary>
 /// MBC5 cartridge controller for 9-bit ROM banking and optional external RAM banking.
 /// </summary>
@@ -109,3 +102,10 @@ internal sealed class Mbc5MemoryController(
         _externalRam.WriteOffset(offset, value, _ramBank);
     }
 }
+
+internal sealed record Mbc5MemoryControllerState(
+    CartridgeRamWindowState ExternalRam,
+    byte RomBankLow,
+    byte RomBankHigh,
+    byte RamBank
+) : ICartridgeMemoryControllerState;

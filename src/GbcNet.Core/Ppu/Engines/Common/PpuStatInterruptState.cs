@@ -3,12 +3,6 @@
 
 namespace GbcNet.Core.Ppu.Engines;
 
-internal readonly record struct PpuStatInterruptLatchState(
-    bool IsInterruptLineAsserted,
-    PpuMode InterruptMode,
-    bool LycEqualsLy
-);
-
 /// <summary>
 /// Owns STAT interrupt line and LY=LYC comparison state for a PPU engine.
 /// </summary>
@@ -105,3 +99,9 @@ internal sealed class PpuStatInterruptState
             );
     }
 }
+
+internal readonly record struct PpuStatInterruptLatchState(
+    bool IsInterruptLineAsserted,
+    PpuMode InterruptMode,
+    bool LycEqualsLy
+);

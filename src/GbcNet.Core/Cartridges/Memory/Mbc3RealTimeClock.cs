@@ -5,22 +5,6 @@ using System.Buffers.Binary;
 
 namespace GbcNet.Core.Cartridges.Memory;
 
-internal readonly record struct Mbc3RealTimeClockState(
-    int Seconds,
-    int Minutes,
-    int Hours,
-    int Day,
-    bool Halted,
-    bool Carry,
-    int LatchedSeconds,
-    int LatchedMinutes,
-    int LatchedHours,
-    int LatchedDay,
-    bool LatchedHalted,
-    bool LatchedCarry,
-    bool IsDirty
-);
-
 /// <summary>
 /// MBC3 real-time clock registers, latch behavior, and persistence state.
 /// </summary>
@@ -406,3 +390,19 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
         carry = (source[16] & DayHighCarryMask) != 0;
     }
 }
+
+internal readonly record struct Mbc3RealTimeClockState(
+    int Seconds,
+    int Minutes,
+    int Hours,
+    int Day,
+    bool Halted,
+    bool Carry,
+    int LatchedSeconds,
+    int LatchedMinutes,
+    int LatchedHours,
+    int LatchedDay,
+    bool LatchedHalted,
+    bool LatchedCarry,
+    bool IsDirty
+);

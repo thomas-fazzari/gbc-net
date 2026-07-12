@@ -3,12 +3,20 @@
 
 namespace GbcNet.Core.Ppu.Engines;
 
-internal readonly record struct DmgPixelRulesPpuEngineState(
-    PpuEngineBaseState Common,
-    byte[] BackgroundFifo,
-    DmgObjectLayerState Objects,
-    byte FetchedTileId
-);
+internal interface IDmgPixelOutput
+{
+    static abstract int BytesPerPixel { get; }
+
+    static abstract LcdPixelFormat PixelFormat { get; }
+
+    static abstract void WritePixel(
+        byte[] frameBuffer,
+        int pixelIndex,
+        byte backgroundColorId,
+        DmgObjectPixel? objectPixel,
+        PpuEngineInputs inputs
+    );
+}
 
 /// <summary>
 /// Shared DMG pixel-rule renderer used by DMG hardware and CGB DMG compatibility output.
@@ -161,21 +169,6 @@ internal abstract class DmgPixelRulesPpuEngine<TPixelOutput>()
     }
 }
 
-internal interface IDmgPixelOutput
-{
-    static abstract int BytesPerPixel { get; }
-
-    static abstract LcdPixelFormat PixelFormat { get; }
-
-    static abstract void WritePixel(
-        byte[] frameBuffer,
-        int pixelIndex,
-        byte backgroundColorId,
-        DmgObjectPixel? objectPixel,
-        PpuEngineInputs inputs
-    );
-}
-
 internal readonly record struct DmgShadePixelOutput : IDmgPixelOutput
 {
     public static int BytesPerPixel => 1;
@@ -291,3 +284,10 @@ internal static class DmgPixelRules
     private static byte ApplyPalette(byte colorId, byte palette) =>
         (byte)((palette >> (colorId * 2)) & 0x03);
 }
+
+internal readonly record struct DmgPixelRulesPpuEngineState(
+    PpuEngineBaseState Common,
+    byte[] BackgroundFifo,
+    DmgObjectLayerState Objects,
+    byte FetchedTileId
+);

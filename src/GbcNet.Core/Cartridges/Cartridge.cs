@@ -9,11 +9,6 @@ using GbcNet.Core.Memory;
 namespace GbcNet.Core.Cartridges;
 
 /// <summary>
-/// Mutable save state owned by a cartridge.
-/// </summary>
-internal readonly record struct CartridgeState(ICartridgeMemoryControllerState Controller);
-
-/// <summary>
 /// Loaded Game Boy cartridge image with mutable MBC/RAM state.
 /// </summary>
 public sealed class Cartridge
@@ -302,3 +297,8 @@ public sealed class Cartridge
     private static ushort GetExternalRamOffset(ushort address) =>
         (ushort)(address - AddressMap.ExternalRamStart);
 }
+
+/// <summary>
+/// Mutable save state owned by a cartridge.
+/// </summary>
+internal readonly record struct CartridgeState(ICartridgeMemoryControllerState Controller);

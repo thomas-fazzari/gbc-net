@@ -6,8 +6,6 @@ using GbcNet.Core.Sgb;
 
 namespace GbcNet.Core.Joypad;
 
-internal readonly record struct JoypadControllerState(byte SelectedGroups, byte PressedButtons);
-
 /// <summary>
 /// Emulates the DMG P1/JOYP button matrix register.
 /// </summary>
@@ -149,3 +147,5 @@ internal sealed class JoypadController(InterruptController interrupts, SgbContro
         return (byte)(1 << (int)button);
     }
 }
+
+internal readonly record struct JoypadControllerState(byte SelectedGroups, byte PressedButtons);

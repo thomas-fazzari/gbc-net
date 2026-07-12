@@ -3,8 +3,6 @@
 
 namespace GbcNet.Core.Ppu;
 
-internal readonly record struct CgbPaletteRamState(byte[] Bytes, byte Index);
-
 /// <summary>
 /// Stores one CGB color palette RAM, with index visibility separated from data access.
 /// </summary>
@@ -106,3 +104,5 @@ internal sealed class CgbPaletteRam(bool isIndexRegisterEnabled, bool isDataRegi
         }
     }
 }
+
+internal readonly record struct CgbPaletteRamState(byte[] Bytes, byte Index);

@@ -5,8 +5,6 @@ using GbcNet.Core.Memory;
 
 namespace GbcNet.Core.Ppu;
 
-internal readonly record struct VideoRamState(byte[] Banks, int SelectedBank);
-
 /// <summary>
 /// Stores CPU-visible VRAM with optional CGB bank selection through VBK.
 /// </summary>
@@ -91,3 +89,5 @@ internal sealed class VideoRam
     private static int GetOffset(int bank, ushort address) =>
         (bank * BankSize) + address - AddressMap.VideoRamStart;
 }
+
+internal readonly record struct VideoRamState(byte[] Banks, int SelectedBank);

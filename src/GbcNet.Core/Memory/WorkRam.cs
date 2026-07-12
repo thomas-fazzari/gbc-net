@@ -3,8 +3,6 @@
 
 namespace GbcNet.Core.Memory;
 
-internal readonly record struct WorkRamState(byte[] Banks, byte BankRegister);
-
 /// <summary>
 /// Stores banked work RAM and mirrors E000-FDFF onto C000-DDFF.
 /// </summary>
@@ -99,3 +97,5 @@ internal sealed class WorkRam
                 + (mappedAddress - AddressMap.WorkRamSwitchableBankStart);
     }
 }
+
+internal readonly record struct WorkRamState(byte[] Banks, byte BankRegister);

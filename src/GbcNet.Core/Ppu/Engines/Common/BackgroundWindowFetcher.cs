@@ -3,25 +3,6 @@
 
 namespace GbcNet.Core.Ppu.Engines;
 
-internal readonly record struct BackgroundWindowFetcherState(
-    byte LatchedScrollX,
-    byte LatchedScrollY,
-    int WindowLine,
-    int ActiveWindowLine,
-    int FetcherStepDots,
-    int FetcherTileX,
-    int DiscardedPixels,
-    bool WindowYCondition,
-    bool WindowActiveThisLine,
-    BackgroundFetcherStep FetcherStep,
-    PixelFetcherSource FetcherSource,
-    int WindowPenaltyDots,
-    int BackgroundFifoCount,
-    int BackgroundFifoReadIndex,
-    byte FetchedTileDataLow,
-    byte FetchedTileDataHigh
-);
-
 /// <summary>
 /// Owns BG/window fetch sequencing, window startup state, and background FIFO cursor state.
 /// </summary>
@@ -450,3 +431,22 @@ internal sealed class BackgroundWindowFetcher
         _fetcherStepDots = 0;
     }
 }
+
+internal readonly record struct BackgroundWindowFetcherState(
+    byte LatchedScrollX,
+    byte LatchedScrollY,
+    int WindowLine,
+    int ActiveWindowLine,
+    int FetcherStepDots,
+    int FetcherTileX,
+    int DiscardedPixels,
+    bool WindowYCondition,
+    bool WindowActiveThisLine,
+    BackgroundFetcherStep FetcherStep,
+    PixelFetcherSource FetcherSource,
+    int WindowPenaltyDots,
+    int BackgroundFifoCount,
+    int BackgroundFifoReadIndex,
+    byte FetchedTileDataLow,
+    byte FetchedTileDataHigh
+);

@@ -6,8 +6,6 @@ using System.Globalization;
 
 namespace GbcNet.Core.Cartridges.Memory;
 
-internal readonly record struct Mbc2RamState(byte[] Bytes, bool IsDirty);
-
 /// <summary>
 /// MBC2 built-in 512 x 4-bit RAM with optional battery-backed persistence.
 /// </summary>
@@ -123,3 +121,5 @@ internal sealed class Mbc2Ram(bool hasBattery) : ICartridgeSaveData
         }
     }
 }
+
+internal readonly record struct Mbc2RamState(byte[] Bytes, bool IsDirty);

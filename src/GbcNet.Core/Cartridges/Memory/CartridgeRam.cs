@@ -6,8 +6,6 @@ using System.Globalization;
 
 namespace GbcNet.Core.Cartridges.Memory;
 
-internal readonly record struct CartridgeRamState(byte[] Bytes, bool IsDirty);
-
 /// <summary>
 /// Cartridge RAM storage, including battery-backed persistence state.
 /// </summary>
@@ -123,3 +121,5 @@ internal sealed class CartridgeRam(int sizeBytes, bool hasBattery) : ICartridgeS
         _dirty = false;
     }
 }
+
+internal readonly record struct CartridgeRamState(byte[] Bytes, bool IsDirty);

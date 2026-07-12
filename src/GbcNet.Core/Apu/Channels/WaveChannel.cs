@@ -215,4 +215,116 @@ internal sealed class WaveChannel
         DacEnabled = false;
         IsActive = false;
     }
+
+    internal WaveChannelState CaptureState() =>
+        new(
+            (byte[])_waveRam.Clone(),
+            _lengthCounter,
+            _periodTimer,
+            _tCycleAccumulator,
+            _outputLevel,
+            _sampleIndex,
+            _sampleBuffer,
+            _lengthEnabled,
+            IsActive,
+            DacEnabled,
+            Period
+        );
+
+    internal void ValidateState(WaveChannelState state)
+    {
+        if (state.WaveRam is null || state.WaveRam.Length != _waveRam.Length)
+        {
+            throw new ArgumentException(
+                "Wave RAM state must contain exactly 16 bytes.",
+                nameof(state)
+            );
+        }
+
+        if (state.LengthCounter is < 0 or > MaxLength)
+        {
+            throw new ArgumentException(
+                "Wave channel length counter must be between 0 and 256.",
+                nameof(state)
+            );
+        }
+
+        if (state.PeriodTimer is < 0 or > PeriodReloadBase)
+        {
+            throw new ArgumentException(
+                "Wave channel period timer must be between 0 and 2048.",
+                nameof(state)
+            );
+        }
+
+        if (state.TCycleAccumulator is < 0 or >= WavePeriodClockTCycles)
+        {
+            throw new ArgumentException(
+                "Wave channel T-cycle accumulator must be less than two.",
+                nameof(state)
+            );
+        }
+
+        if (
+            state.OutputLevel > 3
+            || state.SampleIndex > SampleIndexMask
+            || state.SampleBuffer > 0x0F
+            || state.Period > 0x7FF
+        )
+        {
+            throw new ArgumentException(
+                "Wave channel state contains an invalid register value.",
+                nameof(state)
+            );
+        }
+
+        if (
+            state.IsActive
+            && (!state.DacEnabled || state.LengthCounter == 0 || state.PeriodTimer == 0)
+        )
+        {
+            throw new ArgumentException(
+                "An active wave channel requires its DAC, length counter, and period timer.",
+                nameof(state)
+            );
+        }
+
+        if (state.PeriodTimer == 0 && state.TCycleAccumulator != 0)
+        {
+            throw new ArgumentException(
+                "An uninitialized wave period timer cannot retain T-cycles.",
+                nameof(state)
+            );
+        }
+    }
+
+    internal void RestoreState(WaveChannelState state)
+    {
+        ValidateState(state);
+        state.WaveRam.CopyTo(_waveRam, 0);
+        _lengthCounter = state.LengthCounter;
+        _periodTimer = state.PeriodTimer;
+        _tCycleAccumulator = state.TCycleAccumulator;
+        _outputLevel = state.OutputLevel;
+        _sampleIndex = state.SampleIndex;
+        _sampleBuffer = state.SampleBuffer;
+        _lengthEnabled = state.LengthEnabled;
+        IsActive = state.IsActive;
+        DacEnabled = state.DacEnabled;
+        Period = state.Period;
+    }
 }
+
+internal readonly record struct WaveChannelState(
+    byte[] WaveRam,
+    int LengthCounter,
+    int PeriodTimer,
+    int TCycleAccumulator,
+    byte OutputLevel,
+    byte SampleIndex,
+    byte SampleBuffer,
+    bool LengthEnabled,
+    bool IsActive,
+    bool DacEnabled,
+    ushort Period
+);

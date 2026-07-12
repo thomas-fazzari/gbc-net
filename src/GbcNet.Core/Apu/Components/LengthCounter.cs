@@ -60,4 +60,23 @@ internal sealed class LengthCounter(int maxLength)
         _counter = 0;
         _enabled = false;
     }
+
+    internal LengthCounterState CaptureState() => new(_counter, _enabled);
+
+    internal void ValidateState(LengthCounterState state)
+    {
+        if (state.Counter < 0 || state.Counter > maxLength)
+        {
+            throw new ArgumentOutOfRangeException(nameof(state));
+        }
+    }
+
+    internal void RestoreState(LengthCounterState state)
+    {
+        ValidateState(state);
+        _counter = state.Counter;
+        _enabled = state.Enabled;
+    }
 }
+
+internal readonly record struct LengthCounterState(int Counter, bool Enabled);

@@ -3,15 +3,6 @@
 
 namespace GbcNet.Core.Ppu.Engines;
 
-internal sealed record CgbPpuEngineState(
-    PpuEngineBaseState Common,
-    byte[] BackgroundColorFifo,
-    byte[] BackgroundAttributeFifo,
-    CgbObjectLayerState Objects,
-    byte FetchedTileId,
-    byte FetchedTileAttributes
-) : IPpuEngineState;
-
 /// <summary>
 /// CGB LCD engine for BG/window/OBJ RGB555 rendering with CGB tile attributes.
 /// </summary>
@@ -260,3 +251,12 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
         BgWindowFetcher.CommitBackgroundFifoPop();
     }
 }
+
+internal sealed record CgbPpuEngineState(
+    PpuEngineBaseState Common,
+    byte[] BackgroundColorFifo,
+    byte[] BackgroundAttributeFifo,
+    CgbObjectLayerState Objects,
+    byte FetchedTileId,
+    byte FetchedTileAttributes
+) : IPpuEngineState;

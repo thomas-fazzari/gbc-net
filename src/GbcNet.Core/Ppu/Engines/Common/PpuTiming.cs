@@ -3,13 +3,6 @@
 
 namespace GbcNet.Core.Ppu.Engines;
 
-internal readonly record struct PpuTimingState(
-    int LineDots,
-    byte LcdYCoordinate,
-    PpuMode StatusMode,
-    bool FirstScanlineAfterLcdEnable
-);
-
 /// <summary>
 /// Owns implemented LCD scanline dot timing, LY progression, and CPU-visible STAT mode timing.
 /// </summary>
@@ -330,3 +323,10 @@ internal sealed class PpuTiming
         return LineDots < drawingEndDots ? PpuMode.Drawing : PpuMode.HBlank;
     }
 }
+
+internal readonly record struct PpuTimingState(
+    int LineDots,
+    byte LcdYCoordinate,
+    PpuMode StatusMode,
+    bool FirstScanlineAfterLcdEnable
+);

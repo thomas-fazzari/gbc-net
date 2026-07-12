@@ -446,4 +446,72 @@ internal sealed class ApuController(ApuModelSpec modelSpec)
 
         _registers[address - RegisterStart] = value;
     }
+
+    internal ApuControllerState CaptureState() =>
+        new(
+            (byte[])_registers.Clone(),
+            DivApuStep,
+            _channel1.CaptureState(),
+            _channel1Sweep.CaptureState(),
+            _channel2.CaptureState(),
+            _channel3.CaptureState(),
+            _channel4.CaptureState(),
+            _sampleBuffer.CaptureState(),
+            _outputFilter.CaptureState()
+        );
+
+    internal void ValidateState(ApuControllerState state)
+    {
+        if (
+            state.Registers is null
+            || state.Registers.Length != _registers.Length
+            || state.Registers[UnmappedAudioAddressFf15 - RegisterStart] != 0
+            || state.Registers[UnmappedAudioAddressFf1F - RegisterStart] != 0
+        )
+        {
+            throw new ArgumentException(
+                "APU register state must contain only mapped registers.",
+                nameof(state)
+            );
+        }
+
+        if (state.DivApuStep > DivApuStepMask)
+        {
+            throw new ArgumentOutOfRangeException(nameof(state));
+        }
+
+        _channel1.ValidateState(state.Channel1);
+        _channel1Sweep.ValidateState(state.Channel1Sweep);
+        _channel2.ValidateState(state.Channel2);
+        _channel3.ValidateState(state.Channel3);
+        _channel4.ValidateState(state.Channel4);
+        _sampleBuffer.ValidateState(state.SampleBuffer);
+        ApuOutputFilter.ValidateState(state.OutputFilter);
+    }
+
+    internal void RestoreState(ApuControllerState state)
+    {
+        ValidateState(state);
+        state.Registers.CopyTo(_registers, 0);
+        DivApuStep = state.DivApuStep;
+        _channel1.RestoreState(state.Channel1);
+        _channel1Sweep.RestoreState(state.Channel1Sweep);
+        _channel2.RestoreState(state.Channel2);
+        _channel3.RestoreState(state.Channel3);
+        _channel4.RestoreState(state.Channel4);
+        _sampleBuffer.RestoreState(state.SampleBuffer);
+        _outputFilter.RestoreState(state.OutputFilter);
+    }
 }
+
+internal readonly record struct ApuControllerState(
+    byte[] Registers,
+    byte DivApuStep,
+    PulseChannelState Channel1,
+    Channel1SweepState Channel1Sweep,
+    PulseChannelState Channel2,
+    WaveChannelState Channel3,
+    NoiseChannelState Channel4,
+    SampleBufferState<ApuStereoSample> SampleBuffer,
+    ApuOutputFilterState OutputFilter
+);

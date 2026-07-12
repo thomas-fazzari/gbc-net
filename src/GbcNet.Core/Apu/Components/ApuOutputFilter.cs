@@ -32,6 +32,33 @@ internal sealed class ApuOutputFilter(double highPassChargeFactor)
         );
     }
 
+    internal ApuOutputFilterState CaptureState() => new(_leftCapacitor, _rightCapacitor);
+
+    internal static void ValidateState(ApuOutputFilterState state)
+    {
+        if (
+            !double.IsFinite(state.LeftCapacitor)
+            || state.LeftCapacitor < -MaxAnalogMixerOutput
+            || state.LeftCapacitor > MaxAnalogMixerOutput
+            || !double.IsFinite(state.RightCapacitor)
+            || state.RightCapacitor < -MaxAnalogMixerOutput
+            || state.RightCapacitor > MaxAnalogMixerOutput
+        )
+        {
+            throw new ArgumentException(
+                "Capacitors must be finite and within the analog mixer output range.",
+                nameof(state)
+            );
+        }
+    }
+
+    internal void RestoreState(ApuOutputFilterState state)
+    {
+        ValidateState(state);
+        _leftCapacitor = state.LeftCapacitor;
+        _rightCapacitor = state.RightCapacitor;
+    }
+
     private double HighPass(double input, ref double capacitor)
     {
         var output = input - capacitor;
@@ -47,3 +74,5 @@ internal sealed class ApuOutputFilter(double highPassChargeFactor)
                 short.MaxValue
             );
 }
+
+internal readonly record struct ApuOutputFilterState(double LeftCapacitor, double RightCapacitor);

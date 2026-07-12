@@ -72,4 +72,55 @@ public sealed class ApuOutputFilterTests
         Assert.InRange(sample.Left, short.MinValue, short.MaxValue);
         Assert.InRange(sample.Right, short.MinValue, short.MaxValue);
     }
+
+    [Fact]
+    public void State_RestoreContinuesStereoHighPassDecay()
+    {
+        var chargeFactor = ApuModelSpec.Dmg.GetOutputHighPassChargeFactor(
+            ApuSampleTiming.DefaultSampleRate
+        );
+        ApuOutputFilter source = new(chargeFactor);
+        source.Filter(new ApuAnalogStereoSample(24, -16), anyDacEnabled: true);
+        source.Filter(new ApuAnalogStereoSample(12, 8), anyDacEnabled: true);
+        var state = source.CaptureState();
+
+        ApuOutputFilter restored = new(chargeFactor);
+        restored.RestoreState(state);
+
+        var expected = source.Filter(new ApuAnalogStereoSample(6, -4), anyDacEnabled: true);
+        var actual = restored.Filter(new ApuAnalogStereoSample(6, -4), anyDacEnabled: true);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void State_RestoreRejectsMalformedInputWithoutChangingCapacitors()
+    {
+        var chargeFactor = ApuModelSpec.Dmg.GetOutputHighPassChargeFactor(
+            ApuSampleTiming.DefaultSampleRate
+        );
+        ApuOutputFilter filter = new(chargeFactor);
+        ApuOutputFilter expected = new(chargeFactor);
+        var priorSample = new ApuAnalogStereoSample(12, -8);
+        filter.Filter(priorSample, anyDacEnabled: true);
+        expected.Filter(priorSample, anyDacEnabled: true);
+
+        Assert.Throws<ArgumentException>(() =>
+            ApuOutputFilter.ValidateState(new ApuOutputFilterState(double.NaN, 0))
+        );
+        Assert.Throws<ArgumentException>(() =>
+            ApuOutputFilter.ValidateState(new ApuOutputFilterState(0, double.PositiveInfinity))
+        );
+        Assert.Throws<ArgumentException>(() =>
+            filter.RestoreState(
+                new ApuOutputFilterState(ApuOutputFilter.MaxAnalogMixerOutput + 1, 0)
+            )
+        );
+
+        var nextSample = new ApuAnalogStereoSample(6, -4);
+        Assert.Equal(
+            expected.Filter(nextSample, anyDacEnabled: true),
+            filter.Filter(nextSample, anyDacEnabled: true)
+        );
+    }
 }

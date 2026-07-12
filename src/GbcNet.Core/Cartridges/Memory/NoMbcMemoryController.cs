@@ -3,9 +3,6 @@
 
 namespace GbcNet.Core.Cartridges.Memory;
 
-internal sealed record NoMbcMemoryControllerState(CartridgeRamState Ram)
-    : ICartridgeMemoryControllerState;
-
 /// <summary>
 /// No-MBC cartridge controller with direct ROM mapping and optional fixed cartridge RAM.
 /// </summary>
@@ -51,3 +48,6 @@ internal sealed class NoMbcMemoryController(
         }
     }
 }
+
+internal sealed record NoMbcMemoryControllerState(CartridgeRamState Ram)
+    : ICartridgeMemoryControllerState;

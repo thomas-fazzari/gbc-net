@@ -89,4 +89,48 @@ internal sealed class SampleBuffer<TSample>
 
         return drained;
     }
+
+    internal SampleBufferState<TSample> CaptureState()
+    {
+        var bufferedSamples = new TSample[Count];
+        for (var index = 0; index < bufferedSamples.Length; index++)
+        {
+            bufferedSamples[index] = _samples[(_start + index) % _samples.Length];
+        }
+
+        return new SampleBufferState<TSample>(bufferedSamples, _accumulator);
+    }
+
+    internal void ValidateState(SampleBufferState<TSample> state)
+    {
+        if (state.BufferedSamples is null || state.BufferedSamples.Length > _samples.Length)
+        {
+            throw new ArgumentException(
+                "Buffered samples must not exceed the sample buffer capacity.",
+                nameof(state)
+            );
+        }
+
+        if (state.Accumulator < 0 || state.Accumulator >= _sourceClockHz)
+        {
+            throw new ArgumentException(
+                "Accumulator must be within one source clock period.",
+                nameof(state)
+            );
+        }
+    }
+
+    internal void RestoreState(SampleBufferState<TSample> state)
+    {
+        ValidateState(state);
+        state.BufferedSamples.CopyTo(_samples, 0);
+        _start = 0;
+        Count = state.BufferedSamples.Length;
+        _accumulator = state.Accumulator;
+    }
 }
+
+internal readonly record struct SampleBufferState<TSample>(
+    TSample[] BufferedSamples,
+    long Accumulator
+);

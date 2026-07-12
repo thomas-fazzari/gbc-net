@@ -3,8 +3,6 @@
 
 namespace GbcNet.Core.Ppu.Engines;
 
-internal sealed record DmgPpuEngineState(DmgPixelRulesPpuEngineState PixelRules) : IPpuEngineState;
-
 /// <summary>
 /// DMG LCD engine using DMG pixel rules and DMG shade-index frame output.
 /// </summary>
@@ -40,3 +38,5 @@ internal sealed class DmgPpuEngine : DmgPixelRulesPpuEngine<DmgShadePixelOutput>
         RestoreDmgPixelRulesPpuEngineState(dmgState.PixelRules);
     }
 }
+
+internal sealed record DmgPpuEngineState(DmgPixelRulesPpuEngineState PixelRules) : IPpuEngineState;

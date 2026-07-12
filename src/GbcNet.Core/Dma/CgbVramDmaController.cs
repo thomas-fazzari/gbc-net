@@ -5,18 +5,6 @@ using GbcNet.Core.Memory;
 
 namespace GbcNet.Core.Dma;
 
-internal readonly record struct CgbVramDmaControllerState(
-    byte SourceHigh,
-    byte SourceLow,
-    byte DestinationHigh,
-    byte DestinationLow,
-    byte LengthModeReadValue,
-    int HblankBlocksRemaining,
-    int CpuStallMachineCycles,
-    bool IsHblankDmaActive,
-    bool CpuHalted
-);
-
 /// <summary>
 /// Stores CGB HDMA registers and transfers General Purpose DMA / visible-HBlank blocks into the selected VRAM bank.
 /// </summary>
@@ -320,3 +308,15 @@ internal sealed class CgbVramDmaController(
         return true;
     }
 }
+
+internal readonly record struct CgbVramDmaControllerState(
+    byte SourceHigh,
+    byte SourceLow,
+    byte DestinationHigh,
+    byte DestinationLow,
+    byte LengthModeReadValue,
+    int HblankBlocksRemaining,
+    int CpuStallMachineCycles,
+    bool IsHblankDmaActive,
+    bool CpuHalted
+);

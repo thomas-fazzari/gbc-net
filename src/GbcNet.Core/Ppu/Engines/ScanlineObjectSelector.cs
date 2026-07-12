@@ -5,13 +5,6 @@ using GbcNet.Core.Memory;
 
 namespace GbcNet.Core.Ppu.Engines;
 
-internal readonly record struct ScanlineObjectSelectorState(
-    ScanlineObject[] Objects,
-    int ObjectCount,
-    bool Selected,
-    int ObjectHeight
-);
-
 /// <summary>
 /// Selects up to ten OAM objects visible on one LCD scanline.
 /// </summary>
@@ -277,3 +270,10 @@ internal sealed class ScanlineObjectSelector
 }
 
 internal readonly record struct ScanlineObject(int Index, byte X, byte Y, byte Tile, byte Flags);
+
+internal readonly record struct ScanlineObjectSelectorState(
+    ScanlineObject[] Objects,
+    int ObjectCount,
+    bool Selected,
+    int ObjectHeight
+);

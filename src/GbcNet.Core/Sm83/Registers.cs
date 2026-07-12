@@ -307,18 +307,6 @@ internal sealed class Registers
 }
 
 /// <summary>
-/// Captures the SM83 register file.
-/// </summary>
-internal readonly record struct RegistersState(
-    ushort AF,
-    ushort BC,
-    ushort DE,
-    ushort HL,
-    ushort PC,
-    ushort SP
-);
-
-/// <summary>
 /// SM83 flags stored in the upper nibble of the F register.
 /// </summary>
 [Flags]
@@ -492,3 +480,15 @@ internal enum StackRegisterPair : byte
     /// </summary>
     AF = 3,
 }
+
+/// <summary>
+/// Captures the SM83 register file.
+/// </summary>
+internal readonly record struct RegistersState(
+    ushort AF,
+    ushort BC,
+    ushort DE,
+    ushort HL,
+    ushort PC,
+    ushort SP
+);

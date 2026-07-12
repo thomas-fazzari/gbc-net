@@ -5,17 +5,6 @@ using GbcNet.Core.Memory;
 
 namespace GbcNet.Core.Dma;
 
-internal readonly record struct OamDmaControllerState(
-    byte RegisterSourceHighByte,
-    byte ActiveSourceHighByte,
-    byte PendingRestartSourceHighByte,
-    int NextOffset,
-    int StartupDelayMachineCycles,
-    int RestartDelayMachineCycles,
-    bool RestartPending,
-    bool IsActive
-);
-
 /// <summary>
 /// Copies bytes from the FF46-selected source page into OAM over machine cycles.
 /// </summary>
@@ -208,3 +197,14 @@ internal sealed class OamDmaController
         StartTransfer(_pendingRestartSourceHighByte, startupDelayMachineCycles: 0);
     }
 }
+
+internal readonly record struct OamDmaControllerState(
+    byte RegisterSourceHighByte,
+    byte ActiveSourceHighByte,
+    byte PendingRestartSourceHighByte,
+    int NextOffset,
+    int StartupDelayMachineCycles,
+    int RestartDelayMachineCycles,
+    bool RestartPending,
+    bool IsActive
+);

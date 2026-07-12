@@ -3,13 +3,6 @@
 
 namespace GbcNet.Core.Cartridges.Memory;
 
-internal sealed record Mbc1MemoryControllerState(
-    CartridgeRamWindowState ExternalRam,
-    byte RomBankLow,
-    byte BankHigh,
-    byte BankingMode
-) : ICartridgeMemoryControllerState;
-
 /// <summary>
 /// MBC1 cartridge controller for ROM banking and optional external RAM banking.
 /// </summary>
@@ -125,3 +118,10 @@ internal sealed class Mbc1MemoryController(
 
     private int GetRamBank() => _bankingMode == 0 ? 0 : _bankHigh;
 }
+
+internal sealed record Mbc1MemoryControllerState(
+    CartridgeRamWindowState ExternalRam,
+    byte RomBankLow,
+    byte BankHigh,
+    byte BankingMode
+) : ICartridgeMemoryControllerState;

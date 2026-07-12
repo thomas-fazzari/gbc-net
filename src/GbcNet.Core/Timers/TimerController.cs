@@ -6,13 +6,6 @@ using GbcNet.Core.Interrupts;
 
 namespace GbcNet.Core.Timers;
 
-internal readonly record struct TimerControllerState(
-    byte TimerCounter,
-    byte TimerModulo,
-    byte TimerControl,
-    TimerOverflowReloadState ReloadState
-);
-
 internal enum TimerOverflowReloadState
 {
     Running = 0,
@@ -238,3 +231,10 @@ internal sealed class TimerController(
         _reloadState = TimerOverflowReloadState.OverflowReloadPending;
     }
 }
+
+internal readonly record struct TimerControllerState(
+    byte TimerCounter,
+    byte TimerModulo,
+    byte TimerControl,
+    TimerOverflowReloadState ReloadState
+);

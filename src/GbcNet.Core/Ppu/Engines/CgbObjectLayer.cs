@@ -3,11 +3,6 @@
 
 namespace GbcNet.Core.Ppu.Engines;
 
-internal readonly record struct CgbObjectLayerState(
-    ScanlineObjectSelectorState Selector,
-    int PenaltyDots
-);
-
 /// <summary>
 /// CGB object layer state for one selected scanline.
 /// </summary>
@@ -147,4 +142,9 @@ internal readonly record struct CgbObjectPixel(
     byte ColorId,
     byte PaletteIndex,
     bool HasBackgroundPriority
+);
+
+internal readonly record struct CgbObjectLayerState(
+    ScanlineObjectSelectorState Selector,
+    int PenaltyDots
 );
