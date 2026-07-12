@@ -6,6 +6,7 @@ using GbcNet.App.Database;
 using GbcNet.App.Database.Entities;
 using GbcNet.Core.Cartridges;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App.Library;
 
@@ -42,6 +43,7 @@ internal enum LibrarySortMode
 internal sealed class LibraryService(
     IDbContextFactory<GbcNetDbContext> dbContextFactory,
     string coverDirectoryPath,
+    ILogger<LibraryService> logger,
     TimeProvider? timeProvider = null
 )
 {
@@ -199,7 +201,7 @@ internal sealed class LibraryService(
 
             foreach (var coverPath in coverPaths)
             {
-                DeleteManagedCoverFile(coverPath);
+                TryDeleteManagedCoverFileIfUnreferenced(coverPath);
             }
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
@@ -210,40 +212,41 @@ internal sealed class LibraryService(
 
     public void AssignCoverImage(string romHash, string sourceImagePath)
     {
+        string? temporaryPath = null;
         string? destinationPath = null;
-        var databaseUpdated = false;
+        var committed = false;
 
         try
         {
-            var previousCoverPath = GetCoverPath(romHash);
+            using var db = dbContextFactory.CreateDbContext();
+            using var transaction = db.Database.BeginTransaction();
+            var rom =
+                db.Roms.AsTracking().SingleOrDefault(rom => rom.RomHash == romHash)
+                ?? throw new InvalidOperationException("ROM not found: " + romHash);
+            var previousCoverPath = rom.CoverPath;
             var imageExtension = GetSafeImageExtension(sourceImagePath);
 
             Directory.CreateDirectory(_coverDirectoryPath);
-            destinationPath = Path.Combine(
-                _coverDirectoryPath,
-                $"{romHash}-{Guid.NewGuid():N}{imageExtension}"
-            );
-            File.Copy(Path.GetFullPath(sourceImagePath), destinationPath, overwrite: false);
-            SetCoverPath(romHash, destinationPath);
-            databaseUpdated = true;
-            DeleteManagedCoverFile(previousCoverPath, destinationPath);
+            var fileName = $"{romHash}-{Guid.NewGuid():N}{imageExtension}";
+            temporaryPath = Path.Combine(_coverDirectoryPath, $".{fileName}.tmp");
+            destinationPath = Path.Combine(_coverDirectoryPath, fileName);
+            File.Copy(Path.GetFullPath(sourceImagePath), temporaryPath, overwrite: false);
+            File.Move(temporaryPath, destinationPath);
+            temporaryPath = null;
+
+            rom.SetCoverPath(destinationPath);
+            db.SaveChanges();
+            transaction.Commit();
+            committed = true;
+
+            TryDeleteManagedCoverFileIfUnreferenced(previousCoverPath, destinationPath);
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
-            if (!databaseUpdated)
+            if (!committed)
             {
-                try
-                {
-                    DeleteManagedCoverFile(destinationPath);
-                }
-                catch (Exception cleanupException)
-                    when (IsExpectedLibraryException(cleanupException))
-                {
-                    throw new InvalidOperationException(
-                        exception.Message,
-                        new AggregateException(exception, cleanupException)
-                    );
-                }
+                TryDeleteManagedCoverFileIfUnreferenced(destinationPath);
+                TryDeleteFile(temporaryPath);
             }
 
             throw CreateLibraryException(exception);
@@ -254,10 +257,18 @@ internal sealed class LibraryService(
     {
         try
         {
-            var previousCoverPath = GetCoverPath(romHash);
+            using var db = dbContextFactory.CreateDbContext();
+            using var transaction = db.Database.BeginTransaction();
+            var rom =
+                db.Roms.AsTracking().SingleOrDefault(rom => rom.RomHash == romHash)
+                ?? throw new InvalidOperationException("ROM not found: " + romHash);
+            var previousCoverPath = rom.CoverPath;
 
-            SetCoverPath(romHash, coverPath: null);
-            DeleteManagedCoverFile(previousCoverPath);
+            rom.SetCoverPath(null);
+            db.SaveChanges();
+            transaction.Commit();
+
+            TryDeleteManagedCoverFileIfUnreferenced(previousCoverPath);
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
@@ -319,60 +330,68 @@ internal sealed class LibraryService(
 
         foreach (var coverPathToDelete in deletedCoverPaths)
         {
-            DeleteManagedCoverFile(coverPathToDelete);
+            TryDeleteManagedCoverFileIfUnreferenced(coverPathToDelete);
         }
 
         return coverPath;
     }
 
-    private string? GetCoverPath(string romHash)
+    private void TryDeleteManagedCoverFileIfUnreferenced(
+        string? coverPath,
+        string? exceptPath = null
+    )
     {
-        using var db = dbContextFactory.CreateDbContext();
-        var rom = db
-            .Roms.Where(rom => rom.RomHash == romHash)
-            .Select(rom => new { rom.CoverPath })
-            .SingleOrDefault();
-
-        return rom is null
-            ? throw new InvalidOperationException("ROM not found: " + romHash)
-            : rom.CoverPath;
-    }
-
-    private void SetCoverPath(string romHash, string? coverPath)
-    {
-        using var db = dbContextFactory.CreateDbContext();
-        if (
-            db.Roms.Where(rom => rom.RomHash == romHash)
-                .ExecuteUpdate(setters => setters.SetProperty(rom => rom.CoverPath, coverPath)) == 0
-        )
-        {
-            throw new InvalidOperationException("ROM not found: " + romHash);
-        }
-    }
-
-    private void DeleteManagedCoverFile(string? coverPath, string? exceptPath = null)
-    {
-        if (coverPath is null || !IsManagedCoverPath(coverPath))
+        if (coverPath is null)
         {
             return;
         }
 
-        var fullCoverPath = Path.GetFullPath(coverPath);
-        if (
-            exceptPath is not null
-            && string.Equals(
-                fullCoverPath,
-                Path.GetFullPath(exceptPath),
-                GetFileSystemPathComparison()
+        try
+        {
+            if (
+                !IsManagedCoverPath(coverPath)
+                || (
+                    exceptPath is not null
+                    && string.Equals(
+                        Path.GetFullPath(coverPath),
+                        Path.GetFullPath(exceptPath),
+                        GetFileSystemPathComparison()
+                    )
+                )
             )
-        )
+            {
+                return;
+            }
+
+            using var db = dbContextFactory.CreateDbContext();
+            if (!db.Roms.Any(rom => rom.CoverPath == coverPath))
+            {
+                TryDeleteFile(coverPath);
+            }
+        }
+        catch (Exception exception) when (IsExpectedLibraryException(exception))
+        {
+            LibraryServiceLog.CoverFileCleanupFailed(logger, coverPath, exception);
+        }
+    }
+
+    private void TryDeleteFile(string? path)
+    {
+        if (path is null)
         {
             return;
         }
 
-        if (File.Exists(fullCoverPath))
+        try
         {
-            File.Delete(fullCoverPath);
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            LibraryServiceLog.CoverFileCleanupFailed(logger, path, exception);
         }
     }
 
@@ -461,4 +480,14 @@ internal sealed class LibraryService(
                 or NotSupportedException
                 or ArgumentException
                 or DbUpdateException;
+}
+
+internal static partial class LibraryServiceLog
+{
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Cover file cleanup failed for {Path}.")]
+    internal static partial void CoverFileCleanupFailed(
+        ILogger logger,
+        string path,
+        Exception exception
+    );
 }

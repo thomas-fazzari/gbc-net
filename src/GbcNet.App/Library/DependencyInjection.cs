@@ -5,6 +5,7 @@ using GbcNet.App.Configuration;
 using GbcNet.App.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App.Library;
 
@@ -15,6 +16,7 @@ internal static class DependencyInjection
         services.AddSingleton<LibraryService>(provider => new LibraryService(
             provider.GetRequiredService<IDbContextFactory<GbcNetDbContext>>(),
             UserDataPaths.CoverDirectoryPath,
+            provider.GetRequiredService<ILogger<LibraryService>>(),
             provider.GetRequiredService<TimeProvider>()
         ));
         return services;

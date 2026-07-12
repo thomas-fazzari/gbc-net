@@ -8,6 +8,8 @@ using GbcNet.App.Library;
 using GbcNet.Core.Cartridges;
 using GbcNet.Tests.Cartridges;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GbcNet.Tests.App.Library;
 
@@ -427,6 +429,10 @@ public sealed class LibraryServiceTests
             imageBytes,
             await File.ReadAllBytesAsync(coverPath, TestContext.Current.CancellationToken)
         );
+        Assert.Equal(
+            [coverPath],
+            Directory.GetFiles(test.CoverDirectoryPath, "*", SearchOption.TopDirectoryOnly)
+        );
     }
 
     [Fact]
@@ -519,6 +525,9 @@ public sealed class LibraryServiceTests
 
         Assert.Null(Assert.Single(test.Library.GetRoms(limit: 10)).CoverPath);
         Assert.False(File.Exists(coverPath));
+        Assert.Empty(
+            Directory.GetFiles(test.CoverDirectoryPath, "*", SearchOption.TopDirectoryOnly)
+        );
     }
 
     [Fact]
@@ -536,8 +545,9 @@ public sealed class LibraryServiceTests
             ?? throw new InvalidOperationException("Cover path was not stored.");
         var newSourcePath = await test.WriteImageAsync("new.png", [0x20, 0x21, 0x22]);
         var failingLibrary = new LibraryService(
-            new FailingDbContextFactory(test.DatabasePath, failOnCreate: 2, test.TimeProvider),
+            new FailingDbContextFactory(test.DatabasePath, test.TimeProvider),
             test.CoverDirectoryPath,
+            NullLogger<LibraryService>.Instance,
             test.TimeProvider
         );
 
@@ -604,8 +614,9 @@ public sealed class LibraryServiceTests
             Assert.Single(test.Library.GetRoms(limit: 10)).CoverPath
             ?? throw new InvalidOperationException("Cover path was not stored.");
         var failingLibrary = new LibraryService(
-            new FailingDbContextFactory(test.DatabasePath, failOnCreate: 2, test.TimeProvider),
+            new FailingDbContextFactory(test.DatabasePath, test.TimeProvider),
             test.CoverDirectoryPath,
+            NullLogger<LibraryService>.Instance,
             test.TimeProvider
         );
 
@@ -618,6 +629,55 @@ public sealed class LibraryServiceTests
 
         Assert.Equal(coverPath, Assert.Single(test.Library.GetRoms(limit: 10)).CoverPath);
         Assert.True(File.Exists(coverPath));
+    }
+
+    [Fact]
+    public async Task ClearCover_PreservesFileReferencedByAnotherRom()
+    {
+        using var test = new LibraryTestContext();
+        var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
+        await test.Library.RecordOpenedRomAsync(romPath);
+        var firstEntry = Assert.Single(test.Library.GetRoms(limit: 10));
+        var sourceImagePath = await test.WriteImageAsync("cover.png", [0x50, 0x51, 0x52]);
+        test.Library.AssignCoverImage(firstEntry.RomHash, sourceImagePath);
+        var coverPath =
+            Assert.Single(test.Library.GetRoms(limit: 10)).CoverPath
+            ?? throw new InvalidOperationException("Cover path was not stored.");
+        InsertLibraryEntry(
+            test.DatabasePath,
+            "shared-cover-rom",
+            "shared.gb",
+            "2026-06-27T12:01:00.0000000+00:00",
+            coverPath: coverPath
+        );
+
+        test.Library.ClearCover(firstEntry.RomHash);
+
+        var entries = test.Library.GetRoms(limit: 10);
+        Assert.Null(
+            Assert
+                .Single(
+                    entries,
+                    entry =>
+                        string.Equals(entry.RomHash, firstEntry.RomHash, StringComparison.Ordinal)
+                )
+                .CoverPath
+        );
+        Assert.Equal(
+            coverPath,
+            Assert
+                .Single(
+                    entries,
+                    entry =>
+                        string.Equals(entry.RomHash, "shared-cover-rom", StringComparison.Ordinal)
+                )
+                .CoverPath
+        );
+        Assert.True(File.Exists(coverPath));
+        Assert.Equal(
+            [coverPath],
+            Directory.GetFiles(test.CoverDirectoryPath, "*", SearchOption.TopDirectoryOnly)
+        );
     }
 
     [Fact]
@@ -728,7 +788,12 @@ public sealed class LibraryServiceTests
             var dbContextFactory = new TestDbContextFactory(DatabasePath, TimeProvider);
             using var db = dbContextFactory.CreateDbContext();
             db.Database.Migrate();
-            Library = new LibraryService(dbContextFactory, CoverDirectoryPath, TimeProvider);
+            Library = new LibraryService(
+                dbContextFactory,
+                CoverDirectoryPath,
+                NullLogger<LibraryService>.Instance,
+                TimeProvider
+            );
         }
 
         private TestDirectories.TemporaryDirectory TemporaryDirectory { get; } =
@@ -782,22 +847,26 @@ public sealed class LibraryServiceTests
 
     private sealed class FailingDbContextFactory(
         string databasePath,
-        int failOnCreate,
         TimeProvider? timeProvider = null
     ) : IDbContextFactory<GbcNetDbContext>
     {
-        private readonly TestDbContextFactory _inner = new(databasePath, timeProvider);
-        private int _createCount;
+        private readonly DbContextOptions<GbcNetDbContext> _options =
+            new DbContextOptionsBuilder<GbcNetDbContext>()
+                .UseSqlite($"Data Source={databasePath}")
+                .AddInterceptors(FailingSaveChangesInterceptor.Instance)
+                .Options;
 
-        public GbcNetDbContext CreateDbContext()
-        {
-            if (++_createCount == failOnCreate)
-            {
-                throw new InvalidOperationException("Test database failure.");
-            }
+        public GbcNetDbContext CreateDbContext() => new(_options, timeProvider);
+    }
 
-            return _inner.CreateDbContext();
-        }
+    private sealed class FailingSaveChangesInterceptor : SaveChangesInterceptor
+    {
+        public static FailingSaveChangesInterceptor Instance { get; } = new();
+
+        public override InterceptionResult<int> SavingChanges(
+            DbContextEventData eventData,
+            InterceptionResult<int> result
+        ) => throw new InvalidOperationException("Test database failure.");
     }
 
     private sealed class TestTimeProvider(DateTimeOffset utcNow) : TimeProvider
