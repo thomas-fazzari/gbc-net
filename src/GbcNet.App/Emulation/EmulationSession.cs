@@ -40,9 +40,6 @@ internal sealed class EmulationSession
             new UnboundedChannelOptions { SingleReader = true }
         );
 
-    private readonly TaskCompletionSource _stopRequested = new(
-        TaskCreationOptions.RunContinuationsAsynchronously
-    );
     private readonly Task _runTask;
 
     private int _isPaused;
@@ -94,7 +91,6 @@ internal sealed class EmulationSession
         {
             _gameBoy.FrameCompleted -= OnFrameCompleted;
             _pendingMachineOperations.Writer.TryComplete();
-            _stopRequested.SetResult();
         }
 
         // Wait for the emulation loop to run its final save before the next session loads SRAM.
@@ -173,7 +169,7 @@ internal sealed class EmulationSession
         Exception? fatalException = null;
         try
         {
-            while (!_stopRequested.Task.IsCompleted)
+            while (Volatile.Read(ref _isStopped) == 0)
             {
                 ProcessPendingMachineOperations();
                 if (_pacingResetRequested)
@@ -193,10 +189,7 @@ internal sealed class EmulationSession
 
                 if (IsPaused)
                 {
-                    await Task.WhenAny(
-                            Task.Delay(TimeSpan.FromMilliseconds(16), CancellationToken.None),
-                            _stopRequested.Task
-                        )
+                    await Task.Delay(TimeSpan.FromMilliseconds(16), CancellationToken.None)
                         .ConfigureAwait(false);
                     continue;
                 }
@@ -210,10 +203,7 @@ internal sealed class EmulationSession
                 var stepMachineCycles = _gameBoy.Step();
                 if (stepMachineCycles == 0)
                 {
-                    await Task.WhenAny(
-                            Task.Delay(_stoppedCpuSleepInterval, CancellationToken.None),
-                            _stopRequested.Task
-                        )
+                    await Task.Delay(_stoppedCpuSleepInterval, CancellationToken.None)
                         .ConfigureAwait(false);
                     continue;
                 }
@@ -254,14 +244,11 @@ internal sealed class EmulationSession
 
                 if (delayTimestamp > 0)
                 {
-                    await Task.WhenAny(
-                            Task.Delay(
-                                TimeSpan.FromTicks(
-                                    delayTimestamp * TimeSpan.TicksPerSecond / Stopwatch.Frequency
-                                ),
-                                CancellationToken.None
+                    await Task.Delay(
+                            TimeSpan.FromTicks(
+                                delayTimestamp * TimeSpan.TicksPerSecond / Stopwatch.Frequency
                             ),
-                            _stopRequested.Task
+                            CancellationToken.None
                         )
                         .ConfigureAwait(false);
                     timestamp = Stopwatch.GetTimestamp();

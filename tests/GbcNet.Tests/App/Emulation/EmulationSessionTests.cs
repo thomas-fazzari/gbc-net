@@ -46,6 +46,28 @@ public sealed class EmulationSessionTests
         }
     }
 
+    [Fact]
+    public async Task StopAsync_CompletesWhilePaused()
+    {
+        using var audioOutput = new TestAudioOutput();
+        var session = new EmulationSession(
+            new GameBoy(TestRomFactory.LoadCartridge(), HardwareModel.Dmg),
+            audioOutput,
+            static _ => { },
+            static _ => { },
+            batterySaveWriter: null
+        )
+        {
+            IsPaused = true,
+        };
+
+        await session
+            .StopAsync()
+            .AsTask()
+            .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
+        Assert.Equal(3, audioOutput.ClearCount);
+    }
+
     private sealed class TestAudioOutput : IAudioOutput
     {
         public int ClearCount { get; private set; }
