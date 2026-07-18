@@ -100,16 +100,17 @@ internal sealed class CgbVramDmaController(
 
         if (
             !isRegisterEnabled
-            && (
-                state.SourceHigh != 0
-                || state.SourceLow != 0
-                || state.DestinationHigh != 0
-                || state.DestinationLow != 0
-                || state.LengthModeReadValue != CompletedReadValue
-                || state.HblankBlocksRemaining != 0
-                || state.CpuStallMachineCycles != 0
-                || state.IsHblankDmaActive
-            )
+            && state
+                is not {
+                    SourceHigh: 0,
+                    SourceLow: 0,
+                    DestinationHigh: 0,
+                    DestinationLow: 0,
+                    LengthModeReadValue: CompletedReadValue,
+                    HblankBlocksRemaining: 0,
+                    CpuStallMachineCycles: 0,
+                    IsHblankDmaActive: false,
+                }
         )
         {
             throw new ArgumentException(

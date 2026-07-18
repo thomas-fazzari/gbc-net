@@ -288,16 +288,19 @@ internal sealed class LibraryService(
         using var transaction = db.Database.BeginTransaction();
 
         var deletedCoverPaths = db
-            .Roms.Where(rom =>
-                rom.LastKnownPath == fullPath && rom.RomHash != romHash && rom.CoverPath != null
+            .Roms.Where(entry =>
+                entry.LastKnownPath == fullPath
+                && entry.RomHash != romHash
+                && entry.CoverPath != null
             )
-            .Select(rom => rom.CoverPath!)
+            .Select(entry => entry.CoverPath)
             .ToList();
 
-        db.Roms.Where(rom => rom.LastKnownPath == fullPath && rom.RomHash != romHash)
+        db.Roms.Where(entry => entry.LastKnownPath == fullPath && entry.RomHash != romHash)
             .ExecuteDelete();
 
-        var existingRom = db.Roms.AsTracking().SingleOrDefault(rom => rom.RomHash == romHash);
+        var existingRom = db.Roms.AsTracking().SingleOrDefault(entry => entry.RomHash == romHash);
+
         string? coverPath;
         if (existingRom is null)
         {
@@ -414,7 +417,7 @@ internal sealed class LibraryService(
 
     private static string GetSafeImageExtension(string sourceImagePath)
     {
-        var extension = Path.GetExtension(sourceImagePath)!;
+        var extension = Path.GetExtension(sourceImagePath);
         if (extension.Length is < 2 or > 16)
         {
             throw new InvalidOperationException("Cover image file name has no safe extension.");
@@ -467,9 +470,8 @@ internal sealed class LibraryService(
         };
 
     private static InvalidOperationException CreateLibraryException(Exception exception) =>
-        exception is InvalidOperationException invalidOperationException
-            ? invalidOperationException
-            : new InvalidOperationException(exception.Message, exception);
+        exception as InvalidOperationException
+        ?? new InvalidOperationException(exception.Message, exception);
 
     private static bool IsExpectedLibraryException(Exception exception) =>
         exception

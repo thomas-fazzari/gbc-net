@@ -127,23 +127,21 @@ internal sealed class TimerController(
     {
         var oldTimerControl = _timerControl;
         var newTimerControl = (byte)(value & TimerControlWriteMask);
+
         var wasTimerInputHigh = IsTimerInputHigh(oldTimerControl, systemCounter.DividerCounter);
         var isTimerInputHigh = IsTimerInputHigh(newTimerControl, systemCounter.DividerCounter);
+
+        var oldTimerEnabled = IsTimerEnabled(oldTimerControl);
+        var newTimerEnabled = IsTimerEnabled(newTimerControl);
+
+        var tickOnFallingEdge =
+            wasTimerInputHigh
+            && !isTimerInputHigh
+            && (newTimerEnabled || ticksOnTacDisableWhenInputHigh);
+        var tickOnEnable = ticksOnTacEnableWhenInputHigh && !oldTimerEnabled && isTimerInputHigh;
         _timerControl = newTimerControl;
 
-        if (
-            (
-                wasTimerInputHigh
-                && !isTimerInputHigh
-                && (IsTimerEnabled(newTimerControl) || ticksOnTacDisableWhenInputHigh)
-            )
-            || (
-                ticksOnTacEnableWhenInputHigh
-                && !IsTimerEnabled(oldTimerControl)
-                && IsTimerEnabled(newTimerControl)
-                && IsSelectedCounterBitHigh(newTimerControl, systemCounter.DividerCounter)
-            )
-        )
+        if (tickOnFallingEdge || tickOnEnable)
         {
             IncrementTimerCounter();
         }

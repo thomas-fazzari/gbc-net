@@ -169,40 +169,25 @@ internal sealed class SgbController(bool commandsEnabled)
             throw new ArgumentException("SGB state has an invalid buffer shape.", nameof(state));
         }
 
-        if (state.CommandWriteBitIndex is < 0 or > MaxCommandSizeBytes * 8)
-        {
-            throw new ArgumentOutOfRangeException(nameof(state));
-        }
-
-        if (
+        var invalidPlayer =
             state.PlayerCount is not (1 or 2 or 4)
             || state.CurrentPlayer < 0
-            || state.CurrentPlayer >= state.PlayerCount
-        )
-        {
-            throw new ArgumentOutOfRangeException(nameof(state));
-        }
+            || state.CurrentPlayer >= state.PlayerCount;
 
-        if (state.MaskMode > MaskColor0 || state.PendingVramTransfer > PendingBorderMapTransfer)
+        var invalidVramTransfer = state.PendingVramTransfer switch
         {
-            throw new ArgumentOutOfRangeException(nameof(state));
-        }
+            > PendingBorderMapTransfer => true,
+            NoPendingVramTransfer => state.PendingVramTransferFrameDelay != 0,
+            _ => state.PendingVramTransferFrameDelay is < 1 or > VramTransferFrameDelay,
+        };
 
         if (
-            (
-                state.PendingVramTransfer == NoPendingVramTransfer
-                && state.PendingVramTransferFrameDelay != 0
-            )
-            || (
-                state.PendingVramTransfer != NoPendingVramTransfer
-                && state.PendingVramTransferFrameDelay is < 1 or > VramTransferFrameDelay
-            )
+            state.CommandWriteBitIndex is < 0 or > MaxCommandSizeBytes * 8
+            || invalidPlayer
+            || state.MaskMode > MaskColor0
+            || invalidVramTransfer
+            || state.AttributeMap.Any(static attribute => attribute > 3)
         )
-        {
-            throw new ArgumentOutOfRangeException(nameof(state));
-        }
-
-        if (state.AttributeMap.Any(static attribute => attribute > 3))
         {
             throw new ArgumentOutOfRangeException(nameof(state));
         }
@@ -452,14 +437,16 @@ internal sealed class SgbController(bool commandsEnabled)
         _readyForPulse = false;
 
         if (
-            (_commandWriteBitIndex & ((PacketSizeBytes * 8) - 1)) != 0
-            || _commandWriteBitIndex == 0
-            || _readyForStop
+            (_commandWriteBitIndex & ((PacketSizeBytes * 8) - 1)) == 0
+            && _commandWriteBitIndex != 0
+            && !_readyForStop
         )
         {
-            ClearCommand();
-            _readyForStop = false;
+            return;
         }
+
+        ClearCommand();
+        _readyForStop = false;
     }
 
     private void ReceiveBit(byte value, int commandSizeBits)
@@ -483,19 +470,22 @@ internal sealed class SgbController(bool commandsEnabled)
             return;
         }
 
-        if (_commandWriteBitIndex < MaxCommandSizeBytes * 8)
+        if (_commandWriteBitIndex >= MaxCommandSizeBytes * 8)
         {
-            if (value != 0)
-            {
-                _command[_commandWriteBitIndex / 8] |= (byte)(1 << (_commandWriteBitIndex & 7));
-            }
+            return;
+        }
 
-            _commandWriteBitIndex++;
-            _readyForPulse = false;
-            if ((_commandWriteBitIndex & ((PacketSizeBytes * 8) - 1)) == 0)
-            {
-                _readyForStop = true;
-            }
+        if (value != 0)
+        {
+            _command[_commandWriteBitIndex / 8] |= (byte)(1 << (_commandWriteBitIndex & 7));
+        }
+
+        _commandWriteBitIndex++;
+        _readyForPulse = false;
+
+        if ((_commandWriteBitIndex & ((PacketSizeBytes * 8) - 1)) == 0)
+        {
+            _readyForStop = true;
         }
     }
 
@@ -579,11 +569,12 @@ internal sealed class SgbController(bool commandsEnabled)
         var target = new byte[
             PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * Rgb555BytesPerPixel
         ];
+
         for (var pixel = 0; pixel < source.Length; pixel++)
         {
             var x = pixel % PpuGeometry.FrameWidth;
             var y = pixel / PpuGeometry.FrameWidth;
-            var palette = _attributeMap[(x / 8) + ((y / 8) * AttributeMapWidth)];
+            var palette = _attributeMap[(x / 8) + (y / 8 * AttributeMapWidth)];
             WriteRgb555(target, pixel, _palettes[(palette * 4) + (source[pixel] & 0x03)]);
         }
 

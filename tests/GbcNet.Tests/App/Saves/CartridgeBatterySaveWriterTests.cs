@@ -127,6 +127,35 @@ public sealed class CartridgeBatterySaveWriterTests
         Assert.Equal(0x44, persisted[0]);
     }
 
+    [Fact]
+    public async Task FlushAsync_PropagatesFinalWriteFailure()
+    {
+        var cartridge = CreateBatteryBackedCartridge();
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x55);
+        var failureReported = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        CartridgeBatterySaveWriter writer = new(
+            cartridge,
+            _ => Task.FromException(new IOException("synthetic final write failure")),
+            _ => failureReported.TrySetResult()
+        );
+
+        writer.QueueSave();
+        await failureReported.Task.WaitAsync(
+            TimeSpan.FromSeconds(1),
+            TestContext.Current.CancellationToken
+        );
+
+        var exception = await Assert.ThrowsAsync<IOException>(() =>
+            writer
+                .FlushAsync()
+                .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken)
+        );
+
+        Assert.Equal("synthetic final write failure", exception.Message);
+    }
+
     private static Cartridge CreateBatteryBackedCartridge()
     {
         var cartridge = TestRomFactory.LoadCartridge(bytes =>

@@ -22,6 +22,7 @@ internal sealed class EmulationController(
     SaveStateFileService saveStateFileService,
     Action<LcdFrame> handleFrame,
     Action<Exception> handleFault,
+    Action<Exception> handlePersistenceError,
     bool fastForwardEnabled,
     EmulationSpeed fastForwardSpeed
 )
@@ -80,8 +81,8 @@ internal sealed class EmulationController(
     public async Task<EmulationControllerState> OpenRomFileAsync(IStorageFile file)
     {
         var rom = await ReadFileAsync(file).ConfigureAwait(true);
-        await StopAsync().ConfigureAwait(true);
         var (cartridge, savePath) = LoadCartridge(rom);
+        await StopAsync().ConfigureAwait(true);
 
         _loadedRom = rom;
         _loadedCartridgeHeader = cartridge.Header;
@@ -99,8 +100,8 @@ internal sealed class EmulationController(
             return State;
         }
 
-        await StopAsync().ConfigureAwait(true);
         var (cartridge, savePath) = LoadCartridge(_loadedRom);
+        await StopAsync().ConfigureAwait(true);
 
         _loadedCartridgeHeader = cartridge.Header;
         Start(cartridge, savePath);
@@ -115,6 +116,7 @@ internal sealed class EmulationController(
             return;
         }
 
+        await session.PrepareToStopAsync().ConfigureAwait(true);
         _session = null;
         await session.StopAsync().ConfigureAwait(true);
     }
@@ -205,7 +207,7 @@ internal sealed class EmulationController(
             saveWriter = new CartridgeBatterySaveWriter(
                 cartridge,
                 save => cartridgeSaveFileService.SaveAsync(savePath, save),
-                handleFault
+                handlePersistenceError
             );
         }
 

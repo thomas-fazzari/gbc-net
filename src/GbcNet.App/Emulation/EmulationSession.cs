@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
 using GbcNet.App.Audio;
 using GbcNet.App.Saves;
@@ -97,6 +98,32 @@ internal sealed class EmulationSession
         await _runTask.ConfigureAwait(false);
     }
 
+    public async Task PrepareToStopAsync()
+    {
+        if (_batterySaveWriter is null)
+        {
+            return;
+        }
+
+        var wasPaused = IsPaused;
+        IsPaused = true;
+        try
+        {
+            await QueueMachineOperation(_ =>
+                {
+                    _batterySaveWriter.QueueSave(force: true);
+                    return true;
+                })
+                .ConfigureAwait(false);
+            await _batterySaveWriter.FlushPendingAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+            IsPaused = wasPaused;
+            throw;
+        }
+    }
+
     public Task<byte[]> CaptureSaveStateAsync() =>
         QueueMachineOperation(gameBoy => gameBoy.CaptureSaveState());
 
@@ -167,6 +194,7 @@ internal sealed class EmulationSession
         );
 
         Exception? fatalException = null;
+        Exception? finalSaveException = null;
         try
         {
             while (Volatile.Read(ref _isStopped) == 0)
@@ -272,7 +300,15 @@ internal sealed class EmulationSession
 
             if (_batterySaveWriter is not null)
             {
-                await _batterySaveWriter.FlushAsync().ConfigureAwait(false);
+                try
+                {
+                    await _batterySaveWriter.FlushAsync().ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                    when (exception is IOException or InvalidOperationException)
+                {
+                    finalSaveException = exception;
+                }
             }
 
             _audioOutput.Clear();
@@ -281,6 +317,12 @@ internal sealed class EmulationSession
         if (fatalException is not null)
         {
             _handleFatalFault(fatalException);
+            return;
+        }
+
+        if (finalSaveException is not null)
+        {
+            ExceptionDispatchInfo.Capture(finalSaveException).Throw();
         }
     }
 

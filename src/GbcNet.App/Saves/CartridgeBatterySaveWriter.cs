@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Runtime.ExceptionServices;
 using GbcNet.Core.Cartridges;
 
 namespace GbcNet.App.Saves;
@@ -16,6 +17,7 @@ internal sealed class CartridgeBatterySaveWriter(
 )
 {
     private readonly Lock _gate = new();
+    private Exception? _lastWriteException;
     private byte[]? _pendingSave;
     private Task? _writeTask;
 
@@ -24,21 +26,69 @@ internal sealed class CartridgeBatterySaveWriter(
     /// </summary>
     public void QueueSave(bool force = false)
     {
-        byte[]? save = null;
-
+        byte[]? save;
         try
         {
-            if (force || cartridge.IsBatterySaveDirty)
-            {
-                save = cartridge.ExportBatterySave();
-                cartridge.ClearBatterySaveDirty();
-            }
+            save = CaptureSave(force);
         }
         catch (InvalidOperationException exception)
         {
             handleError(exception);
+            return;
         }
 
+        Enqueue(save);
+    }
+
+    /// <summary>
+    /// Captures the final state and waits for all queued file writes.
+    /// </summary>
+    public async Task FlushAsync()
+    {
+        Enqueue(CaptureSave(force: false));
+        await FlushPendingAsync().ConfigureAwait(false);
+    }
+
+    internal async Task FlushPendingAsync()
+    {
+        Task? writeTask;
+        lock (_gate)
+        {
+            StartPendingWrite();
+            writeTask = _writeTask;
+        }
+
+        if (writeTask is not null)
+        {
+            await writeTask.ConfigureAwait(false);
+        }
+
+        Exception? exception;
+        lock (_gate)
+        {
+            exception = _pendingSave is null ? null : _lastWriteException;
+        }
+
+        if (exception is not null)
+        {
+            ExceptionDispatchInfo.Capture(exception).Throw();
+        }
+    }
+
+    private byte[]? CaptureSave(bool force)
+    {
+        if (!force && !cartridge.IsBatterySaveDirty)
+        {
+            return null;
+        }
+
+        var save = cartridge.ExportBatterySave();
+        cartridge.ClearBatterySaveDirty();
+        return save;
+    }
+
+    private void Enqueue(byte[]? save)
+    {
         lock (_gate)
         {
             if (save is not null)
@@ -47,29 +97,15 @@ internal sealed class CartridgeBatterySaveWriter(
                 _pendingSave = save;
             }
 
-            if (_pendingSave is not null && _writeTask is null)
-            {
-                _writeTask = Task.Run(WritePendingAsync, CancellationToken.None);
-            }
+            StartPendingWrite();
         }
     }
 
-    /// <summary>
-    /// Captures the final state and waits for all queued file writes.
-    /// </summary>
-    public async Task FlushAsync()
+    private void StartPendingWrite()
     {
-        QueueSave();
-
-        Task? writeTask;
-        lock (_gate)
+        if (_pendingSave is not null && _writeTask is null)
         {
-            writeTask = _writeTask;
-        }
-
-        if (writeTask is not null)
-        {
-            await writeTask.ConfigureAwait(false);
+            _writeTask = Task.Run(WritePendingAsync, CancellationToken.None);
         }
     }
 
@@ -95,6 +131,7 @@ internal sealed class CartridgeBatterySaveWriter(
                     // Retain the failed snapshot unless a newer one is already waiting.
                     // The next periodic/final flush retries it without touching cartridge state off-thread.
                     _pendingSave ??= save;
+                    _lastWriteException = exception;
                     _writeTask = null;
                 }
 
@@ -104,11 +141,14 @@ internal sealed class CartridgeBatterySaveWriter(
 
             lock (_gate)
             {
-                if (_pendingSave is null)
+                _lastWriteException = null;
+                if (_pendingSave is not null)
                 {
-                    _writeTask = null;
-                    return;
+                    continue;
                 }
+
+                _writeTask = null;
+                return;
             }
         }
     }

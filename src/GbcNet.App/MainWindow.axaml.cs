@@ -77,6 +77,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             saveStateFileService,
             OnFrameCompleted,
             OnEmulationFaulted,
+            OnPersistenceError,
             startupConfiguration.EmulationConfig.FastForwardEnabled,
             startupConfiguration.EmulationConfig.FastForwardSpeed
         );
@@ -392,11 +393,14 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private void ApplyKeyboardEvent(KeyEventArgs e, bool pressed)
     {
-        if (
-            (pressed && MainMenu.TryHandleShortcut(e.Key, e.KeyModifiers))
-            || (pressed && TryHandleChromeShortcut(e.Key, e.KeyModifiers))
-            || _emulationSession.ApplyKeyboardInput(e.Key, pressed)
-        )
+        var shortcutHandled =
+            pressed
+            && (
+                MainMenu.TryHandleShortcut(e.Key, e.KeyModifiers)
+                || TryHandleChromeShortcut(e.Key, e.KeyModifiers)
+            );
+
+        if (shortcutHandled || _emulationSession.ApplyKeyboardInput(e.Key, pressed))
         {
             e.Handled = true;
         }
@@ -406,6 +410,9 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         _framePresenter.Enqueue(frame);
     }
+
+    private void OnPersistenceError(Exception e) =>
+        Dispatcher.UIThread.Post(() => _statusBar.ShowError(e.Message));
 
     private void OnEmulationFaulted(Exception e) => _emulationSession.ShowFault(e);
 }

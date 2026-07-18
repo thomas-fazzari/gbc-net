@@ -27,10 +27,6 @@ internal sealed unsafe class GamepadManager(
         SDL3.SDL_INIT_GAMEPAD | SDL3.SDL_INIT_EVENTS
     );
 
-    private readonly InputRouter _inputRouter = inputRouter;
-    private readonly Action _togglePause = togglePause;
-    private readonly Action _toggleFastForward = toggleFastForward;
-    private readonly ILogger<GamepadManager> _logger = logger;
     private readonly Dictionary<uint, ConnectedGamepad> _gamepads = [];
     private readonly Dictionary<uint, string> _unsupportedJoysticks = [];
     private DispatcherTimer? _pollTimer;
@@ -300,7 +296,7 @@ internal sealed unsafe class GamepadManager(
 
         if (handle == null)
         {
-            GamepadManagerLog.UnableToOpenGamepad(_logger, deviceId, GetSdlError());
+            GamepadManagerLog.UnableToOpenGamepad(logger, deviceId, GetSdlError());
             return;
         }
 
@@ -399,7 +395,7 @@ internal sealed unsafe class GamepadManager(
 
             if (GameplayEnabled)
             {
-                _inputRouter.ApplyGamepadButton(deviceId, mappedButton, pressed);
+                inputRouter.ApplyGamepadButton(deviceId, mappedButton, pressed);
             }
 
             return;
@@ -510,7 +506,7 @@ internal sealed unsafe class GamepadManager(
 
         if (changed && GameplayEnabled)
         {
-            _inputRouter.ApplyGamepadDirection(deviceId, direction, active);
+            inputRouter.ApplyGamepadDirection(deviceId, direction, active);
         }
     }
 
@@ -527,7 +523,7 @@ internal sealed unsafe class GamepadManager(
 
         if (pressed && GameplayEnabled)
         {
-            _togglePause();
+            togglePause();
         }
     }
 
@@ -544,7 +540,7 @@ internal sealed unsafe class GamepadManager(
 
         if (pressed && GameplayEnabled)
         {
-            _toggleFastForward();
+            toggleFastForward();
         }
     }
 
@@ -552,13 +548,13 @@ internal sealed unsafe class GamepadManager(
     {
         foreach (var deviceId in _gamepads.Keys)
         {
-            _inputRouter.ReleaseGamepad(deviceId);
+            inputRouter.ReleaseGamepad(deviceId);
         }
     }
 
     private void ReleaseDeviceContributions(uint deviceId)
     {
-        _inputRouter.ReleaseGamepad(deviceId);
+        inputRouter.ReleaseGamepad(deviceId);
     }
 
     private void RefreshDeviceSnapshots()
@@ -628,7 +624,7 @@ internal sealed unsafe class GamepadManager(
         IsAvailable = false;
         AvailabilityError = error;
 
-        GamepadManagerLog.GamepadInputUnavailable(_logger, error, exception);
+        GamepadManagerLog.GamepadInputUnavailable(logger, error, exception);
     }
 
     private static bool TryMapButton(SDL_GamepadButton nativeButton, out GamepadButton button)

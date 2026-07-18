@@ -94,12 +94,10 @@ internal sealed class VolumeEnvelope
 
     internal static void ValidateState(VolumeEnvelopeState state)
     {
-        if (
-            state.Period > EnvelopePeriodMask
-            || state.Volume > MaxVolume
-            || (state.Period == 0 && state.Timer != 0)
-            || (state.Period != 0 && (state.Timer < 1 || state.Timer > state.Period))
-        )
+        var invalidTimer =
+            state.Period == 0 ? state.Timer != 0 : state.Timer < 1 || state.Timer > state.Period;
+
+        if (state.Period > EnvelopePeriodMask || state.Volume > MaxVolume || invalidTimer)
         {
             throw new ArgumentOutOfRangeException(nameof(state));
         }

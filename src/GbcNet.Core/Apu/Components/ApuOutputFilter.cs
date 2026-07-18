@@ -37,12 +37,11 @@ internal sealed class ApuOutputFilter(double highPassChargeFactor)
     internal static void ValidateState(ApuOutputFilterState state)
     {
         if (
-            !double.IsFinite(state.LeftCapacitor)
-            || state.LeftCapacitor < -MaxAnalogMixerOutput
-            || state.LeftCapacitor > MaxAnalogMixerOutput
-            || !double.IsFinite(state.RightCapacitor)
-            || state.RightCapacitor < -MaxAnalogMixerOutput
-            || state.RightCapacitor > MaxAnalogMixerOutput
+            state
+            is not {
+                LeftCapacitor: >= -MaxAnalogMixerOutput and <= MaxAnalogMixerOutput,
+                RightCapacitor: >= -MaxAnalogMixerOutput and <= MaxAnalogMixerOutput,
+            }
         )
         {
             throw new ArgumentException(
