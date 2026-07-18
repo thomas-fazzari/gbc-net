@@ -3,6 +3,7 @@
 
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
+using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Sm83;
 
@@ -896,14 +897,38 @@ public sealed class CpuTests
         Assert.Equal(0xC0F0, restored.Registers.SP);
     }
 
-    [Fact]
-    public void Step_RejectsUnsupportedOpcode()
+    [Theory]
+    [InlineData(0xD3)]
+    [InlineData(0xDB)]
+    [InlineData(0xDD)]
+    [InlineData(0xE3)]
+    [InlineData(0xE4)]
+    [InlineData(0xEB)]
+    [InlineData(0xEC)]
+    [InlineData(0xED)]
+    [InlineData(0xF4)]
+    [InlineData(0xFC)]
+    [InlineData(0xFD)]
+    public void Step_InvalidOpcodeHardLocksCpu(byte opcode)
     {
-        const byte opcode = 0xD3;
-        var cpu = CpuTestFactory.CreateCpu(bytes => bytes[0x0100] = opcode);
+        var ticks = 0;
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(
+            bytes => bytes[0x0100] = opcode,
+            () => ticks++
+        );
+        bus.Interrupts.InterruptEnable = 0x1F;
 
-        var exception = Assert.Throws<NotSupportedException>(() => cpu.Step());
+        Assert.Equal(1, cpu.Step());
 
-        Assert.Equal("Opcode 0xD3 is not supported yet.", exception.Message);
+        Assert.True(cpu.Halted);
+        Assert.Equal(0, bus.Interrupts.InterruptEnable);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+
+        bus.Interrupts.Request(InterruptSource.VBlank);
+
+        Assert.Equal(1, cpu.Step());
+        Assert.True(cpu.Halted);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+        Assert.Equal(2, ticks);
     }
 }

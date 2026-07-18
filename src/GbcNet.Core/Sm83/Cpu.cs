@@ -1,7 +1,6 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using System.Globalization;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Sm83.Instructions;
@@ -16,7 +15,7 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     private int _currentInstructionMachineCycles;
 
     /// <summary>
-    /// Indicates that HALT has stopped opcode fetching until an interrupt becomes pending.
+    /// Indicates that HALT or an invalid-opcode hard lock has stopped opcode fetching.
     /// </summary>
     public bool Halted { get; private set; }
 
@@ -237,15 +236,12 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
         var opcode = FetchProgramByte();
         ApplyHaltBugToFetchedOpcode();
 
-        var instruction =
-            InstructionSet.Find(opcode)
-            ?? throw new NotSupportedException(
-                string.Format(
-                    CultureInfo.InvariantCulture,
-                    "Opcode 0x{0:X2} is not supported yet.",
-                    opcode
-                )
-            );
+        if (InstructionSet.Find(opcode) is not { } instruction)
+        {
+            Halted = true;
+            bus.Interrupts.InterruptEnable = 0;
+            return _currentInstructionMachineCycles;
+        }
 
         var firstOperand = instruction.ByteLength > 1 ? FetchProgramByte() : (byte)0;
         var secondOperand = instruction.ByteLength > 2 ? FetchProgramByte() : (byte)0;

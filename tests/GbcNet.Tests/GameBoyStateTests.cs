@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using GbcNet.Core;
 using GbcNet.Core.Hardware;
+using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
 using GbcNet.Tests.Cartridges;
 
@@ -50,6 +51,24 @@ public sealed class GameBoyStateTests
         Assert.Equal(0x00, gameBoy.Bus.ReadByte(AddressMap.HighRamStart));
         Assert.Equal(0x00, gameBoy.Cpu.Registers.B);
         Assert.Equal(0x0100, gameBoy.Cpu.Registers.PC);
+    }
+
+    [Fact]
+    public void RestoreSaveState_PreservesInvalidOpcodeHardLock()
+    {
+        var source = new GameBoy(TestRomFactory.LoadCartridge(ConfigureRom), HardwareModel.Dmg);
+        source.Step();
+
+        var restored = new GameBoy(TestRomFactory.LoadCartridge(ConfigureRom), HardwareModel.Dmg);
+        restored.RestoreSaveState(source.CaptureSaveState());
+        restored.Bus.Interrupts.Request(InterruptSource.VBlank);
+
+        Assert.Equal(1, restored.Step());
+        Assert.True(restored.Cpu.Halted);
+        Assert.Equal(0, restored.Bus.Interrupts.InterruptEnable);
+        Assert.Equal(0x0101, restored.Cpu.Registers.PC);
+
+        static void ConfigureRom(byte[] bytes) => bytes[0x0100] = 0xD3;
     }
 
     [Fact]
