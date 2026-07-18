@@ -661,13 +661,13 @@ internal sealed partial class SettingsWindow : Window
     {
         var selected = SelectedProfileName;
         var isDefault = string.Equals(
-            a: selected,
-            b: InputConfig.DefaultProfileName,
+            selected,
+            InputConfig.DefaultProfileName,
             comparisonType: StringComparison.OrdinalIgnoreCase
         );
         var isActive = string.Equals(
-            a: selected,
-            b: ActiveProfileName,
+            selected,
+            ActiveProfileName,
             comparisonType: StringComparison.OrdinalIgnoreCase
         );
         var locked = HasTransientEdit;

@@ -36,20 +36,17 @@ internal static class StartupConfigurationLoader
 
         var validation = InputConfigValidator.Validate(inputConfig);
 
-        if (validation.Count == 0)
+        if (validation.Count != 0)
         {
-            return new StartupConfiguration(
-                inputConfig,
-                appConfig.Emulation,
-                bootRomOptions,
-                configPath,
-                startupErrors.Count == 0 ? null : string.Join(Environment.NewLine, startupErrors)
-            );
+            startupErrors.AddRange(validation);
+            inputConfig = AppConfigurationFile.CreateDefaultInputConfig();
+            ValidateFallbackConfig(inputConfig);
         }
 
-        startupErrors.AddRange(validation);
-        inputConfig = AppConfigurationFile.CreateDefaultInputConfig();
-        ValidateFallbackConfig(inputConfig);
+        if (startupErrors.Count != 0)
+        {
+            StartupConfigurationLoaderLog.FallbacksApplied(logger, startupErrors.Count);
+        }
 
         return new StartupConfiguration(
             inputConfig,
@@ -88,4 +85,13 @@ internal static class StartupConfigurationLoader
             );
         }
     }
+}
+
+internal static partial class StartupConfigurationLoaderLog
+{
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Startup configuration required {ErrorCount} fallback(s)."
+    )]
+    internal static partial void FallbacksApplied(ILogger logger, int errorCount);
 }

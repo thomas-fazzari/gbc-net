@@ -360,8 +360,8 @@ internal sealed class LibraryService(
                 || (
                     exceptPath is not null
                     && string.Equals(
-                        a: Path.GetFullPath(coverPath),
-                        b: Path.GetFullPath(exceptPath),
+                        Path.GetFullPath(coverPath),
+                        Path.GetFullPath(exceptPath),
                         comparisonType: GetFileSystemPathComparison()
                     )
                 )
@@ -378,7 +378,7 @@ internal sealed class LibraryService(
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
-            LibraryServiceLog.CoverFileCleanupFailed(logger, coverPath, exception);
+            LibraryServiceLog.CoverFileCleanupFailed(logger, exception);
         }
     }
 
@@ -398,7 +398,7 @@ internal sealed class LibraryService(
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            LibraryServiceLog.CoverFileCleanupFailed(logger, path, exception);
+            LibraryServiceLog.CoverFileCleanupFailed(logger, exception);
         }
     }
 
@@ -494,10 +494,6 @@ internal sealed class LibraryService(
 
 internal static partial class LibraryServiceLog
 {
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Cover file cleanup failed for {Path}.")]
-    internal static partial void CoverFileCleanupFailed(
-        ILogger logger,
-        string path,
-        Exception exception
-    );
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Cover file cleanup failed.")]
+    internal static partial void CoverFileCleanupFailed(ILogger logger, Exception exception);
 }

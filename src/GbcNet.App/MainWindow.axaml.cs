@@ -28,6 +28,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     private readonly LcdFramePresenter _framePresenter;
     private readonly ShellOperationRunner _operationRunner;
     private readonly StatusBarPresenter _statusBar;
+    private readonly ILogger<MainWindow> _logger;
     private readonly HashSet<Key> _pressedKeys = [];
     private bool _statusBarAvailable = true;
     private bool _statusBarVisibleWhenAvailable = true;
@@ -47,6 +48,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         ILoggerFactory loggerFactory
     )
     {
+        _logger = logger;
         InitializeComponent();
 
         var libraryView = new LibraryView();
@@ -101,7 +103,8 @@ internal sealed partial class MainWindow : Window, IDisposable
             configurationService,
             _statusBar,
             MainMenu,
-            _operationRunner
+            _operationRunner,
+            loggerFactory.CreateLogger<EmulationSessionPresenter>()
         );
         _gamepadManager = new GamepadManager(
             inputRouter,
@@ -117,6 +120,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             libraryService,
             _operationRunner,
             StorageProvider,
+            loggerFactory.CreateLogger<LibraryPresenter>(),
             path => _emulationSession.OpenRecentRomAsync(StorageProvider, path)
         );
 
@@ -157,7 +161,8 @@ internal sealed partial class MainWindow : Window, IDisposable
                     replacementMap.GamepadBindings
                 );
             },
-            _gamepadManager
+            _gamepadManager,
+            loggerFactory.CreateLogger<ConfigurationPresenter>()
         );
 
         ConfigureMenu(emulationView);
@@ -185,6 +190,8 @@ internal sealed partial class MainWindow : Window, IDisposable
             _operationRunner.Run(() => _configurationPresenter.OpenAsync(this));
         MainMenu.ConfigurationFileLocationRequested += (_, _) =>
             _operationRunner.Run(_configurationPresenter.OpenConfigurationDirectoryAsync);
+        MainMenu.LogFileLocationRequested += (_, _) =>
+            _operationRunner.Run(ConfigurationPresenter.OpenLogDirectoryAsync);
         MainMenu.PauseRequested += (_, _) => _emulationSession.TogglePause();
         MainMenu.ResetRequested += (_, _) => _operationRunner.Run(_emulationSession.ResetAsync);
         MainMenu.SaveStateRequested += (_, e) =>
@@ -426,8 +433,24 @@ internal sealed partial class MainWindow : Window, IDisposable
         _framePresenter.Enqueue(frame);
     }
 
-    private void OnPersistenceError(Exception e) =>
-        Dispatcher.UIThread.Post(() => _statusBar.ShowError(e.Message));
+    private void OnPersistenceError(Exception exception)
+    {
+        MainWindowLog.PersistenceFailed(_logger, exception);
+        Dispatcher.UIThread.Post(() => _statusBar.ShowError(exception.Message));
+    }
 
-    private void OnEmulationFaulted(Exception e) => _emulationSession.ShowFault(e);
+    private void OnEmulationFaulted(Exception exception)
+    {
+        MainWindowLog.EmulationFaulted(_logger, exception);
+        _emulationSession.ShowFault(exception);
+    }
+}
+
+internal static partial class MainWindowLog
+{
+    [LoggerMessage(Level = LogLevel.Error, Message = "Battery save persistence failed.")]
+    internal static partial void PersistenceFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Emulation session faulted.")]
+    internal static partial void EmulationFaulted(ILogger logger, Exception exception);
 }

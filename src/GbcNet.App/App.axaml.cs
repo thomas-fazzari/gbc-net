@@ -10,6 +10,7 @@ using GbcNet.App.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace GbcNet.App;
 
@@ -28,7 +29,7 @@ internal sealed class GbcNetApplication : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             using var startupLoggerFactory = LoggerFactory.Create(static builder =>
-                builder.AddDebug()
+                builder.AddDebug().AddSerilog()
             );
 
             var startupConfiguration = StartupConfigurationLoader.Load(

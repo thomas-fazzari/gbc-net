@@ -12,6 +12,7 @@ using GbcNet.App.Input;
 using GbcNet.Core;
 using GbcNet.Core.Joypad;
 using Microsoft.Extensions.Logging.Abstractions;
+using Serilog.Extensions.Logging;
 
 namespace GbcNet.Tests.App.Configuration;
 
@@ -55,6 +56,32 @@ public sealed class AppConfigurationIntegrationTests
         );
         Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
         AssertInputConfigIsValid(startupConfiguration.InputConfig);
+    }
+
+    [Fact]
+    public void Load_MalformedConfigWritesWarningToRollingLog()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+        var logFilePath = Path.Combine(tempDirectory.Path, "gbcnet-.log");
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllText(configPath, "{");
+
+        using (var fileLogger = GbcNet.App.Program.CreateLogger(logFilePath))
+        using (var loggerFactory = new SerilogLoggerFactory(fileLogger, dispose: false))
+        {
+            _ = StartupConfigurationLoader.Load(
+                configPath,
+                loggerFactory.CreateLogger("GbcNet.App.Configuration.StartupConfigurationLoader")
+            );
+        }
+
+        var rollingLogPath = Assert.Single(Directory.GetFiles(tempDirectory.Path, "gbcnet-*.log"));
+        Assert.Contains(
+            "Startup configuration required 1 fallback(s).",
+            File.ReadAllText(rollingLogPath),
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]

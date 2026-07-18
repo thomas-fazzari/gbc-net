@@ -16,6 +16,8 @@ internal static class UserDataPaths
     private const string SaveStateDirectoryName = "states";
     private const string CoverDirectoryName = "covers";
     private const string LibraryDatabaseFileName = "gbcnet.sqlite";
+    private const string LogDirectoryName = "logs";
+    private const string LogFileName = "gbcnet-.log";
 
     /// <summary>
     /// Per-user configuration file path for the current OS.
@@ -42,47 +44,55 @@ internal static class UserDataPaths
     /// </summary>
     public static string CoverDirectoryPath { get; } = GetCoverDirectoryPath();
 
+    /// <summary>
+    /// Rolling application log file path for the current OS.
+    /// </summary>
+    public static string LogFilePath { get; } = GetLogFilePath();
+
     private static string GetConfigFilePath() =>
-        Path.Combine(path1: GetConfigDirectoryPath(), path2: ConfigFileName);
+        Path.Combine(GetConfigDirectoryPath(), ConfigFileName);
 
     private static string GetSaveDirectoryPath() =>
-        Path.Combine(path1: GetDataDirectoryPath(), path2: SaveDirectoryName);
+        Path.Combine(GetDataDirectoryPath(), SaveDirectoryName);
 
     private static string GetSaveStateDirectoryPath() =>
-        Path.Combine(path1: GetDataDirectoryPath(), path2: SaveStateDirectoryName);
+        Path.Combine(GetDataDirectoryPath(), SaveStateDirectoryName);
 
     private static string GetCoverDirectoryPath() =>
-        Path.Combine(path1: GetDataDirectoryPath(), path2: CoverDirectoryName);
+        Path.Combine(GetDataDirectoryPath(), CoverDirectoryName);
 
     private static string GetLibraryDatabasePath() =>
-        Path.Combine(path1: GetDataDirectoryPath(), path2: LibraryDatabaseFileName);
+        Path.Combine(GetDataDirectoryPath(), LibraryDatabaseFileName);
+
+    private static string GetLogFilePath() =>
+        Path.Combine(GetDataDirectoryPath(), LogDirectoryName, path3: LogFileName);
 
     private static string GetConfigDirectoryPath() =>
         OperatingSystem.IsMacOS() || OperatingSystem.IsWindows()
             ? Path.Combine(
-                path1: GetKnownFolder(Environment.SpecialFolder.ApplicationData),
-                path2: DesktopDirectoryName
+                GetKnownFolder(Environment.SpecialFolder.ApplicationData),
+                DesktopDirectoryName
             )
             : Path.Combine(
-                path1: GetXdgDirectoryPath(
+                GetXdgDirectoryPath(
                     environmentVariableName: "XDG_CONFIG_HOME",
                     fallbackDirectoryName: ".config"
                 ),
-                path2: LinuxDirectoryName
+                LinuxDirectoryName
             );
 
     private static string GetDataDirectoryPath() =>
         OperatingSystem.IsMacOS() || OperatingSystem.IsWindows()
             ? Path.Combine(
-                path1: GetKnownFolder(Environment.SpecialFolder.LocalApplicationData),
-                path2: DesktopDirectoryName
+                GetKnownFolder(Environment.SpecialFolder.LocalApplicationData),
+                DesktopDirectoryName
             )
             : Path.Combine(
-                path1: GetXdgDirectoryPath(
+                GetXdgDirectoryPath(
                     environmentVariableName: "XDG_DATA_HOME",
-                    fallbackDirectoryName: Path.Combine(path1: ".local", path2: "share")
+                    fallbackDirectoryName: Path.Combine(".local", "share")
                 ),
-                path2: LinuxDirectoryName
+                LinuxDirectoryName
             );
 
     private static string GetKnownFolder(Environment.SpecialFolder folder) =>
@@ -96,7 +106,7 @@ internal static class UserDataPaths
         var directoryPath = Environment.GetEnvironmentVariable(environmentVariableName);
 
         return string.IsNullOrWhiteSpace(directoryPath)
-            ? Path.Combine(path1: GetUserProfilePath(), path2: fallbackDirectoryName)
+            ? Path.Combine(GetUserProfilePath(), fallbackDirectoryName)
             : directoryPath;
     }
 

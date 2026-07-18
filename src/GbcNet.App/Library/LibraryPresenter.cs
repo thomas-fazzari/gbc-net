@@ -3,6 +3,7 @@
 
 using Avalonia.Platform.Storage;
 using GbcNet.App.Shell;
+using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App.Library;
 
@@ -11,18 +12,21 @@ internal sealed class LibraryPresenter
     private readonly LibraryService _libraryService;
     private readonly LibraryView _view;
     private readonly IStorageProvider _storageProvider;
+    private readonly ILogger<LibraryPresenter> _logger;
 
     public LibraryPresenter(
         LibraryView view,
         LibraryService libraryService,
         ShellOperationRunner operationRunner,
         IStorageProvider storageProvider,
+        ILogger<LibraryPresenter> logger,
         Func<string, Task> openRomAsync
     )
     {
         _libraryService = libraryService;
         _storageProvider = storageProvider;
         _view = view;
+        _logger = logger;
         view.RomSelected = entry =>
             operationRunner.Run(async () =>
             {
@@ -86,7 +90,14 @@ internal sealed class LibraryPresenter
         }
         catch (InvalidOperationException exception)
         {
+            LibraryPresenterLog.RefreshFailed(_logger, exception);
             _view.ShowError(exception.Message);
         }
     }
+}
+
+internal static partial class LibraryPresenterLog
+{
+    [LoggerMessage(Level = LogLevel.Warning, Message = "ROM library refresh failed.")]
+    internal static partial void RefreshFailed(ILogger logger, Exception exception);
 }

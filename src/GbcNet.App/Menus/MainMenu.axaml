@@ -21,6 +21,7 @@
         <MenuItem x:Name="ConfigurationMenuItem" Header="_Configuration..." InputGesture="Ctrl+C" />
         <Separator />
         <MenuItem x:Name="ConfigurationFileLocationMenuItem" Header="_Open Config File Location" />
+        <MenuItem x:Name="LogFileLocationMenuItem" Header="Open _Logs Folder" />
       </MenuItem>
 
       <MenuItem Header="_Emulation">

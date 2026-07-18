@@ -28,8 +28,8 @@ internal sealed class InputMap(
             : config
                 .Keyboard.Profiles.First(profile =>
                     string.Equals(
-                        a: profile.Key,
-                        b: config.Keyboard.ActiveProfile,
+                        profile.Key,
+                        config.Keyboard.ActiveProfile,
                         comparisonType: StringComparison.OrdinalIgnoreCase
                     )
                 )
@@ -43,8 +43,8 @@ internal sealed class InputMap(
             : config
                 .Gamepad.Profiles.First(profile =>
                     string.Equals(
-                        a: profile.Key,
-                        b: config.Gamepad.ActiveProfile,
+                        profile.Key,
+                        config.Gamepad.ActiveProfile,
                         comparisonType: StringComparison.OrdinalIgnoreCase
                     )
                 )

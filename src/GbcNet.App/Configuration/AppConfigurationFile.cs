@@ -99,11 +99,7 @@ internal static class AppConfigurationFile
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            AppConfigurationFileLog.TemporaryConfigurationFileCleanupFailed(
-                logger,
-                path,
-                exception
-            );
+            AppConfigurationFileLog.TemporaryConfigurationFileCleanupFailed(logger, exception);
         }
     }
 
@@ -169,11 +165,10 @@ internal static partial class AppConfigurationFileLog
 {
     [LoggerMessage(
         Level = LogLevel.Warning,
-        Message = "Temporary configuration file cleanup failed for {Path}."
+        Message = "Temporary configuration file cleanup failed."
     )]
     internal static partial void TemporaryConfigurationFileCleanupFailed(
         ILogger logger,
-        string path,
         Exception exception
     );
 }

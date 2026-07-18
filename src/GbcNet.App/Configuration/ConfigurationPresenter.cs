@@ -7,6 +7,7 @@ using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.App.Input;
 using GbcNet.App.Shell.Chrome;
 using GbcNet.Core;
+using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App.Configuration;
 
@@ -16,7 +17,8 @@ internal sealed class ConfigurationPresenter(
     StatusBarPresenter statusBar,
     Action<BootRomOptions> setBootRomOptions,
     Action<InputConfig> applyInputConfig,
-    GamepadManager gamepadManager
+    GamepadManager gamepadManager,
+    ILogger<ConfigurationPresenter> logger
 )
 {
     public async Task OpenAsync(Window owner)
@@ -28,6 +30,7 @@ internal sealed class ConfigurationPresenter(
         }
         catch (ConfigurationException exception)
         {
+            ConfigurationPresenterLog.LoadFailed(logger, exception);
             statusBar.ShowError(exception.Message);
             var defaults = AppConfigurationFile.CreateDefault();
             settings = new SettingsConfig(defaults.BootRoms, defaults.Input);
@@ -57,22 +60,30 @@ internal sealed class ConfigurationPresenter(
         SaveAndApply(savedConfig);
     }
 
-    public Task OpenConfigurationDirectoryAsync()
-    {
-        var directoryPath = Path.GetDirectoryName(configPath);
+    public Task OpenConfigurationDirectoryAsync() =>
+        OpenDirectoryAsync(
+            Path.GetDirectoryName(configPath),
+            "Configuration file location could not be opened."
+        );
 
+    public static Task OpenLogDirectoryAsync() =>
+        OpenDirectoryAsync(
+            Path.GetDirectoryName(UserDataPaths.LogFilePath),
+            "Log file location could not be opened."
+        );
+
+    private static Task OpenDirectoryAsync(string? directoryPath, string errorMessage)
+    {
         if (string.IsNullOrWhiteSpace(directoryPath))
         {
-            throw new InvalidOperationException("Configuration file path has no directory.");
+            throw new InvalidOperationException(errorMessage);
         }
 
         Directory.CreateDirectory(directoryPath);
 
         using var process =
             Process.Start(new ProcessStartInfo { FileName = directoryPath, UseShellExecute = true })
-            ?? throw new InvalidOperationException(
-                "Configuration file location could not be opened."
-            );
+            ?? throw new InvalidOperationException(errorMessage);
 
         return Task.CompletedTask;
     }
@@ -86,6 +97,7 @@ internal sealed class ConfigurationPresenter(
         }
         catch (ConfigurationException exception)
         {
+            ConfigurationPresenterLog.SaveFailed(logger, exception);
             statusBar.ShowError(exception.Message);
             return;
         }
@@ -131,4 +143,16 @@ internal sealed class ConfigurationPresenter(
             statusBar.ShowError(string.Join(Environment.NewLine, errors));
         }
     }
+}
+
+internal static partial class ConfigurationPresenterLog
+{
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Settings could not be loaded; defaults will be shown."
+    )]
+    internal static partial void LoadFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Settings could not be saved.")]
+    internal static partial void SaveFailed(ILogger logger, Exception exception);
 }

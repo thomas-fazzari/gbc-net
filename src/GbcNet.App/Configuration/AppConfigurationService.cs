@@ -48,8 +48,9 @@ internal sealed class AppConfigurationService(
         {
             appConfig = AppConfigurationFile.LoadOrCreate(configPath, logger);
         }
-        catch (ConfigurationException)
+        catch (ConfigurationException exception)
         {
+            AppConfigurationServiceLog.ConfigurationReadFailed(logger, exception);
             appConfig = AppConfigurationFile.CreateDefault();
         }
 
@@ -198,8 +199,8 @@ internal sealed class AppConfigurationService(
 
         if (
             string.Equals(
-                a: proposedPath,
-                b: currentPath,
+                proposedPath,
+                currentPath,
                 comparisonType: StringComparison.OrdinalIgnoreCase
             )
         )
@@ -224,4 +225,13 @@ internal sealed class AppConfigurationService(
                 or UnauthorizedAccessException
                 or ArgumentException
                 or NotSupportedException;
+}
+
+internal static partial class AppConfigurationServiceLog
+{
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Existing configuration could not be read before saving; defaults will be used."
+    )]
+    internal static partial void ConfigurationReadFailed(ILogger logger, Exception exception);
 }

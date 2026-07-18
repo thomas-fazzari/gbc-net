@@ -22,8 +22,8 @@ internal static class EnumParser
         where TEnum : struct, Enum =>
         TryParseDefinedName(name: name, value: out value)
         && string.Equals(
-            a: name,
-            b: Enum.GetName(value: value),
+            name,
+            Enum.GetName(value: value),
             comparisonType: StringComparison.Ordinal
         );
 

@@ -13,6 +13,7 @@ using GbcNet.App.Menus;
 using GbcNet.App.Shell;
 using GbcNet.App.Shell.Chrome;
 using GbcNet.Core;
+using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App.Emulation;
 
@@ -23,7 +24,8 @@ internal sealed class EmulationSessionPresenter(
     AppConfigurationService configurationService,
     StatusBarPresenter statusBar,
     MainMenu menu,
-    ShellOperationRunner operationRunner
+    ShellOperationRunner operationRunner,
+    ILogger<EmulationSessionPresenter> logger
 )
 {
     private const int RecentRomLimit = 5;
@@ -93,6 +95,7 @@ internal sealed class EmulationSessionPresenter(
             }
             catch (InvalidOperationException exception)
             {
+                EmulationSessionPresenterLog.LibraryRecordFailed(logger, exception);
                 statusBar.ShowError(exception.Message);
             }
         }
@@ -103,6 +106,7 @@ internal sealed class EmulationSessionPresenter(
         var file = await storageProvider.TryGetFileFromPathAsync(path);
         if (file is null)
         {
+            EmulationSessionPresenterLog.RecentRomUnavailable(logger);
             statusBar.ShowError($"Recent ROM not found: {path}");
 
             try
@@ -111,6 +115,7 @@ internal sealed class EmulationSessionPresenter(
             }
             catch (InvalidOperationException exception)
             {
+                EmulationSessionPresenterLog.RecentRomRemovalFailed(logger, exception);
                 statusBar.ShowError(exception.Message);
             }
 
@@ -179,6 +184,7 @@ internal sealed class EmulationSessionPresenter(
         }
         catch (ConfigurationException exception)
         {
+            EmulationSessionPresenterLog.FastForwardSettingsSaveFailed(logger, exception);
             statusBar.ShowError(exception.Message);
         }
     }
@@ -240,6 +246,7 @@ internal sealed class EmulationSessionPresenter(
         }
         catch (InvalidOperationException exception)
         {
+            EmulationSessionPresenterLog.RecentRomsRefreshFailed(logger, exception);
             statusBar.ShowError(exception.Message);
             menu.SetRecentRoms([]);
         }
@@ -281,4 +288,28 @@ internal sealed class EmulationSessionPresenter(
             state.HardwareModel,
             _loadedRomCoverPath
         );
+}
+
+internal static partial class EmulationSessionPresenterLog
+{
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Loaded ROM could not be recorded in the library."
+    )]
+    internal static partial void LibraryRecordFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Recent ROM is no longer available.")]
+    internal static partial void RecentRomUnavailable(ILogger logger);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Unavailable recent ROM could not be removed from the library."
+    )]
+    internal static partial void RecentRomRemovalFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Fast-forward settings could not be saved.")]
+    internal static partial void FastForwardSettingsSaveFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Recent ROM list could not be refreshed.")]
+    internal static partial void RecentRomsRefreshFailed(ILogger logger, Exception exception);
 }

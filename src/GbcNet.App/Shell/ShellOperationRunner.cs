@@ -34,13 +34,13 @@ internal sealed class ShellOperationRunner(Action<Exception> handleError, ILogge
         }
     }
 
-    private static Task ObserveFaults(Task task) =>
+    private Task ObserveFaults(Task task) =>
         task.ContinueWith(
-            continuationAction: static completed =>
+            continuationAction: completed =>
             {
                 if (completed.IsFaulted)
                 {
-                    _ = completed.Exception;
+                    ShellOperationRunnerLog.UnexpectedOperationFailed(logger, completed.Exception);
                 }
             },
             cancellationToken: CancellationToken.None,
@@ -76,4 +76,7 @@ internal static partial class ShellOperationRunnerLog
 {
     [LoggerMessage(Level = LogLevel.Warning, Message = "UI operation failed.")]
     internal static partial void OperationFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "UI operation failed unexpectedly.")]
+    internal static partial void UnexpectedOperationFailed(ILogger logger, Exception exception);
 }

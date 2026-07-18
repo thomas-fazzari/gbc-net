@@ -131,6 +131,7 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
             }
             catch (Exception exception) when (IsExpectedAudioStartupException(exception))
             {
+                SoundFlowAudioOutputLog.AudioPlaybackUnavailable(logger, exception);
                 DisableAudioCore();
                 return false;
             }
@@ -294,6 +295,9 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
 
 internal static partial class SoundFlowAudioOutputLog
 {
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Audio playback is unavailable.")]
+    internal static partial void AudioPlaybackUnavailable(ILogger logger, Exception exception);
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "SoundFlow playback device release failed.")]
     internal static partial void PlaybackDeviceReleaseFailed(ILogger logger, Exception exception);
 

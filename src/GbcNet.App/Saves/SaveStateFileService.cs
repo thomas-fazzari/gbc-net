@@ -390,7 +390,7 @@ internal sealed class SaveStateFileService(
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            SaveStateFileServiceLog.SaveStateCleanupFailed(logger, path, exception);
+            SaveStateFileServiceLog.SaveStateCleanupFailed(logger, exception);
         }
     }
 
@@ -409,13 +409,6 @@ internal static partial class SaveStateFileServiceLog
     [LoggerMessage(Level = LogLevel.Error, Message = "Save-state file read failed.")]
     internal static partial void SaveStateReadFailed(ILogger logger, Exception exception);
 
-    [LoggerMessage(
-        Level = LogLevel.Warning,
-        Message = "Temporary save-state file cleanup failed for {Path}."
-    )]
-    internal static partial void SaveStateCleanupFailed(
-        ILogger logger,
-        string path,
-        Exception exception
-    );
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Temporary save-state file cleanup failed.")]
+    internal static partial void SaveStateCleanupFailed(ILogger logger, Exception exception);
 }

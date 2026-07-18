@@ -326,7 +326,7 @@ internal sealed unsafe class GamepadManager(
 
         if (
             _unsupportedJoysticks.TryGetValue(deviceId, out var existingName)
-            && string.Equals(a: existingName, b: name, comparisonType: StringComparison.Ordinal)
+            && string.Equals(existingName, name, comparisonType: StringComparison.Ordinal)
         )
         {
             return;
@@ -753,7 +753,7 @@ internal sealed unsafe class GamepadManager(
         active ? value < -ReleaseThreshold : value <= -PressThreshold;
 
     private static string CreateDeviceDisplayLabel(int position, string name) =>
-        string.Equals(a: name, b: UnknownJoystickName, comparisonType: StringComparison.Ordinal)
+        string.Equals(name, UnknownJoystickName, comparisonType: StringComparison.Ordinal)
             ? string.Create(provider: CultureInfo.InvariantCulture, handler: $"Gamepad {position}")
             : string.Create(
                 provider: CultureInfo.InvariantCulture,

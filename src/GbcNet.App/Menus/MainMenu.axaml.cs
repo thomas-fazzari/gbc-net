@@ -115,6 +115,8 @@ internal sealed partial class MainMenu : UserControl
 
     public event EventHandler? ConfigurationFileLocationRequested;
 
+    public event EventHandler? LogFileLocationRequested;
+
     public event EventHandler? PauseRequested;
 
     public event EventHandler? ResetRequested;
@@ -337,6 +339,8 @@ internal sealed partial class MainMenu : UserControl
             ConfigurationRequested?.Invoke(sender: this, e: EventArgs.Empty);
         ConfigurationFileLocationMenuItem.Click += (_, _) =>
             ConfigurationFileLocationRequested?.Invoke(sender: this, e: EventArgs.Empty);
+        LogFileLocationMenuItem.Click += (_, _) =>
+            LogFileLocationRequested?.Invoke(sender: this, e: EventArgs.Empty);
     }
 
     private void ConfigureWindowEmulationMenu()
@@ -512,11 +516,20 @@ internal sealed partial class MainMenu : UserControl
         };
         configurationItem.Click += (_, _) =>
             ConfigurationRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        var fileLocationItem = new NativeMenuItem(header: "Open Config File Location");
-        fileLocationItem.Click += (_, _) =>
+        var configLocationItem = new NativeMenuItem(header: "Open Config File Location");
+        configLocationItem.Click += (_, _) =>
             ConfigurationFileLocationRequested?.Invoke(sender: this, e: EventArgs.Empty);
+        var logLocationItem = new NativeMenuItem(header: "Open Logs Folder");
+        logLocationItem.Click += (_, _) =>
+            LogFileLocationRequested?.Invoke(sender: this, e: EventArgs.Empty);
 
-        return [configurationItem, new NativeMenuItemSeparator(), fileLocationItem];
+        return
+        [
+            configurationItem,
+            new NativeMenuItemSeparator(),
+            configLocationItem,
+            logLocationItem,
+        ];
     }
 
     private NativeMenu CreateNativeEmulationMenu()

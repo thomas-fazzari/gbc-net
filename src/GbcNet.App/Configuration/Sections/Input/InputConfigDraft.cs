@@ -363,13 +363,13 @@ internal sealed class InputConfigDraft
             .. profiles.Keys.Select(name => new InputProfileSummary(
                 name,
                 IsActive: string.Equals(
-                    a: name,
-                    b: activeProfileName,
+                    name,
+                    activeProfileName,
                     comparisonType: StringComparison.OrdinalIgnoreCase
                 ),
                 IsSelected: string.Equals(
-                    a: name,
-                    b: selectedProfileName,
+                    name,
+                    selectedProfileName,
                     comparisonType: StringComparison.OrdinalIgnoreCase
                 )
             )),
@@ -435,8 +435,8 @@ internal sealed class InputConfigDraft
 
         if (
             string.Equals(
-                a: existingName,
-                b: InputConfig.DefaultProfileName,
+                existingName,
+                InputConfig.DefaultProfileName,
                 comparisonType: StringComparison.OrdinalIgnoreCase
             )
         )
@@ -452,8 +452,8 @@ internal sealed class InputConfigDraft
 
         if (
             !string.Equals(
-                a: existingName,
-                b: trimmedName,
+                existingName,
+                trimmedName,
                 comparisonType: StringComparison.OrdinalIgnoreCase
             ) && profiles.ContainsKey(trimmedName)
         )
@@ -467,8 +467,8 @@ internal sealed class InputConfigDraft
 
         if (
             string.Equals(
-                a: activeProfileName,
-                b: existingName,
+                activeProfileName,
+                existingName,
                 comparisonType: StringComparison.OrdinalIgnoreCase
             )
         )
@@ -478,8 +478,8 @@ internal sealed class InputConfigDraft
 
         if (
             string.Equals(
-                a: selectedProfileName,
-                b: existingName,
+                selectedProfileName,
+                existingName,
                 comparisonType: StringComparison.OrdinalIgnoreCase
             )
         )
@@ -507,8 +507,8 @@ internal sealed class InputConfigDraft
 
         if (
             string.Equals(
-                a: existingName,
-                b: InputConfig.DefaultProfileName,
+                existingName,
+                InputConfig.DefaultProfileName,
                 comparisonType: StringComparison.OrdinalIgnoreCase
             )
         )
@@ -518,8 +518,8 @@ internal sealed class InputConfigDraft
 
         if (
             string.Equals(
-                a: existingName,
-                b: activeProfileName,
+                existingName,
+                activeProfileName,
                 comparisonType: StringComparison.OrdinalIgnoreCase
             )
         )
@@ -530,8 +530,8 @@ internal sealed class InputConfigDraft
         profiles.Remove(existingName);
         if (
             string.Equals(
-                a: selectedProfileName,
-                b: existingName,
+                selectedProfileName,
+                existingName,
                 comparisonType: StringComparison.OrdinalIgnoreCase
             )
         )
@@ -603,8 +603,8 @@ internal sealed class InputConfigDraft
             ? null
             : profiles.Keys.FirstOrDefault(profileName =>
                 string.Equals(
-                    a: profileName,
-                    b: trimmedName,
+                    profileName,
+                    trimmedName,
                     comparisonType: StringComparison.OrdinalIgnoreCase
                 )
             );

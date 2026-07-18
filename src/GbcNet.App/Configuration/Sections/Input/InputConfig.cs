@@ -154,7 +154,7 @@ internal static class InputConfigValidator
                 continue;
             }
 
-            if (!string.Equals(a: name, b: trimmedName, comparisonType: StringComparison.Ordinal))
+            if (!string.Equals(name, trimmedName, comparisonType: StringComparison.Ordinal))
             {
                 errors.Add($"{sectionName} profile name '{name}' must be trimmed.");
             }
@@ -165,13 +165,13 @@ internal static class InputConfigValidator
             }
 
             hasDefaultProfile |= string.Equals(
-                a: trimmedName,
-                b: InputConfig.DefaultProfileName,
+                trimmedName,
+                InputConfig.DefaultProfileName,
                 comparisonType: StringComparison.OrdinalIgnoreCase
             );
             hasActiveProfile |= string.Equals(
-                a: trimmedName,
-                b: trimmedActiveProfile,
+                trimmedName,
+                trimmedActiveProfile,
                 comparisonType: StringComparison.OrdinalIgnoreCase
             );
 
@@ -191,8 +191,8 @@ internal static class InputConfigValidator
         }
         else if (
             !string.Equals(
-                a: activeProfile,
-                b: trimmedActiveProfile,
+                activeProfile,
+                trimmedActiveProfile,
                 comparisonType: StringComparison.Ordinal
             )
         )

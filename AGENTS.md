@@ -16,6 +16,7 @@
 - Versioned ADRs under `docs/adr/` are the source of truth. Codebase Memory is a discovery cache; keep its ADR content synchronized when a versioned ADR changes.
 - Before changing an area listed below, read its referenced ADR:
   - SGB behavior or scope: `docs/adr/0001-super-game-boy-hle.md`
+  - Logging: `docs/adr/0002-logging.md`
 
 ## Tests
 

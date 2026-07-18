@@ -9,6 +9,7 @@ using GbcNet.App.Library;
 using GbcNet.App.Saves;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace GbcNet.App;
 
@@ -17,7 +18,7 @@ internal static class DependencyInjection
     public static ServiceProvider BuildServiceProvider(StartupConfiguration startupConfiguration)
     {
         var services = new ServiceCollection();
-        services.AddLogging(static builder => builder.AddDebug());
+        services.AddLogging(static builder => builder.AddDebug().AddSerilog());
         services.AddSingleton(startupConfiguration);
 
         services.AddSingleton(provider => new AppConfigurationService(
