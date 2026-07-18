@@ -28,6 +28,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     private readonly LcdFramePresenter _framePresenter;
     private readonly ShellOperationRunner _operationRunner;
     private readonly StatusBarPresenter _statusBar;
+    private readonly HashSet<Key> _pressedKeys = [];
     private bool _statusBarAvailable = true;
     private bool _statusBarVisibleWhenAvailable = true;
     private bool _menuBarVisibleWhenAvailable = true;
@@ -86,6 +87,13 @@ internal sealed partial class MainWindow : Window, IDisposable
             inputMap.GamepadBindings,
             emulationController.SetButtonState
         );
+
+        Deactivated += (_, _) =>
+        {
+            _pressedKeys.Clear();
+            inputRouter.Clear();
+        };
+
         _emulationSession = new EmulationSessionPresenter(
             emulationController,
             inputRouter,
@@ -393,14 +401,21 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private void ApplyKeyboardEvent(KeyEventArgs e, bool pressed)
     {
-        var shortcutHandled =
-            pressed
-            && (
-                MainMenu.TryHandleShortcut(e.Key, e.KeyModifiers)
-                || TryHandleChromeShortcut(e.Key, e.KeyModifiers)
-            );
+        var keyStateChanged = pressed ? _pressedKeys.Add(e.Key) : _pressedKeys.Remove(e.Key);
+        if (!keyStateChanged)
+        {
+            return;
+        }
 
-        if (shortcutHandled || _emulationSession.ApplyKeyboardInput(e.Key, pressed))
+        if (
+            (
+                pressed
+                && (
+                    MainMenu.TryHandleShortcut(e.Key, e.KeyModifiers)
+                    || TryHandleChromeShortcut(e.Key, e.KeyModifiers)
+                )
+            ) || _emulationSession.ApplyKeyboardInput(e.Key, pressed)
+        )
         {
             e.Handled = true;
         }

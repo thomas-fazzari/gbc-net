@@ -99,7 +99,10 @@ public sealed class EmulationSessionTests
             static _ => { },
             static _ => { },
             writer
-        );
+        )
+        {
+            IsPaused = true,
+        };
 
         try
         {
@@ -109,7 +112,7 @@ public sealed class EmulationSessionTests
                     .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken)
             );
 
-            Assert.False(session.IsPaused);
+            Assert.True(session.IsPaused);
             _ = await session
                 .CaptureSaveStateAsync()
                 .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
