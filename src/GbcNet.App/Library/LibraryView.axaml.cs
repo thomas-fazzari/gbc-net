@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Globalization;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
@@ -12,13 +11,11 @@ namespace GbcNet.App.Library;
 
 internal sealed partial class LibraryView : UserControl
 {
-    private const int TileTitleMaxLength = 34;
-    private const double CompactHeaderWidth = 760;
-
     private readonly List<Bitmap> _coverBitmaps = [];
     private LibraryHardwareFilter _hardwareFilter;
     private LibraryCoverFilter _coverFilter;
     private LibrarySortMode _sortMode;
+    private bool _refreshingFilters;
 
     public LibraryView()
     {
@@ -27,8 +24,7 @@ internal sealed partial class LibraryView : UserControl
         _coverFilter = LibraryCoverFilter.All;
         _sortMode = LibrarySortMode.LastOpened;
         DetachedFromVisualTree += (_, _) => ClearTiles();
-        LibraryFilterGrid.SizeChanged += (_, _) => UpdateHeaderLayout();
-        LibrarySearchTextBox.TextChanged += (_, _) => QueryChanged?.Invoke();
+        LibrarySearchTextBox.TextChanged += (_, _) => NotifyQueryChanged();
     }
 
     public Action<LibraryEntry>? RomSelected { get; set; }
@@ -43,12 +39,20 @@ internal sealed partial class LibraryView : UserControl
     public void Load(IReadOnlyList<LibraryEntry> entries)
     {
         ClearTiles();
-        LibraryScrollViewer.IsVisible = entries.Count > 0;
-        EmptyState.IsVisible = entries.Count == 0;
-        EmptyStateText.Text = HasActiveQuery ? "No ROMs match" : "No ROMs yet";
+        var isEmpty = entries.Count == 0;
+        var hasActiveQuery = HasActiveQuery;
+        LibraryScrollViewer.IsVisible = !isEmpty;
+        EmptyState.IsVisible = isEmpty;
+        EmptyStateText.Text = hasActiveQuery ? "No matching ROMs" : "No ROMs yet";
         EmptyStateText.Foreground = AppChrome.Brush(AppChrome.Text);
+        EmptyStateDescription.IsVisible = true;
+        EmptyStateDescription.Text = hasActiveQuery
+            ? "Try changing or clearing your filters."
+            : "Open a ROM to add it to your library.";
+        ClearFiltersButton.IsVisible = hasActiveQuery;
+        LibraryCountText.Text = entries.Count == 1 ? "1 game" : $"{entries.Count} games";
 
-        if (entries.Count == 0)
+        if (isEmpty)
         {
             return;
         }
@@ -83,6 +87,9 @@ internal sealed partial class LibraryView : UserControl
         EmptyState.IsVisible = true;
         EmptyStateText.Text = message;
         EmptyStateText.Foreground = AppChrome.Brush(AppChrome.Error);
+        EmptyStateDescription.IsVisible = false;
+        ClearFiltersButton.IsVisible = false;
+        LibraryCountText.Text = string.Empty;
     }
 
     private bool HasActiveQuery =>
@@ -91,69 +98,67 @@ internal sealed partial class LibraryView : UserControl
         || _coverFilter != LibraryCoverFilter.All
         || _sortMode != LibrarySortMode.LastOpened;
 
-    private void UpdateHeaderLayout()
+    private void OnHardwareFilterChanged(object? sender, RoutedEventArgs e)
     {
-        if (LibraryFilterGrid.Bounds.Width <= 0)
-        {
-            return;
-        }
-        var compact = LibraryFilterGrid.Bounds.Width < CompactHeaderWidth;
-        Grid.SetColumnSpan(LibrarySearchBorder, compact ? 2 : 1);
-        Grid.SetRow(LibraryControlsPanel, compact ? 1 : 0);
-        Grid.SetColumn(LibraryControlsPanel, compact ? 0 : 1);
-        Grid.SetColumnSpan(LibraryControlsPanel, compact ? 2 : 1);
-        LibrarySearchBorder.Margin = compact
-            ? new Thickness(0)
-            : new Thickness(left: 0, top: 0, right: 10, bottom: 0);
-        LibraryControlsPanel.Margin = compact
-            ? new Thickness(left: 0, top: 10, right: 0, bottom: 0)
-            : new Thickness(0);
-    }
-
-    private void OnHardwareFilterChanged(object? sender, SelectionChangedEventArgs e)
-    {
-        if (
-            sender is ComboBox comboBox
-            && TryGetSelectedTag(comboBox, out LibraryHardwareFilter value)
-            && _hardwareFilter != value
-        )
+        if (TryGetCheckedTag(sender, out LibraryHardwareFilter value) && _hardwareFilter != value)
         {
             _hardwareFilter = value;
-            QueryChanged?.Invoke();
+            NotifyQueryChanged();
         }
     }
 
-    private void OnCoverFilterChanged(object? sender, SelectionChangedEventArgs e)
+    private void OnCoverFilterChanged(object? sender, RoutedEventArgs e)
     {
-        if (
-            sender is ComboBox comboBox
-            && TryGetSelectedTag(comboBox, out LibraryCoverFilter value)
-            && _coverFilter != value
-        )
+        if (TryGetCheckedTag(sender, out LibraryCoverFilter value) && _coverFilter != value)
         {
             _coverFilter = value;
-            QueryChanged?.Invoke();
+            NotifyQueryChanged();
         }
     }
 
-    private void OnSortModeChanged(object? sender, SelectionChangedEventArgs e)
+    private void OnSortModeChanged(object? sender, RoutedEventArgs e)
     {
-        if (
-            sender is ComboBox comboBox
-            && TryGetSelectedTag(comboBox, out LibrarySortMode value)
-            && _sortMode != value
-        )
+        if (TryGetCheckedTag(sender, out LibrarySortMode value) && _sortMode != value)
         {
             _sortMode = value;
+            NotifyQueryChanged();
+        }
+    }
+
+    private void ClearFilters(object? sender, RoutedEventArgs e)
+    {
+        _refreshingFilters = true;
+        try
+        {
+            LibrarySearchTextBox.Text = string.Empty;
+            _hardwareFilter = LibraryHardwareFilter.All;
+            _coverFilter = LibraryCoverFilter.All;
+            _sortMode = LibrarySortMode.LastOpened;
+            HardwareAllFilter.IsChecked = true;
+            CoverAllFilter.IsChecked = true;
+            SortRecentFilter.IsChecked = true;
+        }
+        finally
+        {
+            _refreshingFilters = false;
+        }
+
+        QueryChanged?.Invoke();
+    }
+
+    private void NotifyQueryChanged()
+    {
+        if (!_refreshingFilters)
+        {
             QueryChanged?.Invoke();
         }
     }
 
-    private static bool TryGetSelectedTag<T>(ComboBox comboBox, out T value)
+    private static bool TryGetCheckedTag<T>(object? sender, out T value)
         where T : struct, Enum
     {
         if (
-            comboBox.SelectedItem is ComboBoxItem { Tag: string tag }
+            sender is RadioButton { IsChecked: true, Tag: string tag }
             && Enum.TryParse(tag, out T parsed)
         )
         {
@@ -272,8 +277,7 @@ internal sealed partial class LibraryView : UserControl
     {
         public LibraryEntry Entry { get; } = entry;
         public Bitmap? CoverBitmap { get; } = coverBitmap;
-        public string Title { get; } =
-            FormatTileTitle(Path.GetFileNameWithoutExtension(entry.FileName));
+        public string Title { get; } = Path.GetFileNameWithoutExtension(entry.FileName);
         public string PlayCountText { get; } =
             string.Create(
                 provider: CultureInfo.InvariantCulture,
@@ -281,9 +285,4 @@ internal sealed partial class LibraryView : UserControl
             );
         public string HardwareText { get; } = entry.HardwareKind.ToString();
     }
-
-    private static string FormatTileTitle(string fileName) =>
-        fileName.Length <= TileTitleMaxLength
-            ? fileName
-            : $"{fileName.AsSpan(start: 0, length: TileTitleMaxLength - 3)}...";
 }

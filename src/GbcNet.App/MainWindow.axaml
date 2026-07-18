@@ -4,8 +4,8 @@
   xmlns:menus="clr-namespace:GbcNet.App.Menus"
   x:Class="GbcNet.App.MainWindow"
   Title="GbcNet"
-  Width="960"
-  Height="576"
+  Width="1024"
+  Height="640"
   MinWidth="640"
   MinHeight="576"
   WindowStartupLocation="CenterScreen"
@@ -43,38 +43,13 @@
           TextTrimming="CharacterEllipsis"
           VerticalAlignment="Center"
         />
-        <Border
-          x:Name="StatusHardwareBadge"
-          Grid.Column="2"
-          BorderThickness="1"
-          BorderBrush="{DynamicResource ChromeHairBrush}"
-          CornerRadius="7"
-          Padding="5,1"
-          VerticalAlignment="Center"
-          IsVisible="False"
-        >
-          <TextBlock
-            x:Name="StatusHardwareBadgeTextBlock"
-            FontSize="10"
-            FontWeight="SemiBold"
-            Foreground="{DynamicResource ChromeMutedBrush}"
-          />
+        <Border x:Name="StatusHardwareBadge" Grid.Column="2" Classes="badge" IsVisible="False">
+          <TextBlock x:Name="StatusHardwareBadgeTextBlock" Classes="badge-text" />
         </Border>
-        <Border
-          x:Name="StatusSpeedBadge"
-          Grid.Column="3"
-          BorderThickness="1"
-          BorderBrush="{DynamicResource ChromeHairBrush}"
-          CornerRadius="7"
-          Padding="5,1"
-          VerticalAlignment="Center"
-          IsVisible="False"
-        >
+        <Border x:Name="StatusSpeedBadge" Grid.Column="3" Classes="badge" IsVisible="False">
           <TextBlock
             x:Name="StatusSpeedTextBlock"
-            FontSize="10"
-            FontWeight="SemiBold"
-            Foreground="{DynamicResource ChromeMutedBrush}"
+            Classes="badge-text"
             TextTrimming="CharacterEllipsis"
           />
         </Border>

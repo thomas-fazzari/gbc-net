@@ -33,7 +33,7 @@
       <SolidColorBrush x:Key="ChromeErrorBrush">#f87171</SolidColorBrush>
       <SolidColorBrush x:Key="ChromeStatusBrush">#8a8a93</SolidColorBrush>
 
-      <CornerRadius x:Key="ChromeCornerRadius">4</CornerRadius>
+      <CornerRadius x:Key="ChromeCornerRadius">2</CornerRadius>
     </ResourceDictionary>
   </Application.Resources>
   <Application.Styles>
@@ -67,6 +67,21 @@
     </Style>
     <Style Selector="Button.chrome-button:pressed">
       <Setter Property="Background" Value="{DynamicResource ChromePressedBrush}" />
+    </Style>
+    <Style Selector="Button.chrome-button:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
+    </Style>
+    <Style Selector="Border.badge">
+      <Setter Property="Padding" Value="5,1" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="7" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.badge-text">
+      <Setter Property="Foreground" Value="{DynamicResource ChromeMutedBrush}" />
+      <Setter Property="FontSize" Value="10" />
+      <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="Button.chrome-button.accent">
       <Setter Property="Background" Value="{DynamicResource ChromeAccentBrush}" />
