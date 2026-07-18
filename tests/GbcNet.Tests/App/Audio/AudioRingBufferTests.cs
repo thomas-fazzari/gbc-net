@@ -71,7 +71,7 @@ public sealed class AudioRingBufferTests
     }
 
     [Fact]
-    public void Clear_DropsQueuedSamplesAndKeepsBufferReusable()
+    public void Clear_DropsQueuedSamplesButKeepsSamplesEnqueuedAfterClear()
     {
         var buffer = new AudioRingBuffer(capacity: 2);
         buffer.Enqueue([new ApuStereoSample(1, 1), new ApuStereoSample(2, 2)]);
@@ -79,9 +79,9 @@ public sealed class AudioRingBufferTests
         buffer.Clear();
 
         Assert.Equal(0, buffer.Count);
-        Assert.False(buffer.TryDequeue(out _));
 
         buffer.Enqueue([new ApuStereoSample(3, 3)]);
+        Assert.Equal(1, buffer.Count);
 
         Assert.True(buffer.TryDequeue(out var sample));
         Assert.Equal(new ApuStereoSample(3, 3), sample);

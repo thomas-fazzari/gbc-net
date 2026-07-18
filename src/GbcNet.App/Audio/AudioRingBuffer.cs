@@ -11,6 +11,7 @@ namespace GbcNet.App.Audio;
 internal sealed class AudioRingBuffer
 {
     private readonly ApuStereoSample[] _samples;
+    private long _clearCursor;
     private long _readCursor;
     private long _writeCursor;
 
@@ -27,7 +28,11 @@ internal sealed class AudioRingBuffer
     {
         get
         {
-            var count = Volatile.Read(ref _writeCursor) - Volatile.Read(ref _readCursor);
+            var readCursor = Math.Max(
+                Volatile.Read(ref _readCursor),
+                Volatile.Read(ref _clearCursor)
+            );
+            var count = Volatile.Read(ref _writeCursor) - readCursor;
             return (int)Math.Clamp(count, 0, _samples.Length);
         }
     }
@@ -38,13 +43,16 @@ internal sealed class AudioRingBuffer
     internal void Enqueue(ReadOnlySpan<ApuStereoSample> samples)
     {
         var writeCursor = Volatile.Read(ref _writeCursor);
-        var readCursor = Volatile.Read(ref _readCursor);
+        var readCursor = Math.Max(Volatile.Read(ref _readCursor), Volatile.Read(ref _clearCursor));
 
         foreach (var sample in samples)
         {
             if (writeCursor - readCursor >= _samples.Length)
             {
-                readCursor = Volatile.Read(ref _readCursor);
+                readCursor = Math.Max(
+                    Volatile.Read(ref _readCursor),
+                    Volatile.Read(ref _clearCursor)
+                );
                 if (writeCursor - readCursor >= _samples.Length)
                 {
                     break;
@@ -64,7 +72,7 @@ internal sealed class AudioRingBuffer
     internal bool TryDequeue(out ApuStereoSample sample)
     {
         var writeCursor = Volatile.Read(ref _writeCursor);
-        var readCursor = Volatile.Read(ref _readCursor);
+        var readCursor = Math.Max(Volatile.Read(ref _readCursor), Volatile.Read(ref _clearCursor));
 
         if (readCursor >= writeCursor)
         {
@@ -82,6 +90,21 @@ internal sealed class AudioRingBuffer
     /// </summary>
     internal void Clear()
     {
-        Volatile.Write(ref _readCursor, Volatile.Read(ref _writeCursor));
+        var clearCursor = Volatile.Read(ref _writeCursor);
+        var publishedCursor = Volatile.Read(ref _clearCursor);
+        while (clearCursor > publishedCursor)
+        {
+            var observedCursor = Interlocked.CompareExchange(
+                ref _clearCursor,
+                clearCursor,
+                publishedCursor
+            );
+            if (observedCursor == publishedCursor)
+            {
+                return;
+            }
+
+            publishedCursor = observedCursor;
+        }
     }
 }
