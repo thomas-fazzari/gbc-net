@@ -27,28 +27,29 @@ internal static class StartupConfigurationLoader
         var configDirectoryPath = Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory;
         var appConfig = LoadConfig(configPath, logger, startupErrors);
         var inputConfig = appConfig.Input;
-        var bootRomOptions = new BootRomOptions();
 
-        try
-        {
-            bootRomOptions = AppConfigurationService.LoadBootRomOptions(
-                appConfig.BootRoms,
-                configDirectoryPath
-            );
-        }
-        catch (ConfigurationException exception)
-        {
-            startupErrors.Add(exception.Message);
-        }
+        var bootRomOptions = AppConfigurationService.LoadBootRomOptions(
+            appConfig.BootRoms,
+            configDirectoryPath,
+            startupErrors
+        );
 
         var validation = InputConfigValidator.Validate(inputConfig);
 
-        if (validation.Count != 0)
+        if (validation.Count == 0)
         {
-            startupErrors.AddRange(validation);
-            inputConfig = AppConfigurationFile.CreateDefaultInputConfig();
-            ValidateFallbackConfig(inputConfig);
+            return new StartupConfiguration(
+                inputConfig,
+                appConfig.Emulation,
+                bootRomOptions,
+                configPath,
+                startupErrors.Count == 0 ? null : string.Join(Environment.NewLine, startupErrors)
+            );
         }
+
+        startupErrors.AddRange(validation);
+        inputConfig = AppConfigurationFile.CreateDefaultInputConfig();
+        ValidateFallbackConfig(inputConfig);
 
         return new StartupConfiguration(
             inputConfig,

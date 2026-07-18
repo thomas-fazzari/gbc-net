@@ -78,9 +78,10 @@ internal sealed class ConfigurationPresenter(
 
     private void SaveAndApply(SettingsConfig settings)
     {
+        IReadOnlyList<string> bootRomErrors;
         try
         {
-            configurationService.SaveSettings(settings);
+            bootRomErrors = configurationService.SaveSettings(settings);
         }
         catch (ConfigurationException exception)
         {
@@ -90,17 +91,16 @@ internal sealed class ConfigurationPresenter(
 
         applyInputConfig(settings.Input);
         ReloadBootRomOptions();
+
+        if (bootRomErrors.Count != 0)
+        {
+            statusBar.ShowError(string.Join(Environment.NewLine, bootRomErrors));
+        }
     }
 
     private SettingsConfig LoadSettingsDraft()
     {
         var settings = configurationService.LoadSettings();
-        if (settings.Input is null)
-        {
-            const string error = "Input config must contain at least one profile.";
-            statusBar.ShowError(error);
-            return settings with { Input = AppConfigurationFile.CreateDefaultInputConfig() };
-        }
 
         var errors = InputConfigValidator.Validate(settings.Input);
         if (errors.Count == 0)
@@ -114,14 +114,20 @@ internal sealed class ConfigurationPresenter(
 
     private void ReloadBootRomOptions()
     {
+        var errors = new List<string>();
         try
         {
-            setBootRomOptions(configurationService.LoadBootRomOptions());
+            setBootRomOptions(configurationService.LoadBootRomOptions(errors));
         }
         catch (ConfigurationException exception)
         {
+            errors.Add(exception.Message);
             setBootRomOptions(new BootRomOptions());
-            statusBar.ShowError(exception.Message);
+        }
+
+        if (errors.Count != 0)
+        {
+            statusBar.ShowError(string.Join(Environment.NewLine, errors));
         }
     }
 }

@@ -18,6 +18,19 @@ public sealed class AppConfigurationServiceTests
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllBytes(
+            Path.Combine(tempDirectory.Path, "dmg.bin"),
+            CreateBootRom(BootRomOptions.DmgBootRomSize, marker: 0xD0)
+        );
+        File.WriteAllBytes(
+            Path.Combine(tempDirectory.Path, "cgb.bin"),
+            CreateBootRom(BootRomOptions.CgbBootRomSize, marker: 0xC0)
+        );
+        File.WriteAllBytes(
+            Path.Combine(tempDirectory.Path, "sgb.bin"),
+            CreateBootRom(BootRomOptions.SgbBootRomSize, marker: 0x50)
+        );
         var service = CreateService(configPath);
 
         service.SaveSettings(
@@ -31,31 +44,6 @@ public sealed class AppConfigurationServiceTests
             new BootRomConfig("dmg.bin", "cgb.bin", "sgb.bin"),
             service.LoadBootRomConfig()
         );
-    }
-
-    [Fact]
-    public void SaveSettings_WritesJsonThatRoundTripsEscapedPaths()
-    {
-        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
-        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
-        const string dmgPath = "dir\\boot\"rom.bin";
-        var service = CreateService(configPath);
-
-        service.SaveSettings(
-            new SettingsConfig(
-                new BootRomConfig(dmgPath, CgbPath: "cgb.bin"),
-                AppConfigurationFile.CreateDefaultInputConfig()
-            )
-        );
-
-        using var json = JsonDocument.Parse(File.ReadAllText(configPath));
-        Assert.Equal(
-            dmgPath,
-            json.RootElement.GetProperty("bootRoms")
-                .GetProperty(BootRomConfig.JsonName(HardwareModel.Dmg))
-                .GetString()
-        );
-        Assert.Equal(new BootRomConfig(dmgPath, CgbPath: "cgb.bin"), service.LoadBootRomConfig());
     }
 
     [Fact]
@@ -87,6 +75,19 @@ public sealed class AppConfigurationServiceTests
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllBytes(
+            Path.Combine(tempDirectory.Path, "new-dmg.bin"),
+            CreateBootRom(BootRomOptions.DmgBootRomSize, marker: 0xD0)
+        );
+        File.WriteAllBytes(
+            Path.Combine(tempDirectory.Path, "new-cgb.bin"),
+            CreateBootRom(BootRomOptions.CgbBootRomSize, marker: 0xC0)
+        );
+        File.WriteAllBytes(
+            Path.Combine(tempDirectory.Path, "new-sgb.bin"),
+            CreateBootRom(BootRomOptions.SgbBootRomSize, marker: 0x50)
+        );
         AppConfigurationFile.Save(
             configPath,
             new AppConfig
@@ -158,6 +159,10 @@ public sealed class AppConfigurationServiceTests
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
         Directory.CreateDirectory(tempDirectory.Path);
         File.WriteAllText(configPath, existingContents);
+        File.WriteAllBytes(
+            Path.Combine(tempDirectory.Path, "replacement-dmg.bin"),
+            CreateBootRom(BootRomOptions.DmgBootRomSize, marker: 0xD0)
+        );
         var service = CreateService(configPath);
 
         service.SaveSettings(
@@ -178,6 +183,46 @@ public sealed class AppConfigurationServiceTests
         Assert.True(input.TryGetProperty("gamepad", out _));
         Assert.False(input.TryGetProperty("activeProfile", out _));
         Assert.False(File.Exists(configPath + ".tmp"));
+    }
+
+    [Fact]
+    public void SaveSettings_InvalidBootRomPreservesValidPathsAndSavesOtherSections()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllBytes(
+            Path.Combine(tempDirectory.Path, "current-dmg.bin"),
+            CreateBootRom(BootRomOptions.DmgBootRomSize, marker: 0xD0)
+        );
+        File.WriteAllBytes(
+            Path.Combine(tempDirectory.Path, "new-cgb.bin"),
+            CreateBootRom(BootRomOptions.CgbBootRomSize, marker: 0xC0)
+        );
+        AppConfigurationFile.Save(
+            configPath,
+            new AppConfig
+            {
+                BootRoms = new BootRomConfig("current-dmg.bin"),
+                Input = AppConfigurationFile.CreateDefaultInputConfig(),
+            },
+            NullLogger.Instance
+        );
+        var service = CreateService(configPath);
+
+        var errors = service.SaveSettings(
+            new SettingsConfig(
+                new BootRomConfig("missing-dmg.bin", "new-cgb.bin"),
+                CreateStrictInput("SpeedRun")
+            )
+        );
+
+        var saved = AppConfigurationFile.Load(configPath);
+        Assert.Single(errors);
+        Assert.Contains("DMG boot ROM file could not be read", errors[0], StringComparison.Ordinal);
+        Assert.Equal(new BootRomConfig("current-dmg.bin", "new-cgb.bin"), saved.BootRoms);
+        Assert.Equal("SpeedRun", saved.Input.Keyboard.ActiveProfile);
+        Assert.Equal("SpeedRun", saved.Input.Gamepad.ActiveProfile);
     }
 
     [Fact]

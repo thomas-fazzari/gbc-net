@@ -194,15 +194,19 @@ public sealed class AppConfigurationIntegrationTests
     }
 
     [Fact]
-    public void Load_ReportsInvalidBootRomSizeAndFallsBackToEmptyBootRoms()
+    public void Load_ReportsInvalidBootRomSizeAndKeepsOtherModels()
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
         Directory.CreateDirectory(tempDirectory.Path);
         File.WriteAllBytes(Path.Combine(tempDirectory.Path, "dmg.bin"), new byte[255]);
+        File.WriteAllBytes(
+            Path.Combine(tempDirectory.Path, "cgb.bin"),
+            CreateBootRom(BootRomOptions.CgbBootRomSize, 0xC0)
+        );
         AppConfigurationFile.Save(
             configPath,
-            CreateConfig("dmg.bin", cgbBootRomPath: null, sgbBootRomPath: null),
+            CreateConfig("dmg.bin", "cgb.bin", sgbBootRomPath: null),
             NullLogger.Instance
         );
 
@@ -214,7 +218,11 @@ public sealed class AppConfigurationIntegrationTests
             StringComparison.Ordinal
         );
         Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
-        Assert.True(startupConfiguration.BootRomOptions.CgbBootRom.IsEmpty);
+        Assert.Equal(
+            BootRomOptions.CgbBootRomSize,
+            startupConfiguration.BootRomOptions.CgbBootRom.Length
+        );
+        Assert.Equal(0xC0, startupConfiguration.BootRomOptions.CgbBootRom.Span[0]);
         Assert.True(startupConfiguration.BootRomOptions.SgbBootRom.IsEmpty);
     }
 

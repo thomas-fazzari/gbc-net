@@ -24,13 +24,14 @@ internal sealed class AppConfigurationService(
         return new SettingsConfig(appConfig.BootRoms, appConfig.Input);
     }
 
-    public BootRomOptions LoadBootRomOptions() =>
+    public BootRomOptions LoadBootRomOptions(ICollection<string>? errors = null) =>
         LoadBootRomOptions(
             LoadBootRomConfig(),
-            Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory
+            Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory,
+            errors
         );
 
-    public void SaveSettings(SettingsConfig settings)
+    public IReadOnlyList<string> SaveSettings(SettingsConfig settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
 
@@ -39,6 +40,8 @@ internal sealed class AppConfigurationService(
         {
             throw new ConfigurationException(string.Join(Environment.NewLine, validation));
         }
+
+        var bootRomErrors = new List<string>();
 
         AppConfig appConfig;
         try
@@ -49,9 +52,33 @@ internal sealed class AppConfigurationService(
         {
             appConfig = AppConfigurationFile.CreateDefault();
         }
-        appConfig.BootRoms = settings.BootRoms;
+        var configDirectoryPath = Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory;
+        appConfig.BootRoms = new BootRomConfig(
+            ResolveBootRomPath(
+                settings.BootRoms.DmgPath,
+                appConfig.BootRoms.DmgPath,
+                HardwareModel.Dmg,
+                configDirectoryPath,
+                bootRomErrors
+            ),
+            ResolveBootRomPath(
+                settings.BootRoms.CgbPath,
+                appConfig.BootRoms.CgbPath,
+                HardwareModel.Cgb,
+                configDirectoryPath,
+                bootRomErrors
+            ),
+            ResolveBootRomPath(
+                settings.BootRoms.SgbPath,
+                appConfig.BootRoms.SgbPath,
+                HardwareModel.Sgb,
+                configDirectoryPath,
+                bootRomErrors
+            )
+        );
         appConfig.Input = CopyInput(settings.Input);
         AppConfigurationFile.Save(configPath, appConfig, logger);
+        return bootRomErrors;
     }
 
     public void SaveEmulationConfig(EmulationConfig config)
@@ -63,22 +90,55 @@ internal sealed class AppConfigurationService(
 
     internal static BootRomOptions LoadBootRomOptions(
         BootRomConfig config,
-        string configDirectoryPath
+        string configDirectoryPath,
+        ICollection<string>? errors = null
     ) =>
         new()
         {
-            DmgBootRom = ReadBootRom(config, HardwareModel.Dmg, configDirectoryPath),
-            CgbBootRom = ReadBootRom(config, HardwareModel.Cgb, configDirectoryPath),
-            SgbBootRom = ReadBootRom(config, HardwareModel.Sgb, configDirectoryPath),
+            DmgBootRom = ReadBootRom(
+                config.GetPath(HardwareModel.Dmg),
+                HardwareModel.Dmg,
+                configDirectoryPath,
+                errors
+            ),
+            CgbBootRom = ReadBootRom(
+                config.GetPath(HardwareModel.Cgb),
+                HardwareModel.Cgb,
+                configDirectoryPath,
+                errors
+            ),
+            SgbBootRom = ReadBootRom(
+                config.GetPath(HardwareModel.Sgb),
+                HardwareModel.Sgb,
+                configDirectoryPath,
+                errors
+            ),
         };
 
     private static ReadOnlyMemory<byte> ReadBootRom(
-        BootRomConfig config,
+        string? path,
+        HardwareModel model,
+        string configDirectoryPath,
+        ICollection<string>? errors
+    )
+    {
+        try
+        {
+            return ReadBootRomFile(path, model, configDirectoryPath);
+        }
+        catch (ConfigurationException exception) when (errors is not null)
+        {
+            errors.Add(exception.Message);
+            return default;
+        }
+    }
+
+    private static ReadOnlyMemory<byte> ReadBootRomFile(
+        string? path,
         HardwareModel model,
         string configDirectoryPath
     )
     {
-        var path = config.GetPath(model);
         var label = BootRomConfig.DisplayName(model);
         var expectedLength = BootRomOptions.SizeDescription(model);
         if (path is null)
@@ -111,6 +171,40 @@ internal sealed class AppConfigurationService(
             : throw new ConfigurationException(
                 $"{label} boot ROM must be {expectedLength} bytes, but was {bytes.Length} bytes."
             );
+    }
+
+    private static string? ResolveBootRomPath(
+        string? proposedPath,
+        string? currentPath,
+        HardwareModel model,
+        string configDirectoryPath,
+        List<string> errors
+    )
+    {
+        try
+        {
+            _ = ReadBootRomFile(proposedPath, model, configDirectoryPath);
+            return proposedPath;
+        }
+        catch (ConfigurationException exception)
+        {
+            errors.Add(exception.Message);
+        }
+
+        if (string.Equals(proposedPath, currentPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        try
+        {
+            _ = ReadBootRomFile(currentPath, model, configDirectoryPath);
+            return currentPath;
+        }
+        catch (ConfigurationException)
+        {
+            return null;
+        }
     }
 
     private static InputConfig CopyInput(InputConfig input) =>
