@@ -157,7 +157,7 @@ public sealed class GameBoyTests
     public void Constructor_WithDmgBootRomStartsAtResetVector()
     {
         var cartridge = TestRomFactory.LoadCartridge();
-        var bootRom = CreateDmgBootRom(bytes => bytes[0x0000] = IncBOpcode);
+        var bootRom = BootRomTestFactory.CreateDmg(bytes => bytes[0x0000] = IncBOpcode);
 
         var gameBoy = new GameBoy(
             cartridge,
@@ -198,7 +198,7 @@ public sealed class GameBoyTests
     public void Step_UnmapsBootRomWhenFf50IsWritten()
     {
         var cartridge = TestRomFactory.LoadCartridge(bytes => bytes[0x0000] = HaltOpcode);
-        var bootRom = CreateDmgBootRom(bytes =>
+        var bootRom = BootRomTestFactory.CreateDmg(bytes =>
         {
             bytes[0x0000] = LoadAImmediate8Opcode;
             bytes[0x0001] = 0x01;
@@ -226,8 +226,8 @@ public sealed class GameBoyTests
     public void Constructor_CgbHardwareWithDmgCartridgeMapsCgbBootRom()
     {
         var cartridge = TestRomFactory.LoadCartridge(bytes => bytes[0x0100] = HaltOpcode);
-        var dmgBootRom = CreateDmgBootRom(bytes => bytes[0x0000] = IncBOpcode);
-        var cgbBootRom = CreateCgbBootRom(bytes =>
+        var dmgBootRom = BootRomTestFactory.CreateDmg(bytes => bytes[0x0000] = IncBOpcode);
+        var cgbBootRom = BootRomTestFactory.CreateCgb(bytes =>
         {
             bytes[0x0000] = LoadAImmediate8Opcode;
             bytes[0x0100] = StopOpcode;
@@ -270,7 +270,7 @@ public sealed class GameBoyTests
         var cartridge = TestRomFactory.LoadCartridge(
             CreateSgbRom(bytes => bytes[0x0000] = HaltOpcode)
         );
-        var dmgBootRom = CreateDmgBootRom(bytes => bytes[0x0000] = IncBOpcode);
+        var dmgBootRom = BootRomTestFactory.CreateDmg(bytes => bytes[0x0000] = IncBOpcode);
 
         var gameBoy = new GameBoy(
             cartridge,
@@ -290,8 +290,8 @@ public sealed class GameBoyTests
         var cartridge = TestRomFactory.LoadCartridge(
             CreateSgbRom(bytes => bytes[0x0000] = HaltOpcode)
         );
-        var dmgBootRom = CreateDmgBootRom(bytes => bytes[0x0000] = HaltOpcode);
-        var sgbBootRom = CreateSgbBootRom(bytes => bytes[0x0000] = IncBOpcode);
+        var dmgBootRom = BootRomTestFactory.CreateDmg(bytes => bytes[0x0000] = HaltOpcode);
+        var sgbBootRom = BootRomTestFactory.CreateSgb(bytes => bytes[0x0000] = IncBOpcode);
 
         var gameBoy = new GameBoy(
             cartridge,
@@ -360,7 +360,7 @@ public sealed class GameBoyTests
         Assert.Equal(160, frame.Width);
         Assert.Equal(144, frame.Height);
         Assert.Equal(160 * 144 * 2, frame.Pixels.Length);
-        AssertRgb555Pixel(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x1234);
+        Rgb555Assertions.PixelEquals(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x1234);
     }
 
     [Fact]
@@ -379,7 +379,7 @@ public sealed class GameBoyTests
         var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
 
         Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        AssertRgb555Pixel(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x1234);
+        Rgb555Assertions.PixelEquals(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x1234);
     }
 
     [Fact]
@@ -420,8 +420,8 @@ public sealed class GameBoyTests
         var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
 
         Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        AssertRgb555Pixel(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x6666);
-        AssertRgb555Pixel(frame, GameBoyPixelIndex(x: 8, y: 0), expected: 0x3333);
+        Rgb555Assertions.PixelEquals(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x6666);
+        Rgb555Assertions.PixelEquals(frame, GameBoyPixelIndex(x: 8, y: 0), expected: 0x3333);
     }
 
     [Fact]
@@ -446,8 +446,8 @@ public sealed class GameBoyTests
 
         var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
 
-        AssertRgb555Pixel(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x7777);
-        AssertRgb555Pixel(frame, GameBoyPixelIndex(x: 8, y: 0), expected: 0x3333);
+        Rgb555Assertions.PixelEquals(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x7777);
+        Rgb555Assertions.PixelEquals(frame, GameBoyPixelIndex(x: 8, y: 0), expected: 0x3333);
     }
 
     [Fact]
@@ -477,7 +477,7 @@ public sealed class GameBoyTests
 
         Assert.Equal(256, frame.Width);
         Assert.Equal(224, frame.Height);
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x1234);
+        Rgb555Assertions.PixelEquals(frame, pixelIndex: 0, expected: 0x1234);
     }
 
     [Fact]
@@ -557,7 +557,7 @@ public sealed class GameBoyTests
     public void Step_RendersBootRomFrameEvenWhenHostFrameSkippingIsEnabled()
     {
         var cartridge = TestRomFactory.LoadCartridge();
-        var bootRom = CreateDmgBootRom(bytes =>
+        var bootRom = BootRomTestFactory.CreateDmg(bytes =>
         {
             bytes[0x0000] = LoadAImmediate8Opcode;
             bytes[0x0001] = LcdControlEnabled;
@@ -590,7 +590,7 @@ public sealed class GameBoyTests
     public void Step_ClearsBootRomMappedStateWhenFf50IsWritten()
     {
         var cartridge = TestRomFactory.LoadCartridge(bytes => bytes[0x0000] = HaltOpcode);
-        var bootRom = CreateDmgBootRom(bytes =>
+        var bootRom = BootRomTestFactory.CreateDmg(bytes =>
         {
             bytes[0x0000] = LoadAImmediate8Opcode;
             bytes[0x0001] = 0x01;
@@ -609,27 +609,6 @@ public sealed class GameBoyTests
         gameBoy.Step();
 
         Assert.False(gameBoy.IsBootRomMapped);
-    }
-
-    private static byte[] CreateDmgBootRom(Action<byte[]> configure)
-    {
-        var bootRom = new byte[BootRomOptions.DmgBootRomSize];
-        configure(bootRom);
-        return bootRom;
-    }
-
-    private static byte[] CreateCgbBootRom(Action<byte[]> configure)
-    {
-        var bootRom = new byte[BootRomOptions.CgbBootRomSize];
-        configure(bootRom);
-        return bootRom;
-    }
-
-    private static byte[] CreateSgbBootRom(Action<byte[]> configure)
-    {
-        var bootRom = new byte[BootRomOptions.SgbBootRomSize];
-        configure(bootRom);
-        return bootRom;
     }
 
     private static byte[] CreateSgbRom(Action<byte[]>? configure = null) =>
@@ -805,14 +784,6 @@ public sealed class GameBoyTests
     {
         bytes[offset] = (byte)value;
         bytes[offset + 1] = (byte)(value >> 8);
-    }
-
-    private static void AssertRgb555Pixel(LcdFrame frame, int pixelIndex, ushort expected)
-    {
-        var pixels = frame.Pixels.Span;
-        var offset = pixelIndex * 2;
-        var actual = (ushort)(pixels[offset] | (pixels[offset + 1] << 8));
-        Assert.Equal(expected, actual);
     }
 
     private static int GameBoyPixelIndex(int x, int y) => (y * 160) + x;

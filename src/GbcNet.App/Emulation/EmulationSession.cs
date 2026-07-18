@@ -57,7 +57,7 @@ internal sealed class EmulationSession
         get => Volatile.Read(ref _isPaused) != 0;
         set
         {
-            Volatile.Write(ref _isPaused, value ? 1 : 0);
+            Volatile.Write(location: ref _isPaused, value: value ? 1 : 0);
 
             if (value)
             {
@@ -88,14 +88,14 @@ internal sealed class EmulationSession
 
     public async ValueTask StopAsync()
     {
-        if (Interlocked.Exchange(ref _isStopped, 1) == 0)
+        if (Interlocked.Exchange(location1: ref _isStopped, value: 1) == 0)
         {
             _gameBoy.FrameCompleted -= OnFrameCompleted;
             _pendingMachineOperations.Writer.TryComplete();
         }
 
         // Wait for the emulation loop to run its final save before the next session loads SRAM.
-        await _runTask.ConfigureAwait(false);
+        await _runTask.ConfigureAwait(continueOnCapturedContext: false);
     }
 
     public async Task PrepareToStopAsync()
@@ -114,8 +114,10 @@ internal sealed class EmulationSession
                     _batterySaveWriter.QueueSave(force: true);
                     return true;
                 })
-                .ConfigureAwait(false);
-            await _batterySaveWriter.FlushPendingAsync().ConfigureAwait(false);
+                .ConfigureAwait(continueOnCapturedContext: false);
+            await _batterySaveWriter
+                .FlushPendingAsync()
+                .ConfigureAwait(continueOnCapturedContext: false);
         }
         catch
         {
@@ -136,8 +138,8 @@ internal sealed class EmulationSession
             gameBoy.RestoreSaveState(state);
             _audioOutput.Clear();
             _batterySaveWriter?.QueueSave(force: true);
-            Volatile.Write(ref _videoFrameRenderRequested, 1);
-            Volatile.Write(ref _nextFastForwardFrameTimestamp, 0);
+            Volatile.Write(location: ref _videoFrameRenderRequested, value: 1);
+            Volatile.Write(location: ref _nextFastForwardFrameTimestamp, value: 0);
             _pacingResetRequested = true;
             return true;
         });
@@ -157,16 +159,18 @@ internal sealed class EmulationSession
         if (!Enum.IsDefined(speed))
         {
             throw new ArgumentOutOfRangeException(
-                nameof(speed),
-                speed,
-                "Fast-forward speed must be one of the supported GUI multipliers."
+                paramName: nameof(speed),
+                actualValue: speed,
+                message: "Fast-forward speed must be one of the supported GUI multipliers."
             );
         }
 
         var enabledChanged =
-            Interlocked.Exchange(ref _isFastForwardEnabled, enabled ? 1 : 0) != (enabled ? 1 : 0);
+            Interlocked.Exchange(location1: ref _isFastForwardEnabled, value: enabled ? 1 : 0)
+            != (enabled ? 1 : 0);
 
-        var speedChanged = Interlocked.Exchange(ref _fastForwardSpeed, (int)speed) != (int)speed;
+        var speedChanged =
+            Interlocked.Exchange(location1: ref _fastForwardSpeed, value: (int)speed) != (int)speed;
 
         if (!enabledChanged && !speedChanged)
         {
@@ -175,8 +179,8 @@ internal sealed class EmulationSession
 
         // Old pacing mode may have queued audio with obsolete timing.
         _audioOutput.Clear();
-        Volatile.Write(ref _videoFrameRenderRequested, 1);
-        Volatile.Write(ref _nextFastForwardFrameTimestamp, 0);
+        Volatile.Write(location: ref _videoFrameRenderRequested, value: 1);
+        Volatile.Write(location: ref _nextFastForwardFrameTimestamp, value: 0);
         Interlocked.Increment(ref _pacingRevision);
     }
 
@@ -186,11 +190,11 @@ internal sealed class EmulationSession
         long elapsedMachineCycles = 0;
         long nextSaveMachineCycles = MachineCyclesPerSaveFlush;
         EmulationPacingState pacing = new(
-            timestamp,
-            elapsedMachineCycles,
-            GetSpeedMultiplier(),
-            _gameBoy.CpuMachineCyclesPerSecond,
-            Volatile.Read(ref _pacingRevision)
+            timestamp: timestamp,
+            elapsedMachineCycles: elapsedMachineCycles,
+            speedMultiplier: GetSpeedMultiplier(),
+            cpuHz: _gameBoy.CpuMachineCyclesPerSecond,
+            revision: Volatile.Read(ref _pacingRevision)
         );
 
         Exception? fatalException = null;
@@ -207,18 +211,18 @@ internal sealed class EmulationSession
                     elapsedMachineCycles = 0;
                     nextSaveMachineCycles = MachineCyclesPerSaveFlush;
                     pacing = new(
-                        timestamp,
-                        elapsedMachineCycles,
-                        GetSpeedMultiplier(),
-                        _gameBoy.CpuMachineCyclesPerSecond,
-                        Volatile.Read(ref _pacingRevision)
+                        timestamp: timestamp,
+                        elapsedMachineCycles: elapsedMachineCycles,
+                        speedMultiplier: GetSpeedMultiplier(),
+                        cpuHz: _gameBoy.CpuMachineCyclesPerSecond,
+                        revision: Volatile.Read(ref _pacingRevision)
                     );
                 }
 
                 if (IsPaused)
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(16), CancellationToken.None)
-                        .ConfigureAwait(false);
+                        .ConfigureAwait(continueOnCapturedContext: false);
                     continue;
                 }
 
@@ -232,7 +236,7 @@ internal sealed class EmulationSession
                 if (stepMachineCycles == 0)
                 {
                     await Task.Delay(_stoppedCpuSleepInterval, CancellationToken.None)
-                        .ConfigureAwait(false);
+                        .ConfigureAwait(continueOnCapturedContext: false);
                     continue;
                 }
 
@@ -278,7 +282,7 @@ internal sealed class EmulationSession
                             ),
                             CancellationToken.None
                         )
-                        .ConfigureAwait(false);
+                        .ConfigureAwait(continueOnCapturedContext: false);
                     timestamp = Stopwatch.GetTimestamp();
                 }
 
@@ -293,7 +297,7 @@ internal sealed class EmulationSession
         }
         finally
         {
-            Interlocked.Exchange(ref _isStopped, 1);
+            Interlocked.Exchange(location1: ref _isStopped, value: 1);
             _pendingMachineOperations.Writer.TryComplete();
 
             FailPendingMachineOperations();
@@ -302,7 +306,9 @@ internal sealed class EmulationSession
             {
                 try
                 {
-                    await _batterySaveWriter.FlushAsync().ConfigureAwait(false);
+                    await _batterySaveWriter
+                        .FlushAsync()
+                        .ConfigureAwait(continueOnCapturedContext: false);
                 }
                 catch (Exception exception)
                     when (exception is IOException or InvalidOperationException)
@@ -423,7 +429,7 @@ internal sealed class EmulationSession
 
             if (enqueueOutput && drained > 0)
             {
-                _audioOutput.EnqueueSamples(_audioSamples.AsSpan(0, drained));
+                _audioOutput.EnqueueSamples(_audioSamples.AsSpan(start: 0, length: drained));
             }
         } while (drained == _audioSamples.Length);
     }
@@ -433,12 +439,12 @@ internal sealed class EmulationSession
         if (Volatile.Read(ref _isFastForwardEnabled) != 0)
         {
             Volatile.Write(
-                ref _nextFastForwardFrameTimestamp,
-                Stopwatch.GetTimestamp() + _fastForwardFrameIntervalTimestamp
+                location: ref _nextFastForwardFrameTimestamp,
+                value: Stopwatch.GetTimestamp() + _fastForwardFrameIntervalTimestamp
             );
         }
 
-        Volatile.Write(ref _videoFrameRenderRequested, 0);
+        Volatile.Write(location: ref _videoFrameRenderRequested, value: 0);
         _handleFrame(frame);
     }
 
@@ -455,7 +461,7 @@ internal sealed class EmulationSession
 
         if (timestamp >= Volatile.Read(ref _nextFastForwardFrameTimestamp))
         {
-            Volatile.Write(ref _videoFrameRenderRequested, 1);
+            Volatile.Write(location: ref _videoFrameRenderRequested, value: 1);
         }
     }
 

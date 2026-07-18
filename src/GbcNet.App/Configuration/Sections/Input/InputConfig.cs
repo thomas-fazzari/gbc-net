@@ -13,9 +13,6 @@ namespace GbcNet.App.Configuration.Sections.Input;
 /// </summary>
 internal sealed class InputConfig
 {
-    /// <summary>
-    /// Supported input configuration schema version.
-    /// </summary>
     public const int SupportedVersion = 2;
     public const string DefaultProfileName = "default";
 
@@ -26,12 +23,9 @@ internal sealed class InputConfig
     public GamepadInputConfig Gamepad { get; set; } = null!;
 }
 
-/// <summary>
-/// Validates loaded input config before it is converted to runtime bindings.
-/// </summary>
-internal static class InputConfigValidator
+internal static class InputConfigMetadata
 {
-    private static readonly IReadOnlyList<JoypadButton> RequiredKeyboardButtons =
+    public static readonly IReadOnlyList<JoypadButton> KeyboardButtons =
     [
         JoypadButton.Up,
         JoypadButton.Down,
@@ -43,7 +37,7 @@ internal static class InputConfigValidator
         JoypadButton.Select,
     ];
 
-    private static readonly IReadOnlyList<JoypadButton> RequiredGamepadButtons =
+    public static readonly IReadOnlyList<JoypadButton> GamepadButtons =
     [
         JoypadButton.A,
         JoypadButton.B,
@@ -51,20 +45,27 @@ internal static class InputConfigValidator
         JoypadButton.Select,
     ];
 
-    private static readonly HashSet<GamepadButton> AllowedGamepadControls =
-    [
-        GamepadButton.South,
-        GamepadButton.East,
-        GamepadButton.West,
-        GamepadButton.North,
-        GamepadButton.Back,
-        GamepadButton.Start,
-        GamepadButton.LeftStick,
-        GamepadButton.RightStick,
-        GamepadButton.LeftShoulder,
-        GamepadButton.RightShoulder,
-    ];
+    public static readonly IReadOnlySet<GamepadButton> AllowedGamepadControls =
+        new HashSet<GamepadButton>
+        {
+            GamepadButton.South,
+            GamepadButton.East,
+            GamepadButton.West,
+            GamepadButton.North,
+            GamepadButton.Back,
+            GamepadButton.Start,
+            GamepadButton.LeftStick,
+            GamepadButton.RightStick,
+            GamepadButton.LeftShoulder,
+            GamepadButton.RightShoulder,
+        };
+}
 
+/// <summary>
+/// Validates loaded input config before it is converted to runtime bindings.
+/// </summary>
+internal static class InputConfigValidator
+{
     public static bool IsReservedKey(Key key) => key is Key.Space or Key.Tab;
 
     public static IReadOnlyList<string> Validate(InputConfig config)
@@ -93,8 +94,8 @@ internal static class InputConfigValidator
         }
 
         ValidateProfiles(
-            "Keyboard",
-            config.ActiveProfile,
+            sectionName: "Keyboard",
+            activeProfile: config.ActiveProfile,
             config.Profiles,
             (name, profile) => ValidateKeyboardProfile(name, profile, errors),
             errors
@@ -110,8 +111,8 @@ internal static class InputConfigValidator
         }
 
         ValidateProfiles(
-            "Gamepad",
-            config.ActiveProfile,
+            sectionName: "Gamepad",
+            activeProfile: config.ActiveProfile,
             config.Profiles,
             (name, profile) => ValidateGamepadProfile(name, profile, errors),
             errors
@@ -153,7 +154,7 @@ internal static class InputConfigValidator
                 continue;
             }
 
-            if (!string.Equals(name, trimmedName, StringComparison.Ordinal))
+            if (!string.Equals(a: name, b: trimmedName, comparisonType: StringComparison.Ordinal))
             {
                 errors.Add($"{sectionName} profile name '{name}' must be trimmed.");
             }
@@ -164,14 +165,14 @@ internal static class InputConfigValidator
             }
 
             hasDefaultProfile |= string.Equals(
-                trimmedName,
-                InputConfig.DefaultProfileName,
-                StringComparison.OrdinalIgnoreCase
+                a: trimmedName,
+                b: InputConfig.DefaultProfileName,
+                comparisonType: StringComparison.OrdinalIgnoreCase
             );
             hasActiveProfile |= string.Equals(
-                trimmedName,
-                trimmedActiveProfile,
-                StringComparison.OrdinalIgnoreCase
+                a: trimmedName,
+                b: trimmedActiveProfile,
+                comparisonType: StringComparison.OrdinalIgnoreCase
             );
 
             validateProfile(trimmedName, profile);
@@ -188,7 +189,13 @@ internal static class InputConfigValidator
         {
             errors.Add($"{sectionName} active input profile must not be blank.");
         }
-        else if (!string.Equals(activeProfile, trimmedActiveProfile, StringComparison.Ordinal))
+        else if (
+            !string.Equals(
+                a: activeProfile,
+                b: trimmedActiveProfile,
+                comparisonType: StringComparison.Ordinal
+            )
+        )
         {
             errors.Add($"{sectionName} active input profile '{activeProfile}' must be trimmed.");
         }
@@ -210,10 +217,10 @@ internal static class InputConfigValidator
             return;
         }
 
-        if (profile.Bindings.Count != RequiredKeyboardButtons.Count)
+        if (profile.Bindings.Count != InputConfigMetadata.KeyboardButtons.Count)
         {
             errors.Add(
-                $"Keyboard profile '{profileName}' must contain exactly {RequiredKeyboardButtons.Count} bindings."
+                $"Keyboard profile '{profileName}' must contain exactly {InputConfigMetadata.KeyboardButtons.Count} bindings."
             );
         }
 
@@ -263,14 +270,13 @@ internal static class InputConfigValidator
             }
         }
 
-        foreach (
-            var button in RequiredKeyboardButtons.Where(button => !usedButtons.Contains(button))
-        )
-        {
-            errors.Add(
-                $"Keyboard profile '{profileName}' is missing joypad button '{Enum.GetName(button)}'."
-            );
-        }
+        errors.AddRange(
+            InputConfigMetadata
+                .KeyboardButtons.Where(button => !usedButtons.Contains(button))
+                .Select(button =>
+                    $"Keyboard profile '{profileName}' is missing joypad button '{Enum.GetName(value: button)}'."
+                )
+        );
     }
 
     private static void ValidateGamepadProfile(
@@ -285,10 +291,10 @@ internal static class InputConfigValidator
             return;
         }
 
-        if (profile.Bindings.Count != RequiredGamepadButtons.Count)
+        if (profile.Bindings.Count != InputConfigMetadata.GamepadButtons.Count)
         {
             errors.Add(
-                $"Gamepad profile '{profileName}' must contain exactly {RequiredGamepadButtons.Count} bindings."
+                $"Gamepad profile '{profileName}' must contain exactly {InputConfigMetadata.GamepadButtons.Count} bindings."
             );
         }
 
@@ -309,7 +315,7 @@ internal static class InputConfigValidator
                     $"Gamepad profile '{profileName}' has an unknown or non-canonical joypad button '{binding.ButtonName}'."
                 );
             }
-            else if (!RequiredGamepadButtons.Contains(button))
+            else if (!InputConfigMetadata.GamepadButtons.Contains(button))
             {
                 errors.Add(
                     $"Gamepad profile '{profileName}' cannot bind joypad button '{binding.ButtonName}'."
@@ -324,7 +330,7 @@ internal static class InputConfigValidator
 
             if (
                 !EnumParser.TryParseCanonicalName(binding.ControlName, out GamepadButton control)
-                || !AllowedGamepadControls.Contains(control)
+                || !InputConfigMetadata.AllowedGamepadControls.Contains(control)
             )
             {
                 errors.Add(
@@ -339,13 +345,12 @@ internal static class InputConfigValidator
             }
         }
 
-        foreach (
-            var button in RequiredGamepadButtons.Where(button => !usedButtons.Contains(button))
-        )
-        {
-            errors.Add(
-                $"Gamepad profile '{profileName}' is missing joypad button '{Enum.GetName(button)}'."
-            );
-        }
+        errors.AddRange(
+            InputConfigMetadata
+                .GamepadButtons.Where(button => !usedButtons.Contains(button))
+                .Select(button =>
+                    $"Gamepad profile '{profileName}' is missing joypad button '{Enum.GetName(value: button)}'."
+                )
+        );
     }
 }

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Clock;
@@ -186,7 +187,6 @@ public sealed class GameBoy
             );
         }
 
-        Bus.ValidateState(state.Bus);
         Bus.RestoreState(state.Bus);
         Cpu.RestoreState(state.Cpu);
     }
@@ -261,6 +261,19 @@ internal static class GameBoyStateCodec
 
     private static readonly JsonSerializerOptions _options = new()
     {
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver
+        {
+            Modifiers =
+            {
+                static typeInfo =>
+                {
+                    foreach (var property in typeInfo.Properties)
+                    {
+                        property.IsRequired = true;
+                    }
+                },
+            },
+        },
         UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow,
     };
 
@@ -283,11 +296,6 @@ internal static class GameBoyStateCodec
             }
 
             var payload = document.RootElement.Deserialize<GameBoyStatePayload>(_options);
-            using var normalized = JsonDocument.Parse(
-                JsonSerializer.SerializeToUtf8Bytes(payload, _options)
-            );
-
-            ValidateRequiredMembers(document.RootElement, normalized.RootElement);
 
             if (payload.FormatVersion != FormatVersion)
             {
@@ -301,49 +309,6 @@ internal static class GameBoyStateCodec
         catch (JsonException exception)
         {
             throw new InvalidDataException("Game Boy state payload is malformed.", exception);
-        }
-    }
-
-    private static void ValidateRequiredMembers(JsonElement input, JsonElement normalized)
-    {
-        if (input.ValueKind != normalized.ValueKind)
-        {
-            throw new JsonException("Save-state member has an invalid JSON type.");
-        }
-
-        if (normalized.ValueKind is JsonValueKind.Object)
-        {
-            foreach (var property in normalized.EnumerateObject())
-            {
-                if (!input.TryGetProperty(property.Name, out var inputProperty))
-                {
-                    throw new JsonException($"Save-state member '{property.Name}' is missing.");
-                }
-
-                ValidateRequiredMembers(inputProperty, property.Value);
-            }
-
-            return;
-        }
-
-        if (
-            normalized.ValueKind is not JsonValueKind.Array
-            || normalized.GetArrayLength() == 0
-            || normalized[0].ValueKind is not (JsonValueKind.Array or JsonValueKind.Object)
-        )
-        {
-            return;
-        }
-
-        var inputItems = input.EnumerateArray();
-        foreach (var normalizedItem in normalized.EnumerateArray())
-        {
-            if (!inputItems.MoveNext())
-            {
-                throw new JsonException("Save-state array member is missing.");
-            }
-
-            ValidateRequiredMembers(inputItems.Current, normalizedItem);
         }
     }
 }

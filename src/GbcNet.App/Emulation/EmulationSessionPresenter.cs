@@ -56,27 +56,25 @@ internal sealed class EmulationSessionPresenter(
 
     public async Task OpenRomAsync(IStorageProvider storageProvider)
     {
-        var files = await storageProvider
-            .OpenFilePickerAsync(
-                new FilePickerOpenOptions
-                {
-                    Title = "Open Game Boy ROM",
-                    AllowMultiple = false,
-                    FileTypeFilter = [_gameBoyRomFileType],
-                }
-            )
-            .ConfigureAwait(true);
+        var files = await storageProvider.OpenFilePickerAsync(
+            new FilePickerOpenOptions
+            {
+                Title = "Open Game Boy ROM",
+                AllowMultiple = false,
+                FileTypeFilter = [_gameBoyRomFileType],
+            }
+        );
 
         if (files.Count > 0)
         {
-            await OpenRomFileAsync(files[0]).ConfigureAwait(true);
+            await OpenRomFileAsync(files[0]);
         }
     }
 
     public async Task OpenRomFileAsync(IStorageFile file)
     {
         inputRouter.Clear();
-        var state = await controller.OpenRomFileAsync(file).ConfigureAwait(true);
+        var state = await controller.OpenRomFileAsync(file);
 
         _loadedRomCoverPath = null;
         ApplyRomActionResult(state);
@@ -102,7 +100,7 @@ internal sealed class EmulationSessionPresenter(
 
     public async Task OpenRecentRomAsync(IStorageProvider storageProvider, string path)
     {
-        var file = await storageProvider.TryGetFileFromPathAsync(path).ConfigureAwait(true);
+        var file = await storageProvider.TryGetFileFromPathAsync(path);
         if (file is null)
         {
             statusBar.ShowError($"Recent ROM not found: {path}");
@@ -120,18 +118,18 @@ internal sealed class EmulationSessionPresenter(
             return;
         }
 
-        await OpenRomFileAsync(file).ConfigureAwait(true);
+        await OpenRomFileAsync(file);
     }
 
     public async Task ResetAsync()
     {
         inputRouter.Clear();
-        ApplyRomActionResult(await controller.ResetAsync().ConfigureAwait(true));
+        ApplyRomActionResult(await controller.ResetAsync());
     }
 
     public async Task StopAsync()
     {
-        await controller.StopAsync().ConfigureAwait(true);
+        await controller.StopAsync();
         inputRouter.Clear();
         SyncMenuState();
         SessionClosed?.Invoke(this, EventArgs.Empty);
@@ -139,7 +137,7 @@ internal sealed class EmulationSessionPresenter(
 
     public async Task SaveStateAsync(int slot)
     {
-        await controller.SaveStateAsync(slot, CancellationToken.None).ConfigureAwait(true);
+        await controller.SaveStateAsync(slot, CancellationToken.None);
 
         SyncSaveStateDates();
     }

@@ -30,6 +30,7 @@ internal sealed class GbcNetApplication : Application
             using var startupLoggerFactory = LoggerFactory.Create(static builder =>
                 builder.AddDebug()
             );
+
             var startupConfiguration = StartupConfigurationLoader.Load(
                 UserDataPaths.ConfigFilePath,
                 startupLoggerFactory.CreateLogger(

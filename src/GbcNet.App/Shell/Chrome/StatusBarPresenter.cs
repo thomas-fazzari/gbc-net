@@ -72,7 +72,7 @@ internal sealed class StatusBarPresenter(
     private static string FormatStatusText(string text) =>
         text.Length <= RomFileNameMaxLength
             ? text
-            : $"{text.AsSpan(0, RomFileNameMaxLength - 3)}...";
+            : $"{text.AsSpan(start: 0, length: RomFileNameMaxLength - 3)}...";
 
     private void ShowCover(string? coverPath)
     {

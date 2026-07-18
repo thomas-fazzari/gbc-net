@@ -25,7 +25,13 @@ internal sealed class EmulationPacingState
         int revision
     )
     {
-        Reset(timestamp, elapsedMachineCycles, speedMultiplier, cpuHz, revision);
+        Reset(
+            timestamp: timestamp,
+            elapsedMachineCycles: elapsedMachineCycles,
+            speedMultiplier: speedMultiplier,
+            cpuHz: cpuHz,
+            revision: revision
+        );
     }
 
     public double SpeedMultiplier { get; private set; }
@@ -56,7 +62,13 @@ internal sealed class EmulationPacingState
             return false;
         }
 
-        Reset(timestamp, elapsedMachineCycles, speedMultiplier, cpuHz, revision);
+        Reset(
+            timestamp: timestamp,
+            elapsedMachineCycles: elapsedMachineCycles,
+            speedMultiplier: speedMultiplier,
+            cpuHz: cpuHz,
+            revision: revision
+        );
         return true;
     }
 
@@ -101,18 +113,18 @@ internal sealed class EmulationPacingState
         BaseTimestamp
         + (long)
             Math.Round(
-                (elapsedMachineCycles - BaseMachineCycles)
+                value: (elapsedMachineCycles - BaseMachineCycles)
                     * (Stopwatch.Frequency / (CpuHz * SpeedMultiplier)),
-                MidpointRounding.ToEven
+                mode: MidpointRounding.ToEven
             );
 
     private static long GetThrottleMachineCycles(int cpuHz, double speedMultiplier) =>
         Math.Max(
-            1,
-            (long)
+            val1: 1,
+            val2: (long)
                 Math.Round(
-                    cpuHz * speedMultiplier * ThrottleIntervalSeconds,
-                    MidpointRounding.ToEven
+                    value: cpuHz * speedMultiplier * ThrottleIntervalSeconds,
+                    mode: MidpointRounding.ToEven
                 )
         );
 }

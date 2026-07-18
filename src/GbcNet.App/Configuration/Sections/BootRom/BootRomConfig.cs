@@ -25,7 +25,11 @@ internal readonly record struct BootRomConfig(
             HardwareModel.Dmg => BootRomOptions.DmgBootRomSize,
             HardwareModel.Cgb => BootRomOptions.CgbBootRomSize,
             HardwareModel.Sgb => BootRomOptions.SgbBootRomSize,
-            _ => throw new ArgumentOutOfRangeException(nameof(model), model, message: null),
+            _ => throw new ArgumentOutOfRangeException(
+                paramName: nameof(model),
+                actualValue: model,
+                message: null
+            ),
         };
 
     public string? GetPath(HardwareModel model) =>
@@ -34,6 +38,10 @@ internal readonly record struct BootRomConfig(
             HardwareModel.Dmg => DmgPath,
             HardwareModel.Cgb => CgbPath,
             HardwareModel.Sgb => SgbPath,
-            _ => throw new ArgumentOutOfRangeException(nameof(model), model, message: null),
+            _ => throw new ArgumentOutOfRangeException(
+                paramName: nameof(model),
+                actualValue: model,
+                message: null
+            ),
         };
 }

@@ -80,9 +80,9 @@ internal sealed class EmulationController(
 
     public async Task<EmulationControllerState> OpenRomFileAsync(IStorageFile file)
     {
-        var rom = await ReadFileAsync(file).ConfigureAwait(true);
+        var rom = await ReadFileAsync(file);
         var (cartridge, savePath) = LoadCartridge(rom);
-        await StopAsync().ConfigureAwait(true);
+        await StopAsync();
 
         _loadedRom = rom;
         _loadedCartridgeHeader = cartridge.Header;
@@ -101,7 +101,7 @@ internal sealed class EmulationController(
         }
 
         var (cartridge, savePath) = LoadCartridge(_loadedRom);
-        await StopAsync().ConfigureAwait(true);
+        await StopAsync();
 
         _loadedCartridgeHeader = cartridge.Header;
         Start(cartridge, savePath);
@@ -116,9 +116,9 @@ internal sealed class EmulationController(
             return;
         }
 
-        await session.PrepareToStopAsync().ConfigureAwait(true);
+        await session.PrepareToStopAsync();
         _session = null;
-        await session.StopAsync().ConfigureAwait(true);
+        await session.StopAsync();
     }
 
     public async Task SaveStateAsync(int slot, CancellationToken cancellationToken = default)
@@ -126,13 +126,17 @@ internal sealed class EmulationController(
         cancellationToken.ThrowIfCancellationRequested();
 
         var (session, rom) = GetSaveStateTarget();
-        var state = await session.CaptureSaveStateAsync().ConfigureAwait(true);
+        var state = await session.CaptureSaveStateAsync();
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        await saveStateFileService
-            .SaveAsync(rom, slot, session.HardwareModel, state, cancellationToken)
-            .ConfigureAwait(true);
+        await saveStateFileService.SaveAsync(
+            rom,
+            slot,
+            session.HardwareModel,
+            state,
+            cancellationToken
+        );
     }
 
     public async Task LoadStateAsync(int slot, CancellationToken cancellationToken = default)
@@ -140,13 +144,16 @@ internal sealed class EmulationController(
         cancellationToken.ThrowIfCancellationRequested();
 
         var (session, rom) = GetSaveStateTarget();
-        var state = await saveStateFileService
-            .LoadAsync(rom, slot, session.HardwareModel, cancellationToken)
-            .ConfigureAwait(true);
+        var state = await saveStateFileService.LoadAsync(
+            rom,
+            slot,
+            session.HardwareModel,
+            cancellationToken
+        );
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        await session.RestoreSaveStateAsync(state).ConfigureAwait(true);
+        await session.RestoreSaveStateAsync(state);
     }
 
     public DateTime?[] GetSaveStateDates(int slotCount)
@@ -159,19 +166,21 @@ internal sealed class EmulationController(
         return
         [
             .. Enumerable
-                .Range(0, slotCount)
+                .Range(start: 0, count: slotCount)
                 .Select(slot => saveStateFileService.GetSaveStateDate(rom, slot)),
         ];
     }
 
     private static async Task<byte[]> ReadFileAsync(IStorageFile file)
     {
-        var stream = await file.OpenReadAsync().ConfigureAwait(false);
+        var stream = await file.OpenReadAsync().ConfigureAwait(continueOnCapturedContext: false);
         var memoryStream = new MemoryStream();
-        await using (stream.ConfigureAwait(false))
-        await using (memoryStream.ConfigureAwait(false))
+        await using (stream.ConfigureAwait(continueOnCapturedContext: false))
+        await using (memoryStream.ConfigureAwait(continueOnCapturedContext: false))
         {
-            await stream.CopyToAsync(memoryStream, CancellationToken.None).ConfigureAwait(false);
+            await stream
+                .CopyToAsync(memoryStream, CancellationToken.None)
+                .ConfigureAwait(continueOnCapturedContext: false);
             return memoryStream.ToArray();
         }
     }

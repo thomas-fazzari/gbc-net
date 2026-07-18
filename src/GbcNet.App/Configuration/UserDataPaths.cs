@@ -43,37 +43,46 @@ internal static class UserDataPaths
     public static string CoverDirectoryPath { get; } = GetCoverDirectoryPath();
 
     private static string GetConfigFilePath() =>
-        Path.Combine(GetConfigDirectoryPath(), ConfigFileName);
+        Path.Combine(path1: GetConfigDirectoryPath(), path2: ConfigFileName);
 
     private static string GetSaveDirectoryPath() =>
-        Path.Combine(GetDataDirectoryPath(), SaveDirectoryName);
+        Path.Combine(path1: GetDataDirectoryPath(), path2: SaveDirectoryName);
 
     private static string GetSaveStateDirectoryPath() =>
-        Path.Combine(GetDataDirectoryPath(), SaveStateDirectoryName);
+        Path.Combine(path1: GetDataDirectoryPath(), path2: SaveStateDirectoryName);
 
     private static string GetCoverDirectoryPath() =>
-        Path.Combine(GetDataDirectoryPath(), CoverDirectoryName);
+        Path.Combine(path1: GetDataDirectoryPath(), path2: CoverDirectoryName);
 
     private static string GetLibraryDatabasePath() =>
-        Path.Combine(GetDataDirectoryPath(), LibraryDatabaseFileName);
+        Path.Combine(path1: GetDataDirectoryPath(), path2: LibraryDatabaseFileName);
 
     private static string GetConfigDirectoryPath() =>
         OperatingSystem.IsMacOS() || OperatingSystem.IsWindows()
             ? Path.Combine(
-                GetKnownFolder(Environment.SpecialFolder.ApplicationData),
-                DesktopDirectoryName
+                path1: GetKnownFolder(Environment.SpecialFolder.ApplicationData),
+                path2: DesktopDirectoryName
             )
-            : Path.Combine(GetXdgDirectoryPath("XDG_CONFIG_HOME", ".config"), LinuxDirectoryName);
+            : Path.Combine(
+                path1: GetXdgDirectoryPath(
+                    environmentVariableName: "XDG_CONFIG_HOME",
+                    fallbackDirectoryName: ".config"
+                ),
+                path2: LinuxDirectoryName
+            );
 
     private static string GetDataDirectoryPath() =>
         OperatingSystem.IsMacOS() || OperatingSystem.IsWindows()
             ? Path.Combine(
-                GetKnownFolder(Environment.SpecialFolder.LocalApplicationData),
-                DesktopDirectoryName
+                path1: GetKnownFolder(Environment.SpecialFolder.LocalApplicationData),
+                path2: DesktopDirectoryName
             )
             : Path.Combine(
-                GetXdgDirectoryPath("XDG_DATA_HOME", Path.Combine(".local", "share")),
-                LinuxDirectoryName
+                path1: GetXdgDirectoryPath(
+                    environmentVariableName: "XDG_DATA_HOME",
+                    fallbackDirectoryName: Path.Combine(path1: ".local", path2: "share")
+                ),
+                path2: LinuxDirectoryName
             );
 
     private static string GetKnownFolder(Environment.SpecialFolder folder) =>
@@ -87,7 +96,7 @@ internal static class UserDataPaths
         var directoryPath = Environment.GetEnvironmentVariable(environmentVariableName);
 
         return string.IsNullOrWhiteSpace(directoryPath)
-            ? Path.Combine(GetUserProfilePath(), fallbackDirectoryName)
+            ? Path.Combine(path1: GetUserProfilePath(), path2: fallbackDirectoryName)
             : directoryPath;
     }
 

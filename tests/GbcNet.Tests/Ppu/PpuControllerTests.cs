@@ -702,7 +702,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
 
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x1234);
+        Rgb555Assertions.PixelEquals(frame, pixelIndex: 0, expected: 0x1234);
     }
 
     [Fact]
@@ -721,7 +721,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
 
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x03E0);
+        Rgb555Assertions.PixelEquals(frame, pixelIndex: 0, expected: 0x03E0);
     }
 
     [Fact]
@@ -737,7 +737,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
 
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x001F);
+        Rgb555Assertions.PixelEquals(frame, pixelIndex: 0, expected: 0x001F);
     }
 
     [Fact]
@@ -753,7 +753,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
 
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x7C00);
+        Rgb555Assertions.PixelEquals(frame, pixelIndex: 0, expected: 0x7C00);
     }
 
     [Fact]
@@ -769,7 +769,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
 
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x1234);
+        Rgb555Assertions.PixelEquals(frame, pixelIndex: 0, expected: 0x1234);
     }
 
     [Fact]
@@ -794,7 +794,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
 
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x03E0);
+        Rgb555Assertions.PixelEquals(frame, pixelIndex: 0, expected: 0x03E0);
     }
 
     [Fact]
@@ -817,7 +817,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
 
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x7C00);
+        Rgb555Assertions.PixelEquals(frame, pixelIndex: 0, expected: 0x7C00);
     }
 
     [Fact]
@@ -834,7 +834,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
 
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x1234);
+        Rgb555Assertions.PixelEquals(frame, pixelIndex: 0, expected: 0x1234);
     }
 
     [Fact]
@@ -852,7 +852,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
 
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: 0x7C00);
+        Rgb555Assertions.PixelEquals(frame, pixelIndex: 0, expected: 0x7C00);
     }
 
     [Fact]
@@ -870,7 +870,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
 
-        AssertRgb555Pixel(frame, pixelIndex: 6, expected: 0x001F);
+        Rgb555Assertions.PixelEquals(frame, pixelIndex: 6, expected: 0x001F);
     }
 
     [Fact]
@@ -889,7 +889,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
 
-        AssertRgb555Pixel(frame, pixelIndex: 6, expected: 0x03E0);
+        Rgb555Assertions.PixelEquals(frame, pixelIndex: 6, expected: 0x03E0);
     }
 
     [Fact]
@@ -920,7 +920,11 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
 
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: CompatibilityBackgroundDarkRgb555);
+        Rgb555Assertions.PixelEquals(
+            frame,
+            pixelIndex: 0,
+            expected: CompatibilityBackgroundDarkRgb555
+        );
     }
 
     [Fact]
@@ -936,8 +940,8 @@ public sealed class PpuControllerTests
 
         var frame = RenderSecondFrame(ppu, LcdEnable | ObjectEnable | UnsignedBackgroundTileData);
 
-        AssertRgb555Pixel(frame, pixelIndex: 0, expected: CompatibilityObjectDarkRgb555);
-        AssertRgb555Pixel(frame, pixelIndex: 8, expected: 0x0000);
+        Rgb555Assertions.PixelEquals(frame, pixelIndex: 0, expected: CompatibilityObjectDarkRgb555);
+        Rgb555Assertions.PixelEquals(frame, pixelIndex: 8, expected: 0x0000);
     }
 
     [Fact]
@@ -1233,15 +1237,6 @@ public sealed class PpuControllerTests
         ppu.WriteRegister(AddressMap.ObjectPaletteDataRegister, (byte)rgb555);
         ppu.WriteRegister(AddressMap.ObjectPaletteIndexRegister, (byte)(offset + 1));
         ppu.WriteRegister(AddressMap.ObjectPaletteDataRegister, (byte)(rgb555 >> 8));
-    }
-
-    private static void AssertRgb555Pixel(LcdFrame frame, int pixelIndex, ushort expected)
-    {
-        Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        var pixels = frame.Pixels.Span;
-        var offset = pixelIndex * 2;
-        Assert.Equal((byte)expected, pixels[offset]);
-        Assert.Equal((byte)(expected >> 8), pixels[offset + 1]);
     }
 
     private static void WriteObjectAttributes(

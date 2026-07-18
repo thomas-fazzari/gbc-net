@@ -26,54 +26,8 @@ internal sealed partial class SettingsWindow : Window
         AppleUniformTypeIdentifiers = ["public.data"],
         MimeTypes = ["application/octet-stream"],
     };
-
-    private static readonly IReadOnlyList<JoypadButton> _keyboardButtons =
-    [
-        JoypadButton.Up,
-        JoypadButton.Down,
-        JoypadButton.Left,
-        JoypadButton.Right,
-        JoypadButton.A,
-        JoypadButton.B,
-        JoypadButton.Start,
-        JoypadButton.Select,
-    ];
-
-    private static readonly IReadOnlyList<JoypadButton> _gamepadButtons =
-    [
-        JoypadButton.A,
-        JoypadButton.B,
-        JoypadButton.Start,
-        JoypadButton.Select,
-    ];
-
     private readonly InputConfigDraft _inputDraft;
     private readonly GamepadManager _gamepadManager;
-    private readonly Grid _bootRomPage;
-    private readonly Grid _inputsPage;
-    private readonly Grid _keyboardInputPage;
-    private readonly Grid _gamepadInputPage;
-    private readonly Button _bootRomNavButton;
-    private readonly Button _inputsNavButton;
-    private readonly Button _keyboardInputTabButton;
-    private readonly Button _gamepadInputTabButton;
-    private readonly ListBox _profileListBox;
-    private readonly Grid _nameEditorPanel;
-    private readonly TextBox _profileNameTextBox;
-    private readonly TextBlock _profileErrorTextBlock;
-    private readonly TextBlock _inputValidationSummaryTextBlock;
-    private readonly TextBlock _profileRailHelpTextBlock;
-    private readonly StackPanel _keyboardBindingsPanel;
-    private readonly StackPanel _gamepadBindingsPanel;
-    private readonly ComboBox _gamepadDeviceSelector;
-    private readonly TextBlock _gamepadAvailabilityTextBlock;
-    private readonly TextBlock _gamepadNoDevicesTextBlock;
-    private readonly TextBlock _gamepadUnsupportedTextBlock;
-    private readonly Button _newProfileButton;
-    private readonly Button _renameProfileButton;
-    private readonly Button _deleteProfileButton;
-    private readonly Button _setActiveProfileButton;
-    private readonly Button _saveButton;
     private readonly Dictionary<JoypadButton, Button> _keyboardCaptureButtons = [];
     private readonly Dictionary<JoypadButton, TextBlock> _keyboardCaptureErrors = [];
     private readonly Dictionary<JoypadButton, Button> _gamepadCaptureButtons = [];
@@ -92,43 +46,23 @@ internal sealed partial class SettingsWindow : Window
         InitializeComponent();
 
         _gamepadManager = gamepadManager;
-        _bootRomPage = this.FindControl<Grid>("BootRomPage")!;
-        _inputsPage = this.FindControl<Grid>("InputsPage")!;
-        _keyboardInputPage = this.FindControl<Grid>("KeyboardInputPage")!;
-        _gamepadInputPage = this.FindControl<Grid>("GamepadInputPage")!;
-        _bootRomNavButton = this.FindControl<Button>("BootRomNavButton")!;
-        _inputsNavButton = this.FindControl<Button>("InputsNavButton")!;
-        _keyboardInputTabButton = this.FindControl<Button>("KeyboardInputTabButton")!;
-        _gamepadInputTabButton = this.FindControl<Button>("GamepadInputTabButton")!;
-        _profileListBox = this.FindControl<ListBox>("ProfileListBox")!;
-        _nameEditorPanel = this.FindControl<Grid>("NameEditorPanel")!;
-        _profileNameTextBox = this.FindControl<TextBox>("ProfileNameTextBox")!;
-        _profileErrorTextBlock = this.FindControl<TextBlock>("ProfileErrorTextBlock")!;
-        _inputValidationSummaryTextBlock = this.FindControl<TextBlock>(
-            "InputValidationSummaryTextBlock"
-        )!;
-        _profileRailHelpTextBlock = this.FindControl<TextBlock>("ProfileRailHelpTextBlock")!;
-        _keyboardBindingsPanel = this.FindControl<StackPanel>("KeyboardBindingsPanel")!;
-        _gamepadBindingsPanel = this.FindControl<StackPanel>("GamepadBindingsPanel")!;
-        _gamepadDeviceSelector = this.FindControl<ComboBox>("GamepadDeviceSelector")!;
-        _gamepadAvailabilityTextBlock = this.FindControl<TextBlock>(
-            "GamepadAvailabilityTextBlock"
-        )!;
-        _gamepadNoDevicesTextBlock = this.FindControl<TextBlock>("GamepadNoDevicesTextBlock")!;
-        _gamepadUnsupportedTextBlock = this.FindControl<TextBlock>("GamepadUnsupportedTextBlock")!;
-        _newProfileButton = this.FindControl<Button>("NewProfileButton")!;
-        _renameProfileButton = this.FindControl<Button>("RenameProfileButton")!;
-        _deleteProfileButton = this.FindControl<Button>("DeleteProfileButton")!;
-        _setActiveProfileButton = this.FindControl<Button>("SetActiveProfileButton")!;
-        _saveButton = this.FindControl<Button>("SaveButton")!;
 
         _inputDraft = new InputConfigDraft(settings.Input);
         DmgBootRomPathTextBox.Text = settings.BootRoms.DmgPath;
         CgbBootRomPathTextBox.Text = settings.BootRoms.CgbPath;
         SgbBootRomPathTextBox.Text = settings.BootRoms.SgbPath;
 
-        BuildBindingRows(InputTab.Keyboard, _keyboardButtons, _keyboardBindingsPanel);
-        BuildBindingRows(InputTab.Gamepad, _gamepadButtons, _gamepadBindingsPanel);
+        BuildBindingRows(
+            InputTab.Keyboard,
+            InputConfigMetadata.KeyboardButtons,
+            KeyboardBindingsPanel
+        );
+        BuildBindingRows(
+            InputTab.Gamepad,
+            InputConfigMetadata.GamepadButtons,
+            GamepadBindingsPanel
+        );
+
         _gamepadManager.DevicesChanged += HandleGamepadDevicesChanged;
         _gamepadManager.AllowedButtonPressed += HandleAllowedGamepadButtonPressed;
         Closed += OnSettingsClosed;
@@ -152,19 +86,19 @@ internal sealed partial class SettingsWindow : Window
     private void ShowBootRomPage(object? sender, RoutedEventArgs e)
     {
         CancelTransientEdits();
-        _bootRomPage.IsVisible = true;
-        _inputsPage.IsVisible = false;
-        _bootRomNavButton.Classes.Set("selected", value: true);
-        _inputsNavButton.Classes.Set("selected", false);
+        BootRomPage.IsVisible = true;
+        InputsPage.IsVisible = false;
+        BootRomNavButton.Classes.Set(name: "selected", value: true);
+        InputsNavButton.Classes.Set(name: "selected", value: false);
     }
 
     private void ShowInputsPage(object? sender, RoutedEventArgs e)
     {
         CancelTransientEdits();
-        _bootRomPage.IsVisible = false;
-        _inputsPage.IsVisible = true;
-        _bootRomNavButton.Classes.Set("selected", false);
-        _inputsNavButton.Classes.Set("selected", true);
+        BootRomPage.IsVisible = false;
+        InputsPage.IsVisible = true;
+        BootRomNavButton.Classes.Set(name: "selected", value: false);
+        InputsNavButton.Classes.Set(name: "selected", value: true);
         SelectInputTab(InputTab.Keyboard);
     }
 
@@ -179,17 +113,17 @@ internal sealed partial class SettingsWindow : Window
         CancelTransientEdits();
         _activeInputTab = tab;
         var isKeyboard = tab == InputTab.Keyboard;
-        _keyboardInputPage.IsVisible = isKeyboard;
-        _gamepadInputPage.IsVisible = !isKeyboard;
-        _keyboardInputTabButton.Classes.Set("selected", isKeyboard);
-        _gamepadInputTabButton.Classes.Set("selected", !isKeyboard);
-        _profileRailHelpTextBlock.Text = isKeyboard
+        KeyboardInputPage.IsVisible = isKeyboard;
+        GamepadInputPage.IsVisible = !isKeyboard;
+        KeyboardInputTabButton.Classes.Set(name: "selected", value: isKeyboard);
+        GamepadInputTabButton.Classes.Set(name: "selected", value: !isKeyboard);
+        ProfileRailHelpTextBlock.Text = isKeyboard
             ? "Select a keyboard profile to edit."
             : "Select a gamepad profile to edit.";
-        _profileListBox[AutomationProperties.NameProperty] = isKeyboard
+        ProfileListBox[property: AutomationProperties.NameProperty] = isKeyboard
             ? "Keyboard input profiles"
             : "Gamepad input profiles";
-        _profileListBox[AutomationProperties.HelpTextProperty] = isKeyboard
+        ProfileListBox[property: AutomationProperties.HelpTextProperty] = isKeyboard
             ? "Select a keyboard profile to edit. Selection does not activate it."
             : "Select a gamepad profile to edit. Selection does not activate it.";
         RefreshInputUi();
@@ -197,24 +131,21 @@ internal sealed partial class SettingsWindow : Window
 
     private async void BrowseDmgBootRomPathAsync(object? sender, RoutedEventArgs e) =>
         await BrowseBootRomAsync(
-                DmgBootRomPathTextBox,
-                $"Select {BootRomConfig.DisplayName(HardwareModel.Dmg)} boot ROM"
-            )
-            .ConfigureAwait(true);
+            DmgBootRomPathTextBox,
+            $"Select {BootRomConfig.DisplayName(HardwareModel.Dmg)} boot ROM"
+        );
 
     private async void BrowseCgbBootRomPathAsync(object? sender, RoutedEventArgs e) =>
         await BrowseBootRomAsync(
-                CgbBootRomPathTextBox,
-                $"Select {BootRomConfig.DisplayName(HardwareModel.Cgb)} boot ROM"
-            )
-            .ConfigureAwait(true);
+            CgbBootRomPathTextBox,
+            $"Select {BootRomConfig.DisplayName(HardwareModel.Cgb)} boot ROM"
+        );
 
     private async void BrowseSgbBootRomPathAsync(object? sender, RoutedEventArgs e) =>
         await BrowseBootRomAsync(
-                SgbBootRomPathTextBox,
-                $"Select {BootRomConfig.DisplayName(HardwareModel.Sgb)} boot ROM"
-            )
-            .ConfigureAwait(true);
+            SgbBootRomPathTextBox,
+            $"Select {BootRomConfig.DisplayName(HardwareModel.Sgb)} boot ROM"
+        );
 
     private void ClearDmgBootRomPath(object? sender, RoutedEventArgs e) =>
         DmgBootRomPathTextBox.Text = string.Empty;
@@ -225,7 +156,7 @@ internal sealed partial class SettingsWindow : Window
     private void ClearSgbBootRomPath(object? sender, RoutedEventArgs e) =>
         SgbBootRomPathTextBox.Text = string.Empty;
 
-    private void CancelSettings(object? sender, RoutedEventArgs e) => Close(null);
+    private void CancelSettings(object? sender, RoutedEventArgs e) => Close(dialogResult: null);
 
     private void SaveSettings(object? sender, RoutedEventArgs e)
     {
@@ -237,8 +168,8 @@ internal sealed partial class SettingsWindow : Window
         var errors = _inputDraft.Validate();
         if (errors.Count != 0)
         {
-            _inputValidationSummaryTextBlock.Text = string.Join(Environment.NewLine, errors);
-            _inputValidationSummaryTextBlock.IsVisible = true;
+            InputValidationSummaryTextBlock.Text = string.Join(Environment.NewLine, errors);
+            InputValidationSummaryTextBlock.IsVisible = true;
             return;
         }
 
@@ -247,16 +178,14 @@ internal sealed partial class SettingsWindow : Window
 
     private async Task BrowseBootRomAsync(TextBox pathBox, string title)
     {
-        var files = await StorageProvider
-            .OpenFilePickerAsync(
-                new FilePickerOpenOptions
-                {
-                    Title = title,
-                    AllowMultiple = false,
-                    FileTypeFilter = [_binaryFileType],
-                }
-            )
-            .ConfigureAwait(true);
+        var files = await StorageProvider.OpenFilePickerAsync(
+            new FilePickerOpenOptions
+            {
+                Title = title,
+                AllowMultiple = false,
+                FileTypeFilter = [_binaryFileType],
+            }
+        );
 
         if (files.Count != 0)
         {
@@ -270,7 +199,7 @@ internal sealed partial class SettingsWindow : Window
     {
         if (
             _refreshingProfiles
-            || _profileListBox.SelectedItem is not ListBoxItem { Tag: string name }
+            || ProfileListBox.SelectedItem is not ListBoxItem { Tag: string name }
         )
         {
             return;
@@ -287,7 +216,7 @@ internal sealed partial class SettingsWindow : Window
     }
 
     private void StartNewProfile(object? sender, RoutedEventArgs e) =>
-        StartNameEdit(NameEditMode.Create, string.Empty);
+        StartNameEdit(NameEditMode.Create, name: string.Empty);
 
     private void StartRenameProfile(object? sender, RoutedEventArgs e) =>
         StartNameEdit(NameEditMode.Rename, SelectedProfileName);
@@ -296,24 +225,24 @@ internal sealed partial class SettingsWindow : Window
     {
         CancelCapture();
         _nameEditMode = mode;
-        _profileNameTextBox.Text = name;
-        _nameEditorPanel.IsVisible = true;
-        _profileErrorTextBlock.IsVisible = false;
+        ProfileNameTextBox.Text = name;
+        NameEditorPanel.IsVisible = true;
+        ProfileErrorTextBlock.IsVisible = false;
         RefreshActionStates();
-        _profileNameTextBox.Focus();
-        _profileNameTextBox.SelectAll();
+        ProfileNameTextBox.Focus();
+        ProfileNameTextBox.SelectAll();
     }
 
     private void CommitProfileNameEdit(object? sender, RoutedEventArgs e) => CommitNameEdit();
 
     private void HandleProfileNameKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter)
+        if (e.Key is Key.Enter)
         {
             CommitNameEdit();
             e.Handled = true;
         }
-        else if (e.Key == Key.Escape)
+        else if (e.Key is Key.Escape)
         {
             CancelNameEdit();
             e.Handled = true;
@@ -325,11 +254,11 @@ internal sealed partial class SettingsWindow : Window
         var result = _nameEditMode switch
         {
             NameEditMode.Create => _activeInputTab == InputTab.Keyboard
-                ? _inputDraft.CreateKeyboardProfile(_profileNameTextBox.Text)
-                : _inputDraft.CreateGamepadProfile(_profileNameTextBox.Text),
+                ? _inputDraft.CreateKeyboardProfile(ProfileNameTextBox.Text)
+                : _inputDraft.CreateGamepadProfile(ProfileNameTextBox.Text),
             NameEditMode.Rename => _activeInputTab == InputTab.Keyboard
-                ? _inputDraft.RenameKeyboardProfile(SelectedProfileName, _profileNameTextBox.Text)
-                : _inputDraft.RenameGamepadProfile(SelectedProfileName, _profileNameTextBox.Text),
+                ? _inputDraft.RenameKeyboardProfile(SelectedProfileName, ProfileNameTextBox.Text)
+                : _inputDraft.RenameGamepadProfile(SelectedProfileName, ProfileNameTextBox.Text),
             _ => InputEditResult.Success(),
         };
 
@@ -349,10 +278,10 @@ internal sealed partial class SettingsWindow : Window
     private void CancelNameEdit(bool clearError = true)
     {
         _nameEditMode = NameEditMode.None;
-        _nameEditorPanel.IsVisible = false;
+        NameEditorPanel.IsVisible = false;
         if (clearError)
         {
-            _profileErrorTextBlock.IsVisible = false;
+            ProfileErrorTextBlock.IsVisible = false;
         }
 
         RefreshActionStates();
@@ -362,7 +291,14 @@ internal sealed partial class SettingsWindow : Window
     {
         CancelTransientEdits();
         var name = SelectedProfileName;
-        if (!await new DeleteInputProfileWindow(name).ShowDialog<bool>(this).ConfigureAwait(true))
+        if (
+            !await new DestructiveConfirmationWindow(
+                title: "Delete input profile",
+                heading: "Delete this input profile?",
+                message: $"Profile '{name}' will be removed from this settings draft.",
+                destructiveButtonLabel: "Delete"
+            ).ShowDialog<bool>(this)
+        )
         {
             return;
         }
@@ -410,7 +346,7 @@ internal sealed partial class SettingsWindow : Window
             {
                 Classes = { "error" },
                 IsVisible = false,
-                Margin = new Thickness(0, 4, 0, 0),
+                Margin = new Thickness(left: 0, top: 4, right: 0, bottom: 0),
             };
 
             bindingPanel.Children.Add(
@@ -456,7 +392,7 @@ internal sealed partial class SettingsWindow : Window
 
         CancelCapture();
         _captureTarget = target;
-        captureButton.Classes.Set("capturing", value: true);
+        captureButton.Classes.Set(name: "capturing", value: true);
         captureButton.Content =
             target.Tab == InputTab.Keyboard ? "Press a key…" : "Press a button…";
         SetCaptureError(target, error: null);
@@ -486,7 +422,7 @@ internal sealed partial class SettingsWindow : Window
         if (!result.Succeeded)
         {
             SetCaptureError(target, result.ErrorMessage);
-            _keyboardCaptureButtons[target.Button].Classes.Set("error", true);
+            _keyboardCaptureButtons[target.Button].Classes.Set(name: "error", value: true);
             return;
         }
 
@@ -514,7 +450,7 @@ internal sealed partial class SettingsWindow : Window
         if (!result.Succeeded)
         {
             SetCaptureError(target, result.ErrorMessage);
-            _gamepadCaptureButtons[target.Button].Classes.Set("error", true);
+            _gamepadCaptureButtons[target.Button].Classes.Set(name: "error", value: true);
             return;
         }
 
@@ -535,7 +471,7 @@ internal sealed partial class SettingsWindow : Window
         }
 
         _captureTarget = null;
-        CaptureButtons(target.Tab)[target.Button].Classes.Set("capturing", false);
+        CaptureButtons(target.Tab)[target.Button].Classes.Set(name: "capturing", value: false);
         RefreshBindings(target.Tab);
         RefreshActionStates();
     }
@@ -557,17 +493,17 @@ internal sealed partial class SettingsWindow : Window
     private void RefreshProfiles()
     {
         _refreshingProfiles = true;
-        _profileListBox.SelectionChanged -= SelectInputProfile;
+        ProfileListBox.SelectionChanged -= SelectInputProfile;
         try
         {
-            _profileListBox.Items.Clear();
+            ProfileListBox.Items.Clear();
             foreach (var profile in CurrentProfiles)
             {
                 var item = new ListBoxItem
                 {
                     Tag = profile.Name,
                     IsSelected = profile.IsSelected,
-                    Padding = new Thickness(8, 6),
+                    Padding = new Thickness(horizontal: 8, vertical: 6),
                     HorizontalContentAlignment = HorizontalAlignment.Stretch,
                     Content = new Grid
                     {
@@ -591,12 +527,12 @@ internal sealed partial class SettingsWindow : Window
                     },
                 };
                 Grid.SetColumn(((Grid)item.Content).Children[1], 1);
-                _profileListBox.Items.Add(item);
+                ProfileListBox.Items.Add(item);
             }
         }
         finally
         {
-            _profileListBox.SelectionChanged += SelectInputProfile;
+            ProfileListBox.SelectionChanged += SelectInputProfile;
             _refreshingProfiles = false;
         }
     }
@@ -608,7 +544,11 @@ internal sealed partial class SettingsWindow : Window
             tab == InputTab.Keyboard
                 ? _inputDraft.KeyboardBindingConflicts
                 : _inputDraft.GamepadBindingConflicts;
-        foreach (var button in tab == InputTab.Keyboard ? _keyboardButtons : _gamepadButtons)
+        foreach (
+            var button in tab == InputTab.Keyboard
+                ? InputConfigMetadata.KeyboardButtons
+                : InputConfigMetadata.GamepadButtons
+        )
         {
             var target = new CaptureTarget(tab, button);
             var captureButton = CaptureButtons(tab)[button];
@@ -616,16 +556,17 @@ internal sealed partial class SettingsWindow : Window
                 tab == InputTab.Keyboard
                     ? _inputDraft.GetKeyboardBinding(profileName, button).ToString()
                     : DisplayGamepadButton(_inputDraft.GetGamepadBinding(profileName, button));
-            captureButton.Classes.Set("error", conflicts.Contains(button));
-            captureButton.Classes.Set("capturing", _captureTarget == target);
+            captureButton.Classes.Set(name: "error", value: conflicts.Contains(button));
+            captureButton.Classes.Set(name: "capturing", value: _captureTarget == target);
             captureButton.IsEnabled =
                 !IsNameEditing && (tab == InputTab.Keyboard || CanCaptureGamepad);
-            captureButton[AutomationProperties.NameProperty] =
+            captureButton[property: AutomationProperties.NameProperty] =
                 tab == InputTab.Keyboard
                     ? $"Capture {DisplayJoypadButton(button)} key"
                     : $"Capture {DisplayJoypadButton(button)} gamepad button";
-            captureButton[AutomationProperties.AutomationIdProperty] = $"{tab}Binding{button}";
-            captureButton[AutomationProperties.HelpTextProperty] =
+            captureButton[property: AutomationProperties.AutomationIdProperty] =
+                $"{tab}Binding{button}";
+            captureButton[property: AutomationProperties.HelpTextProperty] =
                 tab == InputTab.Keyboard
                     ? "Press Enter or Space to start key capture; press Escape to cancel."
                     : "Press Enter or Space to start button capture; press Escape to cancel.";
@@ -641,52 +582,52 @@ internal sealed partial class SettingsWindow : Window
     private void RefreshGamepadDevices()
     {
         _refreshingDevices = true;
-        _gamepadDeviceSelector.SelectionChanged -= SelectGamepadDevice;
+        GamepadDeviceSelector.SelectionChanged -= SelectGamepadDevice;
         try
         {
-            _gamepadDeviceSelector.Items.Clear();
+            GamepadDeviceSelector.Items.Clear();
             foreach (var device in _gamepadManager.ConnectedDevices)
             {
-                _gamepadDeviceSelector.Items.Add(
+                GamepadDeviceSelector.Items.Add(
                     new ComboBoxItem { Tag = device.DeviceId, Content = device.DisplayLabel }
                 );
             }
 
-            _gamepadDeviceSelector.SelectedItem = _gamepadDeviceSelector
+            GamepadDeviceSelector.SelectedItem = GamepadDeviceSelector
                 .Items.OfType<ComboBoxItem>()
                 .FirstOrDefault(item =>
                     item.Tag is uint id && id == _gamepadManager.SelectedDeviceId
                 );
-            _gamepadDeviceSelector.IsEnabled =
+            GamepadDeviceSelector.IsEnabled =
                 _gamepadManager.IsAvailable && _gamepadManager.ConnectedDevices.Length != 0;
 
             if (_gamepadManager.IsAvailable)
             {
-                _gamepadAvailabilityTextBlock.Text = string.Empty;
+                GamepadAvailabilityTextBlock.Text = string.Empty;
             }
             else if (_gamepadManager.AvailabilityError is { Length: > 0 } error)
             {
-                _gamepadAvailabilityTextBlock.Text = $"Gamepad input is unavailable: {error}";
+                GamepadAvailabilityTextBlock.Text = $"Gamepad input is unavailable: {error}";
             }
             else
             {
-                _gamepadAvailabilityTextBlock.Text = "Gamepad input is unavailable.";
+                GamepadAvailabilityTextBlock.Text = "Gamepad input is unavailable.";
             }
-            _gamepadAvailabilityTextBlock.IsVisible = !_gamepadManager.IsAvailable;
-            _gamepadNoDevicesTextBlock.Text =
+            GamepadAvailabilityTextBlock.IsVisible = !_gamepadManager.IsAvailable;
+            GamepadNoDevicesTextBlock.Text =
                 "No supported gamepad is connected. Profiles remain editable.";
-            _gamepadNoDevicesTextBlock.IsVisible =
-                _gamepadManager.IsAvailable && _gamepadManager.ConnectedDevices.Length == 0;
-            _gamepadUnsupportedTextBlock.Text =
+            GamepadNoDevicesTextBlock.IsVisible =
+                _gamepadManager is { IsAvailable: true, ConnectedDevices.Length: 0 };
+            GamepadUnsupportedTextBlock.Text =
                 _gamepadManager.UnsupportedJoystickNames.Length == 0
                     ? string.Empty
                     : $"Unsupported connected devices: {string.Join(", ", _gamepadManager.UnsupportedJoystickNames)}.";
-            _gamepadUnsupportedTextBlock.IsVisible =
+            GamepadUnsupportedTextBlock.IsVisible =
                 _gamepadManager.UnsupportedJoystickNames.Length != 0;
         }
         finally
         {
-            _gamepadDeviceSelector.SelectionChanged += SelectGamepadDevice;
+            GamepadDeviceSelector.SelectionChanged += SelectGamepadDevice;
             _refreshingDevices = false;
         }
     }
@@ -700,7 +641,7 @@ internal sealed partial class SettingsWindow : Window
 
         CancelCapture();
         _gamepadManager.SetSelectedDevice(
-            _gamepadDeviceSelector.SelectedItem is ComboBoxItem { Tag: uint id } ? id : null
+            GamepadDeviceSelector.SelectedItem is ComboBoxItem { Tag: uint id } ? id : null
         );
         RefreshBindings(InputTab.Gamepad);
     }
@@ -720,29 +661,29 @@ internal sealed partial class SettingsWindow : Window
     {
         var selected = SelectedProfileName;
         var isDefault = string.Equals(
-            selected,
-            InputConfig.DefaultProfileName,
-            StringComparison.OrdinalIgnoreCase
+            a: selected,
+            b: InputConfig.DefaultProfileName,
+            comparisonType: StringComparison.OrdinalIgnoreCase
         );
         var isActive = string.Equals(
-            selected,
-            ActiveProfileName,
-            StringComparison.OrdinalIgnoreCase
+            a: selected,
+            b: ActiveProfileName,
+            comparisonType: StringComparison.OrdinalIgnoreCase
         );
         var locked = HasTransientEdit;
 
-        _newProfileButton.IsEnabled = !locked;
-        _renameProfileButton.IsEnabled = !locked && !isDefault;
-        _deleteProfileButton.IsEnabled = !locked && !isDefault && !isActive;
-        _setActiveProfileButton.IsEnabled = !locked && !isActive;
-        _profileListBox.IsEnabled = !IsNameEditing;
-        _saveButton.IsEnabled = !locked;
+        NewProfileButton.IsEnabled = !locked;
+        RenameProfileButton.IsEnabled = !locked && !isDefault;
+        DeleteProfileButton.IsEnabled = !locked && !isDefault && !isActive;
+        SetActiveProfileButton.IsEnabled = !locked && !isActive;
+        ProfileListBox.IsEnabled = !IsNameEditing;
+        SaveButton.IsEnabled = !locked;
     }
 
     private void ShowProfileResult(InputEditResult result)
     {
-        _profileErrorTextBlock.Text = result.ErrorMessage;
-        _profileErrorTextBlock.IsVisible = !result.Succeeded;
+        ProfileErrorTextBlock.Text = result.ErrorMessage;
+        ProfileErrorTextBlock.IsVisible = !result.Succeeded;
     }
 
     private void SetCaptureError(CaptureTarget target, string? error)
@@ -754,8 +695,8 @@ internal sealed partial class SettingsWindow : Window
 
     private void ClearValidationSummary()
     {
-        _inputValidationSummaryTextBlock.Text = string.Empty;
-        _inputValidationSummaryTextBlock.IsVisible = false;
+        InputValidationSummaryTextBlock.Text = string.Empty;
+        InputValidationSummaryTextBlock.IsVisible = false;
     }
 
     private Dictionary<JoypadButton, Button> CaptureButtons(InputTab tab) =>
@@ -785,7 +726,7 @@ internal sealed partial class SettingsWindow : Window
             : _inputDraft.ActiveGamepadProfileName;
 
     private bool CanCaptureGamepad =>
-        _gamepadManager.IsAvailable && _gamepadManager.SelectedDeviceId is not null;
+        _gamepadManager is { IsAvailable: true, SelectedDeviceId: not null };
 
     private bool HasTransientEdit => IsNameEditing || _captureTarget is not null;
 
@@ -809,59 +750,6 @@ internal sealed partial class SettingsWindow : Window
         _gamepadManager.DevicesChanged -= HandleGamepadDevicesChanged;
         _gamepadManager.AllowedButtonPressed -= HandleAllowedGamepadButtonPressed;
         Closed -= OnSettingsClosed;
-    }
-
-    private sealed class DeleteInputProfileWindow : Window
-    {
-        public DeleteInputProfileWindow(string profileName)
-        {
-            Title = "Delete input profile";
-            SizeToContent = SizeToContent.WidthAndHeight;
-            CanResize = false;
-            WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            Background = AppChrome.Brush(AppChrome.Bg);
-            Content = BuildContent(profileName);
-        }
-
-        private StackPanel BuildContent(string profileName)
-        {
-            var cancelButton = AppChrome.Button("Cancel");
-            cancelButton.Click += (_, _) => Close(dialogResult: false);
-
-            var deleteButton = AppChrome.Button("Delete", accent: true);
-            deleteButton.Click += (_, _) => Close(dialogResult: true);
-
-            return new StackPanel
-            {
-                Width = 360,
-                Margin = new Thickness(18),
-                Spacing = 14,
-                Children =
-                {
-                    new TextBlock
-                    {
-                        Text = "Delete this input profile?",
-                        Foreground = AppChrome.Brush(AppChrome.Text),
-                        FontSize = 16,
-                        FontWeight = FontWeight.SemiBold,
-                    },
-                    new TextBlock
-                    {
-                        Text = $"Profile '{profileName}' will be removed from this settings draft.",
-                        Foreground = AppChrome.Brush(AppChrome.Muted),
-                        FontSize = 13,
-                        TextWrapping = TextWrapping.Wrap,
-                    },
-                    new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        Spacing = 8,
-                        Children = { cancelButton, deleteButton },
-                    },
-                },
-            };
-        }
     }
 
     private readonly record struct CaptureTarget(InputTab Tab, JoypadButton Button);

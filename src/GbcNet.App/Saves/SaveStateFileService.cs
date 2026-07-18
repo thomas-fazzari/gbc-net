@@ -44,7 +44,9 @@ internal sealed class SaveStateFileService(
         var path = GetSaveStatePath(rom, slot);
         var temporaryPath = $"{path}.{Guid.NewGuid():N}.tmp";
 
-        await _saveLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await _saveLock
+            .WaitAsync(cancellationToken)
+            .ConfigureAwait(continueOnCapturedContext: false);
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -56,45 +58,53 @@ internal sealed class SaveStateFileService(
                     },
                     cancellationToken
                 )
-                .ConfigureAwait(false);
+                .ConfigureAwait(continueOnCapturedContext: false);
 
             Directory.CreateDirectory(stateDirectoryPath);
 
             var stream = new FileStream(
-                temporaryPath,
-                FileMode.CreateNew,
-                FileAccess.Write,
-                FileShare.None,
+                path: temporaryPath,
+                mode: FileMode.CreateNew,
+                access: FileAccess.Write,
+                share: FileShare.None,
                 bufferSize: 4096,
-                FileOptions.Asynchronous | FileOptions.WriteThrough
+                options: FileOptions.Asynchronous | FileOptions.WriteThrough
             );
 
-            await using (stream.ConfigureAwait(false))
+            await using (stream.ConfigureAwait(continueOnCapturedContext: false))
             {
-                await stream.WriteAsync(_magic, cancellationToken).ConfigureAwait(false);
+                await stream
+                    .WriteAsync(_magic, cancellationToken)
+                    .ConfigureAwait(continueOnCapturedContext: false);
                 stream.WriteByte(FormatVersion);
                 stream.WriteByte((byte)hardwareModel);
-                await stream.WriteAsync(rom.Hash, cancellationToken).ConfigureAwait(false);
+                await stream
+                    .WriteAsync(rom.Hash, cancellationToken)
+                    .ConfigureAwait(continueOnCapturedContext: false);
                 await WriteInt32Async(stream, payload.Length, cancellationToken)
-                    .ConfigureAwait(false);
+                    .ConfigureAwait(continueOnCapturedContext: false);
                 await stream
                     .WriteAsync(SHA256.HashData(payload.Span), cancellationToken)
-                    .ConfigureAwait(false);
+                    .ConfigureAwait(continueOnCapturedContext: false);
                 await WriteInt32Async(stream, compressedPayload.Length, cancellationToken)
-                    .ConfigureAwait(false);
-                await stream.WriteAsync(compressedPayload, cancellationToken).ConfigureAwait(false);
-                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    .ConfigureAwait(continueOnCapturedContext: false);
+                await stream
+                    .WriteAsync(compressedPayload, cancellationToken)
+                    .ConfigureAwait(continueOnCapturedContext: false);
+                await stream
+                    .FlushAsync(cancellationToken)
+                    .ConfigureAwait(continueOnCapturedContext: false);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            File.Move(temporaryPath, path, overwrite: true);
+            File.Move(sourceFileName: temporaryPath, destFileName: path, overwrite: true);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             SaveStateFileServiceLog.SaveStateWriteFailed(logger, exception);
             throw new IOException(
-                "Save-state file could not be written: " + exception.Message,
-                exception
+                message: "Save-state file could not be written: " + exception.Message,
+                innerException: exception
             );
         }
         finally
@@ -121,27 +131,30 @@ internal sealed class SaveStateFileService(
         var path = GetSaveStatePath(rom, slot);
         if (!File.Exists(path))
         {
-            throw new FileNotFoundException("Save-state slot does not exist.", path);
+            throw new FileNotFoundException(
+                message: "Save-state slot does not exist.",
+                fileName: path
+            );
         }
 
         try
         {
             var stream = new FileStream(
-                path,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.Read,
+                path: path,
+                mode: FileMode.Open,
+                access: FileAccess.Read,
+                share: FileShare.Read,
                 bufferSize: 4096,
-                FileOptions.Asynchronous | FileOptions.SequentialScan
+                options: FileOptions.Asynchronous | FileOptions.SequentialScan
             );
 
-            await using (stream.ConfigureAwait(false))
+            await using (stream.ConfigureAwait(continueOnCapturedContext: false))
             {
                 var header = await ReadHeaderAsync(stream, rom, hardwareModel, cancellationToken)
-                    .ConfigureAwait(false);
+                    .ConfigureAwait(continueOnCapturedContext: false);
                 var compressedPayload = new byte[header.CompressedPayloadLength];
                 await ReadExactlyAsync(stream, compressedPayload, cancellationToken)
-                    .ConfigureAwait(false);
+                    .ConfigureAwait(continueOnCapturedContext: false);
 
                 if (stream.Position != stream.Length)
                 {
@@ -151,8 +164,8 @@ internal sealed class SaveStateFileService(
                 var payload = Decompress(compressedPayload, header.PayloadLength);
                 if (
                     !CryptographicOperations.FixedTimeEquals(
-                        SHA256.HashData(payload),
-                        header.PayloadHash
+                        left: SHA256.HashData(payload),
+                        right: header.PayloadHash
                     )
                 )
                 {
@@ -171,8 +184,8 @@ internal sealed class SaveStateFileService(
         {
             SaveStateFileServiceLog.SaveStateReadFailed(logger, exception);
             throw new InvalidDataException(
-                "Save-state file could not be read: " + exception.Message,
-                exception
+                message: "Save-state file could not be read: " + exception.Message,
+                innerException: exception
             );
         }
     }
@@ -182,12 +195,12 @@ internal sealed class SaveStateFileService(
         ArgumentNullException.ThrowIfNull(rom);
         ValidateSlot(slot);
         return Path.Combine(
-            stateDirectoryPath,
-            string.Concat(
-                rom.FileStem,
-                ".slot-",
-                slot.ToString(CultureInfo.InvariantCulture),
-                FileExtension
+            path1: stateDirectoryPath,
+            path2: string.Concat(
+                str0: rom.FileStem,
+                str1: ".slot-",
+                str2: slot.ToString(CultureInfo.InvariantCulture),
+                str3: FileExtension
             )
         );
     }
@@ -224,20 +237,24 @@ internal sealed class SaveStateFileService(
     )
     {
         var magic = new byte[_magic.Length];
-        await ReadExactlyAsync(stream, magic, cancellationToken).ConfigureAwait(false);
+        await ReadExactlyAsync(stream, magic, cancellationToken)
+            .ConfigureAwait(continueOnCapturedContext: false);
         if (!magic.AsSpan().SequenceEqual(_magic))
         {
             throw new InvalidDataException("Save-state file magic is invalid.");
         }
 
-        if (await ReadByteAsync(stream, cancellationToken).ConfigureAwait(false) != FormatVersion)
+        if (
+            await ReadByteAsync(stream, cancellationToken)
+                .ConfigureAwait(continueOnCapturedContext: false) != FormatVersion
+        )
         {
             throw new InvalidDataException("Save-state file version is unsupported.");
         }
 
         if (
-            await ReadByteAsync(stream, cancellationToken).ConfigureAwait(false)
-            != (byte)hardwareModel
+            await ReadByteAsync(stream, cancellationToken)
+                .ConfigureAwait(continueOnCapturedContext: false) != (byte)hardwareModel
         )
         {
             throw new InvalidDataException(
@@ -246,26 +263,33 @@ internal sealed class SaveStateFileService(
         }
 
         var romHash = new byte[SHA256.HashSizeInBytes];
-        await ReadExactlyAsync(stream, romHash, cancellationToken).ConfigureAwait(false);
-        if (!CryptographicOperations.FixedTimeEquals(romHash, rom.Hash))
+        await ReadExactlyAsync(stream, romHash, cancellationToken)
+            .ConfigureAwait(continueOnCapturedContext: false);
+        if (!CryptographicOperations.FixedTimeEquals(left: romHash, right: rom.Hash))
         {
             throw new InvalidDataException("Save-state ROM hash does not match the active game.");
         }
 
-        var payloadLength = await ReadInt32Async(stream, cancellationToken).ConfigureAwait(false);
+        var payloadLength = await ReadInt32Async(stream, cancellationToken)
+            .ConfigureAwait(continueOnCapturedContext: false);
         ValidatePayloadLength(payloadLength);
 
         var payloadHash = new byte[SHA256.HashSizeInBytes];
-        await ReadExactlyAsync(stream, payloadHash, cancellationToken).ConfigureAwait(false);
+        await ReadExactlyAsync(stream, payloadHash, cancellationToken)
+            .ConfigureAwait(continueOnCapturedContext: false);
 
         var compressedPayloadLength = await ReadInt32Async(stream, cancellationToken)
-            .ConfigureAwait(false);
+            .ConfigureAwait(continueOnCapturedContext: false);
         if (compressedPayloadLength is < 0 or > MaximumCompressedPayloadLength)
         {
             throw new InvalidDataException("Save-state compressed payload length is invalid.");
         }
 
-        return new SaveStateHeader(payloadLength, payloadHash, compressedPayloadLength);
+        return new SaveStateHeader(
+            PayloadLength: payloadLength,
+            PayloadHash: payloadHash,
+            CompressedPayloadLength: compressedPayloadLength
+        );
     }
 
     private static async Task WriteInt32Async(
@@ -276,7 +300,9 @@ internal sealed class SaveStateFileService(
     {
         var bytes = new byte[sizeof(int)];
         BinaryPrimitives.WriteInt32LittleEndian(bytes, value);
-        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+        await stream
+            .WriteAsync(bytes, cancellationToken)
+            .ConfigureAwait(continueOnCapturedContext: false);
     }
 
     private static async Task<int> ReadInt32Async(
@@ -285,7 +311,8 @@ internal sealed class SaveStateFileService(
     )
     {
         var bytes = new byte[sizeof(int)];
-        await ReadExactlyAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
+        await ReadExactlyAsync(stream, bytes, cancellationToken)
+            .ConfigureAwait(continueOnCapturedContext: false);
         return BinaryPrimitives.ReadInt32LittleEndian(bytes);
     }
 
@@ -295,7 +322,8 @@ internal sealed class SaveStateFileService(
     )
     {
         var value = new byte[1];
-        await ReadExactlyAsync(stream, value, cancellationToken).ConfigureAwait(false);
+        await ReadExactlyAsync(stream, value, cancellationToken)
+            .ConfigureAwait(continueOnCapturedContext: false);
         return value[0];
     }
 
@@ -309,7 +337,7 @@ internal sealed class SaveStateFileService(
         {
             var count = await stream
                 .ReadAsync(destination, cancellationToken)
-                .ConfigureAwait(false);
+                .ConfigureAwait(continueOnCapturedContext: false);
             if (count == 0)
             {
                 throw new InvalidDataException("Save-state file is truncated.");
@@ -332,9 +360,9 @@ internal sealed class SaveStateFileService(
         if (slot < 0)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(slot),
-                slot,
-                "Save-state slot must be nonnegative."
+                paramName: nameof(slot),
+                actualValue: slot,
+                message: "Save-state slot must be nonnegative."
             );
         }
     }
@@ -344,9 +372,9 @@ internal sealed class SaveStateFileService(
         if (!Enum.IsDefined(hardwareModel))
         {
             throw new ArgumentOutOfRangeException(
-                nameof(hardwareModel),
-                hardwareModel,
-                "Save-state hardware model is invalid."
+                paramName: nameof(hardwareModel),
+                actualValue: hardwareModel,
+                message: "Save-state hardware model is invalid."
             );
         }
     }

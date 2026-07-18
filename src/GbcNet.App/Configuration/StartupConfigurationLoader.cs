@@ -84,7 +84,7 @@ internal static class StartupConfigurationLoader
         if (validation.Count != 0)
         {
             throw new InvalidOperationException(
-                $"Default input config is invalid:{Environment.NewLine}{string.Join(Environment.NewLine, validation)}"
+                $"Default input config is invalid:{Environment.NewLine}{string.Join(separator: Environment.NewLine, values: validation)}"
             );
         }
     }

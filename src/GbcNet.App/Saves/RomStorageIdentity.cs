@@ -29,9 +29,9 @@ internal sealed class RomStorageIdentity
         var hash = SHA256.HashData(rom);
         return new(
             string.Concat(
-                SanitizeName(title),
-                "-",
-                Convert.ToHexString(hash.AsSpan(0, ShortHashBytes))
+                str0: SanitizeName(title),
+                str1: "-",
+                str2: Convert.ToHexString(hash.AsSpan(start: 0, length: ShortHashBytes))
             ),
             hash
         );

@@ -10,12 +10,12 @@ namespace GbcNet.App.Menus;
 
 internal sealed partial class MainMenu : UserControl
 {
-    private static readonly KeyGesture _fullscreenGesture = KeyGesture.Parse("Alt+Enter");
-    private static readonly KeyGesture _fastForwardGesture = KeyGesture.Parse("Tab");
+    private static readonly KeyGesture _fullscreenGesture = KeyGesture.Parse(gesture: "Alt+Enter");
+    private static readonly KeyGesture _fastForwardGesture = KeyGesture.Parse(gesture: "Tab");
     private static readonly KeyGesture _statusBarGesture = KeyGesture.Parse(
-        OperatingSystem.IsMacOS() ? "Meta+I" : "Ctrl+I"
+        gesture: OperatingSystem.IsMacOS() ? "Meta+I" : "Ctrl+I"
     );
-    private static readonly KeyGesture _menuBarGesture = KeyGesture.Parse("Ctrl+M");
+    private static readonly KeyGesture _menuBarGesture = KeyGesture.Parse(gesture: "Ctrl+M");
     private const int StateSlotCount = 10;
 
     private readonly MenuItem[] _saveStateSlotMenuItems = new MenuItem[StateSlotCount];
@@ -27,15 +27,15 @@ internal sealed partial class MainMenu : UserControl
         StateSlotCount
     ];
 
-    private readonly NativeMenuItem _nativePauseMenuItem = new("Pause")
+    private readonly NativeMenuItem _nativePauseMenuItem = new(header: "Pause")
     {
-        Gesture = KeyGesture.Parse("Space"),
+        Gesture = KeyGesture.Parse(gesture: "Space"),
         IsEnabled = false,
     };
 
-    private readonly NativeMenuItem _nativeResetMenuItem = new("Reset")
+    private readonly NativeMenuItem _nativeResetMenuItem = new(header: "Reset")
     {
-        Gesture = KeyGesture.Parse("Meta+R"),
+        Gesture = KeyGesture.Parse(gesture: "Meta+R"),
         IsEnabled = false,
     };
 
@@ -45,19 +45,19 @@ internal sealed partial class MainMenu : UserControl
     private readonly NativeMenuItem _nativeSaveStateMenuItem;
     private readonly NativeMenuItem _nativeLoadStateMenuItem;
 
-    private readonly NativeMenuItem _nativeFastForwardMenuItem = new("Fast Forward")
+    private readonly NativeMenuItem _nativeFastForwardMenuItem = new(header: "Fast Forward")
     {
         Gesture = _fastForwardGesture,
         ToggleType = MenuItemToggleType.CheckBox,
     };
 
-    private readonly NativeMenuItem _nativeFullscreenMenuItem = new("Fullscreen")
+    private readonly NativeMenuItem _nativeFullscreenMenuItem = new(header: "Fullscreen")
     {
         Gesture = _fullscreenGesture,
         ToggleType = MenuItemToggleType.CheckBox,
     };
 
-    private readonly NativeMenuItem _nativeStatusBarMenuItem = new("Status Bar")
+    private readonly NativeMenuItem _nativeStatusBarMenuItem = new(header: "Status Bar")
     {
         Gesture = _statusBarGesture,
         ToggleType = MenuItemToggleType.CheckBox,
@@ -72,9 +72,9 @@ internal sealed partial class MainMenu : UserControl
     private readonly NativeMenu _nativeFastForwardSpeedMenu = [];
     private readonly NativeMenu _nativeOpenRecentMenu = [];
     private readonly NativeMenuItem _nativeOpenRecentMenuItem;
-    private readonly NativeMenuItem _nativeCloseMenuItem = new("Close")
+    private readonly NativeMenuItem _nativeCloseMenuItem = new(header: "Close")
     {
-        Gesture = KeyGesture.Parse("Meta+W"),
+        Gesture = KeyGesture.Parse(gesture: "Meta+W"),
         IsEnabled = false,
     };
     private readonly NativeMenu _nativeMenu;
@@ -84,17 +84,17 @@ internal sealed partial class MainMenu : UserControl
         InitializeComponent();
 
         IsVisible = !OperatingSystem.IsMacOS();
-        _nativeOpenRecentMenuItem = new NativeMenuItem("Open Recent")
+        _nativeOpenRecentMenuItem = new NativeMenuItem(header: "Open Recent")
         {
             IsEnabled = false,
             Menu = _nativeOpenRecentMenu,
         };
-        _nativeSaveStateMenuItem = new NativeMenuItem("Save State")
+        _nativeSaveStateMenuItem = new NativeMenuItem(header: "Save State")
         {
             IsEnabled = false,
             Menu = _nativeSaveStateMenu,
         };
-        _nativeLoadStateMenuItem = new NativeMenuItem("Load State")
+        _nativeLoadStateMenuItem = new NativeMenuItem(header: "Load State")
         {
             IsEnabled = false,
             Menu = _nativeLoadStateMenu,
@@ -139,7 +139,7 @@ internal sealed partial class MainMenu : UserControl
     {
         if (OperatingSystem.IsMacOS())
         {
-            NativeMenu.SetMenu(window, _nativeMenu);
+            NativeMenu.SetMenu(o: window, menu: _nativeMenu);
         }
     }
 
@@ -153,23 +153,23 @@ internal sealed partial class MainMenu : UserControl
         switch (key)
         {
             case Key.O:
-                OpenRomRequested?.Invoke(this, EventArgs.Empty);
+                OpenRomRequested?.Invoke(sender: this, e: EventArgs.Empty);
                 return true;
 
             case Key.W when CloseWindowMenuItem.IsEnabled:
-                CloseRequested?.Invoke(this, EventArgs.Empty);
+                CloseRequested?.Invoke(sender: this, e: EventArgs.Empty);
                 return true;
 
             case Key.C:
-                ConfigurationRequested?.Invoke(this, EventArgs.Empty);
+                ConfigurationRequested?.Invoke(sender: this, e: EventArgs.Empty);
                 return true;
 
             case Key.M:
-                MenuBarRequested?.Invoke(this, EventArgs.Empty);
+                MenuBarRequested?.Invoke(sender: this, e: EventArgs.Empty);
                 return true;
 
             case Key.R when ResetEmulationMenuItem.IsEnabled:
-                ResetRequested?.Invoke(this, EventArgs.Empty);
+                ResetRequested?.Invoke(sender: this, e: EventArgs.Empty);
                 return true;
 
             default:
@@ -179,19 +179,35 @@ internal sealed partial class MainMenu : UserControl
 
     public void SetEmulationActionsEnabled(bool isEnabled)
     {
-        SetPauseState(isEnabled, isPaused: false);
-        SetEnabled(_nativeResetMenuItem, ResetEmulationMenuItem, isEnabled);
-        SetEnabled(_nativeSaveStateMenuItem, SaveStateMenuItem, isEnabled);
-        SetEnabled(_nativeLoadStateMenuItem, LoadStateMenuItem, isEnabled);
+        SetPauseState(isEnabled: isEnabled, isPaused: false);
+        SetEnabled(
+            nativeItem: _nativeResetMenuItem,
+            windowItem: ResetEmulationMenuItem,
+            isEnabled: isEnabled
+        );
+        SetEnabled(
+            nativeItem: _nativeSaveStateMenuItem,
+            windowItem: SaveStateMenuItem,
+            isEnabled: isEnabled
+        );
+        SetEnabled(
+            nativeItem: _nativeLoadStateMenuItem,
+            windowItem: LoadStateMenuItem,
+            isEnabled: isEnabled
+        );
 
-        SetEnabled(_nativeCloseMenuItem, CloseWindowMenuItem, isEnabled);
+        SetEnabled(
+            nativeItem: _nativeCloseMenuItem,
+            windowItem: CloseWindowMenuItem,
+            isEnabled: isEnabled
+        );
     }
 
     public void SetSaveStateDates(IReadOnlyList<DateTime?> dates)
     {
         for (var slotIndex = 0; slotIndex < StateSlotCount; slotIndex++)
         {
-            var header = dates[slotIndex] is { } date
+            var header = dates[index: slotIndex] is { } date
                 ? $"Slot {slotIndex + 1} — {date:g}"
                 : $"Slot {slotIndex + 1}";
             _saveStateSlotMenuItems[slotIndex].Header = header;
@@ -205,22 +221,42 @@ internal sealed partial class MainMenu : UserControl
     {
         var header = isPaused ? "Resume" : "Pause";
 
-        SetHeader(_nativePauseMenuItem, PauseEmulationMenuItem, header);
-        SetEnabled(_nativePauseMenuItem, PauseEmulationMenuItem, isEnabled);
+        SetHeader(
+            nativeItem: _nativePauseMenuItem,
+            windowItem: PauseEmulationMenuItem,
+            header: header
+        );
+        SetEnabled(
+            nativeItem: _nativePauseMenuItem,
+            windowItem: PauseEmulationMenuItem,
+            isEnabled: isEnabled
+        );
     }
 
     public void SetFastForwardState(bool isEnabled, EmulationSpeed speed)
     {
-        SetChecked(_nativeFastForwardMenuItem, FastForwardMenuItem, isEnabled);
+        SetChecked(
+            nativeItem: _nativeFastForwardMenuItem,
+            windowItem: FastForwardMenuItem,
+            isChecked: isEnabled
+        );
 
         foreach (var (nativeItem, windowItem, itemSpeed) in _fastForwardSpeedMenuItems)
         {
-            SetChecked(nativeItem, windowItem, itemSpeed == speed);
+            SetChecked(
+                nativeItem: nativeItem,
+                windowItem: windowItem,
+                isChecked: itemSpeed == speed
+            );
         }
     }
 
     public void SetFullscreenState(bool isFullscreen) =>
-        SetChecked(_nativeFullscreenMenuItem, FullscreenMenuItem, isFullscreen);
+        SetChecked(
+            nativeItem: _nativeFullscreenMenuItem,
+            windowItem: FullscreenMenuItem,
+            isChecked: isFullscreen
+        );
 
     public void SetMenuBarState(bool isVisible)
     {
@@ -228,10 +264,18 @@ internal sealed partial class MainMenu : UserControl
     }
 
     public void SetStatusBarState(bool isVisible) =>
-        SetChecked(_nativeStatusBarMenuItem, StatusBarMenuItem, isVisible);
+        SetChecked(
+            nativeItem: _nativeStatusBarMenuItem,
+            windowItem: StatusBarMenuItem,
+            isChecked: isVisible
+        );
 
     public void SetStatusBarAvailability(bool isAvailable) =>
-        SetEnabled(_nativeStatusBarMenuItem, StatusBarMenuItem, isAvailable);
+        SetEnabled(
+            nativeItem: _nativeStatusBarMenuItem,
+            windowItem: StatusBarMenuItem,
+            isEnabled: isAvailable
+        );
 
     private static void SetChecked(NativeMenuItem nativeItem, MenuItem windowItem, bool isChecked)
     {
@@ -262,8 +306,8 @@ internal sealed partial class MainMenu : UserControl
 
         foreach (var entry in entries)
         {
-            OpenRecentMenuItem.Items.Add(CreateWindowRecentRomMenuItem(entry));
-            _nativeOpenRecentMenu.Add(CreateNativeRecentRomMenuItem(entry));
+            OpenRecentMenuItem.Items.Add(value: CreateWindowRecentRomMenuItem(entry: entry));
+            _nativeOpenRecentMenu.Add(item: CreateNativeRecentRomMenuItem(entry: entry));
         }
     }
 
@@ -279,95 +323,122 @@ internal sealed partial class MainMenu : UserControl
 
     private void ConfigureWindowFileMenu()
     {
-        FileMenuItem.SubmenuOpened += (_, _) => RecentRomsRequested?.Invoke(this, EventArgs.Empty);
-        OpenRomMenuItem.Click += (_, _) => OpenRomRequested?.Invoke(this, EventArgs.Empty);
-        CloseWindowMenuItem.Click += (_, _) => CloseRequested?.Invoke(this, EventArgs.Empty);
+        FileMenuItem.SubmenuOpened += (_, _) =>
+            RecentRomsRequested?.Invoke(sender: this, e: EventArgs.Empty);
+        OpenRomMenuItem.Click += (_, _) =>
+            OpenRomRequested?.Invoke(sender: this, e: EventArgs.Empty);
+        CloseWindowMenuItem.Click += (_, _) =>
+            CloseRequested?.Invoke(sender: this, e: EventArgs.Empty);
     }
 
     private void ConfigureWindowSettingsMenu()
     {
         ConfigurationMenuItem.Click += (_, _) =>
-            ConfigurationRequested?.Invoke(this, EventArgs.Empty);
+            ConfigurationRequested?.Invoke(sender: this, e: EventArgs.Empty);
         ConfigurationFileLocationMenuItem.Click += (_, _) =>
-            ConfigurationFileLocationRequested?.Invoke(this, EventArgs.Empty);
+            ConfigurationFileLocationRequested?.Invoke(sender: this, e: EventArgs.Empty);
     }
 
     private void ConfigureWindowEmulationMenu()
     {
-        PauseEmulationMenuItem.Click += (_, _) => PauseRequested?.Invoke(this, EventArgs.Empty);
-        ResetEmulationMenuItem.Click += (_, _) => ResetRequested?.Invoke(this, EventArgs.Empty);
+        PauseEmulationMenuItem.Click += (_, _) =>
+            PauseRequested?.Invoke(sender: this, e: EventArgs.Empty);
+        ResetEmulationMenuItem.Click += (_, _) =>
+            ResetRequested?.Invoke(sender: this, e: EventArgs.Empty);
         ConfigureStateSlotMenuItems();
 
         FastForwardMenuItem.InputGesture = _fastForwardGesture;
-        FastForwardMenuItem.Click += (_, _) => FastForwardRequested?.Invoke(this, EventArgs.Empty);
+        FastForwardMenuItem.Click += (_, _) =>
+            FastForwardRequested?.Invoke(sender: this, e: EventArgs.Empty);
         ConfigureFastForwardSpeedMenuItems();
     }
 
     private void ConfigureWindowViewMenu()
     {
         FullscreenMenuItem.InputGesture = _fullscreenGesture;
-        FullscreenMenuItem.Click += (_, _) => FullscreenRequested?.Invoke(this, EventArgs.Empty);
+        FullscreenMenuItem.Click += (_, _) =>
+            FullscreenRequested?.Invoke(sender: this, e: EventArgs.Empty);
         MenuBarMenuItem.InputGesture = _menuBarGesture;
-        MenuBarMenuItem.Click += (_, _) => MenuBarRequested?.Invoke(this, EventArgs.Empty);
+        MenuBarMenuItem.Click += (_, _) =>
+            MenuBarRequested?.Invoke(sender: this, e: EventArgs.Empty);
         StatusBarMenuItem.InputGesture = _statusBarGesture;
-        StatusBarMenuItem.Click += (_, _) => StatusBarRequested?.Invoke(this, EventArgs.Empty);
+        StatusBarMenuItem.Click += (_, _) =>
+            StatusBarRequested?.Invoke(sender: this, e: EventArgs.Empty);
     }
 
     private void ConfigureWindowHelpMenu()
     {
         GitHubRepositoryMenuItem.Click += (_, _) =>
-            GitHubRepositoryRequested?.Invoke(this, EventArgs.Empty);
+            GitHubRepositoryRequested?.Invoke(sender: this, e: EventArgs.Empty);
     }
 
     private void ConfigureStateSlotMenuItems()
     {
         for (var slotIndex = 0; slotIndex < StateSlotCount; slotIndex++)
         {
-            var saveItem = CreateWindowStateSlotMenuItem(slotIndex, OnSaveStateRequested);
-            var loadItem = CreateWindowStateSlotMenuItem(slotIndex, OnLoadStateRequested);
-            var nativeSaveItem = CreateNativeStateSlotMenuItem(slotIndex, OnSaveStateRequested);
-            var nativeLoadItem = CreateNativeStateSlotMenuItem(slotIndex, OnLoadStateRequested);
+            var saveItem = CreateWindowStateSlotMenuItem(
+                slotIndex: slotIndex,
+                request: OnSaveStateRequested
+            );
+            var loadItem = CreateWindowStateSlotMenuItem(
+                slotIndex: slotIndex,
+                request: OnLoadStateRequested
+            );
+            var nativeSaveItem = CreateNativeStateSlotMenuItem(
+                slotIndex: slotIndex,
+                request: OnSaveStateRequested
+            );
+            var nativeLoadItem = CreateNativeStateSlotMenuItem(
+                slotIndex: slotIndex,
+                request: OnLoadStateRequested
+            );
 
             _saveStateSlotMenuItems[slotIndex] = saveItem;
             _loadStateSlotMenuItems[slotIndex] = loadItem;
             _nativeSaveStateSlotMenuItems[slotIndex] = nativeSaveItem;
             _nativeLoadStateSlotMenuItems[slotIndex] = nativeLoadItem;
-            SaveStateMenuItem.Items.Add(saveItem);
-            LoadStateMenuItem.Items.Add(loadItem);
-            _nativeSaveStateMenu.Add(nativeSaveItem);
-            _nativeLoadStateMenu.Add(nativeLoadItem);
+            SaveStateMenuItem.Items.Add(value: saveItem);
+            LoadStateMenuItem.Items.Add(value: loadItem);
+            _nativeSaveStateMenu.Add(item: nativeSaveItem);
+            _nativeLoadStateMenu.Add(item: nativeLoadItem);
         }
     }
 
     private static MenuItem CreateWindowStateSlotMenuItem(int slotIndex, Action<int> request)
     {
         var item = new MenuItem { Header = $"Slot {slotIndex + 1}" };
-        item.Click += (_, _) => request(slotIndex);
+        item.Click += (_, _) => request(obj: slotIndex);
         return item;
     }
 
     private static NativeMenuItem CreateNativeStateSlotMenuItem(int slotIndex, Action<int> request)
     {
-        NativeMenuItem item = new($"Slot {slotIndex + 1}");
-        item.Click += (_, _) => request(slotIndex);
+        NativeMenuItem item = new(header: $"Slot {slotIndex + 1}");
+        item.Click += (_, _) => request(obj: slotIndex);
         return item;
     }
 
     private void OnSaveStateRequested(int slotIndex) =>
-        SaveStateRequested?.Invoke(this, new StateSlotSelectedEventArgs(slotIndex));
+        SaveStateRequested?.Invoke(
+            sender: this,
+            e: new StateSlotSelectedEventArgs(slotIndex: slotIndex)
+        );
 
     private void OnLoadStateRequested(int slotIndex) =>
-        LoadStateRequested?.Invoke(this, new StateSlotSelectedEventArgs(slotIndex));
+        LoadStateRequested?.Invoke(
+            sender: this,
+            e: new StateSlotSelectedEventArgs(slotIndex: slotIndex)
+        );
 
     private void ConfigureFastForwardSpeedMenuItems()
     {
         foreach (var speed in Enum.GetValues<EmulationSpeed>())
         {
-            var windowItem = CreateWindowFastForwardSpeedMenuItem(speed);
-            var nativeItem = CreateNativeFastForwardSpeedMenuItem(speed);
-            _fastForwardSpeedMenuItems.Add((nativeItem, windowItem, speed));
-            FastForwardSpeedMenuItem.Items.Add(windowItem);
-            _nativeFastForwardSpeedMenu.Add(nativeItem);
+            var windowItem = CreateWindowFastForwardSpeedMenuItem(speed: speed);
+            var nativeItem = CreateNativeFastForwardSpeedMenuItem(speed: speed);
+            _fastForwardSpeedMenuItems.Add(item: (nativeItem, windowItem, speed));
+            FastForwardSpeedMenuItem.Items.Add(value: windowItem);
+            _nativeFastForwardSpeedMenu.Add(item: nativeItem);
         }
     }
 
@@ -379,7 +450,10 @@ internal sealed partial class MainMenu : UserControl
             ToggleType = MenuItemToggleType.CheckBox,
         };
         item.Click += (_, _) =>
-            FastForwardSpeedSelected?.Invoke(this, new FastForwardSpeedSelectedEventArgs(speed));
+            FastForwardSpeedSelected?.Invoke(
+                sender: this,
+                e: new FastForwardSpeedSelectedEventArgs(speed: speed)
+            );
         return item;
     }
 
@@ -387,7 +461,10 @@ internal sealed partial class MainMenu : UserControl
     {
         var item = new MenuItem { Header = entry.FileName };
         item.Click += (_, _) =>
-            RecentRomSelected?.Invoke(this, new RecentRomSelectedEventArgs(entry.LastKnownPath));
+            RecentRomSelected?.Invoke(
+                sender: this,
+                e: new RecentRomSelectedEventArgs(path: entry.LastKnownPath)
+            );
         return item;
     }
 
@@ -396,17 +473,20 @@ internal sealed partial class MainMenu : UserControl
     #region Native menu
     private NativeMenu CreateNativeMenu() =>
         [
-            new NativeMenuItem("File") { Menu = CreateNativeFileMenu() },
-            new NativeMenuItem("Emulation") { Menu = CreateNativeEmulationMenu() },
-            new NativeMenuItem("Settings") { Menu = CreateNativeSettingsMenu() },
-            new NativeMenuItem("View") { Menu = CreateNativeViewMenu() },
-            new NativeMenuItem("Help") { Menu = CreateNativeHelpMenu() },
+            new NativeMenuItem(header: "File") { Menu = CreateNativeFileMenu() },
+            new NativeMenuItem(header: "Emulation") { Menu = CreateNativeEmulationMenu() },
+            new NativeMenuItem(header: "Settings") { Menu = CreateNativeSettingsMenu() },
+            new NativeMenuItem(header: "View") { Menu = CreateNativeViewMenu() },
+            new NativeMenuItem(header: "Help") { Menu = CreateNativeHelpMenu() },
         ];
 
     private NativeMenu CreateNativeFileMenu()
     {
-        var openItem = new NativeMenuItem("Open ROM...") { Gesture = KeyGesture.Parse("Meta+O") };
-        openItem.Click += (_, _) => OpenRomRequested?.Invoke(this, EventArgs.Empty);
+        var openItem = new NativeMenuItem(header: "Open ROM...")
+        {
+            Gesture = KeyGesture.Parse(gesture: "Meta+O"),
+        };
+        openItem.Click += (_, _) => OpenRomRequested?.Invoke(sender: this, e: EventArgs.Empty);
 
         var fileMenu = new NativeMenu
         {
@@ -414,35 +494,40 @@ internal sealed partial class MainMenu : UserControl
             _nativeOpenRecentMenuItem,
             new NativeMenuItemSeparator(),
         };
-        fileMenu.NeedsUpdate += (_, _) => RecentRomsRequested?.Invoke(this, EventArgs.Empty);
+        fileMenu.NeedsUpdate += (_, _) =>
+            RecentRomsRequested?.Invoke(sender: this, e: EventArgs.Empty);
 
-        _nativeCloseMenuItem.Click += (_, _) => CloseRequested?.Invoke(this, EventArgs.Empty);
-        fileMenu.Add(_nativeCloseMenuItem);
+        _nativeCloseMenuItem.Click += (_, _) =>
+            CloseRequested?.Invoke(sender: this, e: EventArgs.Empty);
+        fileMenu.Add(item: _nativeCloseMenuItem);
 
         return fileMenu;
     }
 
     private NativeMenu CreateNativeSettingsMenu()
     {
-        var configurationItem = new NativeMenuItem("Configuration")
+        var configurationItem = new NativeMenuItem(header: "Configuration")
         {
-            Gesture = KeyGesture.Parse("Meta+C"),
+            Gesture = KeyGesture.Parse(gesture: "Meta+C"),
         };
-        configurationItem.Click += (_, _) => ConfigurationRequested?.Invoke(this, EventArgs.Empty);
-        var fileLocationItem = new NativeMenuItem("Open Config File Location");
+        configurationItem.Click += (_, _) =>
+            ConfigurationRequested?.Invoke(sender: this, e: EventArgs.Empty);
+        var fileLocationItem = new NativeMenuItem(header: "Open Config File Location");
         fileLocationItem.Click += (_, _) =>
-            ConfigurationFileLocationRequested?.Invoke(this, EventArgs.Empty);
+            ConfigurationFileLocationRequested?.Invoke(sender: this, e: EventArgs.Empty);
 
         return [configurationItem, new NativeMenuItemSeparator(), fileLocationItem];
     }
 
     private NativeMenu CreateNativeEmulationMenu()
     {
-        _nativePauseMenuItem.Click += (_, _) => PauseRequested?.Invoke(this, EventArgs.Empty);
-        _nativeResetMenuItem.Click += (_, _) => ResetRequested?.Invoke(this, EventArgs.Empty);
+        _nativePauseMenuItem.Click += (_, _) =>
+            PauseRequested?.Invoke(sender: this, e: EventArgs.Empty);
+        _nativeResetMenuItem.Click += (_, _) =>
+            ResetRequested?.Invoke(sender: this, e: EventArgs.Empty);
 
         _nativeFastForwardMenuItem.Click += (_, _) =>
-            FastForwardRequested?.Invoke(this, EventArgs.Empty);
+            FastForwardRequested?.Invoke(sender: this, e: EventArgs.Empty);
 
         return
         [
@@ -453,43 +538,49 @@ internal sealed partial class MainMenu : UserControl
             _nativeLoadStateMenuItem,
             new NativeMenuItemSeparator(),
             _nativeFastForwardMenuItem,
-            new NativeMenuItem("Fast Forward Speed") { Menu = _nativeFastForwardSpeedMenu },
+            new NativeMenuItem(header: "Fast Forward Speed") { Menu = _nativeFastForwardSpeedMenu },
         ];
     }
 
     private NativeMenu CreateNativeViewMenu()
     {
         _nativeFullscreenMenuItem.Click += (_, _) =>
-            FullscreenRequested?.Invoke(this, EventArgs.Empty);
+            FullscreenRequested?.Invoke(sender: this, e: EventArgs.Empty);
         _nativeStatusBarMenuItem.Click += (_, _) =>
-            StatusBarRequested?.Invoke(this, EventArgs.Empty);
+            StatusBarRequested?.Invoke(sender: this, e: EventArgs.Empty);
 
         return [_nativeFullscreenMenuItem, new NativeMenuItemSeparator(), _nativeStatusBarMenuItem];
     }
 
     private NativeMenu CreateNativeHelpMenu()
     {
-        var item = new NativeMenuItem("View on GitHub");
-        item.Click += (_, _) => GitHubRepositoryRequested?.Invoke(this, EventArgs.Empty);
+        var item = new NativeMenuItem(header: "View on GitHub");
+        item.Click += (_, _) => GitHubRepositoryRequested?.Invoke(sender: this, e: EventArgs.Empty);
         return [item];
     }
 
     private NativeMenuItem CreateNativeFastForwardSpeedMenuItem(EmulationSpeed speed)
     {
-        NativeMenuItem item = new(speed.GetDisplayName())
+        NativeMenuItem item = new(header: speed.GetDisplayName())
         {
             ToggleType = MenuItemToggleType.CheckBox,
         };
         item.Click += (_, _) =>
-            FastForwardSpeedSelected?.Invoke(this, new FastForwardSpeedSelectedEventArgs(speed));
+            FastForwardSpeedSelected?.Invoke(
+                sender: this,
+                e: new FastForwardSpeedSelectedEventArgs(speed: speed)
+            );
         return item;
     }
 
     private NativeMenuItem CreateNativeRecentRomMenuItem(LibraryEntry entry)
     {
-        NativeMenuItem item = new(entry.FileName);
+        NativeMenuItem item = new(header: entry.FileName);
         item.Click += (_, _) =>
-            RecentRomSelected?.Invoke(this, new RecentRomSelectedEventArgs(entry.LastKnownPath));
+            RecentRomSelected?.Invoke(
+                sender: this,
+                e: new RecentRomSelectedEventArgs(path: entry.LastKnownPath)
+            );
         return item;
     }
     #endregion Native menu

@@ -21,15 +21,15 @@ public sealed class AppConfigurationServiceTests
         Directory.CreateDirectory(tempDirectory.Path);
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "dmg.bin"),
-            CreateBootRom(BootRomOptions.DmgBootRomSize, marker: 0xD0)
+            BootRomTestFactory.CreateDmg(marker: 0xD0)
         );
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "cgb.bin"),
-            CreateBootRom(BootRomOptions.CgbBootRomSize, marker: 0xC0)
+            BootRomTestFactory.CreateCgb(marker: 0xC0)
         );
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "sgb.bin"),
-            CreateBootRom(BootRomOptions.SgbBootRomSize, marker: 0x50)
+            BootRomTestFactory.CreateSgb(marker: 0x50)
         );
         var service = CreateService(configPath);
 
@@ -78,15 +78,15 @@ public sealed class AppConfigurationServiceTests
         Directory.CreateDirectory(tempDirectory.Path);
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "new-dmg.bin"),
-            CreateBootRom(BootRomOptions.DmgBootRomSize, marker: 0xD0)
+            BootRomTestFactory.CreateDmg(marker: 0xD0)
         );
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "new-cgb.bin"),
-            CreateBootRom(BootRomOptions.CgbBootRomSize, marker: 0xC0)
+            BootRomTestFactory.CreateCgb(marker: 0xC0)
         );
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "new-sgb.bin"),
-            CreateBootRom(BootRomOptions.SgbBootRomSize, marker: 0x50)
+            BootRomTestFactory.CreateSgb(marker: 0x50)
         );
         AppConfigurationFile.Save(
             configPath,
@@ -161,7 +161,7 @@ public sealed class AppConfigurationServiceTests
         File.WriteAllText(configPath, existingContents);
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "replacement-dmg.bin"),
-            CreateBootRom(BootRomOptions.DmgBootRomSize, marker: 0xD0)
+            BootRomTestFactory.CreateDmg(marker: 0xD0)
         );
         var service = CreateService(configPath);
 
@@ -193,11 +193,11 @@ public sealed class AppConfigurationServiceTests
         Directory.CreateDirectory(tempDirectory.Path);
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "current-dmg.bin"),
-            CreateBootRom(BootRomOptions.DmgBootRomSize, marker: 0xD0)
+            BootRomTestFactory.CreateDmg(marker: 0xD0)
         );
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "new-cgb.bin"),
-            CreateBootRom(BootRomOptions.CgbBootRomSize, marker: 0xC0)
+            BootRomTestFactory.CreateCgb(marker: 0xC0)
         );
         AppConfigurationFile.Save(
             configPath,
@@ -233,15 +233,15 @@ public sealed class AppConfigurationServiceTests
         Directory.CreateDirectory(tempDirectory.Path);
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "dmg.bin"),
-            CreateBootRom(BootRomOptions.DmgBootRomSize, marker: 0xD0)
+            BootRomTestFactory.CreateDmg(marker: 0xD0)
         );
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "cgb.bin"),
-            CreateBootRom(BootRomOptions.CgbBootRomSize, marker: 0xC0)
+            BootRomTestFactory.CreateCgb(marker: 0xC0)
         );
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "sgb.bin"),
-            CreateBootRom(BootRomOptions.SgbBootRomSize, marker: 0x50)
+            BootRomTestFactory.CreateSgb(marker: 0x50)
         );
         var service = CreateService(configPath);
         service.SaveSettings(
@@ -319,12 +319,5 @@ public sealed class AppConfigurationServiceTests
             [activeProfileName] = defaultGamepadProfile,
         };
         return input;
-    }
-
-    private static byte[] CreateBootRom(int length, byte marker)
-    {
-        var bytes = new byte[length];
-        bytes[0] = marker;
-        return bytes;
     }
 }

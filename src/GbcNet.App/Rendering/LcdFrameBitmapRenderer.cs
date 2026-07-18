@@ -41,15 +41,18 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
 
     public unsafe WriteableBitmap Render(LcdFrame frame)
     {
-        ArgumentNullException.ThrowIfNull(frame);
+        ArgumentNullException.ThrowIfNull(argument: frame);
 
-        var bitmap = GetNextBitmap(frame.Width, frame.Height);
+        var bitmap = GetNextBitmap(width: frame.Width, height: frame.Height);
 
         using var framebuffer = bitmap.Lock();
         var bgraLength = checked(framebuffer.RowBytes * frame.Height);
         WritePixels(
-            frame,
-            destination: new Span<byte>(framebuffer.Address.ToPointer(), bgraLength),
+            frame: frame,
+            destination: new Span<byte>(
+                pointer: framebuffer.Address.ToPointer(),
+                length: bgraLength
+            ),
             rowBytes: framebuffer.RowBytes
         );
         return bitmap;
@@ -69,7 +72,7 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
         var index = _nextBitmapIndex;
         _nextBitmapIndex = (_nextBitmapIndex + 1) % _bitmaps.Length;
 
-        var pixelSize = new PixelSize(width, height);
+        var pixelSize = new PixelSize(width: width, height: height);
         var bitmap = _bitmaps[index];
 
         if (bitmap?.PixelSize == pixelSize)
@@ -79,10 +82,10 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
 
         bitmap?.Dispose();
         bitmap = new WriteableBitmap(
-            pixelSize,
-            new Vector(Dpi, Dpi),
-            PixelFormats.Bgra8888,
-            AlphaFormat.Opaque
+            size: pixelSize,
+            dpi: new Vector(x: Dpi, y: Dpi),
+            format: PixelFormats.Bgra8888,
+            alphaFormat: AlphaFormat.Opaque
         );
         _bitmaps[index] = bitmap;
         return bitmap;
@@ -90,29 +93,35 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
 
     internal static void WritePixels(LcdFrame frame, Span<byte> destination, int rowBytes)
     {
-        ArgumentNullException.ThrowIfNull(frame);
-        ArgumentOutOfRangeException.ThrowIfLessThan(rowBytes, frame.Width * BytesPerPixel);
+        ArgumentNullException.ThrowIfNull(argument: frame);
+        ArgumentOutOfRangeException.ThrowIfLessThan(
+            value: rowBytes,
+            other: frame.Width * BytesPerPixel
+        );
 
         var requiredLength = checked(rowBytes * frame.Height);
 
         if (destination.Length < requiredLength)
         {
-            throw new ArgumentException("Destination buffer is too small.", nameof(destination));
+            throw new ArgumentException(
+                message: "Destination buffer is too small.",
+                paramName: nameof(destination)
+            );
         }
 
         switch (frame.PixelFormat)
         {
             case LcdPixelFormat.DmgShadeIndex8:
-                WriteDmgShadePixels(frame, destination, rowBytes);
+                WriteDmgShadePixels(frame: frame, destination: destination, rowBytes: rowBytes);
                 return;
 
             case LcdPixelFormat.Rgb555Le:
-                WriteRgb555Pixels(frame, destination, rowBytes);
+                WriteRgb555Pixels(frame: frame, destination: destination, rowBytes: rowBytes);
                 return;
 
             default:
                 throw new NotSupportedException(
-                    $"Unsupported LCD pixel format: {frame.PixelFormat}."
+                    message: $"Unsupported LCD pixel format: {frame.PixelFormat}."
                 );
         }
     }
@@ -131,12 +140,15 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
             {
                 var targetOffset = targetRowOffset + (x * BytesPerPixel);
                 var colorOffset =
-                    (shades[sourceRowOffset + x] > 3 ? 3 : shades[sourceRowOffset + x])
-                    * BytesPerPixel;
-                destination[targetOffset] = colors[colorOffset];
-                destination[targetOffset + 1] = colors[colorOffset + 1];
-                destination[targetOffset + 2] = colors[colorOffset + 2];
-                destination[targetOffset + 3] = colors[colorOffset + 3];
+                    (
+                        shades[index: sourceRowOffset + x] > 3
+                            ? 3
+                            : shades[index: sourceRowOffset + x]
+                    ) * BytesPerPixel;
+                destination[index: targetOffset] = colors[index: colorOffset];
+                destination[index: targetOffset + 1] = colors[index: colorOffset + 1];
+                destination[index: targetOffset + 2] = colors[index: colorOffset + 2];
+                destination[index: targetOffset + 3] = colors[index: colorOffset + 3];
             }
         }
     }
@@ -153,13 +165,15 @@ internal sealed class LcdFrameBitmapRenderer : IDisposable
             for (var x = 0; x < frame.Width; x++)
             {
                 var sourceOffset = sourceRowOffset + (x * 2);
-                var color = pixels[sourceOffset] | (pixels[sourceOffset + 1] << 8);
+                var color = pixels[index: sourceOffset] | (pixels[index: sourceOffset + 1] << 8);
                 var targetOffset = targetRowOffset + (x * BytesPerPixel);
 
-                destination[targetOffset] = ExpandRgb555Channel((color >> 10) & 0x1F);
-                destination[targetOffset + 1] = ExpandRgb555Channel((color >> 5) & 0x1F);
-                destination[targetOffset + 2] = ExpandRgb555Channel(color & 0x1F);
-                destination[targetOffset + 3] = 0xFF;
+                destination[index: targetOffset] = ExpandRgb555Channel(value: (color >> 10) & 0x1F);
+                destination[index: targetOffset + 1] = ExpandRgb555Channel(
+                    value: (color >> 5) & 0x1F
+                );
+                destination[index: targetOffset + 2] = ExpandRgb555Channel(value: color & 0x1F);
+                destination[index: targetOffset + 3] = 0xFF;
             }
         }
     }

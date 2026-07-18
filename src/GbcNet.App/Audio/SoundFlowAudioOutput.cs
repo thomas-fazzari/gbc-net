@@ -70,17 +70,17 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
     {
         if (resetUnavailable)
         {
-            Volatile.Write(ref _isUnavailable, 0);
+            Volatile.Write(location: ref _isUnavailable, value: 0);
         }
 
         _buffer.Clear();
-        Volatile.Write(ref _needsPrebuffer, 1);
+        Volatile.Write(location: ref _needsPrebuffer, value: 1);
     }
 
     /// <inheritdoc />
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _isDisposed, 1) != 0)
+        if (Interlocked.Exchange(location1: ref _isDisposed, value: 1) != 0)
         {
             return;
         }
@@ -126,7 +126,7 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
                     }
                 );
                 _device.MasterMixer.AddComponent(_source);
-                Volatile.Write(ref _isDeviceCreated, 1);
+                Volatile.Write(location: ref _isDeviceCreated, value: 1);
                 return true;
             }
             catch (Exception exception) when (IsExpectedAudioStartupException(exception))
@@ -158,14 +158,14 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
 
             // Start with queued audio so slower hosts do not underrun immediately
             _device.Start();
-            Volatile.Write(ref _isStarted, 1);
+            Volatile.Write(location: ref _isStarted, value: 1);
         }
     }
 
     private void DisableAudioCore()
     {
         // Called while _deviceLock is held during startup failure handling
-        Volatile.Write(ref _isUnavailable, 1);
+        Volatile.Write(location: ref _isUnavailable, value: 1);
         Clear(resetUnavailable: false);
         ReleaseDevice();
     }
@@ -180,9 +180,9 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
         _device = null;
         _source = null;
         _engine = null;
-        Volatile.Write(ref _isDeviceCreated, 0);
-        Volatile.Write(ref _isStarted, 0);
-        Volatile.Write(ref _needsPrebuffer, 1);
+        Volatile.Write(location: ref _isDeviceCreated, value: 0);
+        Volatile.Write(location: ref _isStarted, value: 0);
+        Volatile.Write(location: ref _needsPrebuffer, value: 1);
         if (device is not null)
         {
             if (wasStarted)
@@ -193,7 +193,7 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
                 }
                 catch (Exception exception) when (IsExpectedAudioStartupException(exception))
                 {
-                    Volatile.Write(ref _isUnavailable, 1);
+                    Volatile.Write(location: ref _isUnavailable, value: 1);
                     SoundFlowAudioOutputLog.PlaybackDeviceReleaseFailed(logger, exception);
                 }
             }
@@ -206,7 +206,7 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
                 }
                 catch (Exception exception) when (IsExpectedAudioStartupException(exception))
                 {
-                    Volatile.Write(ref _isUnavailable, 1);
+                    Volatile.Write(location: ref _isUnavailable, value: 1);
                     SoundFlowAudioOutputLog.PlaybackDeviceReleaseFailed(logger, exception);
                 }
             }
@@ -217,7 +217,7 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
             }
             catch (Exception exception) when (IsExpectedAudioStartupException(exception))
             {
-                Volatile.Write(ref _isUnavailable, 1);
+                Volatile.Write(location: ref _isUnavailable, value: 1);
                 SoundFlowAudioOutputLog.PlaybackDeviceReleaseFailed(logger, exception);
             }
         }
@@ -229,7 +229,7 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
         }
         catch (Exception exception) when (IsExpectedAudioStartupException(exception))
         {
-            Volatile.Write(ref _isUnavailable, 1);
+            Volatile.Write(location: ref _isUnavailable, value: 1);
             SoundFlowAudioOutputLog.AudioEngineReleaseFailed(logger, exception);
         }
     }
@@ -252,7 +252,7 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
                 return;
             }
 
-            Volatile.Write(ref _needsPrebuffer, 0);
+            Volatile.Write(location: ref _needsPrebuffer, value: 0);
         }
 
         var frame = 0;

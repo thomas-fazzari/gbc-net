@@ -28,9 +28,9 @@ internal sealed class InputMap(
             : config
                 .Keyboard.Profiles.First(profile =>
                     string.Equals(
-                        profile.Key,
-                        config.Keyboard.ActiveProfile,
-                        StringComparison.OrdinalIgnoreCase
+                        a: profile.Key,
+                        b: config.Keyboard.ActiveProfile,
+                        comparisonType: StringComparison.OrdinalIgnoreCase
                     )
                 )
                 .Value;
@@ -43,9 +43,9 @@ internal sealed class InputMap(
             : config
                 .Gamepad.Profiles.First(profile =>
                     string.Equals(
-                        profile.Key,
-                        config.Gamepad.ActiveProfile,
-                        StringComparison.OrdinalIgnoreCase
+                        a: profile.Key,
+                        b: config.Gamepad.ActiveProfile,
+                        comparisonType: StringComparison.OrdinalIgnoreCase
                     )
                 )
                 .Value;

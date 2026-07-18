@@ -11,5 +11,5 @@ internal sealed class ConfigurationException : Exception
         : base(message) { }
 
     public ConfigurationException(string message, Exception innerException)
-        : base(message, innerException) { }
+        : base(message: message, innerException: innerException) { }
 }

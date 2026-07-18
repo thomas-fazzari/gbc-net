@@ -51,15 +51,15 @@ internal static class AppConfigurationFile
         catch (JsonException exception)
         {
             throw new ConfigurationException(
-                "Configuration file could not be parsed: " + exception.Message,
-                exception
+                message: "Configuration file could not be parsed: " + exception.Message,
+                innerException: exception
             );
         }
         catch (Exception exception) when (IsExpectedFileException(exception))
         {
             throw new ConfigurationException(
-                "Configuration file could not be read: " + exception.Message,
-                exception
+                message: "Configuration file could not be read: " + exception.Message,
+                innerException: exception
             );
         }
     }
@@ -72,18 +72,18 @@ internal static class AppConfigurationFile
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path) ?? ".");
             File.WriteAllText(
-                temporaryPath,
-                JsonSerializer.Serialize(config, _jsonOptions) + Environment.NewLine
+                path: temporaryPath,
+                contents: JsonSerializer.Serialize(config, _jsonOptions) + Environment.NewLine
             );
-            File.Move(temporaryPath, path, overwrite: true);
+            File.Move(sourceFileName: temporaryPath, destFileName: path, overwrite: true);
         }
         catch (Exception exception) when (IsExpectedFileException(exception))
         {
             TryDeleteRegularFile(temporaryPath, logger);
 
             throw new ConfigurationException(
-                "Configuration file could not be saved: " + exception.Message,
-                exception
+                message: "Configuration file could not be saved: " + exception.Message,
+                innerException: exception
             );
         }
     }
@@ -124,14 +124,14 @@ internal static class AppConfigurationFile
                     {
                         Bindings =
                         [
-                            new("Up", "Up"),
-                            new("Down", "Down"),
-                            new("Left", "Left"),
-                            new("Right", "Right"),
-                            new("A", "Z"),
-                            new("B", "X"),
-                            new("Start", "Enter"),
-                            new("Select", "Back"),
+                            new(ButtonName: "Up", KeyName: "Up"),
+                            new(ButtonName: "Down", KeyName: "Down"),
+                            new(ButtonName: "Left", KeyName: "Left"),
+                            new(ButtonName: "Right", KeyName: "Right"),
+                            new(ButtonName: "A", KeyName: "Z"),
+                            new(ButtonName: "B", KeyName: "X"),
+                            new(ButtonName: "Start", KeyName: "Enter"),
+                            new(ButtonName: "Select", KeyName: "Back"),
                         ],
                     },
                 },
@@ -147,10 +147,10 @@ internal static class AppConfigurationFile
                     {
                         Bindings =
                         [
-                            new("A", "East"),
-                            new("B", "South"),
-                            new("Start", "Start"),
-                            new("Select", "Back"),
+                            new(ButtonName: "A", ControlName: "East"),
+                            new(ButtonName: "B", ControlName: "South"),
+                            new(ButtonName: "Start", ControlName: "Start"),
+                            new(ButtonName: "Select", ControlName: "Back"),
                         ],
                     },
                 },

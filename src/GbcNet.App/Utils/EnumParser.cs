@@ -12,17 +12,26 @@ internal static class EnumParser
     {
         value = default;
 
-        return !string.IsNullOrWhiteSpace(name)
-            && !IsIntegerText(name)
-            && Enum.TryParse(name, ignoreCase: true, out value)
-            && Enum.IsDefined(value);
+        return !string.IsNullOrWhiteSpace(value: name)
+            && !IsIntegerText(value: name)
+            && Enum.TryParse(value: name, ignoreCase: true, result: out value)
+            && Enum.IsDefined(value: value);
     }
 
     public static bool TryParseCanonicalName<TEnum>(string? name, out TEnum value)
         where TEnum : struct, Enum =>
-        TryParseDefinedName(name, out value)
-        && string.Equals(name, Enum.GetName(value), StringComparison.Ordinal);
+        TryParseDefinedName(name: name, value: out value)
+        && string.Equals(
+            a: name,
+            b: Enum.GetName(value: value),
+            comparisonType: StringComparison.Ordinal
+        );
 
     private static bool IsIntegerText(string value) =>
-        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _);
+        int.TryParse(
+            s: value,
+            style: NumberStyles.Integer,
+            provider: CultureInfo.InvariantCulture,
+            result: out _
+        );
 }

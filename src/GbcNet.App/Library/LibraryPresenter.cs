@@ -26,7 +26,7 @@ internal sealed class LibraryPresenter
         view.RomSelected = entry =>
             operationRunner.Run(async () =>
             {
-                await openRomAsync(entry.LastKnownPath).ConfigureAwait(true);
+                await openRomAsync(entry.LastKnownPath);
                 Refresh();
             });
         view.SetCoverRequested = entry => operationRunner.Run(() => SetCoverAsync(entry));
@@ -37,16 +37,14 @@ internal sealed class LibraryPresenter
 
     private async Task SetCoverAsync(LibraryEntry entry)
     {
-        var files = await _storageProvider
-            .OpenFilePickerAsync(
-                new FilePickerOpenOptions
-                {
-                    Title = "Set ROM Cover",
-                    AllowMultiple = false,
-                    FileTypeFilter = [FilePickerFileTypes.ImageAll],
-                }
-            )
-            .ConfigureAwait(true);
+        var files = await _storageProvider.OpenFilePickerAsync(
+            new FilePickerOpenOptions
+            {
+                Title = "Set ROM Cover",
+                AllowMultiple = false,
+                FileTypeFilter = [FilePickerFileTypes.ImageAll],
+            }
+        );
 
         if (files.Count == 0)
         {
@@ -71,7 +69,7 @@ internal sealed class LibraryPresenter
 
     private async Task RemoveRomAsync(LibraryEntry entry)
     {
-        if (!await _view.ConfirmRemoveAsync().ConfigureAwait(true))
+        if (!await _view.ConfirmRemoveAsync())
         {
             return;
         }

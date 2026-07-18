@@ -31,7 +31,10 @@ public sealed class PpuStateTests
 
         destination.RestoreState(state);
 
-        AssertControllerStateEqual(state, destination.CaptureState());
+        var restoredState = destination.CaptureState();
+
+        Assert.Equal(state.Engine.GetType(), restoredState.Engine.GetType());
+        Assert.Equivalent(state, restoredState, strict: true);
     }
 
     [Fact]
@@ -102,12 +105,16 @@ public sealed class PpuStateTests
         };
 
         Assert.Throws<ArgumentException>(() => destination.RestoreState(malformed));
-        AssertControllerStateEqual(before, destination.CaptureState());
+        var afterMalformed = destination.CaptureState();
+        Assert.Equal(before.Engine.GetType(), afterMalformed.Engine.GetType());
+        Assert.Equivalent(before, afterMalformed, strict: true);
 
         var wrongEngine = source.CaptureState() with { Engine = new DmgPpuEngine().CaptureState() };
 
         Assert.Throws<ArgumentException>(() => destination.RestoreState(wrongEngine));
-        AssertControllerStateEqual(before, destination.CaptureState());
+        var afterWrongEngine = destination.CaptureState();
+        Assert.Equal(before.Engine.GetType(), afterWrongEngine.Engine.GetType());
+        Assert.Equivalent(before, afterWrongEngine, strict: true);
     }
 
     [Theory]
@@ -416,53 +423,4 @@ public sealed class PpuStateTests
             CgbPpuEngineState cgb => cgb.Objects.Selector,
             _ => throw new ArgumentOutOfRangeException(nameof(state)),
         };
-
-    private static void AssertControllerStateEqual(
-        PpuControllerState expected,
-        PpuControllerState actual
-    )
-    {
-        Assert.Equal(expected.VideoRam.Banks, actual.VideoRam.Banks);
-        Assert.Equal(expected.VideoRam.SelectedBank, actual.VideoRam.SelectedBank);
-        Assert.Equal(expected.BackgroundPaletteRam.Bytes, actual.BackgroundPaletteRam.Bytes);
-        Assert.Equal(expected.BackgroundPaletteRam.Index, actual.BackgroundPaletteRam.Index);
-        Assert.Equal(expected.ObjectPaletteRam.Bytes, actual.ObjectPaletteRam.Bytes);
-        Assert.Equal(expected.ObjectPaletteRam.Index, actual.ObjectPaletteRam.Index);
-        Assert.Equal(expected.ObjectAttributeMemory.Bytes, actual.ObjectAttributeMemory.Bytes);
-        Assert.Equal(expected.Control, actual.Control);
-        Assert.Equal(expected.StatusInterruptSelect, actual.StatusInterruptSelect);
-        Assert.Equal(expected.ScrollY, actual.ScrollY);
-        Assert.Equal(expected.ScrollX, actual.ScrollX);
-        Assert.Equal(expected.LcdYCompare, actual.LcdYCompare);
-        Assert.Equal(expected.BackgroundPalette, actual.BackgroundPalette);
-        Assert.Equal(expected.ObjectPalette0, actual.ObjectPalette0);
-        Assert.Equal(expected.ObjectPalette1, actual.ObjectPalette1);
-        Assert.Equal(expected.WindowY, actual.WindowY);
-        Assert.Equal(expected.WindowX, actual.WindowX);
-        Assert.Equal(expected.ObjectPriorityMode, actual.ObjectPriorityMode);
-        Assert.Equal(expected.VideoRenderingEnabled, actual.VideoRenderingEnabled);
-        Assert.Equal(expected.Engine.GetType(), actual.Engine.GetType());
-        Assert.Equal(GetCommon(expected.Engine).Timing, GetCommon(actual.Engine).Timing);
-        Assert.Equal(
-            GetCommon(expected.Engine).StatInterruptLatch,
-            GetCommon(actual.Engine).StatInterruptLatch
-        );
-        Assert.Equal(
-            GetCommon(expected.Engine).BackgroundWindowFetcher,
-            GetCommon(actual.Engine).BackgroundWindowFetcher
-        );
-        Assert.Equal(GetCommon(expected.Engine).FrameBuffer, GetCommon(actual.Engine).FrameBuffer);
-        Assert.Equal(
-            GetCommon(expected.Engine).RenderedPixels,
-            GetCommon(actual.Engine).RenderedPixels
-        );
-        Assert.Equal(
-            GetCommon(expected.Engine).RenderingScanline,
-            GetCommon(actual.Engine).RenderingScanline
-        );
-        Assert.Equal(
-            GetCommon(expected.Engine).RenderCurrentFrame,
-            GetCommon(actual.Engine).RenderCurrentFrame
-        );
-    }
 }

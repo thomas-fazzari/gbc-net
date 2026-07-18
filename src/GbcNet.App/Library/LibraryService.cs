@@ -56,7 +56,7 @@ internal sealed class LibraryService(
         {
             var fullPath = Path.GetFullPath(path);
             var rom = await File.ReadAllBytesAsync(fullPath, CancellationToken.None)
-                .ConfigureAwait(false);
+                .ConfigureAwait(continueOnCapturedContext: false);
             var cartridge = Cartridge.LoadOrThrow(rom);
 
             return RecordOpenedRomCore(fullPath, rom, cartridge.Header);
@@ -83,7 +83,7 @@ internal sealed class LibraryService(
         }
     }
 
-    public IReadOnlyList<LibraryEntry> GetRoms(int limit) => GetRoms(default, limit);
+    public IReadOnlyList<LibraryEntry> GetRoms(int limit) => GetRoms(query: default, limit);
 
     public IReadOnlyList<LibraryEntry> GetRoms(
         LibraryQuery query = default,
@@ -131,8 +131,8 @@ internal sealed class LibraryService(
                 LibraryCoverFilter.WithCover => roms.Where(rom => rom.CoverPath != null),
                 LibraryCoverFilter.MissingCover => roms.Where(rom => rom.CoverPath == null),
                 _ => throw new ArgumentOutOfRangeException(
-                    nameof(query),
-                    query.Cover,
+                    paramName: nameof(query),
+                    actualValue: query.Cover,
                     message: null
                 ),
             };
@@ -149,8 +149,8 @@ internal sealed class LibraryService(
                 LibrarySortMode.MostPlayed => roms.OrderByDescending(rom => rom.LaunchCount),
                 LibrarySortMode.RecentlyAdded => roms.OrderByDescending(rom => rom.AddedAt),
                 _ => throw new ArgumentOutOfRangeException(
-                    nameof(query),
-                    query.Sort,
+                    paramName: nameof(query),
+                    actualValue: query.Sort,
                     message: null
                 ),
             };
@@ -228,10 +228,14 @@ internal sealed class LibraryService(
 
             Directory.CreateDirectory(_coverDirectoryPath);
             var fileName = $"{romHash}-{Guid.NewGuid():N}{imageExtension}";
-            temporaryPath = Path.Combine(_coverDirectoryPath, $".{fileName}.tmp");
-            destinationPath = Path.Combine(_coverDirectoryPath, fileName);
-            File.Copy(Path.GetFullPath(sourceImagePath), temporaryPath, overwrite: false);
-            File.Move(temporaryPath, destinationPath);
+            temporaryPath = Path.Combine(path1: _coverDirectoryPath, path2: $".{fileName}.tmp");
+            destinationPath = Path.Combine(path1: _coverDirectoryPath, path2: fileName);
+            File.Copy(
+                sourceFileName: Path.GetFullPath(sourceImagePath),
+                destFileName: temporaryPath,
+                overwrite: false
+            );
+            File.Move(sourceFileName: temporaryPath, destFileName: destinationPath);
             temporaryPath = null;
 
             rom.SetCoverPath(destinationPath);
@@ -264,7 +268,7 @@ internal sealed class LibraryService(
                 ?? throw new InvalidOperationException("ROM not found: " + romHash);
             var previousCoverPath = rom.CoverPath;
 
-            rom.SetCoverPath(null);
+            rom.SetCoverPath(coverPath: null);
             db.SaveChanges();
             transaction.Commit();
 
@@ -356,9 +360,9 @@ internal sealed class LibraryService(
                 || (
                     exceptPath is not null
                     && string.Equals(
-                        Path.GetFullPath(coverPath),
-                        Path.GetFullPath(exceptPath),
-                        GetFileSystemPathComparison()
+                        a: Path.GetFullPath(coverPath),
+                        b: Path.GetFullPath(exceptPath),
+                        comparisonType: GetFileSystemPathComparison()
                     )
                 )
             )
@@ -432,9 +436,9 @@ internal sealed class LibraryService(
         }
 
         return string.Create(
-            extension.Length,
-            extension,
-            static (result, source) =>
+            length: extension.Length,
+            state: extension,
+            action: static (result, source) =>
             {
                 for (var index = 0; index < source.Length; index++)
                 {
@@ -455,9 +459,9 @@ internal sealed class LibraryService(
 
     private static string EscapeLike(string value) =>
         value
-            .Replace(@"\", @"\\", StringComparison.Ordinal)
-            .Replace("%", @"\%", StringComparison.Ordinal)
-            .Replace("_", @"\_", StringComparison.Ordinal);
+            .Replace(oldValue: @"\", newValue: @"\\", comparisonType: StringComparison.Ordinal)
+            .Replace(oldValue: "%", newValue: @"\%", comparisonType: StringComparison.Ordinal)
+            .Replace(oldValue: "_", newValue: @"\_", comparisonType: StringComparison.Ordinal);
 
     private static CartridgeHardwareKind? GetHardwareKindFilter(LibraryHardwareFilter hardware) =>
         hardware switch
@@ -466,12 +470,16 @@ internal sealed class LibraryService(
             LibraryHardwareFilter.Gb => CartridgeHardwareKind.GB,
             LibraryHardwareFilter.Gbc => CartridgeHardwareKind.GBC,
             LibraryHardwareFilter.Sgb => CartridgeHardwareKind.SGB,
-            _ => throw new ArgumentOutOfRangeException(nameof(hardware), hardware, message: null),
+            _ => throw new ArgumentOutOfRangeException(
+                paramName: nameof(hardware),
+                actualValue: hardware,
+                message: null
+            ),
         };
 
     private static InvalidOperationException CreateLibraryException(Exception exception) =>
         exception as InvalidOperationException
-        ?? new InvalidOperationException(exception.Message, exception);
+        ?? new InvalidOperationException(message: exception.Message, innerException: exception);
 
     private static bool IsExpectedLibraryException(Exception exception) =>
         exception

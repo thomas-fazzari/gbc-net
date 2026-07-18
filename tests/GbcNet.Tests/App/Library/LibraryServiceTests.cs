@@ -148,15 +148,13 @@ public sealed class LibraryServiceTests
             test.DatabasePath,
             test.TimeProvider
         ).CreateDbContext();
-        await using (createDb.ConfigureAwait(true))
+        await using (createDb)
         {
             createDb.Roms.Add(rom);
-            await createDb
-                .SaveChangesAsync(
-                    acceptAllChangesOnSuccess: true,
-                    TestContext.Current.CancellationToken
-                )
-                .ConfigureAwait(true);
+            await createDb.SaveChangesAsync(
+                acceptAllChangesOnSuccess: true,
+                TestContext.Current.CancellationToken
+            );
         }
 
         test.TimeProvider.Advance(TimeSpan.FromMinutes(2));
@@ -165,15 +163,14 @@ public sealed class LibraryServiceTests
             test.DatabasePath,
             test.TimeProvider
         ).CreateDbContext();
-        await using (updateDb.ConfigureAwait(true))
+        await using (updateDb)
         {
             var saved = await updateDb
                 .Roms.AsTracking()
                 .SingleAsync(
                     entry => entry.RomHash == "async",
                     TestContext.Current.CancellationToken
-                )
-                .ConfigureAwait(true);
+                );
             saved.RecordOpen(
                 romPath,
                 "async.gb",
@@ -181,16 +178,14 @@ public sealed class LibraryServiceTests
                 CartridgeHardwareKind.GB,
                 secondOpenedAt
             );
-            await updateDb
-                .SaveChangesAsync(
-                    acceptAllChangesOnSuccess: true,
-                    TestContext.Current.CancellationToken
-                )
-                .ConfigureAwait(true);
+            await updateDb.SaveChangesAsync(
+                acceptAllChangesOnSuccess: true,
+                TestContext.Current.CancellationToken
+            );
         }
 
         var readDb = new TestDbContextFactory(test.DatabasePath).CreateDbContext();
-        await using (readDb.ConfigureAwait(true))
+        await using (readDb)
         {
             var persisted = Assert.Single(readDb.Roms);
             Assert.Equal(createdAt, persisted.AddedAt);
@@ -829,20 +824,17 @@ public sealed class LibraryServiceTests
         public void Dispose() => TemporaryDirectory.Dispose();
     }
 
-    private sealed class TestDbContextFactory : IDbContextFactory<GbcNetDbContext>
+    private sealed class TestDbContextFactory(
+        string databasePath,
+        TimeProvider? timeProvider = null
+    ) : IDbContextFactory<GbcNetDbContext>
     {
-        private readonly DbContextOptions<GbcNetDbContext> _options;
-        private readonly TimeProvider? _timeProvider;
-
-        public TestDbContextFactory(string databasePath, TimeProvider? timeProvider = null)
-        {
-            _options = new DbContextOptionsBuilder<GbcNetDbContext>()
+        private readonly DbContextOptions<GbcNetDbContext> _options =
+            new DbContextOptionsBuilder<GbcNetDbContext>()
                 .UseSqlite($"Data Source={databasePath}")
                 .Options;
-            _timeProvider = timeProvider;
-        }
 
-        public GbcNetDbContext CreateDbContext() => new(_options, _timeProvider);
+        public GbcNetDbContext CreateDbContext() => new(_options, timeProvider);
     }
 
     private sealed class FailingDbContextFactory(

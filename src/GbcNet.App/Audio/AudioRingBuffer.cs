@@ -29,11 +29,11 @@ internal sealed class AudioRingBuffer
         get
         {
             var readCursor = Math.Max(
-                Volatile.Read(ref _readCursor),
-                Volatile.Read(ref _clearCursor)
+                val1: Volatile.Read(ref _readCursor),
+                val2: Volatile.Read(ref _clearCursor)
             );
             var count = Volatile.Read(ref _writeCursor) - readCursor;
-            return (int)Math.Clamp(count, 0, _samples.Length);
+            return (int)Math.Clamp(value: count, min: 0, max: _samples.Length);
         }
     }
 
@@ -43,15 +43,18 @@ internal sealed class AudioRingBuffer
     internal void Enqueue(ReadOnlySpan<ApuStereoSample> samples)
     {
         var writeCursor = Volatile.Read(ref _writeCursor);
-        var readCursor = Math.Max(Volatile.Read(ref _readCursor), Volatile.Read(ref _clearCursor));
+        var readCursor = Math.Max(
+            val1: Volatile.Read(ref _readCursor),
+            val2: Volatile.Read(ref _clearCursor)
+        );
 
         foreach (var sample in samples)
         {
             if (writeCursor - readCursor >= _samples.Length)
             {
                 readCursor = Math.Max(
-                    Volatile.Read(ref _readCursor),
-                    Volatile.Read(ref _clearCursor)
+                    val1: Volatile.Read(ref _readCursor),
+                    val2: Volatile.Read(ref _clearCursor)
                 );
                 if (writeCursor - readCursor >= _samples.Length)
                 {
@@ -63,7 +66,7 @@ internal sealed class AudioRingBuffer
             writeCursor++;
         }
 
-        Volatile.Write(ref _writeCursor, writeCursor);
+        Volatile.Write(location: ref _writeCursor, value: writeCursor);
     }
 
     /// <summary>
@@ -72,7 +75,10 @@ internal sealed class AudioRingBuffer
     internal bool TryDequeue(out ApuStereoSample sample)
     {
         var writeCursor = Volatile.Read(ref _writeCursor);
-        var readCursor = Math.Max(Volatile.Read(ref _readCursor), Volatile.Read(ref _clearCursor));
+        var readCursor = Math.Max(
+            val1: Volatile.Read(ref _readCursor),
+            val2: Volatile.Read(ref _clearCursor)
+        );
 
         if (readCursor >= writeCursor)
         {
@@ -81,7 +87,7 @@ internal sealed class AudioRingBuffer
         }
 
         sample = _samples[(int)(readCursor % _samples.Length)];
-        Volatile.Write(ref _readCursor, readCursor + 1);
+        Volatile.Write(location: ref _readCursor, value: readCursor + 1);
         return true;
     }
 
@@ -95,9 +101,9 @@ internal sealed class AudioRingBuffer
         while (clearCursor > publishedCursor)
         {
             var observedCursor = Interlocked.CompareExchange(
-                ref _clearCursor,
-                clearCursor,
-                publishedCursor
+                location1: ref _clearCursor,
+                value: clearCursor,
+                comparand: publishedCursor
             );
             if (observedCursor == publishedCursor)
             {

@@ -28,7 +28,7 @@ internal sealed class GbcNetDbContext : DbContext
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         StampLibraryEntries();
-        return base.SaveChanges(acceptAllChangesOnSuccess);
+        return base.SaveChanges(acceptAllChangesOnSuccess: acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(
@@ -37,7 +37,10 @@ internal sealed class GbcNetDbContext : DbContext
     )
     {
         StampLibraryEntries();
-        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        return base.SaveChangesAsync(
+            acceptAllChangesOnSuccess: acceptAllChangesOnSuccess,
+            cancellationToken
+        );
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>

@@ -36,25 +36,25 @@ internal sealed class ShellOperationRunner(Action<Exception> handleError, ILogge
 
     private static Task ObserveFaults(Task task) =>
         task.ContinueWith(
-            static completed =>
+            continuationAction: static completed =>
             {
                 if (completed.IsFaulted)
                 {
                     _ = completed.Exception;
                 }
             },
-            CancellationToken.None,
-            TaskContinuationOptions.ExecuteSynchronously,
-            TaskScheduler.Default
+            cancellationToken: CancellationToken.None,
+            continuationOptions: TaskContinuationOptions.ExecuteSynchronously,
+            scheduler: TaskScheduler.Default
         );
 
     private async Task RunAfterAsync(Task previous, Func<Task> action)
     {
-        await previous.ConfigureAwait(true);
+        await previous;
 
         try
         {
-            await action().ConfigureAwait(true);
+            await action();
         }
         catch (Exception exception) when (IsExpectedUiException(exception))
         {

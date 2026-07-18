@@ -54,7 +54,15 @@ internal sealed class LibraryRom
         string? cartridgeTitle,
         CartridgeHardwareKind hardwareKind,
         DateTimeOffset openedAt
-    ) => new(romHash, lastKnownPath, fileName, cartridgeTitle, hardwareKind, openedAt);
+    ) =>
+        new(
+            romHash: romHash,
+            lastKnownPath: lastKnownPath,
+            fileName: fileName,
+            cartridgeTitle: cartridgeTitle,
+            hardwareKind,
+            openedAt
+        );
 
     public void RecordOpen(
         string lastKnownPath,

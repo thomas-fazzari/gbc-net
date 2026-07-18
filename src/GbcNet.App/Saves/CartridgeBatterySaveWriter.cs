@@ -46,7 +46,7 @@ internal sealed class CartridgeBatterySaveWriter(
     public async Task FlushAsync()
     {
         Enqueue(CaptureSave(force: false));
-        await FlushPendingAsync().ConfigureAwait(false);
+        await FlushPendingAsync().ConfigureAwait(continueOnCapturedContext: false);
     }
 
     internal async Task FlushPendingAsync()
@@ -60,7 +60,7 @@ internal sealed class CartridgeBatterySaveWriter(
 
         if (writeTask is not null)
         {
-            await writeTask.ConfigureAwait(false);
+            await writeTask.ConfigureAwait(continueOnCapturedContext: false);
         }
 
         Exception? exception;
@@ -122,7 +122,7 @@ internal sealed class CartridgeBatterySaveWriter(
 
             try
             {
-                await writeSaveAsync(save).ConfigureAwait(false);
+                await writeSaveAsync(save).ConfigureAwait(continueOnCapturedContext: false);
             }
             catch (Exception exception) when (exception is IOException or InvalidOperationException)
             {

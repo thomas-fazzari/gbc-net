@@ -5,11 +5,8 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Layout;
-using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using GbcNet.App.Shell.Chrome;
-using GbcNet.Core.Cartridges;
 
 namespace GbcNet.App.Library;
 
@@ -70,7 +67,13 @@ internal sealed partial class LibraryView : UserControl
         var owner =
             TopLevel.GetTopLevel(this) as Window
             ?? throw new InvalidOperationException("Library view is not attached to a window.");
-        return new RemoveLibraryEntryWindow().ShowDialog<bool>(owner);
+
+        return new DestructiveConfirmationWindow(
+            title: "Remove ROM",
+            heading: "Remove this ROM from your library?",
+            message: "It will be removed from your GBC.Net library. The file stays on disk.",
+            destructiveButtonLabel: "Remove"
+        ).ShowDialog<bool>(owner);
     }
 
     public void ShowError(string message)
@@ -99,8 +102,12 @@ internal sealed partial class LibraryView : UserControl
         Grid.SetRow(LibraryControlsPanel, compact ? 1 : 0);
         Grid.SetColumn(LibraryControlsPanel, compact ? 0 : 1);
         Grid.SetColumnSpan(LibraryControlsPanel, compact ? 2 : 1);
-        LibrarySearchBorder.Margin = compact ? new Thickness(0) : new Thickness(0, 0, 10, 0);
-        LibraryControlsPanel.Margin = compact ? new Thickness(0, 10, 0, 0) : new Thickness(0);
+        LibrarySearchBorder.Margin = compact
+            ? new Thickness(0)
+            : new Thickness(left: 0, top: 0, right: 10, bottom: 0);
+        LibraryControlsPanel.Margin = compact
+            ? new Thickness(left: 0, top: 10, right: 0, bottom: 0)
+            : new Thickness(0);
     }
 
     private void OnHardwareFilterChanged(object? sender, SelectionChangedEventArgs e)
@@ -269,68 +276,14 @@ internal sealed partial class LibraryView : UserControl
             FormatTileTitle(Path.GetFileNameWithoutExtension(entry.FileName));
         public string PlayCountText { get; } =
             string.Create(
-                CultureInfo.InvariantCulture,
-                $"{entry.LaunchCount} play{(entry.LaunchCount == 1 ? string.Empty : "s")}"
+                provider: CultureInfo.InvariantCulture,
+                handler: $"{entry.LaunchCount} play{(entry.LaunchCount == 1 ? string.Empty : "s")}"
             );
         public string HardwareText { get; } = entry.HardwareKind.ToString();
-    }
-
-    private sealed class RemoveLibraryEntryWindow : Window
-    {
-        public RemoveLibraryEntryWindow()
-        {
-            Title = "Remove ROM";
-            SizeToContent = SizeToContent.WidthAndHeight;
-            CanResize = false;
-            WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            Background = AppChrome.Brush(AppChrome.Bg);
-            Content = BuildContent();
-        }
-
-        private StackPanel BuildContent()
-        {
-            var cancelButton = AppChrome.Button("Cancel");
-            cancelButton.Click += (_, _) => Close(dialogResult: false);
-
-            var removeButton = AppChrome.Button("Remove", accent: true);
-            removeButton.Click += (_, _) => Close(dialogResult: true);
-
-            return new StackPanel
-            {
-                Width = 360,
-                Margin = new Thickness(18),
-                Spacing = 14,
-                Children =
-                {
-                    new TextBlock
-                    {
-                        Text = "Remove this ROM from your library?",
-                        Foreground = AppChrome.Brush(AppChrome.Text),
-                        FontSize = 16,
-                        FontWeight = FontWeight.SemiBold,
-                    },
-                    new TextBlock
-                    {
-                        Text =
-                            "It will be removed from your GBC.Net library. The file stays on disk.",
-                        Foreground = AppChrome.Brush(AppChrome.Muted),
-                        FontSize = 13,
-                        TextWrapping = TextWrapping.Wrap,
-                    },
-                    new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        Spacing = 8,
-                        Children = { cancelButton, removeButton },
-                    },
-                },
-            };
-        }
     }
 
     private static string FormatTileTitle(string fileName) =>
         fileName.Length <= TileTitleMaxLength
             ? fileName
-            : $"{fileName.AsSpan(0, TileTitleMaxLength - 3)}...";
+            : $"{fileName.AsSpan(start: 0, length: TileTitleMaxLength - 3)}...";
 }

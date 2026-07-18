@@ -27,7 +27,7 @@ internal sealed class AppConfigurationService(
     public BootRomOptions LoadBootRomOptions(ICollection<string>? errors = null) =>
         LoadBootRomOptions(
             LoadBootRomConfig(),
-            Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory,
+            configDirectoryPath: Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory,
             errors
         );
 
@@ -52,31 +52,32 @@ internal sealed class AppConfigurationService(
         {
             appConfig = AppConfigurationFile.CreateDefault();
         }
+
         var configDirectoryPath = Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory;
         appConfig.BootRoms = new BootRomConfig(
-            ResolveBootRomPath(
-                settings.BootRoms.DmgPath,
-                appConfig.BootRoms.DmgPath,
+            DmgPath: ResolveBootRomPath(
+                proposedPath: settings.BootRoms.DmgPath,
+                currentPath: appConfig.BootRoms.DmgPath,
                 HardwareModel.Dmg,
-                configDirectoryPath,
+                configDirectoryPath: configDirectoryPath,
                 bootRomErrors
             ),
-            ResolveBootRomPath(
-                settings.BootRoms.CgbPath,
-                appConfig.BootRoms.CgbPath,
+            CgbPath: ResolveBootRomPath(
+                proposedPath: settings.BootRoms.CgbPath,
+                currentPath: appConfig.BootRoms.CgbPath,
                 HardwareModel.Cgb,
-                configDirectoryPath,
+                configDirectoryPath: configDirectoryPath,
                 bootRomErrors
             ),
-            ResolveBootRomPath(
-                settings.BootRoms.SgbPath,
-                appConfig.BootRoms.SgbPath,
+            SgbPath: ResolveBootRomPath(
+                proposedPath: settings.BootRoms.SgbPath,
+                currentPath: appConfig.BootRoms.SgbPath,
                 HardwareModel.Sgb,
-                configDirectoryPath,
+                configDirectoryPath: configDirectoryPath,
                 bootRomErrors
             )
         );
-        appConfig.Input = CopyInput(settings.Input);
+        appConfig.Input = settings.Input;
         AppConfigurationFile.Save(configPath, appConfig, logger);
         return bootRomErrors;
     }
@@ -96,21 +97,21 @@ internal sealed class AppConfigurationService(
         new()
         {
             DmgBootRom = ReadBootRom(
-                config.GetPath(HardwareModel.Dmg),
+                path: config.GetPath(HardwareModel.Dmg),
                 HardwareModel.Dmg,
-                configDirectoryPath,
+                configDirectoryPath: configDirectoryPath,
                 errors
             ),
             CgbBootRom = ReadBootRom(
-                config.GetPath(HardwareModel.Cgb),
+                path: config.GetPath(HardwareModel.Cgb),
                 HardwareModel.Cgb,
-                configDirectoryPath,
+                configDirectoryPath: configDirectoryPath,
                 errors
             ),
             SgbBootRom = ReadBootRom(
-                config.GetPath(HardwareModel.Sgb),
+                path: config.GetPath(HardwareModel.Sgb),
                 HardwareModel.Sgb,
-                configDirectoryPath,
+                configDirectoryPath: configDirectoryPath,
                 errors
             ),
         };
@@ -124,7 +125,7 @@ internal sealed class AppConfigurationService(
     {
         try
         {
-            return ReadBootRomFile(path, model, configDirectoryPath);
+            return ReadBootRomFile(path: path, model, configDirectoryPath: configDirectoryPath);
         }
         catch (ConfigurationException exception) when (errors is not null)
         {
@@ -156,7 +157,7 @@ internal sealed class AppConfigurationService(
         {
             var resolvedPath = Path.IsPathFullyQualified(path)
                 ? path
-                : Path.GetFullPath(Path.Combine(configDirectoryPath, path));
+                : Path.GetFullPath(Path.Combine(path1: configDirectoryPath, path2: path));
             bytes = File.ReadAllBytes(resolvedPath);
         }
         catch (Exception exception) when (IsExpectedPathException(exception))
@@ -183,7 +184,11 @@ internal sealed class AppConfigurationService(
     {
         try
         {
-            _ = ReadBootRomFile(proposedPath, model, configDirectoryPath);
+            _ = ReadBootRomFile(
+                path: proposedPath,
+                model,
+                configDirectoryPath: configDirectoryPath
+            );
             return proposedPath;
         }
         catch (ConfigurationException exception)
@@ -191,14 +196,20 @@ internal sealed class AppConfigurationService(
             errors.Add(exception.Message);
         }
 
-        if (string.Equals(proposedPath, currentPath, StringComparison.OrdinalIgnoreCase))
+        if (
+            string.Equals(
+                a: proposedPath,
+                b: currentPath,
+                comparisonType: StringComparison.OrdinalIgnoreCase
+            )
+        )
         {
             return null;
         }
 
         try
         {
-            _ = ReadBootRomFile(currentPath, model, configDirectoryPath);
+            _ = ReadBootRomFile(path: currentPath, model, configDirectoryPath: configDirectoryPath);
             return currentPath;
         }
         catch (ConfigurationException)
@@ -206,52 +217,6 @@ internal sealed class AppConfigurationService(
             return null;
         }
     }
-
-    private static InputConfig CopyInput(InputConfig input) =>
-        new()
-        {
-            Version = input.Version,
-            Keyboard = new()
-            {
-                ActiveProfile = input.Keyboard.ActiveProfile,
-                Profiles = input.Keyboard.Profiles.ToDictionary(
-                    profile => profile.Key,
-                    profile => new KeyboardProfileConfig
-                    {
-                        Bindings =
-                        [
-                            .. profile.Value.Bindings.Select(
-                                binding => new KeyboardInputBindingConfig(
-                                    binding.ButtonName,
-                                    binding.KeyName
-                                )
-                            ),
-                        ],
-                    },
-                    StringComparer.OrdinalIgnoreCase
-                ),
-            },
-            Gamepad = new()
-            {
-                ActiveProfile = input.Gamepad.ActiveProfile,
-                Profiles = input.Gamepad.Profiles.ToDictionary(
-                    profile => profile.Key,
-                    profile => new GamepadProfileConfig
-                    {
-                        Bindings =
-                        [
-                            .. profile.Value.Bindings.Select(
-                                binding => new GamepadInputBindingConfig(
-                                    binding.ButtonName,
-                                    binding.ControlName
-                                )
-                            ),
-                        ],
-                    },
-                    StringComparer.OrdinalIgnoreCase
-                ),
-            },
-        };
 
     private static bool IsExpectedPathException(Exception exception) =>
         exception

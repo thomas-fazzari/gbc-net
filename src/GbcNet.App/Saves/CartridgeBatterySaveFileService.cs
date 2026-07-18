@@ -40,8 +40,8 @@ internal sealed class CartridgeBatterySaveFileService
             {
                 throw new InvalidOperationException(
                     string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"Save file is {saveLength} bytes, but cartridge expects {cartridge.BatterySaveSize} bytes."
+                        provider: CultureInfo.InvariantCulture,
+                        handler: $"Save file is {saveLength} bytes, but cartridge expects {cartridge.BatterySaveSize} bytes."
                     )
                 );
             }
@@ -55,7 +55,10 @@ internal sealed class CartridgeBatterySaveFileService
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            throw new IOException("Save file could not be read: " + exception.Message, exception);
+            throw new IOException(
+                message: "Save file could not be read: " + exception.Message,
+                innerException: exception
+            );
         }
 
         return path;
@@ -69,14 +72,14 @@ internal sealed class CartridgeBatterySaveFileService
             var temporaryPath = $"{savePath}.{Guid.NewGuid():N}.tmp";
 
             await File.WriteAllBytesAsync(temporaryPath, save, CancellationToken.None)
-                .ConfigureAwait(false);
-            File.Move(temporaryPath, savePath, overwrite: true);
+                .ConfigureAwait(continueOnCapturedContext: false);
+            File.Move(sourceFileName: temporaryPath, destFileName: savePath, overwrite: true);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             throw new IOException(
-                "Save file could not be written: " + exception.Message,
-                exception
+                message: "Save file could not be written: " + exception.Message,
+                innerException: exception
             );
         }
     }
@@ -85,6 +88,9 @@ internal sealed class CartridgeBatterySaveFileService
     {
         var identity = RomStorageIdentity.Create(cartridge.Header.Title, rom);
 
-        return Path.Combine(_saveDirectoryPath, identity.FileStem + SaveFileExtension);
+        return Path.Combine(
+            path1: _saveDirectoryPath,
+            path2: identity.FileStem + SaveFileExtension
+        );
     }
 }

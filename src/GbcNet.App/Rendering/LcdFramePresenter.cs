@@ -15,37 +15,37 @@ internal sealed class LcdFramePresenter(Image screenImage) : IDisposable
 
     internal void Enqueue(LcdFrame frame)
     {
-        if (Volatile.Read(ref _isDisposed) != 0)
+        if (Volatile.Read(location: ref _isDisposed) != 0)
         {
             return;
         }
 
-        _ = Interlocked.Exchange(ref _pendingFrame, frame);
+        _ = Interlocked.Exchange(location1: ref _pendingFrame, value: frame);
 
-        if (Interlocked.Exchange(ref _isRenderQueued, 1) == 0)
+        if (Interlocked.Exchange(location1: ref _isRenderQueued, value: 1) == 0)
         {
-            screenImage.Dispatcher.Post(RenderPendingFrame);
+            screenImage.Dispatcher.Post(action: RenderPendingFrame);
         }
     }
 
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _isDisposed, 1) != 0)
+        if (Interlocked.Exchange(location1: ref _isDisposed, value: 1) != 0)
         {
             return;
         }
 
-        _ = Interlocked.Exchange(ref _pendingFrame, value: null);
+        _ = Interlocked.Exchange(location1: ref _pendingFrame, value: null);
         screenImage.Source = null;
         _renderer.Dispose();
     }
 
     private void RenderPendingFrame()
     {
-        if (Volatile.Read(ref _isDisposed) != 0)
+        if (Volatile.Read(location: ref _isDisposed) != 0)
         {
-            _ = Interlocked.Exchange(ref _pendingFrame, value: null);
-            Volatile.Write(ref _isRenderQueued, 0);
+            _ = Interlocked.Exchange(location1: ref _pendingFrame, value: null);
+            Volatile.Write(location: ref _isRenderQueued, value: 0);
             return;
         }
 
@@ -56,12 +56,12 @@ internal sealed class LcdFramePresenter(Image screenImage) : IDisposable
         {
             screenImage.Width = frame.Width;
             screenImage.Height = frame.Height;
-            screenImage.Source = _renderer.Render(frame);
+            screenImage.Source = _renderer.Render(frame: frame);
         }
 
         // Drop intermediate fast-forward frames to avoid dispatcher backlog
         if (
-            Volatile.Read(ref _isDisposed) == 0
+            Volatile.Read(location: ref _isDisposed) == 0
             && Interlocked.CompareExchange(
                 location1: ref _pendingFrame,
                 value: null,
@@ -71,7 +71,7 @@ internal sealed class LcdFramePresenter(Image screenImage) : IDisposable
             && Interlocked.Exchange(location1: ref _isRenderQueued, value: 1) == 0
         )
         {
-            screenImage.Dispatcher.Post(RenderPendingFrame);
+            screenImage.Dispatcher.Post(action: RenderPendingFrame);
         }
     }
 }

@@ -17,11 +17,11 @@ public sealed class SgbControllerStateTests
 
         sgb.RestoreState(state);
         MutateBuffers(state);
-        AssertStateEqual(expected, sgb.CaptureState());
+        Assert.Equivalent(expected, sgb.CaptureState(), strict: true);
 
         var captured = sgb.CaptureState();
         MutateBuffers(captured);
-        AssertStateEqual(expected, sgb.CaptureState());
+        Assert.Equivalent(expected, sgb.CaptureState(), strict: true);
     }
 
     [Fact]
@@ -43,8 +43,12 @@ public sealed class SgbControllerStateTests
             )
         );
 
-        AssertStateEqual(before, sgb.CaptureState());
-        AssertRgb555(sgb.ApplyPalettes(CreateDmgFrame(shade: 2)), 0, expected: 0x3333);
+        Assert.Equivalent(before, sgb.CaptureState(), strict: true);
+        Rgb555Assertions.PixelEquals(
+            sgb.ApplyPalettes(CreateDmgFrame(shade: 2)),
+            0,
+            expected: 0x3333
+        );
     }
 
     [Fact]
@@ -66,7 +70,11 @@ public sealed class SgbControllerStateTests
         WriteBits(resumed, ref resumedGroups, packet, start: 10);
         WriteSgbBit(resumed, ref resumedGroups, value: false);
 
-        AssertRgb555(original.ApplyPalettes(CreateDmgFrame(shade: 2)), 0, expected: 0x3333);
+        Rgb555Assertions.PixelEquals(
+            original.ApplyPalettes(CreateDmgFrame(shade: 2)),
+            0,
+            expected: 0x3333
+        );
         Assert.Equal(
             original.ApplyPalettes(CreateDmgFrame(shade: 2)).Pixels.ToArray(),
             resumed.ApplyPalettes(CreateDmgFrame(shade: 2)).Pixels.ToArray()
@@ -125,8 +133,8 @@ public sealed class SgbControllerStateTests
         WriteSgbPacket(sgb, command: 0x16, [0x03]);
 
         var frame = sgb.ApplyPalettes(CreateDmgFrame(shade: 2));
-        AssertRgb555(frame, 0, expected: 0x7777);
-        AssertRgb555(frame, 8, expected: 0x3333);
+        Rgb555Assertions.PixelEquals(frame, 0, expected: 0x7777);
+        Rgb555Assertions.PixelEquals(frame, 8, expected: 0x3333);
     }
 
     [Fact]
@@ -140,10 +148,18 @@ public sealed class SgbControllerStateTests
         var resumed = new SgbController(commandsEnabled: true);
 
         resumed.RestoreState(state);
-        AssertStateEqual(state, resumed.CaptureState());
-        AssertRgb555(resumed.ApplyPalettes(CreateDmgFrame(shade: 2)), 0, expected: 0x2222);
+        Assert.Equivalent(state, resumed.CaptureState(), strict: true);
+        Rgb555Assertions.PixelEquals(
+            resumed.ApplyPalettes(CreateDmgFrame(shade: 2)),
+            0,
+            expected: 0x2222
+        );
         WriteSgbPacket(resumed, command: 0x17, [0x00]);
-        AssertRgb555(resumed.ApplyPalettes(CreateDmgFrame(shade: 0)), 0, expected: 0x2222);
+        Rgb555Assertions.PixelEquals(
+            resumed.ApplyPalettes(CreateDmgFrame(shade: 0)),
+            0,
+            expected: 0x2222
+        );
     }
 
     [Fact]
@@ -170,9 +186,9 @@ public sealed class SgbControllerStateTests
         target.RestoreState(source.CaptureState());
         var restored = target.ApplyPalettes(CreateDmgFrame(shade: 0));
 
-        AssertRgb555(restored, 0, expected: 0x1234);
-        AssertRgb555(restored, SgbGameBoyPixelIndex(x: 0, y: 0), expected: 0x7FFF);
-        AssertRgb555(restored, SgbGameBoyPixelIndex(x: 8, y: 0), expected: 0x1234);
+        Rgb555Assertions.PixelEquals(restored, 0, expected: 0x1234);
+        Rgb555Assertions.PixelEquals(restored, SgbGameBoyPixelIndex(x: 0, y: 0), expected: 0x7FFF);
+        Rgb555Assertions.PixelEquals(restored, SgbGameBoyPixelIndex(x: 8, y: 0), expected: 0x1234);
     }
 
     [Fact]
@@ -264,30 +280,6 @@ public sealed class SgbControllerStateTests
         state.LastBootFramePixels![0]++;
     }
 
-    private static void AssertStateEqual(SgbControllerState expected, SgbControllerState actual)
-    {
-        Assert.Equal(expected.Command, actual.Command);
-        Assert.Equal(expected.SystemPalettes, actual.SystemPalettes);
-        Assert.Equal(expected.AttributeFiles, actual.AttributeFiles);
-        Assert.Equal(expected.BorderTiles, actual.BorderTiles);
-        Assert.Equal(expected.BorderMap, actual.BorderMap);
-        Assert.Equal(expected.BorderPalettes, actual.BorderPalettes);
-        Assert.Equal(expected.Palettes, actual.Palettes);
-        Assert.Equal(expected.AttributeMap, actual.AttributeMap);
-        Assert.Equal(expected.CommandWriteBitIndex, actual.CommandWriteBitIndex);
-        Assert.Equal(expected.ReadyForPulse, actual.ReadyForPulse);
-        Assert.Equal(expected.ReadyForWrite, actual.ReadyForWrite);
-        Assert.Equal(expected.ReadyForStop, actual.ReadyForStop);
-        Assert.Equal(expected.PlayerCount, actual.PlayerCount);
-        Assert.Equal(expected.CurrentPlayer, actual.CurrentPlayer);
-        Assert.Equal(expected.MaskMode, actual.MaskMode);
-        Assert.Equal(expected.PendingVramTransfer, actual.PendingVramTransfer);
-        Assert.Equal(expected.PendingVramTransferFrameDelay, actual.PendingVramTransferFrameDelay);
-        Assert.Equal(expected.BorderReady, actual.BorderReady);
-        Assert.Equal(expected.VisibleFramePixels, actual.VisibleFramePixels);
-        Assert.Equal(expected.LastBootFramePixels, actual.LastBootFramePixels);
-    }
-
     private static byte[] CreateHistory(byte value)
     {
         var history = new byte[160 * 144 * 2];
@@ -354,13 +346,6 @@ public sealed class SgbControllerStateTests
     {
         bytes[offset] = (byte)value;
         bytes[offset + 1] = (byte)(value >> 8);
-    }
-
-    private static void AssertRgb555(LcdFrame frame, int pixelIndex, ushort expected)
-    {
-        var pixels = frame.Pixels.Span;
-        var offset = pixelIndex * 2;
-        Assert.Equal(expected, (ushort)(pixels[offset] | (pixels[offset + 1] << 8)));
     }
 
     private static int SgbGameBoyPixelIndex(int x, int y) => ((40 + y) * 256) + 48 + x;

@@ -56,13 +56,13 @@ internal sealed partial class MainWindow : Window, IDisposable
         _framePresenter = new LcdFramePresenter(emulationView.Screen);
 
         _statusBar = new StatusBarPresenter(
-            StatusTextBlock,
-            StatusCoverFrame,
-            StatusCoverImage,
-            StatusHardwareBadge,
-            StatusHardwareBadgeTextBlock,
-            StatusSpeedBadge,
-            StatusSpeedTextBlock
+            message: StatusTextBlock,
+            coverFrame: StatusCoverFrame,
+            coverImage: StatusCoverImage,
+            hardwareBadge: StatusHardwareBadge,
+            hardwareBadgeText: StatusHardwareBadgeTextBlock,
+            speedBadge: StatusSpeedBadge,
+            speed: StatusSpeedTextBlock
         );
         _operationRunner = new ShellOperationRunner(
             exception => _statusBar.ShowError(exception.Message),
@@ -77,9 +77,9 @@ internal sealed partial class MainWindow : Window, IDisposable
             cartridgeSaveFileService,
             saveStateFileService,
             OnFrameCompleted,
-            OnEmulationFaulted,
-            OnPersistenceError,
-            startupConfiguration.EmulationConfig.FastForwardEnabled,
+            handleFault: OnEmulationFaulted,
+            handlePersistenceError: OnPersistenceError,
+            fastForwardEnabled: startupConfiguration.EmulationConfig.FastForwardEnabled,
             startupConfiguration.EmulationConfig.FastForwardSpeed
         );
         var inputRouter = new InputRouter(
@@ -105,8 +105,8 @@ internal sealed partial class MainWindow : Window, IDisposable
         );
         _gamepadManager = new GamepadManager(
             inputRouter,
-            _emulationSession.TogglePause,
-            _emulationSession.ToggleFastForward,
+            togglePause: _emulationSession.TogglePause,
+            toggleFastForward: _emulationSession.ToggleFastForward,
             loggerFactory.CreateLogger<GamepadManager>()
         );
 
@@ -197,8 +197,8 @@ internal sealed partial class MainWindow : Window, IDisposable
             _emulationSession.SetFastForwardSpeed(e.Speed);
             Dispatcher.UIThread.Post(() => emulationView.Focus(), DispatcherPriority.Input);
         };
-        Activated += (_, _) => _gamepadManager.SetGameplayEnabled(true);
-        Deactivated += (_, _) => _gamepadManager.SetGameplayEnabled(false);
+        Activated += (_, _) => _gamepadManager.SetGameplayEnabled(enabled: true);
+        Deactivated += (_, _) => _gamepadManager.SetGameplayEnabled(enabled: false);
         MainMenu.FullscreenRequested += (_, _) => ToggleFullscreen();
         MainMenu.MenuBarRequested += (_, _) => ToggleMenuBar();
         MainMenu.StatusBarRequested += (_, _) => ToggleStatusBar();
@@ -225,10 +225,10 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private void SyncMenuState()
     {
-        MainMenu.SetFullscreenState(WindowState is WindowState.FullScreen);
-        MainMenu.SetMenuBarState(_menuBarVisibleWhenAvailable);
-        MainMenu.SetStatusBarAvailability(_statusBarAvailable);
-        MainMenu.SetStatusBarState(StatusBar.IsVisible);
+        MainMenu.SetFullscreenState(isFullscreen: WindowState is WindowState.FullScreen);
+        MainMenu.SetMenuBarState(isVisible: _menuBarVisibleWhenAvailable);
+        MainMenu.SetStatusBarAvailability(isAvailable: _statusBarAvailable);
+        MainMenu.SetStatusBarState(isVisible: StatusBar.IsVisible);
     }
 
     private void SyncFullscreenState(AvaloniaPropertyChangedEventArgs change)
@@ -239,7 +239,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
 
         ApplyMenuBarVisibility();
-        MainMenu.SetFullscreenState(WindowState is WindowState.FullScreen);
+        MainMenu.SetFullscreenState(isFullscreen: WindowState is WindowState.FullScreen);
     }
 
     private void ToggleFullscreen()
@@ -296,8 +296,8 @@ internal sealed partial class MainWindow : Window, IDisposable
     private void ApplyStatusBarVisibility()
     {
         StatusBar.IsVisible = _statusBarAvailable && _statusBarVisibleWhenAvailable;
-        MainMenu.SetStatusBarAvailability(_statusBarAvailable);
-        MainMenu.SetStatusBarState(StatusBar.IsVisible);
+        MainMenu.SetStatusBarAvailability(isAvailable: _statusBarAvailable);
+        MainMenu.SetStatusBarState(isVisible: StatusBar.IsVisible);
     }
 
     private void ApplyMenuBarVisibility()
@@ -306,7 +306,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             !OperatingSystem.IsMacOS()
             && _menuBarVisibleWhenAvailable
             && WindowState is not WindowState.FullScreen;
-        MainMenu.SetMenuBarState(_menuBarVisibleWhenAvailable);
+        MainMenu.SetMenuBarState(isVisible: _menuBarVisibleWhenAvailable);
     }
 
     private bool TryHandleChromeShortcut(Key key, KeyModifiers modifiers)
@@ -340,7 +340,7 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         e.Cancel = true;
 
-        if (Interlocked.Exchange(ref _closeStopStarted, 1) == 0)
+        if (Interlocked.Exchange(location1: ref _closeStopStarted, value: 1) == 0)
         {
             _operationRunner.Run(StopAndCloseAsync);
         }
@@ -369,7 +369,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         try
         {
-            await _emulationSession.StopAsync().ConfigureAwait(true);
+            await _emulationSession.StopAsync();
             _closeAfterAsyncStop = true;
             Close();
         }
@@ -383,7 +383,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             )
         {
             _statusBar.ShowError(exception.Message);
-            Volatile.Write(ref _closeStopStarted, 0);
+            Volatile.Write(location: ref _closeStopStarted, value: 0);
         }
     }
 
@@ -414,7 +414,7 @@ internal sealed partial class MainWindow : Window, IDisposable
                     MainMenu.TryHandleShortcut(e.Key, e.KeyModifiers)
                     || TryHandleChromeShortcut(e.Key, e.KeyModifiers)
                 )
-            ) || _emulationSession.ApplyKeyboardInput(e.Key, pressed)
+            ) || _emulationSession.ApplyKeyboardInput(e.Key, pressed: pressed)
         )
         {
             e.Handled = true;

@@ -127,7 +127,7 @@ public sealed class ShellOperationRunnerTests
         {
             events.Add("first-start");
             firstOperationStarted.SetResult();
-            await releaseFirstOperation.Task.ConfigureAwait(true);
+            await releaseFirstOperation.Task;
             events.Add("first-end");
         });
 

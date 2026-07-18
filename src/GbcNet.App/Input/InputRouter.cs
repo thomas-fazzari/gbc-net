@@ -148,7 +148,7 @@ internal sealed class InputRouter(
         {
             if (_activeInputCountByButton[button] > 0)
             {
-                setButtonState(button, false);
+                setButtonState(button, arg2: false);
             }
 
             _activeInputCountByButton[button] = 0;
@@ -191,12 +191,21 @@ internal sealed class InputRouter(
 
     private static Dictionary<Key, JoypadButton> CreateKeyboardLookup(
         IReadOnlyList<InputBinding> bindings
-    ) => bindings.ToDictionary(binding => binding.Key, binding => binding.Button);
+    ) =>
+        bindings.ToDictionary(
+            keySelector: binding => binding.Key,
+            elementSelector: binding => binding.Button
+        );
 
     private static Dictionary<GamepadButton, JoypadButton> CreateGamepadLookup(
         IReadOnlyList<GamepadBinding> bindings
-    ) => bindings.ToDictionary(binding => binding.Control, binding => binding.Button);
+    ) =>
+        bindings.ToDictionary(
+            keySelector: binding => binding.Control,
+            elementSelector: binding => binding.Button
+        );
 
     private static Dictionary<JoypadButton, int> CreateButtonCounts() =>
-        Enum.GetValues<JoypadButton>().ToDictionary(button => button, static _ => 0);
+        Enum.GetValues<JoypadButton>()
+            .ToDictionary(keySelector: button => button, elementSelector: static _ => 0);
 }

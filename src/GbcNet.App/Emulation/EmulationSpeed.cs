@@ -40,7 +40,11 @@ internal static class EmulationSpeedExtensions
                 EmulationSpeed.ThreePointFive => "3.5x",
                 EmulationSpeed.Four => "4x",
                 EmulationSpeed.Eight => "8x",
-                _ => throw new ArgumentOutOfRangeException(nameof(speed), speed, message: null),
+                _ => throw new ArgumentOutOfRangeException(
+                    paramName: nameof(speed),
+                    actualValue: speed,
+                    message: null
+                ),
             };
     }
 }

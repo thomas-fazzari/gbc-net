@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core.Apu;
+using GbcNet.Core.Apu.Components;
 
 namespace GbcNet.Tests.Apu;
 
@@ -29,7 +30,7 @@ public sealed class ApuStateTests
         apu.WriteRegister(0xFF26, 0);
         apu.RestoreState(checkpoint);
 
-        AssertStateEqual(checkpoint, apu.CaptureState());
+        Assert.Equivalent(checkpoint, apu.CaptureState(), strict: true);
         AssertRegisterBehaviorEqual(apu, Restored(spec, checkpoint));
     }
 
@@ -65,11 +66,11 @@ public sealed class ApuStateTests
         var before = target.CaptureState();
         var malformed = CreateNoise(ApuModelSpec.Cgb).CaptureState() with
         {
-            OutputFilter = new(double.NaN, 0),
+            OutputFilter = new ApuOutputFilterState(double.NaN, 0),
         };
 
         Assert.Throws<ArgumentException>(() => target.RestoreState(malformed));
-        AssertStateEqual(before, target.CaptureState());
+        Assert.Equivalent(before, target.CaptureState(), strict: true);
     }
 
     [Fact]
@@ -152,7 +153,7 @@ public sealed class ApuStateTests
         original.Tick(97);
         restored.Tick(97);
         Assert.Equal(Drain(original), Drain(restored));
-        AssertStateEqual(original.CaptureState(), restored.CaptureState());
+        Assert.Equivalent(original.CaptureState(), restored.CaptureState(), strict: true);
     }
 
     [Fact]
@@ -238,40 +239,5 @@ public sealed class ApuStateTests
 
         Assert.Equal(expected.ReadRegister(0xFF76), actual.ReadRegister(0xFF76));
         Assert.Equal(expected.ReadRegister(0xFF77), actual.ReadRegister(0xFF77));
-    }
-
-    private static void AssertStateEqual(ApuControllerState expected, ApuControllerState actual)
-    {
-        Assert.Equal(expected.Registers, actual.Registers);
-        Assert.Equal(expected.DivApuStep, actual.DivApuStep);
-        Assert.Equal(expected.Channel1, actual.Channel1);
-        Assert.Equal(expected.Channel1Sweep, actual.Channel1Sweep);
-        Assert.Equal(expected.Channel2, actual.Channel2);
-        Assert.Equal(expected.Channel3.WaveRam, actual.Channel3.WaveRam);
-        var emptyWaveRam = Array.Empty<byte>();
-        Assert.Equal(
-            expected.Channel3 with
-            {
-                WaveRam = emptyWaveRam,
-            },
-            actual.Channel3 with
-            {
-                WaveRam = emptyWaveRam,
-            }
-        );
-        Assert.Equal(expected.Channel4, actual.Channel4);
-        Assert.Equal(expected.SampleBuffer.BufferedSamples, actual.SampleBuffer.BufferedSamples);
-        var emptySamples = Array.Empty<ApuStereoSample>();
-        Assert.Equal(
-            expected.SampleBuffer with
-            {
-                BufferedSamples = emptySamples,
-            },
-            actual.SampleBuffer with
-            {
-                BufferedSamples = emptySamples,
-            }
-        );
-        Assert.Equal(expected.OutputFilter, actual.OutputFilter);
     }
 }

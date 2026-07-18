@@ -34,18 +34,19 @@ internal sealed class ConfigurationPresenter(
         }
 
         var gameplayEnabled = gamepadManager.GameplayEnabled;
-        gamepadManager.SetGameplayEnabled(false);
+        gamepadManager.SetGameplayEnabled(enabled: false);
 
         SettingsConfig? savedConfig;
         try
         {
-            savedConfig = await new SettingsWindow(settings, gamepadManager)
-                .ShowDialog<SettingsConfig?>(owner)
-                .ConfigureAwait(true);
+            savedConfig = await new SettingsWindow(
+                settings,
+                gamepadManager
+            ).ShowDialog<SettingsConfig?>(owner);
         }
         finally
         {
-            gamepadManager.SetGameplayEnabled(gameplayEnabled);
+            gamepadManager.SetGameplayEnabled(enabled: gameplayEnabled);
         }
 
         if (savedConfig is null)

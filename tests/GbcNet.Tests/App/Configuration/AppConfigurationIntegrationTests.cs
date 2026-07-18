@@ -65,15 +65,15 @@ public sealed class AppConfigurationIntegrationTests
         Directory.CreateDirectory(tempDirectory.Path);
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "dmg.bin"),
-            CreateBootRom(BootRomOptions.DmgBootRomSize, 0xD0)
+            BootRomTestFactory.CreateDmg(0xD0)
         );
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "cgb.bin"),
-            CreateBootRom(BootRomOptions.CgbBootRomSize, 0xC0)
+            BootRomTestFactory.CreateCgb(0xC0)
         );
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "sgb.bin"),
-            CreateBootRom(BootRomOptions.SgbBootRomSize, 0x50)
+            BootRomTestFactory.CreateSgb(0x50)
         );
         AppConfigurationFile.Save(
             configPath,
@@ -202,7 +202,7 @@ public sealed class AppConfigurationIntegrationTests
         File.WriteAllBytes(Path.Combine(tempDirectory.Path, "dmg.bin"), new byte[255]);
         File.WriteAllBytes(
             Path.Combine(tempDirectory.Path, "cgb.bin"),
-            CreateBootRom(BootRomOptions.CgbBootRomSize, 0xC0)
+            BootRomTestFactory.CreateCgb(0xC0)
         );
         AppConfigurationFile.Save(
             configPath,
@@ -269,13 +269,6 @@ public sealed class AppConfigurationIntegrationTests
             validation,
             error => error.Contains("Gamepad input config is malformed", StringComparison.Ordinal)
         );
-    }
-
-    private static byte[] CreateBootRom(int length, byte marker)
-    {
-        var bytes = new byte[length];
-        bytes[0] = marker;
-        return bytes;
     }
 
     private static AppConfig CreateConfig(

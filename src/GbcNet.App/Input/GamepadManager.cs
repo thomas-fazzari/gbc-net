@@ -100,7 +100,7 @@ internal sealed unsafe class GamepadManager(
             }
 
             _sdlInitialized = true;
-            SDL3.SDL_SetGamepadEventsEnabled(true);
+            SDL3.SDL_SetGamepadEventsEnabled(enabled: true);
             EnumerateDevices();
 
             _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(8) };
@@ -172,7 +172,10 @@ internal sealed unsafe class GamepadManager(
             return canonicalLabel;
         }
 
-        var nativeLabel = SDL3.SDL_GetGamepadButtonLabel(gamepad.Handle, ToSdlButton(button));
+        var nativeLabel = SDL3.SDL_GetGamepadButtonLabel(
+            gamepad: gamepad.Handle,
+            button: ToSdlButton(button)
+        );
         var physicalLabel = GetPhysicalButtonLabel(nativeLabel);
 
         return physicalLabel is null ? canonicalLabel : $"{canonicalLabel} ({physicalLabel})";
@@ -323,7 +326,7 @@ internal sealed unsafe class GamepadManager(
 
         if (
             _unsupportedJoysticks.TryGetValue(deviceId, out var existingName)
-            && string.Equals(existingName, name, StringComparison.Ordinal)
+            && string.Equals(a: existingName, b: name, comparisonType: StringComparison.Ordinal)
         )
         {
             return;
@@ -564,9 +567,9 @@ internal sealed unsafe class GamepadManager(
             .. _gamepads
                 .OrderBy(static pair => pair.Value.Position)
                 .Select(static pair => new GamepadDeviceSnapshot(
-                    pair.Key,
-                    pair.Value.Name,
-                    CreateDeviceDisplayLabel(pair.Value.Position, pair.Value.Name)
+                    DeviceId: pair.Key,
+                    Name: pair.Value.Name,
+                    DisplayLabel: CreateDeviceDisplayLabel(pair.Value.Position, pair.Value.Name)
                 )),
         ];
         UnsupportedJoystickNames = [.. _unsupportedJoysticks.Values.Order(StringComparer.Ordinal)];
@@ -702,7 +705,11 @@ internal sealed unsafe class GamepadManager(
             GamepadButton.RightStick => SDL_GamepadButton.SDL_GAMEPAD_BUTTON_RIGHT_STICK,
             GamepadButton.LeftShoulder => SDL_GamepadButton.SDL_GAMEPAD_BUTTON_LEFT_SHOULDER,
             GamepadButton.RightShoulder => SDL_GamepadButton.SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER,
-            _ => throw new ArgumentOutOfRangeException(nameof(button), button, message: null),
+            _ => throw new ArgumentOutOfRangeException(
+                paramName: nameof(button),
+                actualValue: button,
+                message: null
+            ),
         };
 
     private static string GetCanonicalButtonLabel(GamepadButton button) =>
@@ -718,7 +725,11 @@ internal sealed unsafe class GamepadManager(
             GamepadButton.RightStick => "Right Stick",
             GamepadButton.LeftShoulder => "Left Shoulder",
             GamepadButton.RightShoulder => "Right Shoulder",
-            _ => throw new ArgumentOutOfRangeException(nameof(button), button, message: null),
+            _ => throw new ArgumentOutOfRangeException(
+                paramName: nameof(button),
+                actualValue: button,
+                message: null
+            ),
         };
 
     private static string? GetPhysicalButtonLabel(SDL_GamepadButtonLabel label) =>
@@ -742,9 +753,12 @@ internal sealed unsafe class GamepadManager(
         active ? value < -ReleaseThreshold : value <= -PressThreshold;
 
     private static string CreateDeviceDisplayLabel(int position, string name) =>
-        string.Equals(name, UnknownJoystickName, StringComparison.Ordinal)
-            ? string.Create(CultureInfo.InvariantCulture, $"Gamepad {position}")
-            : string.Create(CultureInfo.InvariantCulture, $"Gamepad {position} ({name})");
+        string.Equals(a: name, b: UnknownJoystickName, comparisonType: StringComparison.Ordinal)
+            ? string.Create(provider: CultureInfo.InvariantCulture, handler: $"Gamepad {position}")
+            : string.Create(
+                provider: CultureInfo.InvariantCulture,
+                handler: $"Gamepad {position} ({name})"
+            );
 
     private static string GetSdlString(byte* value) =>
         SDL3.PtrToStringUTF8(value) ?? UnknownJoystickName;
@@ -754,7 +768,8 @@ internal sealed unsafe class GamepadManager(
 
     private static void VerifyDispatcherAccess() => Dispatcher.UIThread.VerifyAccess();
 
-    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
+    private void ThrowIfDisposed() =>
+        ObjectDisposedException.ThrowIf(condition: _disposed, instance: this);
 
     private sealed class ConnectedGamepad(SDL_Gamepad* handle, string name, int position)
     {
