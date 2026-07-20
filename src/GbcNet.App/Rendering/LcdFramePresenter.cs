@@ -17,14 +17,34 @@ internal sealed class LcdFramePresenter(Image screenImage) : IDisposable
     {
         if (Volatile.Read(location: ref _isDisposed) != 0)
         {
+            frame.Dispose();
             return;
         }
 
-        _ = Interlocked.Exchange(location1: ref _pendingFrame, value: frame);
+        Interlocked.Exchange(location1: ref _pendingFrame, value: frame)?.Dispose();
+
+        if (Volatile.Read(location: ref _isDisposed) != 0)
+        {
+            if (
+                ReferenceEquals(
+                    Interlocked.CompareExchange(
+                        location1: ref _pendingFrame,
+                        value: null,
+                        comparand: frame
+                    ),
+                    frame
+                )
+            )
+            {
+                frame.Dispose();
+            }
+
+            return;
+        }
 
         if (Interlocked.Exchange(location1: ref _isRenderQueued, value: 1) == 0)
         {
-            screenImage.Dispatcher.Post(action: RenderPendingFrame);
+            QueueRender();
         }
     }
 
@@ -35,7 +55,7 @@ internal sealed class LcdFramePresenter(Image screenImage) : IDisposable
             return;
         }
 
-        _ = Interlocked.Exchange(location1: ref _pendingFrame, value: null);
+        Interlocked.Exchange(location1: ref _pendingFrame, value: null)?.Dispose();
         screenImage.Source = null;
         _renderer.Dispose();
     }
@@ -44,7 +64,7 @@ internal sealed class LcdFramePresenter(Image screenImage) : IDisposable
     {
         if (Volatile.Read(location: ref _isDisposed) != 0)
         {
-            _ = Interlocked.Exchange(location1: ref _pendingFrame, value: null);
+            Interlocked.Exchange(location1: ref _pendingFrame, value: null)?.Dispose();
             Volatile.Write(location: ref _isRenderQueued, value: 0);
             return;
         }
@@ -54,9 +74,12 @@ internal sealed class LcdFramePresenter(Image screenImage) : IDisposable
 
         if (frame is not null)
         {
-            screenImage.Width = frame.Width;
-            screenImage.Height = frame.Height;
-            screenImage.Source = _renderer.Render(frame: frame);
+            using (frame)
+            {
+                screenImage.Width = frame.Width;
+                screenImage.Height = frame.Height;
+                screenImage.Source = _renderer.Render(frame);
+            }
         }
 
         // Drop intermediate fast-forward frames to avoid dispatcher backlog
@@ -71,7 +94,21 @@ internal sealed class LcdFramePresenter(Image screenImage) : IDisposable
             && Interlocked.Exchange(location1: ref _isRenderQueued, value: 1) == 0
         )
         {
+            QueueRender();
+        }
+    }
+
+    private void QueueRender()
+    {
+        try
+        {
             screenImage.Dispatcher.Post(action: RenderPendingFrame);
+        }
+        catch
+        {
+            Volatile.Write(location: ref _isRenderQueued, value: 0);
+            Interlocked.Exchange(location1: ref _pendingFrame, value: null)?.Dispose();
+            throw;
         }
     }
 }

@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Buffers;
 using System.Runtime.InteropServices;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
@@ -515,6 +516,37 @@ public sealed class PpuControllerTests
         Assert.Same(pixels, segment.Array);
         Assert.Equal(0, segment.Offset);
         Assert.Equal(pixels.Length, segment.Count);
+    }
+
+    [Fact]
+    public void LcdFrame_PooledPixelsReturnAfterLastOwnerIsDisposed()
+    {
+        var pool = new TrackingArrayPool();
+        var pixels = pool.Rent(2);
+        using var frame = LcdFrame.FromPooledPixels(
+            1,
+            1,
+            LcdPixelFormat.Rgb555Le,
+            pool,
+            pixels,
+            pixels.Length
+        );
+        using var retainedFrame = frame.Retain();
+
+        frame.Dispose();
+
+        Assert.Equal(0, pool.ReturnCount);
+        Assert.Same(
+            pixels,
+            MemoryMarshal.TryGetArray(retainedFrame.Pixels, out var segment) ? segment.Array : null
+        );
+
+        retainedFrame.Dispose();
+        retainedFrame.Dispose();
+
+        Assert.Equal(1, pool.ReturnCount);
+        Assert.Same(pixels, pool.ReturnedArray);
+        Assert.Throws<ObjectDisposedException>(() => _ = retainedFrame.Pixels);
     }
 
     [Fact]
@@ -1273,5 +1305,21 @@ public sealed class PpuControllerTests
     {
         Assert.Equal(expected, ppu.IsCpuObjectAttributeMemoryReadBlocked);
         Assert.Equal(expected, ppu.IsCpuObjectAttributeMemoryWriteBlocked);
+    }
+
+    private sealed class TrackingArrayPool : ArrayPool<byte>
+    {
+        public int ReturnCount { get; private set; }
+
+        public byte[]? ReturnedArray { get; private set; }
+
+        public override byte[] Rent(int minimumLength) => new byte[minimumLength];
+
+        public override void Return(byte[] array, bool clearArray = false)
+        {
+            _ = clearArray;
+            ReturnCount++;
+            ReturnedArray = array;
+        }
     }
 }

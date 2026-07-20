@@ -247,15 +247,29 @@ internal sealed class MemoryBus
             return result;
         }
 
-        if (_sgb.HasPendingVramTransfer)
+        try
         {
-            _sgb.ApplyPendingVramTransfer(frame);
-        }
+            if (_sgb.HasPendingVramTransfer)
+            {
+                _sgb.ApplyPendingVramTransfer(frame);
+            }
 
-        return result with
+            var sgbFrame = _sgb.ApplyPalettes(frame);
+            if (!ReferenceEquals(sgbFrame, frame))
+            {
+                frame.Dispose();
+            }
+
+            return result with
+            {
+                CompletedFrame = sgbFrame,
+            };
+        }
+        catch
         {
-            CompletedFrame = _sgb.ApplyPalettes(frame),
-        };
+            frame.Dispose();
+            throw;
+        }
     }
 
     internal MemoryBusState CaptureState() =>

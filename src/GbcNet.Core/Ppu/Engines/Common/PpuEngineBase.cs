@@ -366,7 +366,9 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
                 requests |= PpuInterruptRequest.VBlank;
                 if (_renderCurrentFrame)
                 {
+#pragma warning disable CA2000 // Ownership transfers through PpuEngineTickResult.
                     completedFrame = CreateCompletedFrame();
+#pragma warning restore CA2000
                 }
                 break;
         }

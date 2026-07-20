@@ -45,7 +45,15 @@ internal sealed class MachineClock(MemoryBus bus)
 
         if (ppuResult.CompletedFrame is { } completedFrame)
         {
-            _completedFrames.Enqueue(completedFrame);
+            try
+            {
+                _completedFrames.Enqueue(completedFrame);
+            }
+            catch
+            {
+                completedFrame.Dispose();
+                throw;
+            }
         }
 
         bus.TickDma(1);

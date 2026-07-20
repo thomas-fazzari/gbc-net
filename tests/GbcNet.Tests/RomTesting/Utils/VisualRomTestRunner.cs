@@ -26,6 +26,7 @@ internal static class VisualRomTestRunner
         var frameCount = 0;
         gameBoy.FrameCompleted += completedFrame =>
         {
+            frame?.Dispose();
             frame = completedFrame;
             frameCount++;
         };

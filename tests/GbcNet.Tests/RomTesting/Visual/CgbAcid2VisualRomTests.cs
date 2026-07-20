@@ -34,7 +34,7 @@ public sealed class CgbAcid2VisualRomTests
         Assert.Equal(ExpectedGoldenSha256, ComputeSha256(expectedPixels));
         Assert.Equal(ExpectedPixelByteCount, expectedPixels.Length);
 
-        var result = VisualRomTestRunner.RunToFrame(
+        using var result = VisualRomTestRunner.RunToFrame(
             rom,
             TargetFrame,
             MaxMachineCycles,

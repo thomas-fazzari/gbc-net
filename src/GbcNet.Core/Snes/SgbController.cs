@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Buffers;
 using GbcNet.Core.Ppu;
 
 namespace GbcNet.Core.Snes;
@@ -278,13 +279,12 @@ internal sealed class SgbController(bool commandsEnabled)
             return frame;
         }
 
-        var colorizedPixels = ColorizeFrame(frame);
         var gameBoyPixels = _maskMode switch
         {
-            MaskFreeze => _visibleFramePixels ?? colorizedPixels,
-            MaskBlack => CreateSolidRgb555Pixels(0x0000, colorizedPixels),
-            MaskColor0 => CreateSolidRgb555Pixels(_palettes[0], colorizedPixels),
-            _ => SetVisibleRgb555Pixels(colorizedPixels),
+            MaskFreeze => _visibleFramePixels ?? ColorizeFrame(frame),
+            MaskBlack => CreateSolidRgb555Pixels(0x0000),
+            MaskColor0 => CreateSolidRgb555Pixels(_palettes[0]),
+            _ => SetVisibleRgb555Pixels(ColorizeFrame(frame)),
         };
 
         if (
@@ -654,9 +654,8 @@ internal sealed class SgbController(bool commandsEnabled)
         return pixels;
     }
 
-    private byte[] CreateSolidRgb555Pixels(ushort color, byte[] visiblePixels)
+    private static byte[] CreateSolidRgb555Pixels(ushort color)
     {
-        _visibleFramePixels = visiblePixels;
         var pixels = new byte[
             PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * Rgb555BytesPerPixel
         ];
@@ -670,22 +669,35 @@ internal sealed class SgbController(bool commandsEnabled)
 
     private LcdFrame CreateSgbFrame(ReadOnlySpan<byte> gameBoyPixels)
     {
+        const int PixelLength = SgbScreenPixelCount * Rgb555BytesPerPixel;
+
         var borderPixels = GetBorderCachePixels();
-        var pixels = (byte[])borderPixels.Clone();
+        var pixels = ArrayPool<byte>.Shared.Rent(PixelLength);
 
-        CopyGameBoyFrame(pixels, gameBoyPixels);
-        CopyBorderOverlay(pixels, borderPixels);
+        try
+        {
+            borderPixels.CopyTo(pixels, 0);
+            CopyGameBoyFrame(pixels, gameBoyPixels);
+            CopyBorderOverlay(pixels, borderPixels);
 
-        return LcdFrame.FromOwnedPixels(
-            SgbScreenWidth,
-            SgbScreenHeight,
-            LcdPixelFormat.Rgb555Le,
-            pixels
-        );
+            return LcdFrame.FromPooledPixels(
+                SgbScreenWidth,
+                SgbScreenHeight,
+                LcdPixelFormat.Rgb555Le,
+                ArrayPool<byte>.Shared,
+                pixels,
+                PixelLength
+            );
+        }
+        catch
+        {
+            ArrayPool<byte>.Shared.Return(pixels);
+            throw;
+        }
     }
 
-    private static LcdFrame CreateGameBoyFrame(ReadOnlySpan<byte> gameBoyPixels) =>
-        new(
+    private static LcdFrame CreateGameBoyFrame(byte[] gameBoyPixels) =>
+        LcdFrame.FromOwnedPixels(
             PpuGeometry.FrameWidth,
             PpuGeometry.FrameHeight,
             LcdPixelFormat.Rgb555Le,

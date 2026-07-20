@@ -40,7 +40,7 @@ public sealed class DmgAcid2VisualRomTests
         Assert.Equal(ExpectedDmgGoldenSha256, ComputeSha256(expectedPixels));
         Assert.Equal(ExpectedDmgPixelCount, expectedPixels.Length);
 
-        var result = VisualRomTestRunner.RunToFrame(rom, TargetFrame, MaxMachineCycles);
+        using var result = VisualRomTestRunner.RunToFrame(rom, TargetFrame, MaxMachineCycles);
 
         Assert.NotNull(result.Frame);
         Assert.Equal(LcdPixelFormat.DmgShadeIndex8, result.Frame.PixelFormat);
@@ -63,7 +63,7 @@ public sealed class DmgAcid2VisualRomTests
         Assert.Equal(ExpectedCgbGoldenSha256, ComputeSha256(expectedPixels));
         Assert.Equal(ExpectedCgbPixelByteCount, expectedPixels.Length);
 
-        var result = VisualRomTestRunner.RunToFrame(
+        using var result = VisualRomTestRunner.RunToFrame(
             rom,
             TargetFrame,
             MaxMachineCycles,

@@ -102,6 +102,7 @@ public sealed class GameBoy
 
     /// <summary>
     /// Raised after a complete visible LCD frame is available at VBlank entry.
+    /// Each subscriber owns its frame and must dispose it after use.
     /// </summary>
     public event Action<LcdFrame>? FrameCompleted;
 #pragma warning restore CA1003, MA0046
@@ -134,9 +135,19 @@ public sealed class GameBoy
         {
             var machineCycles = Bus.Clock.TryStepSpeedSwitchPause() ? 1 : Cpu.Step();
 
-            while (_clock.TryDequeueCompletedFrame(out var frame))
+            LcdFrame? frame = null;
+            try
             {
-                FrameCompleted?.Invoke(frame);
+                while (_clock.TryDequeueCompletedFrame(out frame))
+                {
+                    PublishFrame(frame);
+                    frame.Dispose();
+                    frame = null;
+                }
+            }
+            finally
+            {
+                frame?.Dispose();
             }
 
             return machineCycles;
@@ -144,6 +155,43 @@ public sealed class GameBoy
         finally
         {
             _isStepping = false;
+        }
+    }
+
+    private void PublishFrame(LcdFrame frame)
+    {
+        var handlers = FrameCompleted;
+        if (handlers is null)
+        {
+            return;
+        }
+
+        if (handlers.HasSingleTarget)
+        {
+            PublishFrameToSubscriber(handlers, frame);
+            return;
+        }
+
+        foreach (var handler in handlers.GetInvocationList())
+        {
+            PublishFrameToSubscriber((Action<LcdFrame>)handler, frame);
+        }
+    }
+
+    private static void PublishFrameToSubscriber(Action<LcdFrame> handler, LcdFrame frame)
+    {
+        // Ownership is transferred to the subscriber when its callback succeeds.
+#pragma warning disable CA2000
+        var subscriberFrame = frame.Retain();
+#pragma warning restore CA2000
+        try
+        {
+            handler(subscriberFrame);
+        }
+        catch
+        {
+            subscriberFrame.Dispose();
+            throw;
         }
     }
 

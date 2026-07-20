@@ -547,10 +547,38 @@ public sealed class GameBoyTests
             gameBoy.Step();
         }
 
-        var completedFrame = Assert.Single(completedFrames);
+        using var completedFrame = Assert.Single(completedFrames);
         Assert.Equal(160, completedFrame.Width);
         Assert.Equal(144, completedFrame.Height);
         Assert.Equal(LcdPixelFormat.DmgShadeIndex8, completedFrame.PixelFormat);
+    }
+
+    [Fact]
+    public void Step_GivesFrameSubscribersIndependentOwnership()
+    {
+        var cartridge = TestRomFactory.LoadCartridge(bytes =>
+        {
+            bytes[0x0100] = JumpImmediate16Opcode;
+            bytes[0x0101] = 0x00;
+            bytes[0x0102] = 0x01;
+        });
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
+        var secondSubscriberPixelCounts = new List<int>();
+        gameBoy.FrameCompleted += frame => frame.Dispose();
+        gameBoy.FrameCompleted += frame =>
+        {
+            using (frame)
+            {
+                secondSubscriberPixelCounts.Add(frame.Pixels.Length);
+            }
+        };
+
+        for (var step = 0; secondSubscriberPixelCounts.Count == 0 && step < 20_000; step++)
+        {
+            gameBoy.Step();
+        }
+
+        Assert.Equal(160 * 144, Assert.Single(secondSubscriberPixelCounts));
     }
 
     [Fact]
@@ -583,7 +611,7 @@ public sealed class GameBoyTests
             gameBoy.Step();
         }
 
-        Assert.Single(completedFrames);
+        using var completedFrame = Assert.Single(completedFrames);
     }
 
     [Fact]
