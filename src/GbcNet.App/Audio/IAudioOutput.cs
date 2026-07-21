@@ -16,6 +16,11 @@ internal interface IAudioOutput : IDisposable
     void EnqueueSamples(ReadOnlySpan<ApuStereoSample> samples);
 
     /// <summary>
+    /// Applies the persistent user volume and mute settings.
+    /// </summary>
+    void SetVolume(int volumePercent, bool muted);
+
+    /// <summary>
     /// Drops any queued samples that have not reached the audio device yet.
     /// </summary>
     void Clear();

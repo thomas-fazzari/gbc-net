@@ -4,11 +4,13 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.App.Input;
@@ -51,6 +53,9 @@ internal sealed partial class SettingsWindow : Window
         DmgBootRomPathTextBox.Text = settings.BootRoms.DmgPath;
         CgbBootRomPathTextBox.Text = settings.BootRoms.CgbPath;
         SgbBootRomPathTextBox.Text = settings.BootRoms.SgbPath;
+        VolumeSlider.Value = settings.Audio.VolumePercent;
+        VolumeValueTextBlock.Text = $"{settings.Audio.VolumePercent}%";
+        MuteAudioCheckBox.IsChecked = settings.Audio.Muted;
 
         BuildBindingRows(
             InputTab.Keyboard,
@@ -80,26 +85,45 @@ internal sealed partial class SettingsWindow : Window
             NormalizePath(SgbBootRomPathTextBox.Text)
         );
 
+    private AudioConfig GetAudioConfig() =>
+        new(
+            VolumePercent: (int)Math.Round(VolumeSlider.Value),
+            Muted: MuteAudioCheckBox.IsChecked is true
+        );
+
     private static string? NormalizePath(string? path) =>
         string.IsNullOrWhiteSpace(path) ? null : path;
 
-    private void ShowBootRomPage(object? sender, RoutedEventArgs e)
-    {
-        CancelTransientEdits();
-        BootRomPage.IsVisible = true;
-        InputsPage.IsVisible = false;
-        BootRomNavButton.Classes.Set(name: "selected", value: true);
-        InputsNavButton.Classes.Set(name: "selected", value: false);
-    }
+    private void ShowBootRomPage(object? sender, RoutedEventArgs e) =>
+        ShowPage(BootRomPage, BootRomNavButton);
 
     private void ShowInputsPage(object? sender, RoutedEventArgs e)
     {
-        CancelTransientEdits();
-        BootRomPage.IsVisible = false;
-        InputsPage.IsVisible = true;
-        BootRomNavButton.Classes.Set(name: "selected", value: false);
-        InputsNavButton.Classes.Set(name: "selected", value: true);
+        ShowPage(InputsPage, InputsNavButton);
         SelectInputTab(InputTab.Keyboard);
+    }
+
+    private void ShowAudioPage(object? sender, RoutedEventArgs e) =>
+        ShowPage(AudioPage, AudioNavButton);
+
+    private void ShowPage(Control page, Button navButton)
+    {
+        CancelTransientEdits();
+        BootRomPage.IsVisible = ReferenceEquals(page, BootRomPage);
+        InputsPage.IsVisible = ReferenceEquals(page, InputsPage);
+        AudioPage.IsVisible = ReferenceEquals(page, AudioPage);
+        BootRomNavButton.Classes.Set(
+            name: "selected",
+            value: ReferenceEquals(navButton, BootRomNavButton)
+        );
+        InputsNavButton.Classes.Set(
+            name: "selected",
+            value: ReferenceEquals(navButton, InputsNavButton)
+        );
+        AudioNavButton.Classes.Set(
+            name: "selected",
+            value: ReferenceEquals(navButton, AudioNavButton)
+        );
     }
 
     private void ShowKeyboardInputTab(object? sender, RoutedEventArgs e) =>
@@ -156,6 +180,9 @@ internal sealed partial class SettingsWindow : Window
     private void ClearSgbBootRomPath(object? sender, RoutedEventArgs e) =>
         SgbBootRomPathTextBox.Text = string.Empty;
 
+    private void UpdateVolumeValue(object? sender, RangeBaseValueChangedEventArgs e) =>
+        VolumeValueTextBlock.Text = $"{Math.Round(e.NewValue)}%";
+
     private void CancelSettings(object? sender, RoutedEventArgs e) => Close(dialogResult: null);
 
     private void SaveSettings(object? sender, RoutedEventArgs e)
@@ -173,7 +200,9 @@ internal sealed partial class SettingsWindow : Window
             return;
         }
 
-        Close(new SettingsConfig(GetBootRomConfig(), _inputDraft.Build()));
+        Close(
+            new SettingsConfig(GetBootRomConfig(), _inputDraft.Build()) { Audio = GetAudioConfig() }
+        );
     }
 
     private async Task BrowseBootRomAsync(TextBox pathBox, string title)

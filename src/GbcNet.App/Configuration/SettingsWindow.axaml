@@ -156,6 +156,24 @@
             <TextBlock Grid.Column="1" Classes="chrome-label sidebar-label" Text="Inputs" />
           </Grid>
         </Button>
+        <Button
+          x:Name="AudioNavButton"
+          Classes="sidebar-item"
+          Click="ShowAudioPage"
+          AutomationProperties.Name="Audio settings"
+          AutomationProperties.AutomationId="SettingsNavAudio"
+          AutomationProperties.HelpText="Show volume and mute settings"
+        >
+          <Grid ColumnDefinitions="16,*" ColumnSpacing="9">
+            <PathIcon
+              Width="15"
+              Height="15"
+              Data="{StaticResource IconSettings}"
+              Foreground="{DynamicResource ChromeMutedBrush}"
+            />
+            <TextBlock Grid.Column="1" Classes="chrome-label sidebar-label" Text="Audio" />
+          </Grid>
+        </Button>
       </StackPanel>
     </Border>
 
@@ -460,6 +478,58 @@
               </Border>
             </Grid>
           </Grid>
+        </Grid>
+      </Grid>
+      <Grid x:Name="AudioPage" IsVisible="False" RowDefinitions="Auto,*">
+        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,18">
+          <TextBlock Classes="chrome-label form-label" FontSize="18" Text="Audio" />
+          <TextBlock Classes="muted" Text="Control playback volume and muting." />
+        </StackPanel>
+
+        <Grid
+          Grid.Row="1"
+          Width="520"
+          MaxWidth="520"
+          HorizontalAlignment="Left"
+          VerticalAlignment="Top"
+          RowDefinitions="Auto,Auto"
+          ColumnDefinitions="88,*,Auto"
+          RowSpacing="14"
+          ColumnSpacing="12"
+        >
+          <TextBlock Grid.Row="0" Classes="chrome-label form-label" Text="Volume" />
+          <Slider
+            x:Name="VolumeSlider"
+            Grid.Row="0"
+            Grid.Column="1"
+            Minimum="0"
+            Maximum="100"
+            TickFrequency="1"
+            IsSnapToTickEnabled="True"
+            ValueChanged="UpdateVolumeValue"
+            AutomationProperties.Name="Audio volume"
+            AutomationProperties.HelpText="Playback volume from 0 to 100 percent"
+          />
+          <TextBlock
+            x:Name="VolumeValueTextBlock"
+            Grid.Row="0"
+            Grid.Column="2"
+            Classes="chrome-label form-label"
+            HorizontalAlignment="Right"
+            AutomationProperties.LiveSetting="Polite"
+          />
+
+          <TextBlock Grid.Row="1" Classes="chrome-label form-label" Text="Mute audio" />
+          <ToggleSwitch
+            x:Name="MuteAudioCheckBox"
+            Grid.Row="1"
+            Grid.Column="1"
+            HorizontalAlignment="Left"
+            OnContent=""
+            OffContent=""
+            AutomationProperties.Name="Mute audio"
+            AutomationProperties.HelpText="Silence audio without changing the volume"
+          />
         </Grid>
       </Grid>
     </Grid>

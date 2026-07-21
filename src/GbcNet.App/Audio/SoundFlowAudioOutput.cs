@@ -42,6 +42,7 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
     private int _isStarted;
     private int _needsPrebuffer = 1;
     private int _isUnavailable;
+    private float _gain = 1f;
 
     /// <inheritdoc />
     public void EnqueueSamples(ReadOnlySpan<ApuStereoSample> samples)
@@ -58,6 +59,16 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
 
         _buffer.Enqueue(samples);
         TryStartPlayback();
+    }
+
+    /// <inheritdoc />
+    public void SetVolume(int volumePercent, bool muted) =>
+        Volatile.Write(ref _gain, CalculateGain(volumePercent, muted));
+
+    internal static float CalculateGain(int volumePercent, bool muted)
+    {
+        var normalizedVolume = Math.Clamp(volumePercent, 0, 100) / 100f;
+        return muted ? 0f : normalizedVolume * normalizedVolume;
     }
 
     /// <inheritdoc />
@@ -256,12 +267,13 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
             Volatile.Write(location: ref _needsPrebuffer, value: 0);
         }
 
+        var gain = Volatile.Read(ref _gain);
         var frame = 0;
 
         for (; frame < requestedFrames && _buffer.TryDequeue(out var sample); frame++)
         {
-            output[frame * Channels] = sample.Left / PcmScale;
-            output[(frame * Channels) + 1] = sample.Right / PcmScale;
+            output[frame * Channels] = sample.Left / PcmScale * gain;
+            output[(frame * Channels) + 1] = sample.Right / PcmScale * gain;
         }
 
         output[(frame * Channels)..].Clear();

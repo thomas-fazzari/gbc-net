@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Avalonia.Input;
 using GbcNet.App.Configuration;
+using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.App.Configuration.Sections.Input;
@@ -37,6 +38,21 @@ public sealed class AppConfigurationIntegrationTests
         Assert.Equal("default", keyboard.GetProperty("activeProfile").GetString());
         Assert.Equal("default", gamepad.GetProperty("activeProfile").GetString());
         AssertInputConfigIsValid(startupConfiguration.InputConfig);
+    }
+
+    [Fact]
+    public void Load_OldConfigWithoutAudioUsesDefaultAudio()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllText(configPath, """{"emulation":{"fastForwardEnabled":true}}""");
+
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
+
+        Assert.Null(startupConfiguration.StartupErrorMessage);
+        Assert.Equal(new AudioConfig(), startupConfiguration.AudioConfig);
+        Assert.True(startupConfiguration.EmulationConfig.FastForwardEnabled);
     }
 
     [Fact]
@@ -189,6 +205,7 @@ public sealed class AppConfigurationIntegrationTests
             {
                 Input = CreateInputWithAlternateKeyboardProfile(),
                 BootRoms = new BootRomConfig("old-dmg.bin"),
+                Audio = new AudioConfig(27, Muted: true),
             },
             NullLogger.Instance
         );
@@ -214,10 +231,71 @@ public sealed class AppConfigurationIntegrationTests
         Assert.Equal("alternate", appConfig.Input.Keyboard.ActiveProfile);
         Assert.Equal(InputConfig.DefaultProfileName, appConfig.Input.Gamepad.ActiveProfile);
         Assert.Equal("old-dmg.bin", appConfig.BootRoms.DmgPath);
+        Assert.Equal(new AudioConfig(27, Muted: true), appConfig.Audio);
+
         Assert.Equal(2, input.GetProperty("version").GetInt32());
         Assert.True(input.TryGetProperty("keyboard", out _));
         Assert.True(input.TryGetProperty("gamepad", out _));
         Assert.False(input.TryGetProperty("activeProfile", out _));
+    }
+
+    [Fact]
+    public void SaveAudioConfig_PreservesExistingSections()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+
+        AppConfigurationFile.Save(
+            configPath,
+            new AppConfig
+            {
+                Input = CreateInputWithAlternateKeyboardProfile(),
+                BootRoms = new BootRomConfig("dmg.bin"),
+                Emulation = new() { FastForwardEnabled = true },
+            },
+            NullLogger.Instance
+        );
+
+        var service = new AppConfigurationService(
+            configPath,
+            NullLogger<AppConfigurationService>.Instance
+        );
+
+        service.SaveAudioConfig(new AudioConfig(63, true));
+
+        var saved = AppConfigurationFile.Load(configPath);
+        Assert.Equal(new AudioConfig(63, Muted: true), saved.Audio);
+        Assert.Equal("alternate", saved.Input.Keyboard.ActiveProfile);
+        Assert.Equal("dmg.bin", saved.BootRoms.DmgPath);
+        Assert.True(saved.Emulation.FastForwardEnabled);
+    }
+
+    [Fact]
+    public void Load_InvalidAudioFallsBackWithoutResettingOtherSections()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+
+        AppConfigurationFile.Save(
+            configPath,
+            new AppConfig
+            {
+                Audio = new AudioConfig(-1, Muted: true),
+                Emulation = new() { FastForwardEnabled = true },
+                Input = CreateInputWithAlternateKeyboardProfile(),
+            },
+            NullLogger.Instance
+        );
+
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
+
+        Assert.Equal(
+            "Audio volume must be between 0 and 100 percent.",
+            startupConfiguration.StartupErrorMessage
+        );
+        Assert.Equal(new AudioConfig(), startupConfiguration.AudioConfig);
+        Assert.True(startupConfiguration.EmulationConfig.FastForwardEnabled);
+        Assert.Equal("alternate", startupConfiguration.InputConfig.Keyboard.ActiveProfile);
     }
 
     [Fact]

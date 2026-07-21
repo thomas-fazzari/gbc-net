@@ -37,6 +37,7 @@
           InputGesture="Ctrl+R"
           IsEnabled="False"
         />
+        <MenuItem x:Name="MuteAudioMenuItem" Header="_Mute Audio" ToggleType="CheckBox" />
         <Separator />
         <MenuItem x:Name="SaveStateMenuItem" Header="Save _State" IsEnabled="False" />
         <MenuItem x:Name="LoadStateMenuItem" Header="_Load State" IsEnabled="False" />

@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.Core;
@@ -11,6 +12,7 @@ namespace GbcNet.App.Configuration;
 internal sealed record StartupConfiguration(
     InputConfig InputConfig,
     EmulationConfig EmulationConfig,
+    AudioConfig AudioConfig,
     BootRomOptions BootRomOptions,
     string ConfigPath,
     string? StartupErrorMessage
@@ -27,6 +29,7 @@ internal static class StartupConfigurationLoader
         var configDirectoryPath = Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory;
         var appConfig = LoadConfig(configPath, logger, startupErrors);
         var inputConfig = appConfig.Input;
+        var audioConfig = appConfig.Audio;
 
         var bootRomOptions = AppConfigurationService.LoadBootRomOptions(
             appConfig.BootRoms,
@@ -43,6 +46,12 @@ internal static class StartupConfigurationLoader
             ValidateFallbackConfig(inputConfig);
         }
 
+        if (audioConfig is null || !AudioConfig.IsValidVolume(audioConfig.VolumePercent))
+        {
+            startupErrors.Add("Audio volume must be between 0 and 100 percent.");
+            audioConfig = new AudioConfig();
+        }
+
         if (startupErrors.Count != 0)
         {
             StartupConfigurationLoaderLog.FallbacksApplied(logger, startupErrors.Count);
@@ -51,6 +60,7 @@ internal static class StartupConfigurationLoader
         return new StartupConfiguration(
             inputConfig,
             appConfig.Emulation,
+            audioConfig,
             bootRomOptions,
             configPath,
             startupErrors.Count == 0 ? null : string.Join(Environment.NewLine, startupErrors)

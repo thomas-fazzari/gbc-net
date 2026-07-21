@@ -126,6 +126,73 @@ public sealed class GameBoyStateTests
         Assert.False(notified);
     }
 
+    [Theory]
+    [InlineData(HardwareModel.Dmg)]
+    [InlineData(HardwareModel.Cgb)]
+    [InlineData(HardwareModel.Sgb)]
+    public void RestoreSaveState_ReplaysIdenticalContinuation(HardwareModel hardwareModel)
+    {
+        var cartridge = TestRomFactory.LoadCartridge(
+            TestRomFactory.Create(bytes =>
+            {
+                bytes[0x0100] = 0xC3;
+                bytes[0x0101] = 0x50;
+                bytes[0x0102] = 0x01;
+                bytes[0x0150] = 0x04;
+                bytes[0x0151] = 0x78;
+                bytes[0x0152] = 0xEA;
+                bytes[0x0153] = 0x00;
+                bytes[0x0154] = 0xC0;
+                bytes[0x0155] = 0x18;
+                bytes[0x0156] = 0xF9;
+
+                if (hardwareModel is HardwareModel.Cgb)
+                {
+                    bytes[0x0143] = 0x80;
+                }
+                else if (hardwareModel is HardwareModel.Sgb)
+                {
+                    bytes[0x0146] = 0x03;
+                    bytes[0x014B] = 0x33;
+                }
+            })
+        );
+        var gameBoy = new GameBoy(cartridge, hardwareModel);
+        byte[]? latestFrame = null;
+        gameBoy.FrameCompleted += frame =>
+        {
+            using (frame)
+            {
+                latestFrame = frame.Pixels.ToArray();
+            }
+        };
+
+        for (var step = 0; step < 10_000; step++)
+        {
+            gameBoy.Step();
+        }
+
+        var saveState = gameBoy.CaptureSaveState();
+        latestFrame = null;
+        for (var step = 0; step < 20_000; step++)
+        {
+            gameBoy.Step();
+        }
+
+        var expectedState = gameBoy.CaptureSaveState();
+        var expectedFrame = Assert.IsType<byte[]>(latestFrame);
+
+        gameBoy.RestoreSaveState(saveState);
+        latestFrame = null;
+        for (var step = 0; step < 20_000; step++)
+        {
+            gameBoy.Step();
+        }
+
+        Assert.Equal(expectedState, gameBoy.CaptureSaveState());
+        Assert.Equal(expectedFrame, Assert.IsType<byte[]>(latestFrame));
+    }
+
     [Fact]
     public void StateOperations_RejectCallsBeforeStepCompletes()
     {

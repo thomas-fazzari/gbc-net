@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using GbcNet.App.Configuration;
+using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.Core;
@@ -54,9 +55,15 @@ public sealed class AppConfigurationServiceTests
         var input = CreateStrictInput("SpeedRun");
         input.Keyboard.ActiveProfile = "SpeedRun";
         input.Gamepad.ActiveProfile = InputConfig.DefaultProfileName;
+        var audio = new AudioConfig(47, Muted: true);
         AppConfigurationFile.Save(
             configPath,
-            new AppConfig { BootRoms = new BootRomConfig("dmg.bin", "cgb.bin"), Input = input },
+            new AppConfig
+            {
+                BootRoms = new BootRomConfig("dmg.bin", "cgb.bin"),
+                Input = input,
+                Audio = audio,
+            },
             NullLogger.Instance
         );
         var service = CreateService(configPath);
@@ -64,6 +71,7 @@ public sealed class AppConfigurationServiceTests
         var settings = service.LoadSettings();
 
         Assert.Equal(new BootRomConfig("dmg.bin", "cgb.bin"), settings.BootRoms);
+        Assert.Equal(audio, settings.Audio);
         Assert.Equal("SpeedRun", settings.Input.Keyboard.ActiveProfile);
         Assert.Equal(InputConfig.DefaultProfileName, settings.Input.Gamepad.ActiveProfile);
         Assert.True(settings.Input.Keyboard.Profiles.ContainsKey("SpeedRun"));
@@ -95,6 +103,7 @@ public sealed class AppConfigurationServiceTests
                 BootRoms = new BootRomConfig("old-dmg.bin"),
                 Emulation = new() { FastForwardEnabled = true },
                 Input = CreateStrictInput("Alternate"),
+                Audio = new AudioConfig(25, Muted: true),
             },
             NullLogger.Instance
         );
@@ -105,6 +114,9 @@ public sealed class AppConfigurationServiceTests
                 new BootRomConfig("new-dmg.bin", "new-cgb.bin", "new-sgb.bin"),
                 CreateStrictInput("SpeedRun")
             )
+            {
+                Audio = new AudioConfig(75, Muted: true),
+            }
         );
 
         var appConfig = AppConfigurationFile.Load(configPath);
@@ -114,7 +126,8 @@ public sealed class AppConfigurationServiceTests
             appConfig.BootRoms
         );
         Assert.True(appConfig.Emulation.FastForwardEnabled);
-        Assert.Equal("SpeedRun", appConfig.Input.Keyboard.ActiveProfile);
+        Assert.Equal(new AudioConfig(75, Muted: true), appConfig.Audio);
+        Assert.Equal(new AudioConfig(75, Muted: true), service.LoadSettings().Audio);
         Assert.Equal("SpeedRun", appConfig.Input.Gamepad.ActiveProfile);
         Assert.True(appConfig.Input.Keyboard.Profiles.ContainsKey("SpeedRun"));
         Assert.True(appConfig.Input.Gamepad.Profiles.ContainsKey("SpeedRun"));
@@ -145,6 +158,34 @@ public sealed class AppConfigurationServiceTests
         );
 
         Assert.Contains("exactly 4 bindings", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(originalBytes, File.ReadAllBytes(configPath));
+    }
+
+    [Fact]
+    public void SaveSettingsAndSaveAudioConfig_InvalidAudioThrowsAndLeavesFileUntouched()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+        var originalConfig = AppConfigurationFile.CreateDefault();
+        AppConfigurationFile.Save(configPath, originalConfig, NullLogger.Instance);
+        var originalBytes = File.ReadAllBytes(configPath);
+        var service = CreateService(configPath);
+        var invalidAudio = new AudioConfig(101, Muted: false);
+
+        Assert.Throws<ConfigurationException>(() =>
+            service.SaveSettings(
+                new SettingsConfig(
+                    new BootRomConfig("new-dmg.bin"),
+                    AppConfigurationFile.CreateDefaultInputConfig()
+                )
+                {
+                    Audio = invalidAudio,
+                }
+            )
+        );
+        Assert.Throws<ConfigurationException>(() => service.SaveAudioConfig(invalidAudio));
+
         Assert.Equal(originalBytes, File.ReadAllBytes(configPath));
     }
 

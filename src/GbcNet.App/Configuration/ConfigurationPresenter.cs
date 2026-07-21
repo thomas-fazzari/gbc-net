@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Avalonia.Controls;
+using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.App.Input;
 using GbcNet.App.Shell.Chrome;
@@ -17,6 +18,7 @@ internal sealed class ConfigurationPresenter(
     StatusBarPresenter statusBar,
     Action<BootRomOptions> setBootRomOptions,
     Action<InputConfig> applyInputConfig,
+    Action<AudioConfig> applyAudioConfig,
     GamepadManager gamepadManager,
     ILogger<ConfigurationPresenter> logger
 )
@@ -33,7 +35,10 @@ internal sealed class ConfigurationPresenter(
             ConfigurationPresenterLog.LoadFailed(logger, exception);
             statusBar.ShowError(exception.Message);
             var defaults = AppConfigurationFile.CreateDefault();
-            settings = new SettingsConfig(defaults.BootRoms, defaults.Input);
+            settings = new SettingsConfig(defaults.BootRoms, defaults.Input)
+            {
+                Audio = defaults.Audio,
+            };
         }
 
         var gameplayEnabled = gamepadManager.GameplayEnabled;
@@ -103,6 +108,7 @@ internal sealed class ConfigurationPresenter(
         }
 
         applyInputConfig(settings.Input);
+        applyAudioConfig(settings.Audio);
         ReloadBootRomOptions();
 
         if (bootRomErrors.Count != 0)

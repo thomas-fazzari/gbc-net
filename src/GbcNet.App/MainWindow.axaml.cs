@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using GbcNet.App.Audio;
 using GbcNet.App.Configuration;
+using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Emulation;
 using GbcNet.App.Input;
 using GbcNet.App.Library;
@@ -23,6 +24,8 @@ namespace GbcNet.App;
 internal sealed partial class MainWindow : Window, IDisposable
 {
     private readonly ConfigurationPresenter _configurationPresenter;
+    private readonly AppConfigurationService _configurationService;
+    private readonly IAudioOutput _audioOutput;
     private readonly EmulationSessionPresenter _emulationSession;
     private readonly GamepadManager _gamepadManager;
     private readonly LcdFramePresenter _framePresenter;
@@ -30,6 +33,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     private readonly StatusBarPresenter _statusBar;
     private readonly ILogger<MainWindow> _logger;
     private readonly HashSet<Key> _pressedKeys = [];
+    private AudioConfig _audioConfig;
     private bool _statusBarAvailable = true;
     private bool _statusBarVisibleWhenAvailable = true;
     private bool _menuBarVisibleWhenAvailable = true;
@@ -49,7 +53,11 @@ internal sealed partial class MainWindow : Window, IDisposable
     )
     {
         _logger = logger;
+        _configurationService = configurationService;
+        _audioOutput = audioOutput;
+        _audioConfig = startupConfiguration.AudioConfig;
         InitializeComponent();
+        ApplyAudioConfig(_audioConfig);
 
         var libraryView = new LibraryView();
         var emulationView = new EmulationView();
@@ -161,6 +169,7 @@ internal sealed partial class MainWindow : Window, IDisposable
                     replacementMap.GamepadBindings
                 );
             },
+            ApplyAudioConfig,
             _gamepadManager,
             loggerFactory.CreateLogger<ConfigurationPresenter>()
         );
@@ -194,6 +203,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             _operationRunner.Run(ConfigurationPresenter.OpenLogDirectoryAsync);
         MainMenu.PauseRequested += (_, _) => _emulationSession.TogglePause();
         MainMenu.ResetRequested += (_, _) => _operationRunner.Run(_emulationSession.ResetAsync);
+        MainMenu.MuteRequested += (_, _) => ToggleMute();
         MainMenu.SaveStateRequested += (_, e) =>
             _operationRunner.Run(() => _emulationSession.SaveStateAsync(e.SlotIndex));
         MainMenu.LoadStateRequested += (_, e) =>
@@ -233,6 +243,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     private void SyncMenuState()
     {
         MainMenu.SetFullscreenState(isFullscreen: WindowState is WindowState.FullScreen);
+        MainMenu.SetMuteState(isMuted: _audioConfig.Muted);
         MainMenu.SetMenuBarState(isVisible: _menuBarVisibleWhenAvailable);
         MainMenu.SetStatusBarAvailability(isAvailable: _statusBarAvailable);
         MainMenu.SetStatusBarState(isVisible: StatusBar.IsVisible);
@@ -247,6 +258,27 @@ internal sealed partial class MainWindow : Window, IDisposable
 
         ApplyMenuBarVisibility();
         MainMenu.SetFullscreenState(isFullscreen: WindowState is WindowState.FullScreen);
+    }
+
+    private void ApplyAudioConfig(AudioConfig config)
+    {
+        _audioConfig = config;
+        _audioOutput.SetVolume(config.VolumePercent, config.Muted);
+        MainMenu.SetMuteState(isMuted: config.Muted);
+    }
+
+    private void ToggleMute()
+    {
+        ApplyAudioConfig(_audioConfig with { Muted = !_audioConfig.Muted });
+        try
+        {
+            _configurationService.SaveAudioConfig(_audioConfig);
+        }
+        catch (ConfigurationException exception)
+        {
+            MainWindowLog.AudioSettingsSaveFailed(_logger, exception);
+            _statusBar.ShowError(exception.Message);
+        }
     }
 
     private void ToggleFullscreen()
@@ -450,6 +482,9 @@ internal static partial class MainWindowLog
 {
     [LoggerMessage(Level = LogLevel.Error, Message = "Battery save persistence failed.")]
     internal static partial void PersistenceFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Audio settings could not be saved.")]
+    internal static partial void AudioSettingsSaveFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Emulation session faulted.")]
     internal static partial void EmulationFaulted(ILogger logger, Exception exception);

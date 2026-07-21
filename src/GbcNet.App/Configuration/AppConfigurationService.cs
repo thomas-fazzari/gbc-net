@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.App.Configuration.Sections.Input;
@@ -21,7 +22,7 @@ internal sealed class AppConfigurationService(
     public SettingsConfig LoadSettings()
     {
         var appConfig = AppConfigurationFile.LoadOrCreate(configPath, logger);
-        return new SettingsConfig(appConfig.BootRoms, appConfig.Input);
+        return new SettingsConfig(appConfig.BootRoms, appConfig.Input) { Audio = appConfig.Audio };
     }
 
     public BootRomOptions LoadBootRomOptions(ICollection<string>? errors = null) =>
@@ -40,6 +41,8 @@ internal sealed class AppConfigurationService(
         {
             throw new ConfigurationException(string.Join(Environment.NewLine, validation));
         }
+
+        ValidateAudioConfig(settings.Audio);
 
         var bootRomErrors = new List<string>();
 
@@ -79,6 +82,8 @@ internal sealed class AppConfigurationService(
             )
         );
         appConfig.Input = settings.Input;
+        appConfig.Audio = settings.Audio;
+
         AppConfigurationFile.Save(configPath, appConfig, logger);
         return bootRomErrors;
     }
@@ -88,6 +93,25 @@ internal sealed class AppConfigurationService(
         var appConfig = AppConfigurationFile.LoadOrCreate(configPath, logger);
         appConfig.Emulation = config;
         AppConfigurationFile.Save(configPath, appConfig, logger);
+    }
+
+    public void SaveAudioConfig(AudioConfig config)
+    {
+        ValidateAudioConfig(config);
+
+        var appConfig = AppConfigurationFile.LoadOrCreate(configPath, logger);
+        appConfig.Audio = config;
+        AppConfigurationFile.Save(configPath, appConfig, logger);
+    }
+
+    private static void ValidateAudioConfig(AudioConfig config)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+
+        if (!AudioConfig.IsValidVolume(config.VolumePercent))
+        {
+            throw new ConfigurationException("Audio volume must be between 0 and 100 percent.");
+        }
     }
 
     internal static BootRomOptions LoadBootRomOptions(

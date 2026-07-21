@@ -130,6 +130,8 @@ public sealed class EmulationSessionTests
 
         public void EnqueueSamples(ReadOnlySpan<ApuStereoSample> samples) { }
 
+        public void SetVolume(int volumePercent, bool muted) { }
+
         public void Clear() => ClearCount++;
 
         public void Dispose() { }

@@ -12,6 +12,9 @@ internal sealed partial class MainMenu : UserControl
 {
     private static readonly KeyGesture _fullscreenGesture = KeyGesture.Parse(gesture: "Alt+Enter");
     private static readonly KeyGesture _fastForwardGesture = KeyGesture.Parse(gesture: "Tab");
+    private static readonly KeyGesture _muteGesture = KeyGesture.Parse(
+        gesture: OperatingSystem.IsMacOS() ? "Meta+Shift+M" : "Ctrl+Shift+M"
+    );
     private static readonly KeyGesture _statusBarGesture = KeyGesture.Parse(
         gesture: OperatingSystem.IsMacOS() ? "Meta+I" : "Ctrl+I"
     );
@@ -48,6 +51,12 @@ internal sealed partial class MainMenu : UserControl
     private readonly NativeMenuItem _nativeFastForwardMenuItem = new(header: "Fast Forward")
     {
         Gesture = _fastForwardGesture,
+        ToggleType = MenuItemToggleType.CheckBox,
+    };
+
+    private readonly NativeMenuItem _nativeMuteAudioMenuItem = new(header: "Mute Audio")
+    {
+        Gesture = _muteGesture,
         ToggleType = MenuItemToggleType.CheckBox,
     };
 
@@ -127,6 +136,8 @@ internal sealed partial class MainMenu : UserControl
 
     public event EventHandler? FastForwardRequested;
 
+    public event EventHandler? MuteRequested;
+
     public event EventHandler<FastForwardSpeedSelectedEventArgs>? FastForwardSpeedSelected;
 
     public event EventHandler? FullscreenRequested;
@@ -147,6 +158,16 @@ internal sealed partial class MainMenu : UserControl
 
     public bool TryHandleShortcut(Key key, KeyModifiers modifiers)
     {
+        if (
+            !OperatingSystem.IsMacOS()
+            && key is Key.M
+            && modifiers is (KeyModifiers.Control | KeyModifiers.Shift)
+        )
+        {
+            MuteRequested?.Invoke(sender: this, e: EventArgs.Empty);
+            return true;
+        }
+
         if (OperatingSystem.IsMacOS() || modifiers is not KeyModifiers.Control)
         {
             return false;
@@ -253,6 +274,13 @@ internal sealed partial class MainMenu : UserControl
         }
     }
 
+    public void SetMuteState(bool isMuted) =>
+        SetChecked(
+            nativeItem: _nativeMuteAudioMenuItem,
+            windowItem: MuteAudioMenuItem,
+            isChecked: isMuted
+        );
+
     public void SetFullscreenState(bool isFullscreen) =>
         SetChecked(
             nativeItem: _nativeFullscreenMenuItem,
@@ -349,6 +377,9 @@ internal sealed partial class MainMenu : UserControl
             PauseRequested?.Invoke(sender: this, e: EventArgs.Empty);
         ResetEmulationMenuItem.Click += (_, _) =>
             ResetRequested?.Invoke(sender: this, e: EventArgs.Empty);
+        MuteAudioMenuItem.InputGesture = _muteGesture;
+        MuteAudioMenuItem.Click += (_, _) =>
+            MuteRequested?.Invoke(sender: this, e: EventArgs.Empty);
         ConfigureStateSlotMenuItems();
 
         FastForwardMenuItem.InputGesture = _fastForwardGesture;
@@ -538,6 +569,8 @@ internal sealed partial class MainMenu : UserControl
             PauseRequested?.Invoke(sender: this, e: EventArgs.Empty);
         _nativeResetMenuItem.Click += (_, _) =>
             ResetRequested?.Invoke(sender: this, e: EventArgs.Empty);
+        _nativeMuteAudioMenuItem.Click += (_, _) =>
+            MuteRequested?.Invoke(sender: this, e: EventArgs.Empty);
 
         _nativeFastForwardMenuItem.Click += (_, _) =>
             FastForwardRequested?.Invoke(sender: this, e: EventArgs.Empty);
@@ -546,6 +579,7 @@ internal sealed partial class MainMenu : UserControl
         [
             _nativePauseMenuItem,
             _nativeResetMenuItem,
+            _nativeMuteAudioMenuItem,
             new NativeMenuItemSeparator(),
             _nativeSaveStateMenuItem,
             _nativeLoadStateMenuItem,
