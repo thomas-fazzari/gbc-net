@@ -106,6 +106,7 @@ internal sealed class SgbController(bool commandsEnabled)
     private byte _pendingVramTransferFrameDelay;
     private bool _borderReady;
     private byte[]? _borderCachePixels;
+    private byte[]? _borderGameBoyPixels;
     private bool _borderCacheDirty = true;
     private byte[]? _visibleFramePixels;
     private byte[]? _lastBootFramePixels;
@@ -566,9 +567,11 @@ internal sealed class SgbController(bool commandsEnabled)
     private byte[] ColorizeFrame(LcdFrame frame)
     {
         var source = frame.Pixels.Span;
-        var target = new byte[
-            PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * Rgb555BytesPerPixel
-        ];
+        var target = _borderReady
+            ? _borderGameBoyPixels ??= new byte[
+                PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * Rgb555BytesPerPixel
+            ]
+            : new byte[PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * Rgb555BytesPerPixel];
 
         for (var pixel = 0; pixel < source.Length; pixel++)
         {

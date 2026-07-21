@@ -1,6 +1,8 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Buffers;
+
 namespace GbcNet.Core.Ppu.Engines;
 
 /// <summary>
@@ -325,8 +327,28 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
 
     internal abstract void ClearFetchedTileMapEntry();
 
-    private LcdFrame CreateCompletedFrame() =>
-        new(PpuGeometry.FrameWidth, PpuGeometry.FrameHeight, framePixelFormat, FrameBuffer);
+    private LcdFrame CreateCompletedFrame()
+    {
+        var pixels = ArrayPool<byte>.Shared.Rent(FrameBuffer.Length);
+
+        try
+        {
+            FrameBuffer.CopyTo(pixels, 0);
+            return LcdFrame.FromPooledPixels(
+                PpuGeometry.FrameWidth,
+                PpuGeometry.FrameHeight,
+                framePixelFormat,
+                ArrayPool<byte>.Shared,
+                pixels,
+                FrameBuffer.Length
+            );
+        }
+        catch
+        {
+            ArrayPool<byte>.Shared.Return(pixels);
+            throw;
+        }
+    }
 
     private int GetCurrentDrawingEndDots() =>
         Timing.GetCurrentDrawingEndDots(

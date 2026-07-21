@@ -249,6 +249,11 @@ public sealed class SgbControllerTests
         var updatedFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 1));
 
         Rgb555Assertions.PixelEquals(firstFrame, pixelIndex: 0, expected: 0x7FFF);
+        Rgb555Assertions.PixelEquals(
+            firstFrame,
+            SgbGameBoyPixelIndex(x: 0, y: 0),
+            expected: 0x56B5
+        );
         Rgb555Assertions.PixelEquals(updatedFrame, pixelIndex: 0, expected: 0x1111);
         Rgb555Assertions.PixelEquals(
             updatedFrame,
