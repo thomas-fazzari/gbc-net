@@ -20,7 +20,6 @@
 	"settings": {
 		"biome.enabled": true,
 		"biome.requireConfiguration": false,
-		"markdownlint.configFile": "${workspaceFolder:Root}/.markdownlint-cli2.jsonc",
 		"files.associations": {
 			"*.code-workspace": "jsonc"
 		},
