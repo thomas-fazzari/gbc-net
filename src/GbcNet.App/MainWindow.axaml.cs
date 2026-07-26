@@ -9,6 +9,7 @@ using Avalonia.Threading;
 using GbcNet.App.Audio;
 using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.Audio;
+using GbcNet.App.Configuration.Sections.Library;
 using GbcNet.App.Emulation;
 using GbcNet.App.Input;
 using GbcNet.App.Library;
@@ -60,6 +61,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         ApplyAudioConfig(_audioConfig);
 
         var libraryView = new LibraryView();
+        libraryView.SetViewMode(startupConfiguration.LibraryConfig.ViewMode);
         var emulationView = new EmulationView();
         ContentHost.Content = libraryView;
 
@@ -122,6 +124,9 @@ internal sealed partial class MainWindow : Window, IDisposable
         );
 
         _gamepadManager.Start();
+        libraryView.OpenRomRequested = () =>
+            _operationRunner.Run(() => _emulationSession.OpenRomAsync(StorageProvider));
+        libraryView.ViewModeChanged = SaveLibraryViewMode;
 
         var libraryPresenter = new LibraryPresenter(
             libraryView,
@@ -277,6 +282,19 @@ internal sealed partial class MainWindow : Window, IDisposable
         catch (ConfigurationException exception)
         {
             MainWindowLog.AudioSettingsSaveFailed(_logger, exception);
+            _statusBar.ShowError(exception.Message);
+        }
+    }
+
+    private void SaveLibraryViewMode(LibraryViewMode viewMode)
+    {
+        try
+        {
+            _configurationService.SaveLibraryConfig(new LibraryConfig { ViewMode = viewMode });
+        }
+        catch (ConfigurationException exception)
+        {
+            MainWindowLog.LibrarySettingsSaveFailed(_logger, exception);
             _statusBar.ShowError(exception.Message);
         }
     }
@@ -485,6 +503,9 @@ internal static partial class MainWindowLog
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Audio settings could not be saved.")]
     internal static partial void AudioSettingsSaveFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Library settings could not be saved.")]
+    internal static partial void LibrarySettingsSaveFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Emulation session faulted.")]
     internal static partial void EmulationFaulted(ILogger logger, Exception exception);

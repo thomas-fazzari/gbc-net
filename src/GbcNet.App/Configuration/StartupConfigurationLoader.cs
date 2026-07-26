@@ -4,6 +4,7 @@
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.App.Configuration.Sections.Input;
+using GbcNet.App.Configuration.Sections.Library;
 using GbcNet.Core;
 using Microsoft.Extensions.Logging;
 
@@ -13,6 +14,7 @@ internal sealed record StartupConfiguration(
     InputConfig InputConfig,
     EmulationConfig EmulationConfig,
     AudioConfig AudioConfig,
+    LibraryConfig LibraryConfig,
     BootRomOptions BootRomOptions,
     string ConfigPath,
     string? StartupErrorMessage
@@ -61,6 +63,7 @@ internal static class StartupConfigurationLoader
             inputConfig,
             appConfig.Emulation,
             audioConfig,
+            appConfig.Library,
             bootRomOptions,
             configPath,
             startupErrors.Count == 0 ? null : string.Join(Environment.NewLine, startupErrors)

@@ -15,6 +15,7 @@ internal sealed class LibraryRom
         string fileName,
         string? cartridgeTitle,
         CartridgeHardwareKind hardwareKind,
+        string noIntroHash,
         DateTimeOffset openedAt
     )
     {
@@ -23,6 +24,7 @@ internal sealed class LibraryRom
         FileName = fileName;
         CartridgeTitle = cartridgeTitle;
         HardwareKind = hardwareKind;
+        NoIntroHash = noIntroHash;
         LastOpenedAt = openedAt;
         LaunchCount = 1;
     }
@@ -36,6 +38,8 @@ internal sealed class LibraryRom
     public string? CartridgeTitle { get; private set; }
 
     public CartridgeHardwareKind HardwareKind { get; private set; }
+
+    public string? NoIntroHash { get; private set; }
 
     public DateTimeOffset AddedAt { get; private set; }
 
@@ -53,6 +57,7 @@ internal sealed class LibraryRom
         string fileName,
         string? cartridgeTitle,
         CartridgeHardwareKind hardwareKind,
+        string noIntroHash,
         DateTimeOffset openedAt
     ) =>
         new(
@@ -61,6 +66,7 @@ internal sealed class LibraryRom
             fileName: fileName,
             cartridgeTitle: cartridgeTitle,
             hardwareKind,
+            noIntroHash,
             openedAt
         );
 
@@ -69,6 +75,7 @@ internal sealed class LibraryRom
         string fileName,
         string? cartridgeTitle,
         CartridgeHardwareKind hardwareKind,
+        string noIntroHash,
         DateTimeOffset openedAt
     )
     {
@@ -76,6 +83,7 @@ internal sealed class LibraryRom
         FileName = fileName;
         CartridgeTitle = cartridgeTitle;
         HardwareKind = hardwareKind;
+        NoIntroHash = noIntroHash;
         LastOpenedAt = openedAt;
         LaunchCount++;
     }

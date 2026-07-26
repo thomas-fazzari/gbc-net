@@ -4,6 +4,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using GbcNet.App.Configuration.Sections.Input;
+using GbcNet.App.Configuration.Sections.Library;
 using GbcNet.App.Emulation;
 using GbcNet.Core.Hardware;
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,10 @@ internal static class AppConfigurationFile
         {
             new JsonStringEnumConverter<HardwareModel>(JsonNamingPolicy.CamelCase),
             new JsonStringEnumConverter<EmulationSpeed>(
+                JsonNamingPolicy.CamelCase,
+                allowIntegerValues: false
+            ),
+            new JsonStringEnumConverter<LibraryViewMode>(
                 JsonNamingPolicy.CamelCase,
                 allowIntegerValues: false
             ),

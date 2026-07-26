@@ -13,8 +13,8 @@ namespace GbcNet.App.Library;
 internal readonly record struct LibraryQuery(
     string? SearchText = null,
     LibraryHardwareFilter Hardware = LibraryHardwareFilter.All,
-    LibraryCoverFilter Cover = LibraryCoverFilter.All,
-    LibrarySortMode Sort = LibrarySortMode.LastOpened
+    LibrarySortMode Sort = LibrarySortMode.LastOpened,
+    LibraryRegionFilter Region = LibraryRegionFilter.All
 );
 
 internal enum LibraryHardwareFilter
@@ -25,11 +25,14 @@ internal enum LibraryHardwareFilter
     Sgb = 3,
 }
 
-internal enum LibraryCoverFilter
+internal enum LibraryRegionFilter
 {
     All = 0,
-    WithCover = 1,
-    MissingCover = 2,
+    Japan = 1,
+    Usa = 2,
+    Europe = 3,
+    World = 4,
+    Other = 5,
 }
 
 internal enum LibrarySortMode
@@ -96,58 +99,56 @@ internal sealed class LibraryService(
             using var db = dbContextFactory.CreateDbContext();
             IQueryable<LibraryRom> roms = db.Roms;
 
-            var searchText = NormalizeSearchText(query.SearchText);
-            if (searchText is not null)
-            {
-                roms = roms.Where(rom =>
-                    EF.Functions.Like(
-                        EF.Functions.Collate(
-                            rom.FileName,
-                            GbcNetDbConstants.CaseInsensitiveCollation
-                        ),
-                        searchText,
-                        @"\"
-                    )
-                    || EF.Functions.Like(
-                        EF.Functions.Collate(
-                            rom.CartridgeTitle ?? string.Empty,
-                            GbcNetDbConstants.CaseInsensitiveCollation
-                        ),
-                        searchText,
-                        @"\"
-                    )
-                );
-            }
-
             var hardwareKind = GetHardwareKindFilter(query.Hardware);
             if (hardwareKind is not null)
             {
                 roms = roms.Where(rom => rom.HardwareKind == hardwareKind);
             }
 
-            roms = query.Cover switch
-            {
-                LibraryCoverFilter.All => roms,
-                LibraryCoverFilter.WithCover => roms.Where(rom => rom.CoverPath != null),
-                LibraryCoverFilter.MissingCover => roms.Where(rom => rom.CoverPath == null),
-                _ => throw new ArgumentOutOfRangeException(
-                    paramName: nameof(query),
-                    actualValue: query.Cover,
-                    message: null
-                ),
-            };
+            var entries = roms.AsEnumerable()
+                .Select(rom => new LibraryEntry(
+                    rom.RomHash,
+                    rom.LastKnownPath,
+                    rom.FileName,
+                    rom.CartridgeTitle,
+                    rom.HardwareKind,
+                    NoIntroCatalog.Get(rom.NoIntroHash),
+                    rom.AddedAt,
+                    rom.LastOpenedAt,
+                    rom.LaunchCount,
+                    rom.CoverPath
+                ));
 
-            var orderedRoms = query.Sort switch
+            var searchText = NormalizeSearchText(query.SearchText);
+            if (searchText is not null)
             {
-                LibrarySortMode.LastOpened => roms.OrderByDescending(rom => rom.LastOpenedAt),
-                LibrarySortMode.Title => roms.OrderBy(rom =>
-                    EF.Functions.Collate(
-                        rom.CartridgeTitle ?? rom.FileName,
-                        GbcNetDbConstants.CaseInsensitiveCollation
+                entries = entries.Where(entry =>
+                    entry.FileName.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+                    || entry.CartridgeTitle?.Contains(
+                        searchText,
+                        StringComparison.OrdinalIgnoreCase
                     )
+                        is true
+                    || entry.NoIntroMetadata?.Title.Contains(
+                        searchText,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                        is true
+                );
+            }
+
+            entries = entries.Where(entry => MatchesRegion(entry.NoIntroMetadata, query.Region));
+            var orderedEntries = query.Sort switch
+            {
+                LibrarySortMode.LastOpened => entries.OrderByDescending(entry =>
+                    entry.LastOpenedAt
                 ),
-                LibrarySortMode.MostPlayed => roms.OrderByDescending(rom => rom.LaunchCount),
-                LibrarySortMode.RecentlyAdded => roms.OrderByDescending(rom => rom.AddedAt),
+                LibrarySortMode.Title => entries.OrderBy(
+                    entry => entry.NoIntroMetadata?.Title ?? entry.CartridgeTitle ?? entry.FileName,
+                    StringComparer.OrdinalIgnoreCase
+                ),
+                LibrarySortMode.MostPlayed => entries.OrderByDescending(entry => entry.LaunchCount),
+                LibrarySortMode.RecentlyAdded => entries.OrderByDescending(entry => entry.AddedAt),
                 _ => throw new ArgumentOutOfRangeException(
                     paramName: nameof(query),
                     actualValue: query.Sort,
@@ -157,25 +158,9 @@ internal sealed class LibraryService(
 
             return
             [
-                .. orderedRoms
-                    .ThenBy(rom =>
-                        EF.Functions.Collate(
-                            rom.FileName,
-                            GbcNetDbConstants.CaseInsensitiveCollation
-                        )
-                    )
-                    .Take(limit)
-                    .Select(rom => new LibraryEntry(
-                        rom.RomHash,
-                        rom.LastKnownPath,
-                        rom.FileName,
-                        rom.CartridgeTitle,
-                        rom.HardwareKind,
-                        rom.AddedAt,
-                        rom.LastOpenedAt,
-                        rom.LaunchCount,
-                        rom.CoverPath
-                    )),
+                .. orderedEntries
+                    .ThenBy(entry => entry.FileName, StringComparer.OrdinalIgnoreCase)
+                    .Take(limit),
             ];
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
@@ -287,6 +272,7 @@ internal sealed class LibraryService(
     )
     {
         var romHash = ComputeRomHash(rom.Span);
+        var noIntroHash = ComputeNoIntroHash(rom.Span);
         var openedAt = _timeProvider.GetUtcNow();
         using var db = dbContextFactory.CreateDbContext();
         using var transaction = db.Database.BeginTransaction();
@@ -316,6 +302,7 @@ internal sealed class LibraryService(
                     Path.GetFileName(fullPath),
                     cartridgeHeader.Title,
                     cartridgeHeader.HardwareKind,
+                    noIntroHash,
                     openedAt
                 )
             );
@@ -328,6 +315,7 @@ internal sealed class LibraryService(
                 Path.GetFileName(fullPath),
                 cartridgeHeader.Title,
                 cartridgeHeader.HardwareKind,
+                noIntroHash,
                 openedAt
             );
         }
@@ -454,14 +442,13 @@ internal sealed class LibraryService(
     private static string ComputeRomHash(ReadOnlySpan<byte> rom) =>
         Convert.ToHexString(SHA256.HashData(rom));
 
-    private static string? NormalizeSearchText(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : $"%{EscapeLike(value.Trim())}%";
+#pragma warning disable CA5350, S4790
+    private static string ComputeNoIntroHash(ReadOnlySpan<byte> rom) =>
+        Convert.ToHexString(SHA1.HashData(rom));
+#pragma warning restore CA5350, S4790
 
-    private static string EscapeLike(string value) =>
-        value
-            .Replace(oldValue: @"\", newValue: @"\\", comparisonType: StringComparison.Ordinal)
-            .Replace(oldValue: "%", newValue: @"\%", comparisonType: StringComparison.Ordinal)
-            .Replace(oldValue: "_", newValue: @"\_", comparisonType: StringComparison.Ordinal);
+    private static string? NormalizeSearchText(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static CartridgeHardwareKind? GetHardwareKindFilter(LibraryHardwareFilter hardware) =>
         hardware switch
@@ -476,6 +463,42 @@ internal sealed class LibraryService(
                 message: null
             ),
         };
+
+    private static bool MatchesRegion(NoIntroMetadata? metadata, LibraryRegionFilter region)
+    {
+        if (region is LibraryRegionFilter.All)
+        {
+            return true;
+        }
+
+        if (metadata is null)
+        {
+            return false;
+        }
+
+        var regions = metadata.Regions;
+        return region switch
+        {
+            LibraryRegionFilter.Japan => regions.HasFlag(NoIntroRegion.Japan),
+            LibraryRegionFilter.Usa => regions.HasFlag(NoIntroRegion.Usa),
+            LibraryRegionFilter.Europe => regions.HasFlag(NoIntroRegion.Europe),
+            LibraryRegionFilter.World => regions.HasFlag(NoIntroRegion.World),
+            LibraryRegionFilter.Other => (
+                regions
+                & ~(
+                    NoIntroRegion.Japan
+                    | NoIntroRegion.Usa
+                    | NoIntroRegion.Europe
+                    | NoIntroRegion.World
+                )
+            ) != NoIntroRegion.None,
+            _ => throw new ArgumentOutOfRangeException(
+                paramName: nameof(region),
+                actualValue: region,
+                message: null
+            ),
+        };
+    }
 
     private static InvalidOperationException CreateLibraryException(Exception exception) =>
         exception as InvalidOperationException

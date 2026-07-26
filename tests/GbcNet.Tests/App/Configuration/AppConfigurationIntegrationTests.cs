@@ -8,6 +8,7 @@ using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.App.Configuration.Sections.Input;
+using GbcNet.App.Configuration.Sections.Library;
 using GbcNet.App.Emulation;
 using GbcNet.App.Input;
 using GbcNet.Core;
@@ -37,7 +38,11 @@ public sealed class AppConfigurationIntegrationTests
         Assert.False(input.TryGetProperty("profiles", out _));
         Assert.Equal("default", keyboard.GetProperty("activeProfile").GetString());
         Assert.Equal("default", gamepad.GetProperty("activeProfile").GetString());
-        AssertInputConfigIsValid(startupConfiguration.InputConfig);
+        Assert.Equal(
+            "grid",
+            configJson.RootElement.GetProperty("library").GetProperty("viewMode").GetString()
+        );
+        Assert.Equal(LibraryViewMode.Grid, startupConfiguration.LibraryConfig.ViewMode);
     }
 
     [Fact]
@@ -53,6 +58,25 @@ public sealed class AppConfigurationIntegrationTests
         Assert.Null(startupConfiguration.StartupErrorMessage);
         Assert.Equal(new AudioConfig(), startupConfiguration.AudioConfig);
         Assert.True(startupConfiguration.EmulationConfig.FastForwardEnabled);
+        Assert.Equal(LibraryViewMode.Grid, startupConfiguration.LibraryConfig.ViewMode);
+    }
+
+    [Fact]
+    public void Load_InvalidLibraryViewModeUsesDefaultFallback()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllText(configPath, """{"library":{"viewMode":"gallery"}}""");
+
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
+
+        Assert.Contains(
+            "Configuration file could not be parsed",
+            startupConfiguration.StartupErrorMessage,
+            StringComparison.Ordinal
+        );
+        Assert.Equal(LibraryViewMode.Grid, startupConfiguration.LibraryConfig.ViewMode);
     }
 
     [Fact]

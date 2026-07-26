@@ -1,4 +1,4 @@
-Copyright 2018 The Cabin Project Authors (https://github.com/impallari/Cabin.git)
+Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
@@ -22,26 +22,26 @@ fonts, including any derivative works, can be bundled, embedded,
 redistributed and/or sold with any software provided that any reserved
 names are not used by derivative works. The fonts and derivatives,
 however, cannot be released under any other type of license. The
-requirement for fonts to remain under this license does not apply
-to any document created using the fonts or their derivatives.
+requirement for fonts to remain under this license does not apply to any
+document created using the fonts or their derivatives.
 
 DEFINITIONS
-"Font Software" refers to the set of files released by the Copyright
+Font Software refers to the set of files released by the Copyright
 Holder(s) under this license and clearly marked as such. This may
 include source files, build scripts and documentation.
 
-"Reserved Font Name" refers to any names specified as such after the
+Reserved Font Name refers to any names specified as such after the
 copyright statement(s).
 
-"Original Version" refers to the collection of Font Software components as
+Original Version refers to the collection of Font Software components as
 distributed by the Copyright Holder(s).
 
-"Modified Version" refers to any derivative made by adding to, deleting,
+Modified Version refers to any derivative made by adding to, deleting,
 or substituting -- in part or in whole -- any of the components of the
 Original Version, by changing formats or by porting the Font Software to a
 new environment.
 
-"Author" refers to any designer, engineer, programmer, technical
+Author refers to any designer, engineer, programmer, technical
 writer or other person who contributed to the Font Software.
 
 PERMISSION & CONDITIONS
@@ -67,22 +67,22 @@ presented to the users.
 
 4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
 Software shall not be used to promote, endorse or advertise any
-Modified Version, except to acknowledge the contribution(s) of the
+Modified Version, except to acknowledge the contribution of the
 Copyright Holder(s) and the Author(s) or with their explicit written
 permission.
 
 5) The Font Software, modified or unmodified, in part or in whole,
 must be distributed entirely under this license, and must not be
-distributed under any other license. The requirement for fonts to
-remain under this license does not apply to any document created
-using the Font Software.
+distributed under any other type of license. The requirement for fonts
+to remain under this license does not apply to any document created
+using the fonts or their derivatives.
 
 TERMINATION
-This license becomes null and void if any of the above conditions are
-not met.
+This license becomes null and void if any of the above conditions
+are not met.
 
 DISCLAIMER
-THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+THE FONT SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
 OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE

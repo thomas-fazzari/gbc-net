@@ -14,6 +14,7 @@ internal sealed record LibraryEntry(
     string FileName,
     string? CartridgeTitle,
     CartridgeHardwareKind HardwareKind,
+    NoIntroMetadata? NoIntroMetadata,
     DateTimeOffset AddedAt,
     DateTimeOffset LastOpenedAt,
     int LaunchCount,

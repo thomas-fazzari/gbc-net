@@ -10,7 +10,7 @@
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://GbcNet/Shell/Chrome/Icons.axaml" />
       </ResourceDictionary.MergedDictionaries>
-      <FontFamily x:Key="AppFont">avares://GbcNet/Assets/Fonts#Cabin</FontFamily>
+      <FontFamily x:Key="AppFont">avares://GbcNet/Assets/Fonts#Space Grotesk</FontFamily>
 
       <SolidColorBrush x:Key="ChromeBackgroundBrush">#0d0d0f</SolidColorBrush>
       <SolidColorBrush x:Key="ChromePanelBrush">#131316</SolidColorBrush>
@@ -33,7 +33,7 @@
       <SolidColorBrush x:Key="ChromeErrorBrush">#f87171</SolidColorBrush>
       <SolidColorBrush x:Key="ChromeStatusBrush">#8a8a93</SolidColorBrush>
 
-      <CornerRadius x:Key="ChromeCornerRadius">2</CornerRadius>
+      <CornerRadius x:Key="ChromeCornerRadius">4</CornerRadius>
     </ResourceDictionary>
   </Application.Resources>
   <Application.Styles>
@@ -44,7 +44,18 @@
     <Style Selector="Button">
       <Setter Property="Cursor" Value="Hand" />
     </Style>
+    <Style Selector="Button, ToggleButton">
+      <Setter Property="Transitions">
+        <Transitions />
+      </Setter>
+    </Style>
+    <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter, ToggleButton:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource ChromePressedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+    </Style>
     <Style Selector="MenuItem">
+      <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
       <Setter Property="Cursor" Value="Hand" />
     </Style>
     <Style Selector="Button.chrome-button">

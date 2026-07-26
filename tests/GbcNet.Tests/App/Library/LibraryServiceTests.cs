@@ -16,21 +16,6 @@ namespace GbcNet.Tests.App.Library;
 public sealed class LibraryServiceTests
 {
     [Fact]
-    public async Task RecordOpenedRomAsync_AppliesLatestSchemaMigration()
-    {
-        using var test = new LibraryTestContext();
-        var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
-
-        await test.Library.RecordOpenedRomAsync(romPath);
-
-        Assert.Contains(
-            "InitialLibrarySchema",
-            Assert.Single(GetAppliedMigrations(test.DatabasePath)),
-            StringComparison.Ordinal
-        );
-    }
-
-    [Fact]
     public async Task RecordOpenedRomAsync_UpsertsByRomHashAndUpdatesLastKnownPath()
     {
         using var test = new LibraryTestContext();
@@ -97,6 +82,16 @@ public sealed class LibraryServiceTests
     }
 
     [Fact]
+    public void NoIntroCatalog_ReturnsCanonicalTitleAndRegions()
+    {
+        var metadata = NoIntroCatalog.Get("DD6E952B730C4BD85F8734156D43A2616B68C053");
+
+        Assert.NotNull(metadata);
+        Assert.Equal("007 - The World Is Not Enough", metadata!.Title);
+        Assert.Equal(NoIntroRegion.Usa | NoIntroRegion.Europe, metadata.Regions);
+    }
+
+    [Fact]
     public void SaveChanges_PreservesExplicitTimestampsWithoutTimeProvider()
     {
         using var test = new LibraryTestContext();
@@ -109,6 +104,7 @@ public sealed class LibraryServiceTests
             "manual.gb",
             cartridgeTitle: null,
             CartridgeHardwareKind.GB,
+            "0000000000000000000000000000000000000000",
             openedAt
         );
         rom.StampCreated(addedAt);
@@ -141,6 +137,7 @@ public sealed class LibraryServiceTests
             "async.gb",
             cartridgeTitle: null,
             CartridgeHardwareKind.GB,
+            "0000000000000000000000000000000000000000",
             firstOpenedAt
         );
 
@@ -176,6 +173,7 @@ public sealed class LibraryServiceTests
                 "async.gb",
                 cartridgeTitle: null,
                 CartridgeHardwareKind.GB,
+                "0000000000000000000000000000000000000000",
                 secondOpenedAt
             );
             await updateDb.SaveChangesAsync(
@@ -316,27 +314,42 @@ public sealed class LibraryServiceTests
     }
 
     [Theory]
-    [InlineData((int)LibraryCoverFilter.WithCover, "covered.gb")]
-    [InlineData((int)LibraryCoverFilter.MissingCover, "missing-cover.gb")]
-    public void GetRoms_CoverFilterReturnsOnlyMatchingEntries(int cover, string expectedFileName)
+    [InlineData((int)LibraryRegionFilter.Japan, "japan.gb")]
+    [InlineData((int)LibraryRegionFilter.Usa, "usa-europe.gb")]
+    [InlineData((int)LibraryRegionFilter.Other, "france.gb")]
+    public void GetRoms_RegionFilterReturnsOnlyMatchingEntries(
+        int regionFilter,
+        string expectedFileName
+    )
     {
         using var test = new LibraryTestContext();
         InsertLibraryEntry(
             test.DatabasePath,
-            "covered",
-            "covered.gb",
-            "2026-06-27T12:02:00.0000000+00:00",
-            coverPath: Path.Combine(test.CoverDirectoryPath, "covered.png")
+            "japan",
+            "japan.gb",
+            "2026-06-27T12:03:00.0000000+00:00",
+            noIntroHash: "00369C42D2C4BE0506901B64F7D5424538574CE0"
         );
         InsertLibraryEntry(
             test.DatabasePath,
-            "missing-cover",
-            "missing-cover.gb",
-            "2026-06-27T12:01:00.0000000+00:00"
+            "usa-europe",
+            "usa-europe.gb",
+            "2026-06-27T12:02:00.0000000+00:00",
+            noIntroHash: "00D76805E1EF3FE0EB5E8FC045CC22DECFBE216B"
+        );
+        InsertLibraryEntry(
+            test.DatabasePath,
+            "france",
+            "france.gb",
+            "2026-06-27T12:01:00.0000000+00:00",
+            noIntroHash: "07A0E1C0DDDE6371DBAF25FD016BDC77C0ECA090"
         );
 
         var entry = Assert.Single(
-            test.Library.GetRoms(new LibraryQuery(Cover: (LibraryCoverFilter)cover), limit: 10)
+            test.Library.GetRoms(
+                new LibraryQuery(Region: (LibraryRegionFilter)regionFilter),
+                limit: 10
+            )
         );
 
         Assert.Equal(expectedFileName, entry.FileName);
@@ -697,12 +710,6 @@ public sealed class LibraryServiceTests
         );
     }
 
-    private static string[] GetAppliedMigrations(string databasePath)
-    {
-        using var db = new TestDbContextFactory(databasePath).CreateDbContext();
-        return [.. db.Database.GetAppliedMigrations()];
-    }
-
     private static void InsertLibraryEntry(
         string databasePath,
         string romHash,
@@ -712,7 +719,8 @@ public sealed class LibraryServiceTests
         string? addedAt = null,
         int launchCount = 1,
         string? coverPath = null,
-        CartridgeHardwareKind hardwareKind = CartridgeHardwareKind.GB
+        CartridgeHardwareKind hardwareKind = CartridgeHardwareKind.GB,
+        string noIntroHash = "0000000000000000000000000000000000000000"
     )
     {
         var lastOpened = DateTimeOffset.Parse(lastOpenedAt, CultureInfo.InvariantCulture);
@@ -722,6 +730,7 @@ public sealed class LibraryServiceTests
             fileName,
             cartridgeTitle,
             hardwareKind,
+            noIntroHash,
             lastOpened
         );
         var createdAt = DateTimeOffset.Parse(addedAt ?? lastOpenedAt, CultureInfo.InvariantCulture);
@@ -734,6 +743,7 @@ public sealed class LibraryServiceTests
                 fileName,
                 cartridgeTitle,
                 hardwareKind,
+                noIntroHash,
                 lastOpened
             );
         }

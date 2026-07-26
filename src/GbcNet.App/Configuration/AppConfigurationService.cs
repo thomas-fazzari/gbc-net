@@ -5,6 +5,7 @@ using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.App.Configuration.Sections.Input;
+using GbcNet.App.Configuration.Sections.Library;
 using GbcNet.Core;
 using GbcNet.Core.Hardware;
 using Microsoft.Extensions.Logging;
@@ -101,6 +102,15 @@ internal sealed class AppConfigurationService(
 
         var appConfig = AppConfigurationFile.LoadOrCreate(configPath, logger);
         appConfig.Audio = config;
+        AppConfigurationFile.Save(configPath, appConfig, logger);
+    }
+
+    public void SaveLibraryConfig(LibraryConfig config)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+
+        var appConfig = AppConfigurationFile.LoadOrCreate(configPath, logger);
+        appConfig.Library = config;
         AppConfigurationFile.Save(configPath, appConfig, logger);
     }
 

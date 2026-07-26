@@ -21,7 +21,10 @@
 		"biome.enabled": true,
 		"biome.requireConfiguration": false,
 		"files.associations": {
-			"*.code-workspace": "jsonc"
+			"*.code-workspace": "jsonc",
+			"*.csproj": "xml",
+			"*.props": "xml",
+			"*.slnx": "xml"
 		},
 		"files.exclude": {
 			"**/.omp": true,
@@ -44,6 +47,14 @@
 			"**/TestResults": true
 		},
 		"[csharp]": {
+			"editor.defaultFormatter": "csharpier.csharpier-vscode",
+			"editor.formatOnSave": true
+		},
+		"[xml]": {
+			"editor.defaultFormatter": "csharpier.csharpier-vscode",
+			"editor.formatOnSave": true
+		},
+		"[axaml]": {
 			"editor.defaultFormatter": "csharpier.csharpier-vscode",
 			"editor.formatOnSave": true
 		},

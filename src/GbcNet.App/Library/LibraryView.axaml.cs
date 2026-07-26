@@ -3,8 +3,11 @@
 
 using System.Globalization;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
+using GbcNet.App.Configuration.Sections.Library;
+using GbcNet.App.Database.Entities;
 using GbcNet.App.Shell.Chrome;
 
 namespace GbcNet.App.Library;
@@ -13,16 +16,18 @@ internal sealed partial class LibraryView : UserControl
 {
     private readonly List<Bitmap> _coverBitmaps = [];
     private LibraryHardwareFilter _hardwareFilter;
-    private LibraryCoverFilter _coverFilter;
+    private LibraryRegionFilter _regionFilter;
     private LibrarySortMode _sortMode;
+    private LibraryViewMode _viewMode;
     private bool _refreshingFilters;
 
     public LibraryView()
     {
         InitializeComponent();
         _hardwareFilter = LibraryHardwareFilter.All;
-        _coverFilter = LibraryCoverFilter.All;
+        _regionFilter = LibraryRegionFilter.All;
         _sortMode = LibrarySortMode.LastOpened;
+        SetViewMode(LibraryViewMode.Grid);
         DetachedFromVisualTree += (_, _) => ClearTiles();
         LibrarySearchTextBox.TextChanged += (_, _) => NotifyQueryChanged();
     }
@@ -31,10 +36,27 @@ internal sealed partial class LibraryView : UserControl
     public Action<LibraryEntry>? SetCoverRequested { get; set; }
     public Action<LibraryEntry>? ClearCoverRequested { get; set; }
     public Action<LibraryEntry>? RemoveRequested { get; set; }
+    public Action? OpenRomRequested { get; set; }
     public Action? QueryChanged { get; set; }
+    public Action<LibraryViewMode>? ViewModeChanged { get; set; }
 
     public LibraryQuery Query =>
-        new(LibrarySearchTextBox.Text, _hardwareFilter, _coverFilter, _sortMode);
+        new(LibrarySearchTextBox.Text, _hardwareFilter, _sortMode, _regionFilter);
+
+    public void SetViewMode(LibraryViewMode viewMode)
+    {
+        if (!Enum.IsDefined(viewMode))
+        {
+            throw new ArgumentOutOfRangeException(nameof(viewMode));
+        }
+
+        _viewMode = viewMode;
+        RomGridControl.IsVisible = viewMode is LibraryViewMode.Grid;
+        RomListControl.IsVisible = viewMode is LibraryViewMode.List;
+        RomListHeader.IsVisible = viewMode is LibraryViewMode.List;
+        GridViewToggle.IsChecked = viewMode is LibraryViewMode.Grid;
+        ListViewToggle.IsChecked = viewMode is LibraryViewMode.List;
+    }
 
     public void Load(IReadOnlyList<LibraryEntry> entries)
     {
@@ -50,7 +72,6 @@ internal sealed partial class LibraryView : UserControl
             ? "Try changing or clearing your filters."
             : "Open a ROM to add it to your library.";
         ClearFiltersButton.IsVisible = hasActiveQuery;
-        LibraryCountText.Text = entries.Count == 1 ? "1 game" : $"{entries.Count} games";
 
         if (isEmpty)
         {
@@ -63,7 +84,8 @@ internal sealed partial class LibraryView : UserControl
             tiles.Add(CreateTile(entry));
         }
 
-        RomTilesControl.ItemsSource = tiles;
+        RomGridControl.ItemsSource = tiles;
+        RomListControl.ItemsSource = tiles;
     }
 
     public Task<bool> ConfirmRemoveAsync()
@@ -89,36 +111,54 @@ internal sealed partial class LibraryView : UserControl
         EmptyStateText.Foreground = AppChrome.Brush(AppChrome.Error);
         EmptyStateDescription.IsVisible = false;
         ClearFiltersButton.IsVisible = false;
-        LibraryCountText.Text = string.Empty;
     }
 
     private bool HasActiveQuery =>
         !string.IsNullOrWhiteSpace(LibrarySearchTextBox.Text)
         || _hardwareFilter != LibraryHardwareFilter.All
-        || _coverFilter != LibraryCoverFilter.All
+        || _regionFilter != LibraryRegionFilter.All
         || _sortMode != LibrarySortMode.LastOpened;
 
-    private void OnHardwareFilterChanged(object? sender, RoutedEventArgs e)
+    private void OnOpenRomClick(object? sender, RoutedEventArgs e) => OpenRomRequested?.Invoke();
+
+    private void OnViewModeChanged(object? sender, RoutedEventArgs e)
     {
-        if (TryGetCheckedTag(sender, out LibraryHardwareFilter value) && _hardwareFilter != value)
+        if (
+            sender is ToggleButton { Tag: string tag }
+            && Enum.TryParse(tag, out LibraryViewMode viewMode)
+            && _viewMode != viewMode
+        )
+        {
+            SetViewMode(viewMode);
+            ViewModeChanged?.Invoke(viewMode);
+        }
+        else
+        {
+            SetViewMode(_viewMode);
+        }
+    }
+
+    private void OnHardwareFilterChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (TryGetSelectedTag(sender, out LibraryHardwareFilter value) && _hardwareFilter != value)
         {
             _hardwareFilter = value;
             NotifyQueryChanged();
         }
     }
 
-    private void OnCoverFilterChanged(object? sender, RoutedEventArgs e)
+    private void OnRegionFilterChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (TryGetCheckedTag(sender, out LibraryCoverFilter value) && _coverFilter != value)
+        if (TryGetSelectedTag(sender, out LibraryRegionFilter value) && _regionFilter != value)
         {
-            _coverFilter = value;
+            _regionFilter = value;
             NotifyQueryChanged();
         }
     }
 
-    private void OnSortModeChanged(object? sender, RoutedEventArgs e)
+    private void OnSortModeChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (TryGetCheckedTag(sender, out LibrarySortMode value) && _sortMode != value)
+        if (TryGetSelectedTag(sender, out LibrarySortMode value) && _sortMode != value)
         {
             _sortMode = value;
             NotifyQueryChanged();
@@ -132,11 +172,11 @@ internal sealed partial class LibraryView : UserControl
         {
             LibrarySearchTextBox.Text = string.Empty;
             _hardwareFilter = LibraryHardwareFilter.All;
-            _coverFilter = LibraryCoverFilter.All;
+            _regionFilter = LibraryRegionFilter.All;
             _sortMode = LibrarySortMode.LastOpened;
-            HardwareAllFilter.IsChecked = true;
-            CoverAllFilter.IsChecked = true;
-            SortRecentFilter.IsChecked = true;
+            HardwareFilter.SelectedIndex = 0;
+            RegionFilter.SelectedIndex = 0;
+            SortFilter.SelectedIndex = 0;
         }
         finally
         {
@@ -154,11 +194,11 @@ internal sealed partial class LibraryView : UserControl
         }
     }
 
-    private static bool TryGetCheckedTag<T>(object? sender, out T value)
+    private static bool TryGetSelectedTag<T>(object? sender, out T value)
         where T : struct, Enum
     {
         if (
-            sender is RadioButton { IsChecked: true, Tag: string tag }
+            sender is ComboBox { SelectedItem: ComboBoxItem { Tag: string tag } }
             && Enum.TryParse(tag, out T parsed)
         )
         {
@@ -214,7 +254,7 @@ internal sealed partial class LibraryView : UserControl
 
     private MenuFlyout CreateTileActionsFlyout(LibraryEntry entry)
     {
-        var setCover = new MenuItem { Header = "Set Cover..." };
+        var setCover = new MenuItem { Header = "Attach Cover..." };
         setCover.Click += (_, _) => SetCoverRequested?.Invoke(entry);
 
         var items = new List<MenuItem> { setCover };
@@ -259,7 +299,8 @@ internal sealed partial class LibraryView : UserControl
 
     private void ClearTiles()
     {
-        RomTilesControl.ItemsSource = null;
+        RomGridControl.ItemsSource = null;
+        RomListControl.ItemsSource = null;
         DisposeCoverBitmaps();
     }
 
@@ -277,12 +318,25 @@ internal sealed partial class LibraryView : UserControl
     {
         public LibraryEntry Entry { get; } = entry;
         public Bitmap? CoverBitmap { get; } = coverBitmap;
-        public string Title { get; } = Path.GetFileNameWithoutExtension(entry.FileName);
+        public string UserFriendlyTitle { get; } =
+            entry.NoIntroMetadata?.Title ?? Path.GetFileNameWithoutExtension(entry.FileName);
+        public string CartridgeTitle { get; } = entry.CartridgeTitle ?? string.Empty;
+        public bool HasCartridgeTitle { get; } = !string.IsNullOrWhiteSpace(entry.CartridgeTitle);
         public string PlayCountText { get; } =
             string.Create(
                 provider: CultureInfo.InvariantCulture,
                 handler: $"{entry.LaunchCount} play{(entry.LaunchCount == 1 ? string.Empty : "s")}"
             );
         public string HardwareText { get; } = entry.HardwareKind.ToString();
+        public bool HasJapan { get; } =
+            entry.NoIntroMetadata?.Regions.HasFlag(NoIntroRegion.Japan) is true;
+        public bool HasUsa { get; } =
+            entry.NoIntroMetadata?.Regions.HasFlag(NoIntroRegion.Usa) is true;
+        public bool HasEurope { get; } =
+            entry.NoIntroMetadata?.Regions.HasFlag(NoIntroRegion.Europe) is true;
+        public bool HasWorld { get; } =
+            entry.NoIntroMetadata?.Regions.HasFlag(NoIntroRegion.World) is true;
+        public string LastPlayedText { get; } =
+            entry.LastOpenedAt.ToLocalTime().ToString("d", CultureInfo.CurrentCulture);
     }
 }

@@ -6,6 +6,7 @@ using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Input;
+using GbcNet.App.Configuration.Sections.Library;
 using GbcNet.Core;
 using GbcNet.Core.Hardware;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -264,6 +265,21 @@ public sealed class AppConfigurationServiceTests
         Assert.Equal(new BootRomConfig("current-dmg.bin", "new-cgb.bin"), saved.BootRoms);
         Assert.Equal("SpeedRun", saved.Input.Keyboard.ActiveProfile);
         Assert.Equal("SpeedRun", saved.Input.Gamepad.ActiveProfile);
+    }
+
+    [Fact]
+    public void SaveLibraryConfig_ThenLoading_PreservesListViewMode()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+        Directory.CreateDirectory(tempDirectory.Path);
+        var service = CreateService(configPath);
+
+        service.SaveLibraryConfig(new LibraryConfig { ViewMode = LibraryViewMode.List });
+
+        var saved = AppConfigurationFile.Load(configPath);
+
+        Assert.Equal(LibraryViewMode.List, saved.Library.ViewMode);
     }
 
     [Fact]

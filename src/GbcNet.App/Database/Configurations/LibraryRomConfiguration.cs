@@ -42,6 +42,10 @@ internal sealed class LibraryRomConfiguration : IEntityTypeConfiguration<Library
             .HasConversion<string>()
             .HasMaxLength(3);
         builder
+            .Property(entry => entry.NoIntroHash)
+            .HasColumnName("no_intro_hash")
+            .HasMaxLength(40);
+        builder
             .Property(entry => entry.AddedAt)
             .HasColumnName("added_at")
             .HasConversion(_timestampConverter)

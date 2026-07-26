@@ -37,7 +37,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AvaloniaResource Include="Assets\Fonts\Cabin-*.ttf" />
-    <None Include="Assets\Fonts\Cabin-OFL.txt" CopyToOutputDirectory="PreserveNewest" />
+    <AvaloniaResource Include="Assets\Fonts\SpaceGrotesk-*.ttf" />
+    <AvaloniaResource Include="Assets\Images\*.png" />
+    <None Remove="Assets\Metadata\**\*" />
+    <EmbeddedResource Include="Assets\Metadata\no-intro-index.gz" />
+    <None Include="Assets\Fonts\SpaceGrotesk-OFL.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

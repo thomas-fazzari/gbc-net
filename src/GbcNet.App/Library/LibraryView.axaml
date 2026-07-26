@@ -6,7 +6,8 @@
 >
   <UserControl.Styles>
     <Style Selector="TextBox.library-search">
-      <Setter Property="Height" Value="32" />
+      <Setter Property="Height" Value="34" />
+      <Setter Property="MinWidth" Value="220" />
       <Setter Property="Padding" Value="10,0" />
       <Setter Property="Background" Value="{DynamicResource ChromeSurfaceBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
@@ -19,63 +20,67 @@
     <Style Selector="TextBox.library-search:focus">
       <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
     </Style>
-    <Style Selector="TextBlock.section-label">
-      <Setter Property="FontSize" Value="11" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeStatusBrush}" />
-    </Style>
-    <Style Selector="PathIcon.section-icon">
-      <Setter Property="Width" Value="12" />
-      <Setter Property="Height" Value="12" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeStatusBrush}" />
-    </Style>
-    <Style Selector="RadioButton.library-filter-row">
-      <Setter Property="Height" Value="32" />
-      <Setter Property="MinWidth" Value="0" />
-      <Setter Property="Padding" Value="10,0" />
+    <Style Selector="ComboBox.library-filter">
+      <Setter Property="Height" Value="34" />
       <Setter Property="HorizontalAlignment" Value="Stretch" />
-      <Setter Property="HorizontalContentAlignment" Value="Left" />
-      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Padding" Value="8,0" />
+      <Setter Property="Background" Value="{DynamicResource ChromeSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="ComboBox.library-filter.hardware-filter">
+      <Setter Property="MinWidth" Value="120" />
+    </Style>
+    <Style Selector="ComboBox.library-filter.region-filter">
+      <Setter Property="MinWidth" Value="104" />
+    </Style>
+    <Style Selector="ComboBox.library-filter.sort-filter">
+      <Setter Property="MinWidth" Value="120" />
+    </Style>
+    <Style Selector="ComboBox.library-filter:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeMutedBrush}" />
+    </Style>
+    <Style Selector="ComboBox.library-filter:focus">
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
+    </Style>
+    <Style Selector="Button.library-toolbar-button, ToggleButton.library-toolbar-button">
+      <Setter Property="Width" Value="34" />
+      <Setter Property="Height" Value="34" />
+      <Setter Property="MinWidth" Value="34" />
+      <Setter Property="Padding" Value="0" />
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="{DynamicResource ChromeCornerRadius}" />
       <Setter Property="Foreground" Value="{DynamicResource ChromeMutedBrush}" />
-      <Setter Property="FontSize" Value="12" />
-      <Setter Property="Cursor" Value="Hand" />
-      <Setter Property="Template">
-        <ControlTemplate>
-          <Border
-            Background="{TemplateBinding Background}"
-            BorderBrush="{TemplateBinding BorderBrush}"
-            BorderThickness="{TemplateBinding BorderThickness}"
-            CornerRadius="{TemplateBinding CornerRadius}"
-            Padding="{TemplateBinding Padding}"
-          >
-            <ContentPresenter
-              Content="{TemplateBinding Content}"
-              ContentTemplate="{TemplateBinding ContentTemplate}"
-              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
-            />
-          </Border>
-        </ControlTemplate>
-      </Setter>
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="RadioButton.library-filter-row:pointerover">
-      <Setter Property="Background" Value="{DynamicResource ChromeSurfaceBrush}" />
+    <Style Selector="Button.library-toolbar-button:pointerover, ToggleButton.library-toolbar-button:pointerover">
+      <Setter Property="Background" Value="{DynamicResource ChromeHoverBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
     </Style>
-    <Style Selector="RadioButton.library-filter-row:focus-visible">
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
+    <Style Selector="ToggleButton.library-toolbar-button:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
     </Style>
-    <Style Selector="RadioButton.library-filter-row:checked">
-      <Setter Property="Background" Value="{DynamicResource ChromeRaisedBrush}" />
+    <Style Selector="ToggleButton.library-toolbar-button:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.library-toolbar-button:checked:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
     </Style>
     <Style Selector="Button.library-tile">
-      <Setter Property="Width" Value="172" />
-      <Setter Property="Height" Value="244" />
-      <Setter Property="Margin" Value="4" />
+      <Setter Property="Width" Value="180" />
+      <Setter Property="Height" Value="268" />
+      <Setter Property="Margin" Value="6" />
       <Setter Property="Padding" Value="8" />
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
@@ -83,11 +88,28 @@
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="VerticalContentAlignment" Value="Stretch" />
     </Style>
-    <Style Selector="Button.library-tile:pointerover">
+    <Style Selector="Button.library-tile:pointerover, Button.library-list-row:pointerover">
       <Setter Property="Background" Value="{DynamicResource ChromePanelBrush}" />
     </Style>
-    <Style Selector="Button.library-tile:pressed">
-      <Setter Property="Background" Value="{DynamicResource ChromeSurfaceBrush}" />
+    <Style Selector="Button.library-list-row">
+      <Setter Property="Height" Value="64" />
+      <Setter Property="Margin" Value="0,0,0,1" />
+      <Setter Property="Padding" Value="10,4" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.library-list-row:pressed">
+      <Setter Property="RenderTransform" Value="none" />
+    </Style>
+    <Style Selector="TextBlock.library-list-header">
+      <Setter Property="Foreground" Value="{DynamicResource ChromeStatusBrush}" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="Medium" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
     <Style Selector="Border.tile-badge">
       <Setter Property="Height" Value="22" />
@@ -104,322 +126,432 @@
       <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="7" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeMutedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeStatusBrush}" />
       <Setter Property="HorizontalAlignment" Value="Center" />
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="HorizontalContentAlignment" Value="Center" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
-      <Setter Property="Template">
-        <ControlTemplate>
-          <Border
-            Background="{TemplateBinding Background}"
-            BorderBrush="{TemplateBinding BorderBrush}"
-            BorderThickness="{TemplateBinding BorderThickness}"
-            CornerRadius="{TemplateBinding CornerRadius}"
-          >
-            <ContentPresenter
-              Content="{TemplateBinding Content}"
-              ContentTemplate="{TemplateBinding ContentTemplate}"
-              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
-            />
-          </Border>
-        </ControlTemplate>
-      </Setter>
     </Style>
     <Style Selector="Button.tile-actions:pointerover">
       <Setter Property="Background" Value="{DynamicResource ChromeHoverBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
     </Style>
-    <Style Selector="Button.tile-actions:focus-visible">
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
-    </Style>
   </UserControl.Styles>
 
-  <Border
-    x:Name="LibraryPageBackground"
-    Padding="24,20"
-    Background="{DynamicResource ChromeBackgroundBrush}"
-  >
-    <Grid x:Name="LibraryPageRoot">
+  <Border x:Name="LibraryPageBackground" Background="{DynamicResource ChromeBackgroundBrush}">
+    <Grid x:Name="LibraryViewport" Margin="24,18">
       <Grid
+        x:Name="LibraryContent"
         MaxWidth="1440"
-        Width="{Binding Bounds.Width, ElementName=LibraryPageRoot}"
+        Width="{Binding Bounds.Width, ElementName=LibraryViewport}"
         HorizontalAlignment="Center"
-        ColumnDefinitions="176,1,*"
+        RowDefinitions="Auto,*"
+        RowSpacing="16"
       >
-        <StackPanel Grid.Column="0" Margin="0,0,12,0" Spacing="16">
-          <TextBox
-            x:Name="LibrarySearchTextBox"
-            Classes="library-search"
-            PlaceholderText="Search library"
-          />
-
-          <StackPanel Spacing="4">
-            <StackPanel Margin="10,0,0,4" Spacing="6" Orientation="Horizontal">
-              <PathIcon Classes="section-icon" Data="{StaticResource IconCardtridge}" />
-              <TextBlock Classes="section-label" Text="HARDWARE" VerticalAlignment="Center" />
+        <Border
+          Padding="0,0,0,14"
+          BorderBrush="{DynamicResource ChromeHairBrush}"
+          BorderThickness="0,0,0,1"
+        >
+          <Grid ColumnSpacing="4">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" MinWidth="120" MaxWidth="160" />
+              <ColumnDefinition Width="*" MinWidth="104" MaxWidth="144" />
+              <ColumnDefinition Width="*" MinWidth="120" MaxWidth="160" />
+              <ColumnDefinition Width="4*" MinWidth="220" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Spacing="2" Orientation="Horizontal">
+              <Button
+                Classes="library-toolbar-button"
+                Click="OnOpenRomClick"
+                ToolTip.Tip="Open ROM"
+                AutomationProperties.Name="Open ROM"
+              >
+                <PathIcon
+                  Width="16"
+                  Height="16"
+                  Data="{StaticResource IconCollectionsAddRegular}"
+                />
+              </Button>
+              <Border
+                Width="1"
+                Height="24"
+                Margin="4,0"
+                Background="{DynamicResource ChromeHairBrush}"
+                VerticalAlignment="Center"
+              />
+              <ToggleButton
+                x:Name="GridViewToggle"
+                Classes="library-toolbar-button"
+                Tag="Grid"
+                Click="OnViewModeChanged"
+                ToolTip.Tip="Grid view"
+                AutomationProperties.Name="Grid view"
+              >
+                <PathIcon Width="18" Height="18" Data="{StaticResource IconGridRegular}" />
+              </ToggleButton>
+              <ToggleButton
+                x:Name="ListViewToggle"
+                Classes="library-toolbar-button"
+                Tag="List"
+                Click="OnViewModeChanged"
+                ToolTip.Tip="List view"
+                AutomationProperties.Name="List view"
+              >
+                <PathIcon Width="16" Height="16" Data="{StaticResource IconAppsListRegular}" />
+              </ToggleButton>
             </StackPanel>
-            <RadioButton
-              x:Name="HardwareAllFilter"
-              Classes="library-filter-row"
-              GroupName="HardwareFilter"
-              Content="Any"
-              Tag="All"
-              IsChecked="True"
-              Click="OnHardwareFilterChanged"
-            />
-            <RadioButton
-              Classes="library-filter-row"
-              GroupName="HardwareFilter"
-              Content="Game Boy"
-              Tag="Gb"
-              Click="OnHardwareFilterChanged"
-            />
-            <RadioButton
-              Classes="library-filter-row"
-              GroupName="HardwareFilter"
-              Content="Game Boy Color"
-              Tag="Gbc"
-              Click="OnHardwareFilterChanged"
-            />
-            <RadioButton
-              Classes="library-filter-row"
-              GroupName="HardwareFilter"
-              Content="Super Game Boy"
-              Tag="Sgb"
-              Click="OnHardwareFilterChanged"
-            />
-          </StackPanel>
 
-          <StackPanel Spacing="4">
-            <StackPanel Margin="10,0,0,4" Spacing="6" Orientation="Horizontal">
-              <PathIcon Classes="section-icon" Data="{StaticResource IconCover}" />
-              <TextBlock Classes="section-label" Text="COVER" VerticalAlignment="Center" />
-            </StackPanel>
-            <RadioButton
-              x:Name="CoverAllFilter"
-              Classes="library-filter-row"
-              GroupName="CoverFilter"
-              Content="Any"
-              Tag="All"
-              IsChecked="True"
-              Click="OnCoverFilterChanged"
+            <Border
+              Grid.Column="1"
+              Width="1"
+              Height="24"
+              Margin="4,0"
+              Background="{DynamicResource ChromeHairBrush}"
+              VerticalAlignment="Center"
             />
-            <RadioButton
-              Classes="library-filter-row"
-              GroupName="CoverFilter"
-              Content="With cover"
-              Tag="WithCover"
-              Click="OnCoverFilterChanged"
-            />
-            <RadioButton
-              Classes="library-filter-row"
-              GroupName="CoverFilter"
-              Content="Missing cover"
-              Tag="MissingCover"
-              Click="OnCoverFilterChanged"
-            />
-          </StackPanel>
 
-          <StackPanel Spacing="4">
-            <StackPanel Margin="10,0,0,4" Spacing="6" Orientation="Horizontal">
-              <PathIcon Classes="section-icon" Data="{StaticResource IconSort}" />
-              <TextBlock Classes="section-label" Text="SORT BY" VerticalAlignment="Center" />
-            </StackPanel>
-            <RadioButton
-              x:Name="SortRecentFilter"
-              Classes="library-filter-row"
-              GroupName="SortMode"
-              Content="Recently played"
-              Tag="LastOpened"
-              IsChecked="True"
-              Click="OnSortModeChanged"
+            <TextBox
+              x:Name="LibrarySearchTextBox"
+              Grid.Column="5"
+              Margin="4,0,0,0"
+              Classes="library-search"
+              HorizontalAlignment="Stretch"
+              PlaceholderText="Search library"
             />
-            <RadioButton
-              Classes="library-filter-row"
-              GroupName="SortMode"
-              Content="Title"
-              Tag="Title"
-              Click="OnSortModeChanged"
-            />
-            <RadioButton
-              Classes="library-filter-row"
-              GroupName="SortMode"
-              Content="Most played"
-              Tag="MostPlayed"
-              Click="OnSortModeChanged"
-            />
-            <RadioButton
-              Classes="library-filter-row"
-              GroupName="SortMode"
-              Content="Recently added"
-              Tag="RecentlyAdded"
-              Click="OnSortModeChanged"
-            />
-          </StackPanel>
-        </StackPanel>
 
-        <Border Grid.Column="1" Background="{DynamicResource ChromeHairBrush}" />
+            <ComboBox
+              x:Name="HardwareFilter"
+              Grid.Column="2"
+              Classes="library-filter hardware-filter"
+              SelectedIndex="0"
+              SelectionChanged="OnHardwareFilterChanged"
+              ToolTip.Tip="Hardware"
+            >
+              <ComboBoxItem Tag="All">Any system</ComboBoxItem>
+              <ComboBoxItem Tag="Gb">Game Boy</ComboBoxItem>
+              <ComboBoxItem Tag="Gbc">Game Boy Color</ComboBoxItem>
+              <ComboBoxItem Tag="Sgb">Super Game Boy</ComboBoxItem>
+            </ComboBox>
 
-        <Grid Grid.Column="2" RowDefinitions="Auto,*">
+            <ComboBox
+              x:Name="RegionFilter"
+              Grid.Column="3"
+              Classes="library-filter region-filter"
+              SelectedIndex="0"
+              SelectionChanged="OnRegionFilterChanged"
+              ToolTip.Tip="Region"
+            >
+              <ComboBoxItem Tag="All">Any region</ComboBoxItem>
+              <ComboBoxItem Tag="Japan">Japan</ComboBoxItem>
+              <ComboBoxItem Tag="Usa">USA</ComboBoxItem>
+              <ComboBoxItem Tag="Europe">Europe</ComboBoxItem>
+              <ComboBoxItem Tag="World">World</ComboBoxItem>
+              <ComboBoxItem Tag="Other">Other</ComboBoxItem>
+            </ComboBox>
+
+            <ComboBox
+              x:Name="SortFilter"
+              Grid.Column="4"
+              Classes="library-filter sort-filter"
+              SelectedIndex="0"
+              SelectionChanged="OnSortModeChanged"
+              ToolTip.Tip="Sort"
+            >
+              <ComboBoxItem Tag="LastOpened">Last played</ComboBoxItem>
+              <ComboBoxItem Tag="Title">Title</ComboBoxItem>
+              <ComboBoxItem Tag="MostPlayed">Most played</ComboBoxItem>
+              <ComboBoxItem Tag="RecentlyAdded">Recently added</ComboBoxItem>
+            </ComboBox>
+          </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" RowDefinitions="Auto,*">
           <Border
-            Grid.Row="0"
-            Padding="22,0,20,14"
-            BorderBrush="{DynamicResource ChromeHairBrush}"
+            x:Name="RomListHeader"
+            IsVisible="False"
+            Padding="10,2,10,8"
+            BorderBrush="{DynamicResource ChromeSelectedBorderBrush}"
             BorderThickness="0,0,0,1"
           >
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock
-                Text="Library"
-                FontSize="20"
-                FontWeight="SemiBold"
-                Foreground="{DynamicResource ChromeTextBrush}"
-                VerticalAlignment="Center"
-              />
-              <TextBlock
-                x:Name="LibraryCountText"
-                Grid.Column="1"
-                Text="0 ROMs"
-                FontSize="12"
-                Foreground="{DynamicResource ChromeMutedBrush}"
-                VerticalAlignment="Center"
-              />
+            <Grid Margin="0,0,12,0" ColumnDefinitions="56,*,90,100,80,132,28" ColumnSpacing="12">
+              <TextBlock Grid.Column="0" Classes="library-list-header" Text="Cover" />
+              <TextBlock Grid.Column="1" Classes="library-list-header" Text="ROM" />
+              <TextBlock Grid.Column="2" Classes="library-list-header" Text="System" />
+              <TextBlock Grid.Column="3" Classes="library-list-header" Text="Region" />
+              <TextBlock Grid.Column="4" Classes="library-list-header" Text="Plays" />
+              <TextBlock Grid.Column="5" Classes="library-list-header" Text="Last played" />
             </Grid>
           </Border>
 
-          <Grid Grid.Row="1">
-            <ScrollViewer
-              x:Name="LibraryScrollViewer"
-              Padding="10,14,10,0"
-              VerticalScrollBarVisibility="Auto"
-              HorizontalScrollBarVisibility="Disabled"
-            >
-              <Grid RowDefinitions="Auto,32">
-                <ItemsControl x:Name="RomTilesControl">
-                  <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                      <WrapPanel Orientation="Horizontal" />
-                    </ItemsPanelTemplate>
-                  </ItemsControl.ItemsPanel>
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate x:CompileBindings="False">
-                      <Button Classes="library-tile" Click="OnRomTileClick">
-                        <Grid RowDefinitions="156,44,28">
-                          <Border
-                            Grid.Row="0"
-                            Width="156"
-                            Height="156"
-                            Background="{DynamicResource ChromeSurfaceBrush}"
-                            ClipToBounds="True"
-                            CornerRadius="{DynamicResource ChromeCornerRadius}"
-                          >
-                            <Grid>
-                              <Image
-                                Source="{Binding CoverBitmap}"
-                                IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNotNull}}"
-                                Stretch="Fill"
-                              />
-                              <TextBlock
-                                Text="ROM"
-                                IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNull}}"
-                                Foreground="{DynamicResource ChromeMutedBrush}"
-                                FontSize="26"
-                                FontWeight="SemiBold"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                              />
-                            </Grid>
-                          </Border>
-
+          <ScrollViewer
+            Grid.Row="1"
+            x:Name="LibraryScrollViewer"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto"
+          >
+            <Grid Margin="0,0,12,0">
+              <ItemsControl x:Name="RomGridControl">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:CompileBindings="False">
+                    <Button Classes="library-tile" Click="OnRomTileClick">
+                      <Grid RowDefinitions="172,48,28">
+                        <Border
+                          Grid.Row="0"
+                          Width="172"
+                          Height="172"
+                          Background="{DynamicResource ChromeSurfaceBrush}"
+                          ClipToBounds="True"
+                          CornerRadius="{DynamicResource ChromeCornerRadius}"
+                        >
+                          <Grid>
+                            <Image
+                              Source="{Binding CoverBitmap}"
+                              IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNotNull}}"
+                              Stretch="Fill"
+                            />
+                            <TextBlock
+                              Text="ROM"
+                              IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNull}}"
+                              Foreground="{DynamicResource ChromeMutedBrush}"
+                              FontSize="26"
+                              FontWeight="SemiBold"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                            />
+                          </Grid>
+                        </Border>
+                        <TextBlock
+                          Grid.Row="1"
+                          Margin="0,8,0,0"
+                          Text="{Binding UserFriendlyTitle}"
+                          Foreground="{DynamicResource ChromeTextBrush}"
+                          FontSize="13"
+                          FontWeight="Medium"
+                          MaxLines="2"
+                          TextTrimming="WordEllipsis"
+                          TextWrapping="Wrap"
+                          VerticalAlignment="Top"
+                        />
+                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,28" ColumnSpacing="8">
                           <TextBlock
-                            Grid.Row="1"
-                            Margin="0,8,0,0"
-                            Text="{Binding Title}"
+                            Text="{Binding PlayCountText}"
+                            Foreground="{DynamicResource ChromeMutedBrush}"
+                            FontSize="11"
+                            VerticalAlignment="Center"
+                          />
+                          <Border
+                            Grid.Column="1"
+                            Classes="badge tile-badge"
+                            HorizontalAlignment="Right"
+                          >
+                            <TextBlock
+                              Text="{Binding HardwareText}"
+                              Classes="badge-text"
+                              VerticalAlignment="Center"
+                            />
+                          </Border>
+                          <Button
+                            Grid.Column="2"
+                            Classes="tile-actions"
+                            Loaded="OnTileActionsButtonLoaded"
+                            Click="OnTileActionsButtonClick"
+                            AutomationProperties.Name="ROM actions"
+                          >
+                            <PathIcon Width="12" Height="12" Data="{StaticResource IconSettings}" />
+                          </Button>
+                        </Grid>
+                      </Grid>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <ItemsControl x:Name="RomListControl" IsVisible="False">
+                <ItemsControl.Styles>
+                  <Style Selector="ContentPresenter">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                  </Style>
+                </ItemsControl.Styles>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:CompileBindings="False">
+                    <Button
+                      Classes="library-list-row"
+                      Width="{Binding Bounds.Width, ElementName=RomListControl}"
+                      Click="OnRomTileClick"
+                    >
+                      <Grid ColumnDefinitions="56,*,90,100,80,132,28" ColumnSpacing="12">
+                        <Border
+                          Width="48"
+                          Height="48"
+                          Background="{DynamicResource ChromeSurfaceBrush}"
+                          ClipToBounds="True"
+                          CornerRadius="{DynamicResource ChromeCornerRadius}"
+                        >
+                          <Grid>
+                            <Image
+                              Source="{Binding CoverBitmap}"
+                              IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNotNull}}"
+                              Stretch="Fill"
+                            />
+                            <TextBlock
+                              Text="ROM"
+                              IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNull}}"
+                              Foreground="{DynamicResource ChromeMutedBrush}"
+                              FontSize="10"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                            />
+                          </Grid>
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                          <TextBlock
+                            Text="{Binding UserFriendlyTitle}"
                             Foreground="{DynamicResource ChromeTextBrush}"
                             FontSize="13"
                             FontWeight="Medium"
-                            MaxLines="2"
-                            TextTrimming="WordEllipsis"
-                            TextWrapping="Wrap"
-                            VerticalAlignment="Top"
+                            TextTrimming="CharacterEllipsis"
+                            MaxLines="1"
+                            TextWrapping="NoWrap"
                           />
-
-                          <Grid Grid.Row="2" ColumnDefinitions="*,Auto,28" ColumnSpacing="8">
-                            <TextBlock
-                              Text="{Binding PlayCountText}"
-                              Foreground="{DynamicResource ChromeMutedBrush}"
-                              FontSize="11"
-                              TextTrimming="CharacterEllipsis"
-                              VerticalAlignment="Center"
+                          <TextBlock
+                            Text="{Binding CartridgeTitle}"
+                            IsVisible="{Binding HasCartridgeTitle}"
+                            Foreground="{DynamicResource ChromeMutedBrush}"
+                            FontSize="11"
+                            TextTrimming="CharacterEllipsis"
+                            MaxLines="1"
+                            TextWrapping="NoWrap"
+                          />
+                        </StackPanel>
+                        <TextBlock
+                          Grid.Column="2"
+                          Text="{Binding HardwareText}"
+                          Foreground="{DynamicResource ChromeStatusBrush}"
+                          FontSize="12"
+                          VerticalAlignment="Center"
+                        />
+                        <StackPanel
+                          Grid.Column="3"
+                          Spacing="4"
+                          Orientation="Horizontal"
+                          VerticalAlignment="Center"
+                        >
+                          <Border
+                            Width="21"
+                            Height="14"
+                            IsVisible="{Binding HasJapan}"
+                            ClipToBounds="True"
+                            CornerRadius="2"
+                          >
+                            <Image
+                              Source="avares://GbcNet/Assets/Images/japan.png"
+                              Stretch="Fill"
                             />
-                            <Border
-                              Grid.Column="1"
-                              Classes="badge tile-badge"
-                              HorizontalAlignment="Right"
-                            >
-                              <TextBlock
-                                Text="{Binding HardwareText}"
-                                Classes="badge-text"
-                                VerticalAlignment="Center"
-                              />
-                            </Border>
-                            <Button
-                              Grid.Column="2"
-                              Classes="tile-actions"
-                              Loaded="OnTileActionsButtonLoaded"
-                              Click="OnTileActionsButtonClick"
-                              AutomationProperties.Name="ROM actions"
-                            >
-                              <PathIcon
-                                Width="12"
-                                Height="12"
-                                Data="{StaticResource IconSettings}"
-                              />
-                            </Button>
-                          </Grid>
-                        </Grid>
-                      </Button>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <Border Grid.Row="1" />
-              </Grid>
-            </ScrollViewer>
-
-            <Grid x:Name="EmptyState">
-              <StackPanel
-                MaxWidth="320"
-                Spacing="8"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-              >
-                <TextBlock
-                  x:Name="EmptyStateText"
-                  Text="No ROMs yet"
-                  FontSize="16"
-                  FontWeight="SemiBold"
-                  Foreground="{DynamicResource ChromeTextBrush}"
-                  TextAlignment="Center"
-                />
-                <TextBlock
-                  x:Name="EmptyStateDescription"
-                  Text="Open a ROM to add it to your library."
-                  FontSize="12"
-                  Foreground="{DynamicResource ChromeMutedBrush}"
-                  TextAlignment="Center"
-                  TextWrapping="Wrap"
-                />
-                <Button
-                  x:Name="ClearFiltersButton"
-                  Classes="chrome-button"
-                  Margin="0,4,0,0"
-                  Content="Clear filters"
-                  Click="ClearFilters"
-                  HorizontalAlignment="Center"
-                />
-              </StackPanel>
+                          </Border>
+                          <Border
+                            Width="21"
+                            Height="14"
+                            IsVisible="{Binding HasUsa}"
+                            ClipToBounds="True"
+                            CornerRadius="2"
+                          >
+                            <Image Source="avares://GbcNet/Assets/Images/usa.png" Stretch="Fill" />
+                          </Border>
+                          <Border
+                            Width="21"
+                            Height="14"
+                            IsVisible="{Binding HasEurope}"
+                            ClipToBounds="True"
+                            CornerRadius="2"
+                          >
+                            <Image
+                              Source="avares://GbcNet/Assets/Images/europe.png"
+                              Stretch="Fill"
+                            />
+                          </Border>
+                          <Border
+                            Width="21"
+                            Height="14"
+                            IsVisible="{Binding HasWorld}"
+                            ClipToBounds="True"
+                            CornerRadius="2"
+                          >
+                            <Image
+                              Source="avares://GbcNet/Assets/Images/world.png"
+                              Stretch="Fill"
+                            />
+                          </Border>
+                        </StackPanel>
+                        <TextBlock
+                          Grid.Column="4"
+                          Text="{Binding PlayCountText}"
+                          Foreground="{DynamicResource ChromeStatusBrush}"
+                          FontSize="12"
+                          VerticalAlignment="Center"
+                        />
+                        <TextBlock
+                          Grid.Column="5"
+                          Text="{Binding LastPlayedText}"
+                          Foreground="{DynamicResource ChromeStatusBrush}"
+                          FontSize="12"
+                          TextTrimming="CharacterEllipsis"
+                          VerticalAlignment="Center"
+                        />
+                        <Button
+                          Grid.Column="6"
+                          Classes="tile-actions"
+                          Loaded="OnTileActionsButtonLoaded"
+                          Click="OnTileActionsButtonClick"
+                          AutomationProperties.Name="ROM actions"
+                        >
+                          <PathIcon Width="12" Height="12" Data="{StaticResource IconSettings}" />
+                        </Button>
+                      </Grid>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
             </Grid>
+          </ScrollViewer>
+
+          <Grid x:Name="EmptyState" Grid.RowSpan="2">
+            <StackPanel
+              MaxWidth="320"
+              Spacing="8"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+            >
+              <TextBlock
+                x:Name="EmptyStateText"
+                FontSize="16"
+                FontWeight="SemiBold"
+                Foreground="{DynamicResource ChromeTextBrush}"
+                TextAlignment="Center"
+              />
+              <TextBlock
+                x:Name="EmptyStateDescription"
+                FontSize="12"
+                Foreground="{DynamicResource ChromeMutedBrush}"
+                TextAlignment="Center"
+                TextWrapping="Wrap"
+              />
+              <Button
+                x:Name="ClearFiltersButton"
+                Classes="chrome-button"
+                Margin="0,4,0,0"
+                Content="Clear filters"
+                Click="ClearFilters"
+                HorizontalAlignment="Center"
+              />
+            </StackPanel>
           </Grid>
         </Grid>
       </Grid>

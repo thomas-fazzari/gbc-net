@@ -4,6 +4,7 @@
 using System.Text.Json;
 using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.BootRom;
+using GbcNet.App.Configuration.Sections.Library;
 using GbcNet.Core.Hardware;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -33,6 +34,24 @@ public sealed class AppConfigurationFileTests
                 .GetString()
         );
         Assert.Equal(bootRoms, AppConfigurationFile.Load(configPath).BootRoms);
+    }
+
+    [Fact]
+    public void Save_WritesJsonThatRoundTripsLibraryViewMode()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+        var config = AppConfigurationFile.CreateDefault();
+        config.Library.ViewMode = LibraryViewMode.List;
+
+        AppConfigurationFile.Save(configPath, config, NullLogger.Instance);
+
+        using var json = JsonDocument.Parse(File.ReadAllText(configPath));
+        Assert.Equal(
+            "list",
+            json.RootElement.GetProperty("library").GetProperty("viewMode").GetString()
+        );
+        Assert.Equal(LibraryViewMode.List, AppConfigurationFile.Load(configPath).Library.ViewMode);
     }
 
     [Fact]
