@@ -14,6 +14,7 @@ esac
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 project_dir=$(CDPATH= cd -- "$(dirname -- "$app_project")" && pwd)
+"$script_dir/../generate-icons.sh" "$project_dir/Assets/Icon.png"
 escape_sed_replacement() {
         printf '%s' "$1" | sed 's/[&|]/\\&/g'
 }
@@ -42,6 +43,7 @@ dotnet publish "$app_project" --configuration Release --runtime "$runtime" --sel
 rm -rf "$bundle_dir"
 mkdir -p "$bundle_dir/Contents/MacOS" "$bundle_dir/Contents/Resources"
 rsync -a --delete --exclude '*.dSYM' --exclude '*.pdb' --exclude '.DS_Store' "$publish_dir/" "$bundle_dir/Contents/MacOS/"
+cp "$script_dir/GbcNet.icns" "$bundle_dir/Contents/Resources/GbcNet.icns"
 sed \
         -e "s|__EXECUTABLE__|$(escape_sed_replacement "$executable")|g" \
         -e "s|__DISPLAY_NAME__|$(escape_sed_replacement "$display_name")|g" \

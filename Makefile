@@ -1,6 +1,7 @@
 SOLUTION = GbcNet.slnx
 APP = src/GbcNet.App/GbcNet.App.csproj
 TESTS = tests/GbcNet.Tests/GbcNet.Tests.csproj
+ICON = src/GbcNet.App/Assets/Icon.png
 COVERAGE_SETTINGS = $(CURDIR)/tests/GbcNet.Tests/coverage.settings.xml
 CONFIGURATION ?= Debug
 RUN_CONFIGURATION ?= Release
@@ -47,6 +48,10 @@ bundle package pack:
 		linux-*) packaging/linux/create-app-bundle.sh "$(APP)" "$(RUNTIME)" ;; \
 		*) echo "Unsupported RUNTIME: $(RUNTIME)" >&2; exit 1 ;; \
 	esac
+
+.PHONY: icons
+icons:
+	packaging/generate-icons.sh "$(ICON)"
 
 .PHONY: copyrights
 copyrights:

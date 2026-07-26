@@ -14,6 +14,7 @@ esac
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 project_dir=$(CDPATH= cd -- "$(dirname -- "$app_project")" && pwd)
+"$script_dir/../generate-icons.sh" "$project_dir/Assets/Icon.png"
 escape_sed_replacement() {
         printf '%s' "$1" | sed 's/[&|]/\\&/g'
 }
@@ -40,8 +41,9 @@ rm -rf "$publish_dir"
 dotnet publish "$app_project" --configuration Release --runtime "$runtime" --self-contained true --no-restore
 
 rm -rf "$bundle_dir"
-mkdir -p "$bundle_dir/bin"
+mkdir -p "$bundle_dir/bin" "$bundle_dir/share/icons/hicolor"
 rsync -a --delete --exclude '*.dSYM' --exclude '*.pdb' --exclude '.DS_Store' "$publish_dir/" "$bundle_dir/bin/"
+rsync -a "$script_dir/icons/hicolor/" "$bundle_dir/share/icons/hicolor/"
 sed \
         -e "s|__EXECUTABLE__|$(escape_sed_replacement "$executable")|g" \
         -e "s|__DISPLAY_NAME__|$(escape_sed_replacement "$display_name")|g" \

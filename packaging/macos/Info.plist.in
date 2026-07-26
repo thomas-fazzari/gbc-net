@@ -16,6 +16,8 @@
   <string>__VERSION__</string>
   <key>CFBundleVersion</key>
   <string>__VERSION__</string>
+  <key>CFBundleIconFile</key>
+  <string>GbcNet.icns</string>
   <key>NSHighResolutionCapable</key>
   <true/>
 </dict>
