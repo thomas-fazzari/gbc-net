@@ -5,7 +5,7 @@
 Used to start/stop internal sound effect, start/stop sound using
 internal tone data.
 
-```
+```text
  Byte  Content
  0     Command*8+Length (fixed length=1)
  1     Sound Effect A (Port 1) Decrescendo 8-bit Sound Code
@@ -38,19 +38,19 @@ Notes:
 Used to transfer sound code or data to SNES Audio Processing Unit memory
 (APU-RAM).
 
-```
+```text
  Byte  Content
  0     Command*8+Length (fixed length=1)
  1-F   Not used (zero)
 ```
 
-The sound code/data is sent by [VRAM transfer](#vram-transfers) as a contiguous list of “packets”.
+The sound code/data is sent by [VRAM transfer](vram-transfers.md#vram-transfers) as a contiguous list of “packets”.
 
 All 16-bit values are little-endian.
 
 Data transfer packet format:
 
-```
+```text
  0-1    Size of data below (N); if zero, this is instead a jump packet
  2-3    Destination address in S-APU RAM (typically $2B00, see below)
  4-N+3  Data to be transferred
@@ -58,7 +58,7 @@ Data transfer packet format:
 
 Jump packet format:
 
-```
+```text
  0-1  Must be $0000
  2-3  S-APU jump address, use $0400 to safely restart the built-in SGB BIOS' N-SPC sound engine
 ```

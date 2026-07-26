@@ -44,6 +44,7 @@ The 9th bit of the ROM bank number goes here.
 As for the MBC1s RAM Banking Mode, writing a value in the range $00-$0F
 maps the corresponding external RAM bank (if any) into the memory area at
 A000-BFFF.
+
 ### Rumble
 
 On cartridges which feature a rumble motor, bit 3 of the RAM Bank register
@@ -53,105 +54,74 @@ bit to 1 enables the rumble motor and keeps it enabled until the bit is reset ag
 To control the rumble’s intensity, it should be turned on and off repeatedly,
 as seen with these two examples from Pokémon Pinball:
 
-
 2026-05-12T05:02:34.806703
 image/svg+xml
 
-
-Matplotlib v3.10.9, https://matplotlib.org/
-
+Matplotlib v3.10.9, <https://matplotlib.org/>
 
 0
 
-
 20
-
 
 40
 
-
 60
-
 
 80
 
 Time (ms)
 
-
 0.2
-
 
 0.4
 
-
 0.6
-
 
 0.8
 
-
 1.0
 
-
 1.2
-
 
 1.4
 
 Rumble Motor (V)
 
-
 Mild Rumble
-
 
 2026-05-12T05:02:34.965052
 image/svg+xml
 
-
-Matplotlib v3.10.9, https://matplotlib.org/
-
+Matplotlib v3.10.9, <https://matplotlib.org/>
 
 0
 
-
 20
-
 
 40
 
-
 60
-
 
 80
 
 Time (ms)
 
-
 0.0
-
 
 0.2
 
-
 0.4
-
 
 0.6
 
-
 0.8
-
 
 1.0
 
-
 1.2
-
 
 1.4
 
 Rumble Motor (V)
-
 
 Strong Rumble

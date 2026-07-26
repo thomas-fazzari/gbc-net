@@ -2,7 +2,7 @@
 
 ## INT $40 — VBlank interrupt
 
-This interrupt [is requested](#ff0f--if-interrupt-flag) every time the Game Boy enters VBlank ([Mode 1](#ppu-modes)).
+This interrupt [is requested](interrupts.md#ff0f--if-interrupt-flag) every time the Game Boy enters VBlank ([Mode 1](rendering-overview.md#ppu-modes)).
 
 The VBlank interrupt occurs ca. 59.7 times a second on a handheld Game
 Boy (DMG or CGB) or Game Boy Player and ca. 61.1 times a second on a
@@ -14,13 +14,13 @@ milliseconds.
 ## INT $48 — STAT interrupt
 
 There are various sources which can trigger this interrupt to occur as
-described in [STAT register ($FF41)](#ff41--stat-lcd-status).
+described in [STAT register ($FF41)](lcd-status-registers.md#ff41--stat-lcd-status).
 
 The various STAT interrupt sources (modes 0-2 and LYC=LY) have their
 state (inactive=low and active=high) logically ORed into a shared
 “STAT interrupt line” if their respective enable bit is turned on.
 
-A STAT interrupt [will be triggered](#ff0f--if-interrupt-flag) by a rising edge (transition from
+A STAT interrupt [will be triggered](interrupts.md#ff0f--if-interrupt-flag) by a rising edge (transition from
 low to high) on the STAT interrupt line.
 
 STAT blocking
@@ -30,7 +30,7 @@ If a STAT interrupt source logically ORs the interrupt line high while
 there will be no low-to-high transition and so no interrupt will occur.
 This phenomenon is known as “STAT blocking” ([test ROM example](https://github.com/Gekkio/mooneye-gb/blob/2d52008228557f9e713545e702d5b7aa233d09bb/tests/acceptance/ppu/stat_irq_blocking.s#L21-L22)).
 
-As mentioned in the description of the [STAT register](#ff41--stat-lcd-status),
+As mentioned in the description of the [STAT register](lcd-status-registers.md#ff41--stat-lcd-status),
 the PPU cycles through the different modes in a fixed order. So for
 example, if interrupts are enabled for two consecutive modes such as
 Mode 0 and Mode 1, then no interrupt will trigger for Mode 1 (since
@@ -50,16 +50,16 @@ hidden by the text box.
 
 ## INT $50 — Timer interrupt
 
-The timer interrupt [is requested](#ff0f--if-interrupt-flag) every time that the timer overflows (that is, when [TIMA](#ff05--tima-timer-counter) exceeds $FF).
+The timer interrupt [is requested](interrupts.md#ff0f--if-interrupt-flag) every time that the timer overflows (that is, when [TIMA](timer-and-divider-registers.md#ff05--tima-timer-counter) exceeds $FF).
 
 ## INT $58 — Serial interrupt
 
-The serial interrupt [is requested](#ff0f--if-interrupt-flag) upon completion of a serial data transfer.
-In other words, eight serial clock cycles after starting a transfer (by setting [SC](#ff02--sc-serial-transfer-control) bit 7), the incoming data will be in [SB](#ff01--sb-serial-transfer-data) and the interrupt will be requested.
+The serial interrupt [is requested](interrupts.md#ff0f--if-interrupt-flag) upon completion of a serial data transfer.
+In other words, eight serial clock cycles after starting a transfer (by setting [SC](serial-data-transfer-link-cable.md#ff02--sc-serial-transfer-control) bit 7), the incoming data will be in [SB](serial-data-transfer-link-cable.md#ff01--sb-serial-transfer-data) and the interrupt will be requested.
 
 ## INT $60 — Joypad interrupt
 
-The Joypad interrupt [is requested](#ff0f--if-interrupt-flag) when any of [`P1`](#ff00--p1joyp-joypad) bits 0-3 change
+The Joypad interrupt [is requested](interrupts.md#ff0f--if-interrupt-flag) when any of [`P1`](joypad-input.md#ff00--p1joyp-joypad) bits 0-3 change
 from High to Low. This happens when a button is
 pressed (provided that the action/direction buttons are enabled by
 bit 5/4, respectively), however, due to switch bounce, one or more High to Low

@@ -101,14 +101,14 @@ is not large enough to use the 2-bit register (≤ 8 KiB RAM and ≤ 512 KiB ROM
 this mode select has no observable effect. The program may freely switch
 between the two modes at any time.
 
-|  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+| | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **Value written** |  | | | | | | | Banking mode |
+| **Value written** | | | | | | | | Banking mode |
 
 The **banking mode** can be:
 
-- `0` = *simple* (default): 0000–3FFF and A000–BFFF are locked to bank 0 of ROM and SRAM respectively.
-- `1` = *advanced*: 0000–3FFF and A000-BFFF can be bank-switched via the [4000–5FFF register](#40005fff--ram-bank-number--or--upper-bits-of-rom-bank-number-write-only).
+* `0` = *simple* (default): 0000–3FFF and A000–BFFF are locked to bank 0 of ROM and SRAM respectively.
+* `1` = *advanced*: 0000–3FFF and A000-BFFF can be bank-switched via the [4000–5FFF register](#40005fff--ram-bank-number--or--upper-bits-of-rom-bank-number-write-only).
 
 Technically, the MBC1 has AND gates between the both bank registers and the second-highest bit of the address. This is intended to cause accesses to the 0000–3FFF region (which has that address bit set to 0) to treat both registers as always 0, so that only bank 0 is accessible through this address.
 
@@ -122,14 +122,14 @@ The following diagrams show how the address within the ROM/RAM chips are calcula
 
 ### 0000–3FFF
 
-|  | 20 | 19 | 18 | 17 | 16 | 15 | 14 | 13 | 12 | ... | 1 | 0 |
+| | 20 | 19 | 18 | 17 | 16 | 15 | 14 | 13 | 12 | ... | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **Mode 0** | 0 | | 0 | | | | | From Game Boy address | | | | |
-| **Mode 1** | From 4000–5FFF bank register | |
+| **Mode 1** | From 4000–5FFF bank register | | | | | | | | | | | |
 
 ### 4000–7FFF
 
-|  | 20 | 19 | 18 | 17 | 16 | 15 | 14 | 13 | 12 | ... | 1 | 0 |
+| | 20 | 19 | 18 | 17 | 16 | 15 | 14 | 13 | 12 | ... | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **Mode 0 / Mode 1** | From 4000–5FFF bank register | | From 2000–3FFF bank register | | | | | From Game Boy address | | | | |
 
@@ -138,10 +138,10 @@ In a smaller cartridge, some of the upper bits are ignored.
 
 ### A000–BFFF
 
-|  | 14 | 13 | 12 | ... | 1 | 0 |
+| | 14 | 13 | 12 | ... | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- |
 | **Mode 0** | 0 | | From Game Boy address | | | |
-| **Mode 1** | From 4000–5FFF bank register | |
+| **Mode 1** | From 4000–5FFF bank register | | | | | |
 
 ## “MBC1M”: 1 MiB Multi-Game Compilation Carts
 
@@ -171,19 +171,19 @@ duplicated into $30-$3F and so on.
 
 ### MBC1M addressing diagrams
 
-#### 0000–3FFF
+#### MBC1M 0000–3FFF
 
-|  | 19 | 18 | 17 | 16 | 15 | 14 | 13 | 12 | .. | 1 | 0 |
+| | 19 | 18 | 17 | 16 | 15 | 14 | 13 | 12 | .. | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **Mode 0** | 0 | | 0 | | | | From Game Boy address | | | | |
-| **Mode 1** | From 4000–5FFF bank register | |
+| **Mode 1** | From 4000–5FFF bank register | | | | | | | | | | |
 
-#### 4000–7FFF
+#### MBC1M 4000–7FFF
 
-|  | 19 | 18 | 17 | 16 | 15 | 14 | 13 | 12 | .. | 1 | 0 |
+| | 19 | 18 | 17 | 16 | 15 | 14 | 13 | 12 | .. | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **Mode 0 / Mode 1** | From 4000–5FFF bank register | | From 2000–3FFF bank register (bit 4 unused) | | | | From Game Boy address | | | | |
 
 ---
 
-1. MBC1M has a different formula, see below. [↩](#fr-MBC1M_banking-1)
+1. <a id="footnote-MBC1M_banking"></a><a id="fr-MBC1M_banking-1"></a>MBC1M has a different formula, see below. [↩](#fr-MBC1M_banking-1)

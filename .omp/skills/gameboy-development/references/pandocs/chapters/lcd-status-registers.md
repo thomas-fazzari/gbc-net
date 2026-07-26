@@ -2,7 +2,7 @@
 
 TERMINOLOGY
 
-A *dot* is the shortest period over which the PPU can output one pixel: is it equivalent to 1 T-cycle on DMG or on CGB Normal Speed mode or 2 T-cycles on CGB Double Speed mode. On each dot during mode 3, either the PPU outputs a pixel or the fetcher is stalling the [FIFOs](#pixel-fifo).
+A *dot* is the shortest period over which the PPU can output one pixel: is it equivalent to 1 T-cycle on DMG or on CGB Normal Speed mode or 2 T-cycles on CGB Double Speed mode. On each dot during mode 3, either the PPU outputs a pixel or the fetcher is stalling the [FIFOs](pixel-fifo.md#pixel-fifo).
 
 ## FF44 — LY: LCD Y coordinate [read-only]
 
@@ -20,14 +20,14 @@ is set, and (if enabled) a STAT interrupt is requested.
 
 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-|  | LYC int select | Mode 2 int select | Mode 1 int select | Mode 0 int select | LYC == LY | PPU mode | |
+| | LYC int select | Mode 2 int select | Mode 1 int select | Mode 0 int select | LYC == LY | PPU mode | |
 
-- **LYC int select** (*Read/Write*): If set, selects the `LYC` == `LY` condition for [the STAT interrupt](#int-48--stat-interrupt).
-- **Mode 2 int select** (*Read/Write*): If set, selects the Mode 2 condition for [the STAT interrupt](#int-48--stat-interrupt).
-- **Mode 1 int select** (*Read/Write*): If set, selects the Mode 1 condition for [the STAT interrupt](#int-48--stat-interrupt).
-- **Mode 0 int select** (*Read/Write*): If set, selects the Mode 0 condition for [the STAT interrupt](#int-48--stat-interrupt).
-- **LYC == LY** (*Read-only*): Set when [LY](#ff44--ly-lcd-y-coordinate-read-only) contains the same value as [LYC](#ff45--lyc-ly-compare); it is constantly updated.
-- **PPU mode** (*Read-only*): Indicates [the PPU’s current status](#ppu-modes). Reports 0 instead when the [PPU is disabled](#lcdc7--lcd-enable).
+* **LYC int select** (*Read/Write*): If set, selects the `LYC` == `LY` condition for [the STAT interrupt](interrupt-sources.md#int-48--stat-interrupt).
+* **Mode 2 int select** (*Read/Write*): If set, selects the Mode 2 condition for [the STAT interrupt](interrupt-sources.md#int-48--stat-interrupt).
+* **Mode 1 int select** (*Read/Write*): If set, selects the Mode 1 condition for [the STAT interrupt](interrupt-sources.md#int-48--stat-interrupt).
+* **Mode 0 int select** (*Read/Write*): If set, selects the Mode 0 condition for [the STAT interrupt](interrupt-sources.md#int-48--stat-interrupt).
+* **LYC == LY** (*Read-only*): Set when [LY](#ff44--ly-lcd-y-coordinate-read-only) contains the same value as [LYC](#ff45--lyc-ly-compare); it is constantly updated.
+* **PPU mode** (*Read-only*): Indicates [the PPU’s current status](rendering-overview.md#ppu-modes). Reports 0 instead when the [PPU is disabled](lcd-control.md#lcdc7--lcd-enable).
 
 ### Spurious STAT interrupts
 

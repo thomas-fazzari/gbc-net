@@ -7,7 +7,7 @@ the Game Boy screen before transferring data through VRAM (the SNES then
 keeps displaying the Game Boy screen, even though VRAM doesn’t contain
 meaningful display information during the transfer).
 
-```
+```text
  Byte  Content
  0     Command*8+Length (fixed length=1)
  1     Game Boy Screen Mask (0-3)
@@ -38,7 +38,7 @@ Test Suite). It is speculated that the animation may have interfered
 with rarely-used SGB features, such as OBJ\_TRN or JUMP, and that
 Attraction Disable disables this animation.
 
-```
+```text
  Byte  Content
  0     Command*8+Length    (fixed length=1)
  1     Attraction Disable  (0=Enable, 1=Disable)
@@ -51,7 +51,7 @@ Used to enable/disable ICON function. Possibly meant to enable/disable
 SGB/SNES popup menues which might otherwise activated during Game Boy
 game play. By default all functions are enabled (0).
 
-```
+```text
  Byte  Content
  0     Command*8+Length    (fixed length=1)
  1     Disable Bits
@@ -71,7 +71,7 @@ games.
 
 Used to write one or more bytes directly into SNES Work RAM.
 
-```
+```text
  Byte  Content
  0     Command*8+Length    (fixed length=1)
  1     SNES Destination Address, low
@@ -93,7 +93,7 @@ bytes can be defined at once. Free Addresses in SNES memory are Bank 0
 
 Used to transfer binary code or data directly into SNES RAM.
 
-```
+```text
  Byte  Content
  0     Command*8+Length    (fixed length=1)
  1     SNES Destination Address, low
@@ -104,7 +104,7 @@ Used to transfer binary code or data directly into SNES RAM.
 
 The data is sent by VRAM-Transfer (4 KBytes).
 
-```
+```text
  000-FFF  Data
 ```
 
@@ -118,7 +118,7 @@ idea ???
 Used to set the SNES program counter and NMI (vblank interrupt) handler
 to specific addresses.
 
-```
+```text
  Byte  Content
  0     Command*8+Length    (fixed length=1)
  1     SNES Program Counter, low
@@ -140,15 +140,15 @@ nocash](https://problemkaputt.de/fullsnes.htm).
 Some notes for intrepid Super NES programmers seeking to use a flash
 cartridge in a Super Game Boy as a storage server:
 
-- JUMP overwrites the NMI handler even if it is $000000.
-- The SGB system software does not appear to use NMIs.
-- JUMP can return to SGB system software via a 16-bit RTS. To do this,
+* JUMP overwrites the NMI handler even if it is $000000.
+* The SGB system software does not appear to use NMIs.
+* JUMP can return to SGB system software via a 16-bit RTS. To do this,
   JML to a location in bank $00 containing byte value $60, such as
-  any of the [stubbed commands](#stubbed-commands).
-- IRQs and COP and BRK instructions are not useful because their
+  any of the [stubbed commands](undocumented-sgb-commands.md#stubbed-commands).
+* IRQs and COP and BRK instructions are not useful because their
   handlers still point into SGB ROM. Use SEI WAI.
-- If a program called through JUMP does not intend to return to SGB
+* If a program called through JUMP does not intend to return to SGB
   system software, it can overwrite all Super NES RAM except $0000BB
   through $0000BD, the NMI vector.
-- To enter APU boot ROM, write $FE to $2140. Echo will still be on
+* To enter APU boot ROM, write $FE to $2140. Echo will still be on
   though.

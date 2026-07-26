@@ -1,20 +1,18 @@
 # Command Packet Transfers
 
-Command packets are transferred from the Game Boy to the SNES by using bits 4 and 5 of of [the `JOYP` register](#ff00--p1joyp-joypad).
-These lines are normally used to select one of the two button groups (which [still works as usual](#ff00--p1joyp-joypad)).
+Command packets are transferred from the Game Boy to the SNES by using bits 4 and 5 of of [the `JOYP` register](joypad-input.md#ff00--p1joyp-joypad).
+These lines are normally used to select one of the two button groups (which [still works as usual](joypad-input.md#ff00--p1joyp-joypad)).
 
 ## Transferring Bits
 
-A command packet transfer must be initiated by setting [`JOYP`](#ff00--p1joyp-joypad) bits 4 and 5 both to 0; this will reset and start the ICD2 packet receiving circuit.
+A command packet transfer must be initiated by setting [`JOYP`](joypad-input.md#ff00--p1joyp-joypad) bits 4 and 5 both to 0; this will reset and start the ICD2 packet receiving circuit.
 Data is then transferred (LSB first), setting bit 4 to 0 will indicate a `0` bit, and setting bit 5 to 0 will indicate a `1` bit.
 For example:
-
 
 Transmitted
 JOYP bit 4
 JOYP bit 5
 M-cycles
-
 
 0 Start
 20 0
@@ -25,10 +23,10 @@ M-cycles
 1201
 1400
 
-[The boot ROM](#super-game-boy-sgb-sgb2) and licensed software keep data and reset pulses LOW for at least 5 M-cycles and leave bit 4 and 5 both to 1 for at least 15 M-cycles after each pulse.
+[The boot ROM](power-up-sequence.md#super-game-boy-sgb-sgb2) and licensed software keep data and reset pulses LOW for at least 5 M-cycles and leave bit 4 and 5 both to 1 for at least 15 M-cycles after each pulse.
 Though the hardware is capable of receiving pulses and spaces as short as 2 M-cycles (as tested using [sgb-speedtest](https://github.com/gb-archive/sgb-speedtest)), following the common practice of 5 M-cycle pulses and 15 M-cycle spaces may improve reliability in some corner case that the community has not yet discovered.
 
-Obviously, it’d be no good idea to modify [the joypad register](#ff00--p1joyp-joypad) in the middle of a transfer.
+Obviously, it’d be no good idea to modify [the joypad register](joypad-input.md#ff00--p1joyp-joypad) in the middle of a transfer.
 For example, if your VBlank interrupt procedure normally reads out button states each frame, you should disable that behavior using a variable (or disable the interrupt handler entirely).
 
 The GB program should wait 60 ms (4 frames) between each packet transfer and the next, as the “bomb” tool to erase a user-drawn border can cause the SGB system software not to check for packets for 4 frames.

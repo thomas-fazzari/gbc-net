@@ -4,7 +4,6 @@ tl;dr:
 
 > The PPU is a bunch of state machines, and the APU is a bunch of counters.
 
-
 Digital waveform
 
 Analog waveform
@@ -31,7 +30,6 @@ NR14
 
 Channel 2
 
-
 NR21
 
 NR22
@@ -53,7 +51,6 @@ NR33
 NR34
 
 Channel 4
-
 
 NR41
 
@@ -91,16 +88,15 @@ HPF
 
 Out
 
-
 Source: Lior "LIJI32" Halphon
 
 Each of the four “conceptual” channels is composed of a “generation” circuit (designated “channel” in the above diagram), and a [DAC](https://en.wikipedia.org/wiki/Digital-to-analog_converter).
 The digital value produced by the generator, which ranges between $0 and $F (0 and 15), is linearly translated by the DAC into an analog[1](#footnote-digital_analog) value between -1 and 1 (the unit is arbitrary).
 
-The four analog channel outputs are then fed into the mixer[2](#footnote-vin), which selectively adds them (depending on [`NR51`](#ff25--nr51-sound-panning)) into two analog outputs (Left and Right).
+The four analog channel outputs are then fed into the mixer[2](#footnote-vin), which selectively adds them (depending on [`NR51`](audio-registers.md#ff25--nr51-sound-panning)) into two analog outputs (Left and Right).
 Thus, the analog range of those outputs is 4× that of each channel, -4 to 4.
 
-Then, both of these two get their respective volume scaled, once from [`NR50`](#ff24--nr50-master-volume--vin-panning), and once from the volume knob (if the console has one).
+Then, both of these two get their respective volume scaled, once from [`NR50`](audio-registers.md#ff24--nr50-master-volume--vin-panning), and once from the volume knob (if the console has one).
 Note that the former step never mutes a non-silent input, but the latter can.
 
 Each of the two analog outputs then goes through a [high-pass filter](https://en.wikipedia.org/wiki/High-pass_filter) (HPF).
@@ -123,7 +119,7 @@ Same, but with channels 3 and 4.
 
 ### DIV-APU
 
-A “DIV-APU” counter is increased every time `DIV`’s bit 4 (5 in [double-speed mode](#ff4d--key1spd-cgb-mode-only-prepare-speed-switch)) goes from 1 to 0, therefore at a frequency of 512 Hz (regardless of whether double-speed is active).
+A “DIV-APU” counter is increased every time `DIV`’s bit 4 (5 in [double-speed mode](cgb-registers.md#ff4d--key1spd-cgb-mode-only-prepare-speed-switch)) goes from 1 to 0, therefore at a frequency of 512 Hz (regardless of whether double-speed is active).
 Thus, the counter can be made to increase faster by writing to `DIV` while its relevant bit is set (which clears `DIV`, and triggers the falling edge).
 
 The following events occur every N DIV-APU ticks:
@@ -169,9 +165,9 @@ The opposite is not true, however: a disabled channel outputs 0, which an enable
 
 A channel can be deactivated in one of the following ways:
 
-- Turning off its DAC
-- Its [length timer](#length-timer) expiring
-- (CH1 only) [Frequency sweep](#ff10--nr10-channel-1-sweep) overflowing the frequency
+* Turning off its DAC
+* Its [length timer](audio-overview.md#length-timer) expiring
+* (CH1 only) [Frequency sweep](audio-registers.md#ff10--nr10-channel-1-sweep) overflowing the frequency
 
 ### Pulse channel with sweep (CH1)
 
@@ -179,15 +175,15 @@ The first square channel has a frequency sweep unit, controlled by `NR10`. This 
 and a period/frequency “shadow register”. The “enabled flag” controls if the sweep unit is active,
 the “sweep timer” is clocked at 128 Hz by the [DIV-APU](#div-apu), and the “shadow register” holds the current output period.
 
-During a [trigger event](#triggering), several things occur:
+During a [trigger event](audio-overview.md#triggering), several things occur:
 
-- CH1 [period value](#ff13--nr13-channel-1-period-low-write-only) is copied to the “shadow register”.
-- The “sweep timer” is reset.
-- The “enabled flag” is set if either the [sweep pace or individual step](#ff10--nr10-channel-1-sweep) are non-zero, cleared otherwise.
-- If the individual step is non-zero, *frequency calculation* and *overflow check* are performed immediately.
+* CH1 [period value](audio-registers.md#ff13--nr13-channel-1-period-low-write-only) is copied to the “shadow register”.
+* The “sweep timer” is reset.
+* The “enabled flag” is set if either the [sweep pace or individual step](audio-registers.md#ff10--nr10-channel-1-sweep) are non-zero, cleared otherwise.
+* If the individual step is non-zero, *frequency calculation* and *overflow check* are performed immediately.
 
 *Frequency calculation* consists of taking the value in the frequency “shadow register”, shifting it right by the individual step,
-optionally negating the value (depending on the [direction](#ff10--nr10-channel-1-sweep)) and summing this with the frequency
+optionally negating the value (depending on the [direction](audio-registers.md#ff10--nr10-channel-1-sweep)) and summing this with the frequency
 “shadow register” to produce a new frequency.
 What is done with this new frequency depends on the context.
 
@@ -205,8 +201,8 @@ this modification will be lost. This can be avoided by triggering the channel.
 
 ### Pulse channels (CH1, CH2)
 
-Each pulse channel has an internal “duty step” counter, which is used to index into [the selected waveform](#ff11--nr11-channel-1-length-timer--duty-cycle) (each background stripe corresponds to one “duty step”)[4](#footnote-pulse_lut).
-The “duty step” increments at the channel’s sample rate, which is 8 times [the channel’s frequency](#ff13--nr13-channel-1-period-low-write-only)).
+Each pulse channel has an internal “duty step” counter, which is used to index into [the selected waveform](audio-registers.md#ff11--nr11-channel-1-length-timer--duty-cycle) (each background stripe corresponds to one “duty step”)[4](#footnote-pulse_lut).
+The “duty step” increments at the channel’s sample rate, which is 8 times [the channel’s frequency](audio-registers.md#ff13--nr13-channel-1-period-low-write-only).
 
 The “duty step” counter cannot be reset, except by turning the APU off, which sets both back to 0.
 Retriggering a pulse channel causes its “duty step timer” to reset, thus retriggering a pulse channel often enough will cause its “duty step” to never advance.
@@ -216,7 +212,7 @@ When first starting up a pulse channel, it will *always* output a (digital) zero
 ### Wave channel (CH3)
 
 CH3 has an internal “sample index” counter.
-The “sample index” increments at the channel’s sample rate, which is 32 times [the channel’s frequency](#ff1d--nr33-channel-3-period-low-write-only)
+The “sample index” increments at the channel’s sample rate, which is 32 times [the channel’s frequency](audio-registers.md#ff1d--nr33-channel-3-period-low-write-only)
 Each time it increments, the corresponding “sample” (nibble) is read from wave RAM.
 (This means that sample #0 is skipped when first starting up CH3.)
 
@@ -246,15 +242,14 @@ This only matters when changing the setting mid-playback: the digital values bei
  1
  0
 
-
 CH4 revolves around a [LFSR](https://en.wikipedia.org/wiki/Linear-feedback_shift_register), pictured above.
 The LFSR has 16 bits: 15 bits for its current state and 1 bit to temporarily store the next bit to shift in.
 
-When CH4 is ticked (at the frequency specified via [`NR43`](#ff22--nr43-channel-4-frequency--randomness)):
+When CH4 is ticked (at the frequency specified via [`NR43`](audio-registers.md#ff22--nr43-channel-4-frequency--randomness)):
 
 1. The result of LFSR0 ⊙ LFSR1 (`1` if bit 0 and bit 1 are identical, `0` otherwise) is written to bit 15.
-2. If “short mode” was selected in [`NR43`](#ff22--nr43-channel-4-frequency--randomness), then bit 15 is copied to bit 7 as well.
-3. Finally, the entire LFSR is shifted right, and bit 0 selects between 0 and [the chosen volume](#ff21--nr42-channel-4-volume--envelope).
+2. If “short mode” was selected in [`NR43`](audio-registers.md#ff22--nr43-channel-4-frequency--randomness), then bit 15 is copied to bit 7 as well.
+3. Finally, the entire LFSR is shifted right, and bit 0 selects between 0 and [the chosen volume](audio-registers.md#ff21--nr42-channel-4-volume--envelope).
 
 The LFSR is set to 0 when (re)triggering the channel.
 
@@ -268,38 +263,38 @@ This does not happen under regular operation, but can be achieved by switching f
 
 The APU was reworked pretty heavily for the GBA, which introduces some slightly different behavior:
 
-- Instead of mixing being done by analog circuitry, it’s instead done digitally; then, sound is converted to an analog signal and an offset is added (see `SOUNDBIAS` in [GBATEK](https://problemkaputt.de/gbatek.htm#gbasoundcontrolregisters) for more details).
-- This also means that the GBA APU has no DACs.
+* Instead of mixing being done by analog circuitry, it’s instead done digitally; then, sound is converted to an analog signal and an offset is added (see `SOUNDBIAS` in [GBATEK](https://problemkaputt.de/gbatek.htm#gbasoundcontrolregisters) for more details).
+* This also means that the GBA APU has no DACs.
   Instead, they are emulated digitally such that a disabled “DAC” behaves like an enabled DAC receiving 0 as its input.
-- Additionally, CH3’s DAC has its output inverted.
+* Additionally, CH3’s DAC has its output inverted.
   In particular, this causes the channel to emit a loud spike when disabled; therefore, it’s a good idea to “disconnect” the channel using NR51 before accessing wave RAM.
 
 None of the additional features (more wave RAM, digital FIFOs, etc.) are available to CGB programs.
 
 ## Obscure Behavior
 
-- The volume envelope and sweep timers treat a period of 0 as 8.
-- Just after powering on, the first duty step of Ch1 and Ch2 after they are triggered for the first time is played
+* The volume envelope and sweep timers treat a period of 0 as 8.
+* Just after powering on, the first duty step of Ch1 and Ch2 after they are triggered for the first time is played
   as if it were 0. Also, the duty cycle clocking is disabled until the first trigger.
-- When triggering Ch3, the first sample to play is the previous one still in the high nibble of the sample buffer, and the next sample is the second nibble from the wave table. This is because it doesn’t load the first byte on trigger like it *should*.
+* When triggering Ch3, the first sample to play is the previous one still in the high nibble of the sample buffer, and the next sample is the second nibble from the wave table. This is because it doesn’t load the first byte on trigger like it *should*.
   The first nibble from the wave table is thus not played until the waveform loops.
-- When triggering Ch1 and Ch2, the low two bits of the frequency timer are NOT modified.
-- Extra length clocking occurs when writing to NRx4 when the DIV-APU next step is one that doesn’t clock the length timer. In this case, if the length timer was PREVIOUSLY disabled and now enabled and the length timer is not zero, it is decremented. If this decrement makes it zero and trigger is clear, the channel is disabled. On the CGB-02, the length timer only has to have been disabled before; the current length enable state doesn’t matter. This breaks at least one game (Prehistorik Man), and was fixed on CGB-04 and CGB-05.
-- If a channel is triggered when the DIV-APU next step is one that doesn’t clock the length timer and the length timer is now enabled and length is being set to 64 (256 for wave channel) because it was previously zero, it is set to 63 instead (255 for wave channel).
-- If a channel is triggered when the DIV-APU next step will clock the volume envelope, the envelope’s timer is reloaded with one greater than it would have been.
-- Using a noise channel clock shift of 14 or 15 results in the LFSR receiving no clocks.
-- Clearing the sweep direction bit in NR10 after at least one sweep calculation has been made using the substraction mode since the last trigger causes the channel to be immediately disabled. This prevents you from having the sweep lower the frequency then raise the frequency without a trigger inbetween.
-- Triggering the wave channel on the DMG while it reads a sample byte will alter the first four bytes of wave RAM. If the channel was reading one of the first four bytes, the only first byte will be rewritten with the byte being read. If the channel was reading one of the later 12 bytes, the first FOUR bytes of wave RAM will be rewritten with the four aligned bytes that the read was from (bytes 4-7, 8-11, or 12-15); for example if it were reading byte 9 when it was retriggered, the first four bytes would be rewritten with the contents of bytes 8-11. To avoid this corruption you should stop the wave by writing 0 then $80 to NR30 before triggering it again. The game Duck Tales encounters this issue part way through most songs.
-- “Zombie” mode: the volume can be manually altered while a channel is playing by writing to NRx2. Behavior depends on the old and new values of NRx2, and whether the envlope has stopped automatic updates. The CGB-02 and CGB-04 are the most consistent:
-  - If the old envelope period was zero and the envelope is still doing automatic updates, volume is incremented by 1, otherwise if the envelope was in decrease mode, volume is incremented by 2.
-  - If the mode was changed (increase to decrease or decrease to increase), volume is set to 16-volume.
-  - Only the low 4 bits of volume are kept after the above operations.
+* When triggering Ch1 and Ch2, the low two bits of the frequency timer are NOT modified.
+* Extra length clocking occurs when writing to NRx4 when the DIV-APU next step is one that doesn’t clock the length timer. In this case, if the length timer was PREVIOUSLY disabled and now enabled and the length timer is not zero, it is decremented. If this decrement makes it zero and trigger is clear, the channel is disabled. On the CGB-02, the length timer only has to have been disabled before; the current length enable state doesn’t matter. This breaks at least one game (Prehistorik Man), and was fixed on CGB-04 and CGB-05.
+* If a channel is triggered when the DIV-APU next step is one that doesn’t clock the length timer and the length timer is now enabled and length is being set to 64 (256 for wave channel) because it was previously zero, it is set to 63 instead (255 for wave channel).
+* If a channel is triggered when the DIV-APU next step will clock the volume envelope, the envelope’s timer is reloaded with one greater than it would have been.
+* Using a noise channel clock shift of 14 or 15 results in the LFSR receiving no clocks.
+* Clearing the sweep direction bit in NR10 after at least one sweep calculation has been made using the substraction mode since the last trigger causes the channel to be immediately disabled. This prevents you from having the sweep lower the frequency then raise the frequency without a trigger inbetween.
+* Triggering the wave channel on the DMG while it reads a sample byte will alter the first four bytes of wave RAM. If the channel was reading one of the first four bytes, the only first byte will be rewritten with the byte being read. If the channel was reading one of the later 12 bytes, the first FOUR bytes of wave RAM will be rewritten with the four aligned bytes that the read was from (bytes 4-7, 8-11, or 12-15); for example if it were reading byte 9 when it was retriggered, the first four bytes would be rewritten with the contents of bytes 8-11. To avoid this corruption you should stop the wave by writing 0 then $80 to NR30 before triggering it again. The game Duck Tales encounters this issue part way through most songs.
+* “Zombie” mode: the volume can be manually altered while a channel is playing by writing to NRx2. Behavior depends on the old and new values of NRx2, and whether the envlope has stopped automatic updates. The CGB-02 and CGB-04 are the most consistent:
+  * If the old envelope period was zero and the envelope is still doing automatic updates, volume is incremented by 1, otherwise if the envelope was in decrease mode, volume is incremented by 2.
+  * If the mode was changed (increase to decrease or decrease to increase), volume is set to 16-volume.
+  * Only the low 4 bits of volume are kept after the above operations.
 
 Other models behave differently, especially the DMG units which have crazy behavior in some cases. The only useful consistent behavior is using increase mode with a period of zero in order to increment the volume by 1. That is, write $V8 to NRx2 to set the initial volume to V before triggering the channel, then write $08 to NRx2 to increment the volume as the sound plays (repeat 15 times to decrement the volume by 1). This allows manual volume control on all units tested.
 
-- When all four channel DACs are off, the master volume units are disconnected from the sound output and the output level becomes 0. When any channel DAC is on, a high-pass filter capacitor is connected which slowly removes any DC component from the signal. The following code applied at 4194304 Hz implements these two behaviors for one of the DMG output channels (unoptimized floating point for clarity):
+* When all four channel DACs are off, the master volume units are disconnected from the sound output and the output level becomes 0. When any channel DAC is on, a high-pass filter capacitor is connected which slowly removes any DC component from the signal. The following code applied at 4194304 Hz implements these two behaviors for one of the DMG output channels (unoptimized floating point for clarity):
 
-```
+```c
 static double capacitor = 0.0;
 
 double high_pass( double in, bool dacs_enabled )
@@ -320,9 +315,9 @@ The charge factor can be calculated for any output sampling rate as 0.999958^(41
 
 ---
 
-1. To be clear: digital values are discrete and clear-cut; conversely, the analog domain is continuous.
+1. <a id="footnote-digital_analog"></a><a id="fr-digital_analog-1"></a>To be clear: digital values are discrete and clear-cut; conversely, the analog domain is continuous.
    The former is what computers use, the latter is what the real world is made of. [↩](#fr-digital_analog-1)
-2. Actually, VIN acts as a 5th channel fed into the mixer, whose control bits are in NR50 instead of NR51.
+2. <a id="footnote-vin"></a><a id="fr-vin-1"></a>Actually, VIN acts as a 5th channel fed into the mixer, whose control bits are in NR50 instead of NR51.
    This was omitted from the diagram for simplicity. [↩](#fr-vin-1)
-3. Indicated values are under normal operation; the frequencies will obviously differ if writing to `DIV` to increase the counter faster. [↩](#fr-div_apu_freq-1)
-4. Actually, there is not LUT, but the manipulations done to the counter’s bits are equivalent. [↩](#fr-pulse_lut-1)
+3. <a id="footnote-div_apu_freq"></a><a id="fr-div_apu_freq-1"></a>Indicated values are under normal operation; the frequencies will obviously differ if writing to `DIV` to increase the counter faster. [↩](#fr-div_apu_freq-1)
+4. <a id="footnote-pulse_lut"></a><a id="fr-pulse_lut-1"></a>Actually, there is not LUT, but the manipulations done to the counter’s bits are equivalent. [↩](#fr-pulse_lut-1)

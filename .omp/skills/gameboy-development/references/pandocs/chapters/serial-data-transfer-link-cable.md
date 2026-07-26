@@ -17,7 +17,7 @@ During a transfer, it has a blend of the outgoing and incoming bytes.
 Each cycle, the leftmost bit is shifted out (and over the wire) and the
 incoming bit is shifted in from the other side:
 
-|  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+| | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **Initially** | o.7 | o.6 | o.5 | o.4 | o.3 | o.2 | o.1 | o.0 |
 | **1 shift** | o.6 | o.5 | o.4 | o.3 | o.2 | o.1 | o.0 | i.7 |
@@ -31,22 +31,22 @@ incoming bit is shifted in from the other side:
 
 ## FF02 — SC: Serial transfer control
 
-|  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+| | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **SC** | Transfer enable |  | | | | | Clock speed | Clock select |
+| **SC** | Transfer enable | | | | | | Clock speed | Clock select |
 
-- **Transfer enable** (*Read/Write*): If `1`, a transfer is either requested or in progress.
-- **Clock speed** [*CGB Mode only*] (*Read/Write*): If set to `1`, enable high speed serial clock (~256 kHz in normal-speed mode)
-- **Clock select** (*Read/Write*): `0` = External clock (“slave”), `1` = Internal clock (“master”).
+* **Transfer enable** (*Read/Write*): If `1`, a transfer is either requested or in progress.
+* **Clock speed** [*CGB Mode only*] (*Read/Write*): If set to `1`, enable high speed serial clock (~256 kHz in normal-speed mode)
+* **Clock select** (*Read/Write*): `0` = External clock (“slave”), `1` = Internal clock (“master”).
 
 The master Game Boy will load up a data byte in SB and then set
 SC to $81 (Transfer requested, use internal clock). It will be notified
-that the transfer is complete in two ways: SC’s Bit 7 will be cleared, and a [Serial interrupt](#int-58--serial-interrupt)
+that the transfer is complete in two ways: SC’s Bit 7 will be cleared, and a [Serial interrupt](interrupt-sources.md#int-58--serial-interrupt)
 will be requested. When checking SC to determine if the transfer is complete, make sure to only read SC’s Bit 7.
 
 The other Game Boy will load up a data byte and has to set SC’s
 Bit 7 (that is, SC=$80) to enable the serial port. The externally clocked
-Game Boy will have a [serial interrupt](#int-58--serial-interrupt) requested at the end of the
+Game Boy will have a [serial interrupt](interrupt-sources.md#int-58--serial-interrupt) requested at the end of the
 transfer, and SC’s Bit 7 will be cleared.
 
 ### Internal Clock

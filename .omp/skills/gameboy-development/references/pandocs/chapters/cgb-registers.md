@@ -83,7 +83,7 @@ block. Note that the program should not change the Destination VRAM bank
 bankable memory) until the transfer has completed! (The transfer should
 be paused as described below while the banks are switched).
 
-Upon halting the CPU (using the [halt instruction](#using-the-halt-instruction)),
+Upon halting the CPU (using the [halt instruction](reducing-power-consumption.md#using-the-halt-instruction)),
 the transfer will also be halted and will be resumed only when the CPU resumes execution ([test rom](https://github.com/alloncm/MagenTests?tab=readme-ov-file#vram-dma-hblank-mode) exhibiting this behaviour).
 
 Reading from Register FF55 returns the remaining length (divided by $10,
@@ -144,12 +144,12 @@ loaded VRAM bank in bit 0, and all other bits will be set to 1.
 
 ### FF4D — KEY1/SPD (CGB Mode only): Prepare speed switch
 
-|  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+| | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **KEY1** | Current speed |  | | | | | | Switch armed |
+| **KEY1** | Current speed | | | | | | | Switch armed |
 
-- **Current speed** (*Read-only*): `0` = Normal-speed mode, `1` = Double-speed mode
-- **Switch armed** (*Read/Write*): `0` = No, `1` = Armed
+* **Current speed** (*Read-only*): `0` = Normal-speed mode, `1` = Double-speed mode
+* **Switch armed** (*Read/Write*): `0` = No, `1` = Armed
 
 This register is used to prepare the Game Boy to switch between CGB
 Double Speed Mode and Normal Speed Mode. The actual speed switch is
@@ -158,7 +158,7 @@ that, Bit 0 will be cleared automatically, and the Game Boy will operate
 at the “other” speed. The recommended speed switching procedure in
 pseudocode would be:
 
-```
+```text
 IF KEY1_BIT7 != DESIRED_SPEED THEN
    IE = $00       ; (FFFF) = $00
    JOYP = $30     ; (FF00) = $30
@@ -173,25 +173,25 @@ would be recommended to use Normal Speed whenever possible.
 
 In Double Speed Mode the following will operate twice as fast as normal:
 
-- The CPU (2.10 MHz, so 1 M-cycle = approx. 0.5 µs)
-- Timer and Divider Registers
-- Serial Port (Link Cable)
-- DMA Transfer to OAM
+* The CPU (2.10 MHz, so 1 M-cycle = approx. 0.5 µs)
+* Timer and Divider Registers
+* Serial Port (Link Cable)
+* DMA Transfer to OAM
 
 And the following will keep operating as usual:
 
-- LCD Video Controller
-- HDMA Transfer to VRAM
-- All Sound Timings and Frequencies
+* LCD Video Controller
+* HDMA Transfer to VRAM
+* All Sound Timings and Frequencies
 
 The CPU stops for 2050 M-cycles (= 8200 T-cycles) after the `stop` instruction is
 executed. During this time, the CPU is in a strange state. `DIV` does not tick, so
 *some* audio events are not processed. Additionally, VRAM/OAM/… locking is “frozen”, yielding
-different results depending on the [PPU mode](#ppu-modes) it’s started in:
+different results depending on the [PPU mode](rendering-overview.md#ppu-modes) it’s started in:
 
-- HBlank / VBlank (Mode 0 / Mode 1): The PPU cannot access any video memory, and produces black pixels
-- OAM scan (Mode 2): The PPU can access VRAM just fine, but not OAM, leading to rendering background, but not objects (sprites)
-- Rendering (Mode 3): The PPU can access everything correctly, and so rendering is not affected
+* HBlank / VBlank (Mode 0 / Mode 1): The PPU cannot access any video memory, and produces black pixels
+* OAM scan (Mode 2): The PPU can access VRAM just fine, but not OAM, leading to rendering background, but not objects (sprites)
+* Rendering (Mode 3): The PPU can access everything correctly, and so rendering is not affected
 
 TODO: confirm whether interrupts can occur (just the joypad one?) during the pause, and consequences if so
 
@@ -203,13 +203,13 @@ Bit 0 must be cleared — if you don’t want to receive your own Game Boy’s
 IR signal). After sending or receiving data you should reset the
 register to $00 to reduce battery power consumption again.
 
-|  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+| | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **RP** | Read enable | |  | | | | Receiving | Emitting |
+| **RP** | Read enable | | | | | | Receiving | Emitting |
 
-- **Read enable** (*Read/Write*): `0` = Disable (bit 1 reads `1`), `3` = Enable
-- **Receiving** (*Read-only*): `0` = Receiving IR signal, `1` = Normal
-- **Emitting** (*Read/Write*): `0` = LED off, `1` = LED on
+* **Read enable** (*Read/Write*): `0` = Disable (bit 1 reads `1`), `3` = Enable
+* **Receiving** (*Read-only*): `0` = Receiving IR signal, `1` = Normal
+* **Emitting** (*Read/Write*): `0` = LED off, `1` = LED on
 
 Note that the receiver will adapt itself to the normal level of IR
 pollution in the air, so if you would send a LED ON signal for a longer
@@ -222,18 +222,18 @@ does not include an infra-red port.
 ### FF4C — KEY0/SYS (CGB Mode only): CPU mode select
 
 This GBC-only register (which is not officially documented) is written only by the CGB boot ROM,
-as it gets locked after the bootrom finish execution (by a write to the [BANK register](#monochrome-models-dmg0-dmg-mgb)).
+as it gets locked after the bootrom finish execution (by a write to the [BANK register](power-up-sequence.md#monochrome-models-dmg0-dmg-mgb)).
 
 Once it is locked, the behavior of the system can’t be changed without a reset (this behavior can be observed using [this test ROM](https://github.com/alloncm/MagenTests?tab=readme-ov-file#key0-cpu-mode-register-lock-after-boot)).
 
 As a result of the above most of the behavior is not directly testable without hardware manipulation.
 Even though we can’t test its behavior directly we can inspect the disassembly of the CGB bootrom and infer the following:
 
-|  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+| | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **KEY0** |  | | | | | DMG compatibility mode |  | |
+| **KEY0** | | | | | | DMG compatibility mode | | |
 
-- **DMG compatibility mode**: `0` = Disabled (full CGB mode, for regular CGB cartridges), `1` = Enabled (for DMG only cartridges)
+* **DMG compatibility mode**: `0` = Disabled (full CGB mode, for regular CGB cartridges), `1` = Enabled (for DMG only cartridges)
 
 #### PGB mode
 
@@ -241,7 +241,7 @@ Research needed
 
 It has been speculated that setting bit 3 is related to a special mode called “PGB” for controlling the LCD externally.
 
-This mode is not well researched nor documented yet, you are welcome to help [here!](https://github.com/gbdev/pandocs/issues/581)
+This mode is not well researched nor documented yet, you are welcome to help [the Pan Docs PGB-mode issue](https://github.com/gbdev/pandocs/issues/581)
 
 ### FF6C — OPRI (CGB Mode only): Object priority mode
 
@@ -256,11 +256,11 @@ TO BE VERIFIED
 It does not have an effect, at least not an instant effect, if written to during CGB or DMG mode after the boot ROM has been unmapped.
 It is not known if triggering a PSM NMI, which remaps the boot ROM, has an effect on this register’s behavior.
 
-|  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+| | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **OPRI** |  | | | | | | | Priority mode |
+| **OPRI** | | | | | | | | Priority mode |
 
-- **Priority mode** (*Read/Write*): `0` = CGB-style priority, `1` = DMG-style priority
+* **Priority mode** (*Read/Write*): `0` = CGB-style priority, `1` = DMG-style priority
 
 ### FF70 — SVBK/WBK (CGB Mode only): WRAM bank
 
@@ -268,11 +268,11 @@ In CGB Mode, 32 KiB of internal RAM are available.
 This memory is divided into 8 banks of 4 KiB each.
 Bank 0 is always available in memory at C000–CFFF, banks 1–7 can be selected into the address space at D000–DFFF.
 
-|  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+| | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **SVBK** |  | | | | | WRAM bank | | |
+| **SVBK** | | | | | | WRAM bank | | |
 
-- **WRAM bank** (*Read/Write*): Writing a value will map the corresponding bank to [D000–DFFF](#memory-map-1), except 0, which maps bank 1 instead.
+* **WRAM bank** (*Read/Write*): Writing a value will map the corresponding bank to [D000–DFFF](memory-map.md#memory-map), except 0, which maps bank 1 instead.
 
 ## Undocumented registers
 

@@ -18,12 +18,14 @@ run start:
 
 .PHONY: lint check
 lint check:
+	npx --yes markdownlint-cli2@0.23.1
 	dotnet tool run csharpier check .
 	dotnet tool run slopwatch analyze --fail-on warning
 	dotnet build $(SOLUTION) --configuration $(CONFIGURATION)
 
 .PHONY: fix format fmt
 fix format fmt:
+	npx --yes markdownlint-cli2@0.23.1 --fix
 	dotnet tool run csharpier format .
 
 .PHONY: test tests

@@ -97,6 +97,6 @@ hardware. Also, “PAL version” SNES models which use a
 50Hz display refresh rate (rather than 60Hz) result in
 respectively slower Game Boy timings.
 
-- NTSC SGB: 21.477 MHz Master Clock, 4.2955 MHz GB Master Clock, 2.41% fast
-- PAL SGB: 21.281 MHz Master Clock, 4.2563 MHz GB Master Clock, 1.48% fast
-- NTSC SGB2: Separate 20.972 MHz crystal, correct speed
+* NTSC SGB: 21.477 MHz Master Clock, 4.2955 MHz GB Master Clock, 2.41% fast
+* PAL SGB: 21.281 MHz Master Clock, 4.2563 MHz GB Master Clock, 1.48% fast
+* NTSC SGB2: Separate 20.972 MHz crystal, correct speed

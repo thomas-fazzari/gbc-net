@@ -2,8 +2,8 @@
 
 The MMM01 is a mapper specific to multi-game compilation cartridges. It emulates an MBC1 for the contained games, and supports containing a mix of games from 32 KiB ROMs with no RAM, up to the same maximum memory *per game* as the MBC1:
 
-- max 512 KiB ROM with banked 8, 16, or 32 KiB RAM (default configuration)
-- max 2 MiB ROM with unbanked 8 KiB RAM (“multiplex” mode, never used commercially)
+* max 512 KiB ROM with banked 8, 16, or 32 KiB RAM (default configuration)
+* max 2 MiB ROM with unbanked 8 KiB RAM (“multiplex” mode, never used commercially)
 
 Regardless of the size or number of the games in the compilation, the maximum total cartridge size supported by the MMM01 is the same: up to 8 MiB ROM and 128 KiB RAM.
 
@@ -38,7 +38,7 @@ If [multiplex is enabled](#multiplex-enable), entering mode 1 allows mapping gam
 
 When “unmapped”:
 
-```
+```text
                                     /------------- In a smaller cartridge, only the needed
                                     |              bits are used (e.g 512 KiB uses 19 bits)
                   /---------------------------\
@@ -51,7 +51,7 @@ Bits: 22 21 20 19 18 17 16 15 14 13 12 .. 01 00
 
 Mapped, multiplex disabled:
 
-```
+```text
 Bits: 22 21 20 19 18 17 16 15 14 13 12 .. 01 00
       \___/ \___/ \____________/ \____________/
         |     |          |            \----------- From Game Boy address
@@ -73,11 +73,11 @@ As game bank $00 is disallowed, the low bit is forced on, mapping bank $11 inste
 
 If [multiplex is enabled](#multiplex-enable), the MMM01 has the same limitation as MBC1 regarding accessing game ROM banks $20, $40, and $60 - they can only be mapped to 0000-3FFF (in mode 1), and not to 4000-7FFF.
 
-#### Addressing diagrams
+#### 4000-7FFF addressing diagrams
 
 When “unmapped”:
 
-```
+```text
 Bits: 22 21 20 19 18 17 16 15 14 13 12 .. 01 00
       \_____________________/  | \____________/
                  |             |      \----------- From Game Boy address
@@ -92,7 +92,7 @@ Most of the time this would still be a 1, but during game selection it could mom
 
 Mapped, multiplex disabled:
 
-```
+```text
 Bits: 22 21 20 19 18 17 16 15 14 13 12 .. 01 00
       \___/ \___/ \____________/ \____________/
         |     |          |            \----------- From Game Boy address
@@ -105,17 +105,17 @@ Bits: 22 21 20 19 18 17 16 15 14 13 12 .. 01 00
 ### A000-BFFF - RAM Bank $00-03, if any (Read/Write)
 
 This area is used to address external SRAM in the cartridge (if any).
-The RAM is only accessible [if RAM is enabled](#0000-1fff---ram-enable-write-only-2), otherwise reads return open bus values (often $FF, but not guaranteed) and writes are ignored.
+The RAM is only accessible [if RAM is enabled](#0000-1fff---ram-enable-write-only), otherwise reads return open bus values (often $FF, but not guaranteed) and writes are ignored.
 
 External RAM is often battery-backed, allowing for the storage of game data while the Game Boy is turned off, or if the cartridge is removed from the Game Boy.
 
 It is currently unknown whether RAM access is possible while in unmapped mode.
 
-#### Addressing diagrams
+#### RAM addressing diagrams
 
 In mode 0:
 
-```
+```text
 Bits: 16 15 14 13 12 .. 01 00
       \___/ \___/ \_________/
         |     |        \-------- From Game Boy address
@@ -125,7 +125,7 @@ Bits: 16 15 14 13 12 .. 01 00
 
 In mode 1:
 
-```
+```text
 Bits: 16 15 14 13 12 .. 01 00
       \___/ \___/ \_________/
         |     |        \-------- From Game Boy address
@@ -144,7 +144,7 @@ For the ROM Bank Number register, this behaves as if it was set to $01.
 
 ### 0000-1FFF - RAM Enable (Write Only)
 
-```
+```text
 Bits: X 6 5 4 3 2 1 0
         | \_/ \_____/
         |  |      \----- Bits 0-3: RAM Enable
@@ -196,7 +196,7 @@ The only released MMM01 cartridge containing RAM performs two separate writes to
 
 ### 2000-3FFF - ROM Bank Number (Write Only)
 
-```
+```text
 Bits: X 6 5 4 3 2 1 0
         \_/ \_______/
          |       \------ Bits 0-4: ROM Bank Low
@@ -223,7 +223,7 @@ If [multiplex is enabled](#multiplex-enable), functionality is swapped with [RAM
 
 ### 4000-5FFF - RAM Bank Number (Write Only)
 
-```
+```text
 Bits: X 6 5 4 3 2 1 0
         | \_/ \_/ \_/
         |  |   |   \---- Bits 0-1: RAM Bank Low
@@ -263,7 +263,7 @@ This might be for compatibility with games designed for non-MBC1 mappers that do
 
 ### 6000-7FFF - Banking Mode Select (Write Only)
 
-```
+```text
 Bits: X 6 5 4 3 2 X 0
         | \_______/ |
         |    |      \--- MBC1 Mode Select
@@ -278,20 +278,20 @@ This is equivalent to the MBC1 Mode Select register.
 This 1-bit register selects between the two MBC1 banking modes.
 The behaviour varies depending on whether multiplex is enabled or disabled.
 
-**Multiplex disabled**
+##### Multiplex disabled
 
-- 0 = RAM Banking Disabled (default)
-- 1 = RAM Banking Enabled
+* 0 = RAM Banking Disabled (default)
+* 1 = RAM Banking Enabled
 
 In mode 0, the A000-BFFF region is locked to bank 0 of the game RAM.
 The unmasked bits of [RAM Bank Low](#bits-0-1-ram-bank-low) are treated as 0.
 
 In mode 1, the A000-BFFF region can be bank-switched by the game as the full RAM Bank Low register is used.
 
-**Multiplex enabled**
+##### Multiplex enabled
 
-- 0 = Simple ROM Banking Mode (default)
-- 1 = Advanced ROM Banking Mode
+* 0 = Simple ROM Banking Mode (default)
+* 1 = Advanced ROM Banking Mode
 
 In mode 0, the 0000-3FFF region is locked to bank 0 of the game ROM.
 The unmasked bits of [RAM Bank Low](#bits-0-1-ram-bank-low) are treated as 0 for accesses to the 0000-3FFF region, matching the behaviour of [ROM Bank Low](#bits-0-4-rom-bank-low).
@@ -321,7 +321,7 @@ Setting these bits effectively reduces the size of the ROM accessible to the gam
 | 11110 | 32 KiB |
 
 Note: changing the mask can alter which bank would be mapped.
-Only the *unmasked* bits of [ROM Bank Low](#bits-0-4-rom-bank-low) are used for the “[attempting to map bank 0 maps bank 1](#4000-7fff---rom-bank-01-7f-read-only-1)” logic, and it updates live if the ROM Bank Mask changes.
+Only the *unmasked* bits of [ROM Bank Low](#bits-0-4-rom-bank-low) are used for the “[attempting to map bank 0 maps bank 1](#4000-7fff---rom-bank-01-7f-read-only)” logic, and it updates live if the ROM Bank Mask changes.
 ROM Bank Low itself doesn’t change when this happens — only the value used for calculating the bank number.
 
 If [multiplex is enabled](#multiplex-enable), the [RAM Bank Mask](#bits-4-5-ram-bank-mask) affects ROM banking as well.
@@ -334,7 +334,7 @@ In this case the ROM Bank Mask should be set to 00000 to avoid masking bits in t
 When set to 1, swaps the functionality of [RAM Bank Low](#bits-0-1-ram-bank-low) and [ROM Bank Mid](#bits-5-6-rom-bank-mid).
 As RAM Bank Low is writeable in mapped mode, this allows for the contained game to control (up to, if unmasked in “RAM Bank Mask”) two extra bits of the full ROM bank number, allowing for larger game ROMs at the cost of only 8 KiB of external RAM.
 
-This is equivalent to the [“large ROM” wiring of an MBC1 cartridge](#mbc1).
+This is equivalent to the [“large ROM” wiring of an MBC1 cartridge](mbc1.md#mbc1).
 
 ## Multiplex addressing diagrams
 
@@ -346,7 +346,7 @@ No change to “unmapped” mode.
 
 Mapped, Multiplexed, Mode 0:
 
-```
+```text
 Bits: 22 21 20 19 18 17 16 15 14 13 12 .. 01 00
       \___/ \___/ \____________/ \____________/
         |     |          |            \----------- From Game Boy address
@@ -357,7 +357,7 @@ Bits: 22 21 20 19 18 17 16 15 14 13 12 .. 01 00
 
 Mapped, Multiplexed, Mode 1:
 
-```
+```text
 Bits: 22 21 20 19 18 17 16 15 14 13 12 .. 01 00
       \___/ \___/ \____________/ \____________/
         |     |          |            \----------- From Game Boy address
@@ -366,13 +366,13 @@ Bits: 22 21 20 19 18 17 16 15 14 13 12 .. 01 00
         \----------------------------------------- ROM Bank High
 ```
 
-##### 4000-7FFF - ROM Bank 01-7F
+#### 4000-7FFF - ROM Bank 01-7F
 
 No change to “unmapped” mode.
 
 Mapped, Multiplexed, Mode 0 or 1:
 
-```
+```text
 Bits: 22 21 20 19 18 17 16 15 14 13 12 .. 01 00
       \___/ \___/ \____________/ \____________/
         |     |          |            \----------- From Game Boy address
@@ -385,7 +385,7 @@ Bits: 22 21 20 19 18 17 16 15 14 13 12 .. 01 00
 
 Multiplexed, Mode 0 or 1:
 
-```
+```text
 Bits: 16 15 14 13 12 .. 01 00
       \___/ \___/ \_________/
         |     |        \-------- From Game Boy address
@@ -406,4 +406,4 @@ The majority of released MMM01 cartridges stick to this order.
 
 ### References
 
-- Source: [MMM01](https://wiki.tauwasser.eu/view/MMM01) on tauwasser wiki
+* Source: [MMM01](https://wiki.tauwasser.eu/view/MMM01) on tauwasser wiki

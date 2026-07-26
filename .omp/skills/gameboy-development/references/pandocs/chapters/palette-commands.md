@@ -7,7 +7,7 @@ color 1-3 (without separate color 0).
 
 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Header | Pals 0 & 1 color #0 | | Pal 0 color #1 | | Pal 0 color #2 | | Pal 0 color #3 | | Pal 1 color #1 | | Pal 1 color #2 | | Pal 1 color #3 | |  |
+| Header | Pals 0 & 1 color #0 | | Pal 0 color #1 | | Pal 0 color #2 | | Pal 0 color #3 | | Pal 1 color #1 | | Pal 1 color #2 | | Pal 1 color #3 | | |
 
 The **header** byte is `$00 << 3 | $01` = $01.
 
@@ -33,22 +33,22 @@ actual SNES palettes.
 
 Before using this feature, System Palette data should be initialized by
 [`PAL_TRN`](#sgb-command-0b--pal_trn) command, and (when used) Attribute File (ATF) data should be
-initialized by [`ATTR_TRN`](#sgb-command-15--attr_trn).
+initialized by [`ATTR_TRN`](color-attribute-commands.md#sgb-command-15--attr_trn).
 
 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Header | Palette #0's ID | | Palette #1's ID | | Palette #2's ID | | Palette #3's ID | | Flags |  | | | | | |
+| Header | Palette #0's ID | | Palette #1's ID | | Palette #2's ID | | Palette #3's ID | | Flags | | | | | | |
 
 The **header** byte is `$0A << 3 | $01` = $51.
 All **palette ID**s are little-endian.
 
-|  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+| | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **Flags** | Apply ATF | Cancel MASK\_EN | ATF number | | | | | |
 
-- **Apply ATF**: If and only if this is set, then the ATF whose ID is specified by bits 0–5 is applied as if by [`ATTR_SET`](#sgb-command-16--attr_set).
-- **Cancel `MASK_EN`**: If this bit is set, then any current [`MASK_EN`](#sgb-command-17--mask_en) “screen freeze” is cancelled.
-- **ATF number**: Index of the ATF to transfer. Values greater than $2C are invalid.
+* **Apply ATF**: If and only if this is set, then the ATF whose ID is specified by bits 0–5 is applied as if by [`ATTR_SET`](color-attribute-commands.md#sgb-command-16--attr_set).
+* **Cancel `MASK_EN`**: If this bit is set, then any current [`MASK_EN`](system-control-commands.md#sgb-command-17--mask_en) “screen freeze” is cancelled.
+* **ATF number**: Index of the ATF to transfer. Values greater than $2C are invalid.
 
 ## SGB Command $0B — PAL\_TRN
 
@@ -62,13 +62,13 @@ colors).
 
 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Header |  | | | | | | | | | | | | | | |
+| Header | | | | | | | | | | | | | | | |
 
 The **header** byte must be $59.
 
-The palette data is sent by [VRAM Transfer](#vram-transfers).
+The palette data is sent by [VRAM Transfer](vram-transfers.md#vram-transfers).
 
-|  | …0 | …1 | …2 | …3 | …4 | …5 | …6 | …7 | …8 | …9 | …A | …B | …C | …D | …E | …F |
+| | …0 | …1 | …2 | …3 | …4 | …5 | …6 | …7 | …8 | …9 | …A | …B | …C | …D | …E | …F |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | $800… | Pal #0 color #0 | | Pal #0 color #1 | | Pal #0 color #2 | | Pal #0 color #3 | | Pal #1 color #0 | | Pal #1 color #1 | | Pal #1 color #2 | | Pal #1 color #3 | |
 | $801… | Pal #2 color #0 | | Pal #2 color #1 | | Pal #2 color #2 | | Pal #2 color #3 | | Pal #3 color #0 | | Pal #3 color #1 | | Pal #3 color #2 | | Pal #3 color #3 | |
@@ -87,7 +87,7 @@ However, if `PAL_PRI` is enabled, then changing the palette set (via any `PAL_*`
 
 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Header | Priority |  | | | | | | | | | | | | | |
+| Header | Priority | | | | | | | | | | | | | | |
 
 The **header** must be $C9.
 

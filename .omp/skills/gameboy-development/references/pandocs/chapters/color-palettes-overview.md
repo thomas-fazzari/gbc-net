@@ -19,7 +19,7 @@ Colors are encoded as 16-bit RGB numbers, in the following way:
 The palettes are encoded **little-endian**, thus, the Red+Green byte comes
 first in memory.
 
-This is the same format as [Game Boy Color palettes](#lcd-color-palettes-cgb-only).
+This is the same format as [Game Boy Color palettes](palettes.md#lcd-color-palettes-cgb-only).
 However, the same color will be displayed differently by SGB and CGB due to the different screen gamma!
 
 Here’s a formula to convert 24-bit RGB into SNES format:

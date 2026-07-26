@@ -10,11 +10,11 @@ Since the boot ROM hands off control to the game ROM at address $0100, and devel
 | Name | Size (bytes) | Notes |
 | --- | --- | --- |
 | DMG0 | 256 | Blinks on failed checks, no ® |
-| DMG | 256 |  |
+| DMG | 256 | |
 | MGB | 256 | One-byte difference to DMG |
 | SGB | 256 | Only forwards logo to SGB BIOS, performs no checks |
 | SGB2 | 256 | Same difference to SGB than between MGB and DMG |
-| CGB0 | 256 + 1792 | Does not init [wave RAM](#ff30ff3f--wave-pattern-ram) |
+| CGB0 | 256 + 1792 | Does not init [wave RAM](audio-registers.md#ff30ff3f--wave-pattern-ram) |
 | CGB | 256 + 1792 | Split in two parts, with the cartridge header in the middle |
 | AGB0 | 256 + 1792 | Increments B register for GBA identification |
 | AGB | 256 + 1792 | Fixes [“logo TOCTTOU”](#bypass) |
@@ -23,16 +23,16 @@ Since the boot ROM hands off control to the game ROM at address $0100, and devel
 
 ## Monochrome models (DMG0, DMG, MGB)
 
-The monochrome boot ROMs read [the logo from the header](#0104-0133--nintendo-logo), unpack it into VRAM, and then start slowly scrolling it down.
+The monochrome boot ROMs read [the logo from the header](the-cartridge-header.md#0104-0133--nintendo-logo), unpack it into VRAM, and then start slowly scrolling it down.
 Since reads from an absent cartridge usually return $FF, this explains why powering the console on without a cartridge scrolls a black box.
 Additionally, faulty or dirty connections can cause the data read to be corrupted, resulting in a jumbled-up logo.
 
 *Once the logo has finished scrolling*, the boot ROM plays the famous “ba-ding!” sound, and reads the logo **again**, this time comparing it to a copy it stores.
-Then, it also computes the header checksum, and compares it to [the checksum stored in the header](#014d--header-checksum).
+Then, it also computes the header checksum, and compares it to [the checksum stored in the header](the-cartridge-header.md#014d--header-checksum).
 If either of these checks fail, the boot ROM **locks up**, and control is never passed to the cartridge ROM.
 
 Finally, the boot ROM writes to the `BANK` register at $FF50, which unmaps the boot ROM.
-The `ldh [$FF50], a` instruction being located at $00FE (and being two bytes long), [the first instruction executed from the cartridge ROM is at $0100](#0100-0103--entry-point).
+The `ldh [$FF50], a` instruction being located at $00FE (and being two bytes long), [the first instruction executed from the cartridge ROM is at $0100](the-cartridge-header.md#0100-0103--entry-point).
 
 Since the A register is used to write to $FF50, its value is passed to the cartridge ROM; the only difference between the DMG and MGB boot ROMs is that the former writes $01, and the latter uses $FF.
 
@@ -49,7 +49,7 @@ The DMG0 boot ROM also lacks the ® symbol next to the Nintendo logo.
 ## Super Game Boy (SGB, SGB2)
 
 These boot ROMs are fairly unique in that they do *not* perform header checks.
-Instead, they set up the Nintendo logo in VRAM from the header just like the monochrome boot ROMs, but then they send the entire header to the SGB BIOS via [the standard packet-transferring procedure](#command-packet-transfers), using packet header bytes $F1, $F3, $F5, $F7, $F9, and $FB, in that order.
+Instead, they set up the Nintendo logo in VRAM from the header just like the monochrome boot ROMs, but then they send the entire header to the SGB BIOS via [the standard packet-transferring procedure](command-packet-transfers.md#command-packet-transfers), using packet header bytes $F1, $F3, $F5, $F7, $F9, and $FB, in that order.
 (These packet IDs are otherwise invalid and never used in regular SGB operation, though it seems that not all SGB BIOS revisions filter them out.)
 
 The boot ROM then unmaps itself and hands off execution to the cartridge ROM without performing any checks.
@@ -79,16 +79,16 @@ First, the boot ROMs unpack the Nintendo logo to VRAM like the monochrome models
 Then, the logo is read and decompressed *again*, but with no resizing, yielding the much smaller logo placed below the big “GAME BOY” one.
 The boot ROM then sets up compatibility palettes, as described further below, and plays the logo animation with the “ba-ding!” sound.
 
-During the logo animation, and if bit 7 of [the CGB compatibility byte](#0143--cgb-flag) is reset (indicating a monochrome-only game), the user is allowed to pick a palette to override the one chosen for compatibility.
+During the logo animation, and if bit 7 of [the CGB compatibility byte](the-cartridge-header.md#0143--cgb-flag) is reset (indicating a monochrome-only game), the user is allowed to pick a palette to override the one chosen for compatibility.
 Each new choice prevents the animation from ending for 30 frames, potentially delaying the checks and fade-out.
 
 Then, like the monochrome boot ROMs, the header logo is checked *from the buffer in HRAM*, and the header checksum is verified.
 For unknown reasons, however, only the first half of the logo is checked, despite the full logo being present in the HRAM buffer.
 
 Finally, the boot ROM fades all BG palettes to white, and sets the hardware to compatibility mode.
-If [the CGB compatibility byte](#0143--cgb-flag) indicates CGB compatibility, the byte is written directly to [`KEY0`](#ff4c--key0sys-cgb-mode-only-cpu-mode-select), potentially [enabling “PGB mode”](#pgb-mode);
-otherwise, $04 is written to [`KEY0`](#ff4c--key0sys-cgb-mode-only-cpu-mode-select) (enabling DMG compatibility mode in the CPU),
-$01 is written to [`OPRI`](#ff6c--opri-cgb-mode-only-object-priority-mode) (enabling [DMG OBJ priority](#object-priority-and-conflicts)), and the [compatibility palettes](#compatibility-palettes) are written.
+If [the CGB compatibility byte](the-cartridge-header.md#0143--cgb-flag) indicates CGB compatibility, the byte is written directly to [`KEY0`](cgb-registers.md#ff4c--key0sys-cgb-mode-only-cpu-mode-select), potentially [enabling “PGB mode”](cgb-registers.md#pgb-mode);
+otherwise, $04 is written to [`KEY0`](cgb-registers.md#ff4c--key0sys-cgb-mode-only-cpu-mode-select) (enabling DMG compatibility mode in the CPU),
+$01 is written to [`OPRI`](cgb-registers.md#ff6c--opri-cgb-mode-only-object-priority-mode) (enabling [DMG OBJ priority](object-attribute-memory-oam.md#object-priority-and-conflicts)), and the [compatibility palettes](#compatibility-palettes) are written.
 Additionally, the DMG logo tilemap is written [if the compatibility requests it](#compatibility-palettes).
 
 Like all other boot ROMs, the last thing the color boot ROMs do is hand off execution at the same time as they unmap themselves, though they write $11 instead of $01 or $FF.
@@ -98,7 +98,7 @@ Like all other boot ROMs, the last thing the color boot ROMs do is hand off exec
 Like the DMG0 boot ROM, some early CGBs contain a different boot ROM.
 Unlike DMG0 and DMG, the differences between the CGB0 and CGB boot ROM are very minor, with no change in the layout of the ROM.
 
-The most notable change is that the CGB0 boot ROM does *not* init [wave RAM](#ff30ff3f--wave-pattern-ram).
+The most notable change is that the CGB0 boot ROM does *not* init [wave RAM](audio-registers.md#ff30ff3f--wave-pattern-ram).
 This is known to cause, for example, a different title screen music in the game *R-Type*.
 
 The CGB0 boot ROM also writes copies of other variables to some locations in WRAM that are not otherwise read anywhere.
@@ -108,32 +108,32 @@ It is speculated that this may be debug remnants.
 
 The boot ROM is responsible for the automatic colorization of monochrome-only games when run on a GBC.
 
-When in DMG compatibility mode, the [CGB palettes](#lcd-color-palettes-cgb-only) are still being used: the background uses BG palette 0 (likely because the entire [attribute map](#bg-map-attributes-cgb-mode-only) is set to all zeros), and objects use OBJ palette 0 or 1 depending on bit 4 of [their attribute](#byte-3--attributesflags).
-[`BGP`, `OBP0`, and `OBP1`](#lcd-monochrome-palettes) actually index into the CGB palettes instead of the DMG’s shades of grey.
+When in DMG compatibility mode, the [CGB palettes](palettes.md#lcd-color-palettes-cgb-only) are still being used: the background uses BG palette 0 (likely because the entire [attribute map](vram-tile-maps.md#bg-map-attributes-cgb-mode-only) is set to all zeros), and objects use OBJ palette 0 or 1 depending on bit 4 of [their attribute](object-attribute-memory-oam.md#byte-3--attributesflags).
+[`BGP`, `OBP0`, and `OBP1`](palettes.md#lcd-monochrome-palettes) actually index into the CGB palettes instead of the DMG’s shades of grey.
 
 The boot ROM picks a compatibility palette using an ID computed using the following algorithm:
 
-1. Check if the [old licensee code](#014b--old-licensee-code) is $33.
+1. Check if the [old licensee code](the-cartridge-header.md#014b--old-licensee-code) is $33.
 
-   - If yes, the [new licensee code](#01440145--new-licensee-code) must be used. Check that it equals the ASCII string `"01"`.
-   - If not, check that it equals $01.
+   * If yes, the [new licensee code](the-cartridge-header.md#01440145--new-licensee-code) must be used. Check that it equals the ASCII string `"01"`.
+   * If not, check that it equals $01.
 
    In effect, this checks that the licensee in the header is Nintendo.
 
-   - If this check fails, palettes ID $00 is used.
-   - Otherwise, the algorithm proceeds.
-2. Compute the sum of all 16 [game title](#0134-0143--title) bytes, storing this as the “title checksum”.
+   * If this check fails, palettes ID $00 is used.
+   * Otherwise, the algorithm proceeds.
+2. Compute the sum of all 16 [game title](the-cartridge-header.md#0134-0143--title) bytes, storing this as the “title checksum”.
 3. Find the title checksum [in a table](https://codeberg.org/ISSOtm/gb-bootroms/src/commit/443d7f057ae06e8d1d76fa8083650cf0be2cd0ae/src/cgb.asm#L1221-L1230), and record its index within the table.
 
    An almost-complete list of titles corresponding to the different checksums can be found in [Liji’s free CGB boot ROM reimplementation](https://github.com/LIJI32/SameBoy/blob/1d7692cff5552e296be5e1ab075c4f187f57132c/BootROMs/cgb_boot.asm#L230-L328).
 
-   - If not found, palettes ID $00 is used.
-   - If the index is 64 or below, the index is used as-is as the palettes ID, and the algorithm ends.
-   - Otherwise, it must be further corrected based on the title’s fourth letter; proceed to the step below.
+   * If not found, palettes ID $00 is used.
+   * If the index is 64 or below, the index is used as-is as the palettes ID, and the algorithm ends.
+   * Otherwise, it must be further corrected based on the title’s fourth letter; proceed to the step below.
 4. The fourth letter is searched for in [another table](https://codeberg.org/ISSOtm/gb-bootroms/src/commit/443d7f057ae06e8d1d76fa8083650cf0be2cd0ae/src/cgb.asm#L1232-L1240).
 
-   - If the letter can’t be found, palettes ID $00 is used.
-   - If the letter is found, the index obtained in the previous step is increased by 14 times the row index to get the palettes ID.
+   * If the letter can’t be found, palettes ID $00 is used.
+   * If the letter is found, the index obtained in the previous step is increased by 14 times the row index to get the palettes ID.
      (So, if the letter was found in the first row, the index is unchanged; if it’s found in the second row, it’s increased by 14, and so on.)
 
 The resulting palettes ID is used to pick 3 palettes out of a table via a fairly complex mechanism.
@@ -179,6 +179,7 @@ Nintendo’s strategy was to threaten pirate developers with suing for trademark
 Fortunately, [*Sega v. Accolade*](https://en.wikipedia.org/wiki/Sega_v._Accolade) ruled (in the US) that use of a trademarked logo is okay if it is *necessary* for running programs on the console, so there is no danger for homebrew developers.
 
 That said, if you want to explicitly mark the lack of licensing from Nintendo, you can add some text to the logo screen once the boot ROM hands off control, for example like this:
+
 ### Bypass
 
 The Nintendo logo check has been [circumvented many times](http://fuji.drillspirits.net/?post=87), be it to avoid legal action from Nintendo or for the swag, and there are basically two ways of doing so.
@@ -241,8 +242,8 @@ It is strongly advised for the game to put a large enough known sequence of byte
 | **PC** | $0100 | $0100 | $0100 | $0100 |
 | **SP** | $FFFE | $FFFE | $FFFE | $FFFE |
 
-- **The B register is $43 or $58 (on CGB) / $44 or $59 (on AGB)**: HL = $991A
-- **Neither of the above**: HL = $007C
+* **The B register is $43 or $58 (on CGB) / $44 or $59 (on AGB)**: HL = $991A
+* **Neither of the above**: HL = $007C
 
 The tables above were obtained from analysis of [the boot ROM’s disassemblies](https://codeberg.org/ISSOtm/gb-bootroms), and confirmed using Mooneye-GB tests [`acceptance/boot_regs-dmg0`](https://github.com/Gekkio/mooneye-gb/blob/ca7ff30b52fd3de4f1527397f27a729ffd848dfa/tests/acceptance/boot_regs-dmg0.s), [`acceptance/boot_regs-dmgABC`](https://github.com/Gekkio/mooneye-gb/blob/ca7ff30b52fd3de4f1527397f27a729ffd848dfa/tests/acceptance/boot_regs-dmgABC.s), [`acceptance/boot_regs-mgb`](https://github.com/Gekkio/mooneye-gb/blob/ca7ff30b52fd3de4f1527397f27a729ffd848dfa/tests/acceptance/boot_regs-mgb.s), [`acceptance/boot_regs-sgb`](https://github.com/Gekkio/mooneye-gb/blob/ca7ff30b52fd3de4f1527397f27a729ffd848dfa/tests/acceptance/boot_regs-sgb.s), [`acceptance/boot_regs-sgb2`](https://github.com/Gekkio/mooneye-gb/blob/ca7ff30b52fd3de4f1527397f27a729ffd848dfa/tests/acceptance/boot_regs-sgb2.s), [`misc/boot_regs-cgb`](https://github.com/Gekkio/mooneye-gb/blob/ca7ff30b52fd3de4f1527397f27a729ffd848dfa/tests/misc/boot_regs-cgb.s), and [`misc/boot_regs-A`](https://github.com/Gekkio/mooneye-gb/blob/ca7ff30b52fd3de4f1527397f27a729ffd848dfa/tests/misc/boot_regs-A.s), plus some extra testing.
 
@@ -252,82 +253,82 @@ As far as timing-sensitive values are concerned, these values are recorded at PC
 
 | Name | Address | DMG0 | DMG / MGB | SGB / SGB2 | CGB / AGB |
 | --- | --- | --- | --- | --- | --- |
-| [`P1`](#ff00--p1joyp-joypad) | $FF00 | $CF | $CF | $C7 or $CF | $C7 or $CF |
-| [`SB`](#ff01--sb-serial-transfer-data) | $FF01 | $00 | $00 | $00 | $00 |
-| [`SC`](#ff02--sc-serial-transfer-control) | $FF02 | $7E | $7E | $7E | $7F |
-| [`DIV`](#ff04--div-divider-register) | $FF04 | $18 | $AB | ??[5](#footnote-unk) | ??[6](#footnote-unk_pad) |
-| [`TIMA`](#ff05--tima-timer-counter) | $FF05 | $00 | $00 | $00 | $00 |
-| [`TMA`](#ff06--tma-timer-modulo) | $FF06 | $00 | $00 | $00 | $00 |
-| [`TAC`](#ff07--tac-timer-control) | $FF07 | $F8 | $F8 | $F8 | $F8 |
-| [`IF`](#ff0f--if-interrupt-flag) | $FF0F | $E1 | $E1 | $E1 | $E1 |
-| [`NR10`](#ff10--nr10-channel-1-sweep) | $FF10 | $80 | $80 | $80 | $80 |
-| [`NR11`](#ff11--nr11-channel-1-length-timer--duty-cycle) | $FF11 | $BF | $BF | $BF | $BF |
-| [`NR12`](#ff12--nr12-channel-1-volume--envelope) | $FF12 | $F3 | $F3 | $F3 | $F3 |
-| [`NR13`](#ff13--nr13-channel-1-period-low-write-only) | $FF13 | $FF | $FF | $FF | $FF |
-| [`NR14`](#ff14--nr14-channel-1-period-high--control) | $FF14 | $BF | $BF | $BF | $BF |
-| [`NR21`](#sound-channel-2--pulse) | $FF16 | $3F | $3F | $3F | $3F |
-| [`NR22`](#sound-channel-2--pulse) | $FF17 | $00 | $00 | $00 | $00 |
-| [`NR23`](#sound-channel-2--pulse) | $FF18 | $FF | $FF | $FF | $FF |
-| [`NR24`](#sound-channel-2--pulse) | $FF19 | $BF | $BF | $BF | $BF |
-| [`NR30`](#ff1a--nr30-channel-3-dac-enable) | $FF1A | $7F | $7F | $7F | $7F |
-| [`NR31`](#ff1b--nr31-channel-3-length-timer-write-only) | $FF1B | $FF | $FF | $FF | $FF |
-| [`NR32`](#ff1c--nr32-channel-3-output-level) | $FF1C | $9F | $9F | $9F | $9F |
-| [`NR33`](#ff1d--nr33-channel-3-period-low-write-only) | $FF1D | $FF | $FF | $FF | $FF |
-| [`NR34`](#ff1e--nr34-channel-3-period-high--control) | $FF1E | $BF | $BF | $BF | $BF |
-| [`NR41`](#ff20--nr41-channel-4-length-timer-write-only) | $FF20 | $FF | $FF | $FF | $FF |
-| [`NR42`](#ff21--nr42-channel-4-volume--envelope) | $FF21 | $00 | $00 | $00 | $00 |
-| [`NR43`](#ff22--nr43-channel-4-frequency--randomness) | $FF22 | $00 | $00 | $00 | $00 |
-| [`NR44`](#ff23--nr44-channel-4-control) | $FF23 | $BF | $BF | $BF | $BF |
-| [`NR50`](#ff24--nr50-master-volume--vin-panning) | $FF24 | $77 | $77 | $77 | $77 |
-| [`NR51`](#ff25--nr51-sound-panning) | $FF25 | $F3 | $F3 | $F3 | $F3 |
-| [`NR52`](#ff26--nr52-audio-master-control) | $FF26 | $F1 | $F1 | $F0 | $F1 |
-| [`LCDC`](#ff40--lcdc-lcd-control) | $FF40 | $91 | $91 | $91 | $91 |
-| [`STAT`](#ff41--stat-lcd-status) | $FF41 | $81 | $85 | ??[5](#footnote-unk) | ??[6](#footnote-unk_pad) |
-| [`SCY`](#ff42ff43--scy-scx-background-viewport-y-position-x-position) | $FF42 | $00 | $00 | $00 | $00 |
-| [`SCX`](#ff42ff43--scy-scx-background-viewport-y-position-x-position) | $FF43 | $00 | $00 | $00 | $00 |
-| [`LY`](#ff44--ly-lcd-y-coordinate-read-only) | $FF44 | $91 | $00 | ??[5](#footnote-unk) | ??[6](#footnote-unk_pad) |
-| [`LYC`](#ff45--lyc-ly-compare) | $FF45 | $00 | $00 | $00 | $00 |
-| [`DMA`](#ff46--dma-oam-dma-source-address--start) | $FF46 | $FF | $FF | $FF | $00 |
-| [`BGP`](#ff47--bgp-non-cgb-mode-only-bg-palette-data) | $FF47 | $FC | $FC | $FC | $FC |
-| [`OBP0`](#ff48ff49--obp0-obp1-non-cgb-mode-only-obj-palette-0-1-data) | $FF48 | ??[7](#footnote-obp) | ??[7](#footnote-obp) | ??[7](#footnote-obp) | ??[7](#footnote-obp) |
-| [`OBP1`](#ff48ff49--obp0-obp1-non-cgb-mode-only-obj-palette-0-1-data) | $FF49 | ??[7](#footnote-obp) | ??[7](#footnote-obp) | ??[7](#footnote-obp) | ??[7](#footnote-obp) |
-| [`WY`](#ff4aff4b--wy-wx-window-y-position-x-position-plus-7) | $FF4A | $00 | $00 | $00 | $00 |
-| [`WX`](#ff4aff4b--wy-wx-window-y-position-x-position-plus-7) | $FF4B | $00 | $00 | $00 | $00 |
-| [`KEY0`](#ff4c--key0sys-cgb-mode-only-cpu-mode-select) | $FF4C | — | — | — | ??[5](#footnote-unk) |
-| [`KEY1`](#ff4d--key1spd-cgb-mode-only-prepare-speed-switch) | $FF4D | — | — | — | $7E[8](#footnote-cgb_only) |
-| [`VBK`](#ff4f--vbk-cgb-mode-only-vram-bank) | $FF4F | — | — | — | $FE[8](#footnote-cgb_only) |
+| [`P1`](joypad-input.md#ff00--p1joyp-joypad) | $FF00 | $CF | $CF | $C7 or $CF | $C7 or $CF |
+| [`SB`](serial-data-transfer-link-cable.md#ff01--sb-serial-transfer-data) | $FF01 | $00 | $00 | $00 | $00 |
+| [`SC`](serial-data-transfer-link-cable.md#ff02--sc-serial-transfer-control) | $FF02 | $7E | $7E | $7E | $7F |
+| [`DIV`](timer-and-divider-registers.md#ff04--div-divider-register) | $FF04 | $18 | $AB | ??[5](#footnote-unk) | ??[6](#footnote-unk_pad) |
+| [`TIMA`](timer-and-divider-registers.md#ff05--tima-timer-counter) | $FF05 | $00 | $00 | $00 | $00 |
+| [`TMA`](timer-and-divider-registers.md#ff06--tma-timer-modulo) | $FF06 | $00 | $00 | $00 | $00 |
+| [`TAC`](timer-and-divider-registers.md#ff07--tac-timer-control) | $FF07 | $F8 | $F8 | $F8 | $F8 |
+| [`IF`](interrupts.md#ff0f--if-interrupt-flag) | $FF0F | $E1 | $E1 | $E1 | $E1 |
+| [`NR10`](audio-registers.md#ff10--nr10-channel-1-sweep) | $FF10 | $80 | $80 | $80 | $80 |
+| [`NR11`](audio-registers.md#ff11--nr11-channel-1-length-timer--duty-cycle) | $FF11 | $BF | $BF | $BF | $BF |
+| [`NR12`](audio-registers.md#ff12--nr12-channel-1-volume--envelope) | $FF12 | $F3 | $F3 | $F3 | $F3 |
+| [`NR13`](audio-registers.md#ff13--nr13-channel-1-period-low-write-only) | $FF13 | $FF | $FF | $FF | $FF |
+| [`NR14`](audio-registers.md#ff14--nr14-channel-1-period-high--control) | $FF14 | $BF | $BF | $BF | $BF |
+| [`NR21`](audio-registers.md#sound-channel-2--pulse) | $FF16 | $3F | $3F | $3F | $3F |
+| [`NR22`](audio-registers.md#sound-channel-2--pulse) | $FF17 | $00 | $00 | $00 | $00 |
+| [`NR23`](audio-registers.md#sound-channel-2--pulse) | $FF18 | $FF | $FF | $FF | $FF |
+| [`NR24`](audio-registers.md#sound-channel-2--pulse) | $FF19 | $BF | $BF | $BF | $BF |
+| [`NR30`](audio-registers.md#ff1a--nr30-channel-3-dac-enable) | $FF1A | $7F | $7F | $7F | $7F |
+| [`NR31`](audio-registers.md#ff1b--nr31-channel-3-length-timer-write-only) | $FF1B | $FF | $FF | $FF | $FF |
+| [`NR32`](audio-registers.md#ff1c--nr32-channel-3-output-level) | $FF1C | $9F | $9F | $9F | $9F |
+| [`NR33`](audio-registers.md#ff1d--nr33-channel-3-period-low-write-only) | $FF1D | $FF | $FF | $FF | $FF |
+| [`NR34`](audio-registers.md#ff1e--nr34-channel-3-period-high--control) | $FF1E | $BF | $BF | $BF | $BF |
+| [`NR41`](audio-registers.md#ff20--nr41-channel-4-length-timer-write-only) | $FF20 | $FF | $FF | $FF | $FF |
+| [`NR42`](audio-registers.md#ff21--nr42-channel-4-volume--envelope) | $FF21 | $00 | $00 | $00 | $00 |
+| [`NR43`](audio-registers.md#ff22--nr43-channel-4-frequency--randomness) | $FF22 | $00 | $00 | $00 | $00 |
+| [`NR44`](audio-registers.md#ff23--nr44-channel-4-control) | $FF23 | $BF | $BF | $BF | $BF |
+| [`NR50`](audio-registers.md#ff24--nr50-master-volume--vin-panning) | $FF24 | $77 | $77 | $77 | $77 |
+| [`NR51`](audio-registers.md#ff25--nr51-sound-panning) | $FF25 | $F3 | $F3 | $F3 | $F3 |
+| [`NR52`](audio-registers.md#ff26--nr52-audio-master-control) | $FF26 | $F1 | $F1 | $F0 | $F1 |
+| [`LCDC`](lcd-control.md#ff40--lcdc-lcd-control) | $FF40 | $91 | $91 | $91 | $91 |
+| [`STAT`](lcd-status-registers.md#ff41--stat-lcd-status) | $FF41 | $81 | $85 | ??[5](#footnote-unk) | ??[6](#footnote-unk_pad) |
+| [`SCY`](viewport-position-scrolling.md#ff42ff43--scy-scx-background-viewport-y-position-x-position) | $FF42 | $00 | $00 | $00 | $00 |
+| [`SCX`](viewport-position-scrolling.md#ff42ff43--scy-scx-background-viewport-y-position-x-position) | $FF43 | $00 | $00 | $00 | $00 |
+| [`LY`](lcd-status-registers.md#ff44--ly-lcd-y-coordinate-read-only) | $FF44 | $91 | $00 | ??[5](#footnote-unk) | ??[6](#footnote-unk_pad) |
+| [`LYC`](lcd-status-registers.md#ff45--lyc-ly-compare) | $FF45 | $00 | $00 | $00 | $00 |
+| [`DMA`](oam-dma-transfer.md#ff46--dma-oam-dma-source-address--start) | $FF46 | $FF | $FF | $FF | $00 |
+| [`BGP`](palettes.md#ff47--bgp-non-cgb-mode-only-bg-palette-data) | $FF47 | $FC | $FC | $FC | $FC |
+| [`OBP0`](palettes.md#ff48ff49--obp0-obp1-non-cgb-mode-only-obj-palette-0-1-data) | $FF48 | ??[7](#footnote-obp) | ??[7](#footnote-obp) | ??[7](#footnote-obp) | ??[7](#footnote-obp) |
+| [`OBP1`](palettes.md#ff48ff49--obp0-obp1-non-cgb-mode-only-obj-palette-0-1-data) | $FF49 | ??[7](#footnote-obp) | ??[7](#footnote-obp) | ??[7](#footnote-obp) | ??[7](#footnote-obp) |
+| [`WY`](window-behavior.md#ff4aff4b--wy-wx-window-y-position-x-position-plus-7) | $FF4A | $00 | $00 | $00 | $00 |
+| [`WX`](window-behavior.md#ff4aff4b--wy-wx-window-y-position-x-position-plus-7) | $FF4B | $00 | $00 | $00 | $00 |
+| [`KEY0`](cgb-registers.md#ff4c--key0sys-cgb-mode-only-cpu-mode-select) | $FF4C | — | — | — | ??[5](#footnote-unk) |
+| [`KEY1`](cgb-registers.md#ff4d--key1spd-cgb-mode-only-prepare-speed-switch) | $FF4D | — | — | — | $7E[8](#footnote-cgb_only) |
+| [`VBK`](cgb-registers.md#ff4f--vbk-cgb-mode-only-vram-bank) | $FF4F | — | — | — | $FE[8](#footnote-cgb_only) |
 | [`BANK`](#power-up-sequence) | $FF50 | — | — | — | — |
-| [`HDMA1`](#ff51ff52--hdma1-hdma2-cgb-mode-only-vram-dma-source-high-low-write-only) | $FF51 | — | — | — | $FF[8](#footnote-cgb_only) |
-| [`HDMA2`](#ff51ff52--hdma1-hdma2-cgb-mode-only-vram-dma-source-high-low-write-only) | $FF52 | — | — | — | $FF[8](#footnote-cgb_only) |
-| [`HDMA3`](#ff53ff54--hdma3-hdma4-cgb-mode-only-vram-dma-destination-high-low-write-only) | $FF53 | — | — | — | $FF[8](#footnote-cgb_only) |
-| [`HDMA4`](#ff53ff54--hdma3-hdma4-cgb-mode-only-vram-dma-destination-high-low-write-only) | $FF54 | — | — | — | $FF[8](#footnote-cgb_only) |
-| [`HDMA5`](#ff55--hdma5-cgb-mode-only-vram-dma-lengthmodestart) | $FF55 | — | — | — | $FF[8](#footnote-cgb_only) |
-| [`RP`](#ff56--rp-cgb-mode-only-infrared-communications-port) | $FF56 | — | — | — | $3E[8](#footnote-cgb_only) |
-| [`BCPS`](#ff68--bcpsbgpi-cgb-mode-only-background-color-palette-specification--background-palette-index) | $FF68 | — | — | — | ??[9](#footnote-compat-1) |
-| [`BCPD`](#ff69--bcpdbgpd-cgb-mode-only-background-color-palette-data--background-palette-data) | $FF69 | — | — | — | ??[9](#footnote-compat-1) |
-| [`OCPS`](#ff6aff6b--ocpsobpi-ocpdobpd-cgb-mode-only-obj-color-palette-specification--obj-palette-index-obj-color-palette-data--obj-palette-data) | $FF6A | — | — | — | ??[9](#footnote-compat-1) |
-| [`OCPD`](#ff6aff6b--ocpsobpi-ocpdobpd-cgb-mode-only-obj-color-palette-specification--obj-palette-index-obj-color-palette-data--obj-palette-data) | $FF6B | — | — | — | ??[9](#footnote-compat-1) |
-| [`SVBK`](#ff70--svbkwbk-cgb-mode-only-wram-bank) | $FF70 | — | — | — | $F8[8](#footnote-cgb_only) |
-| [`IE`](#ffff--ie-interrupt-enable) | $FFFF | $00 | $00 | $00 | $00 |
+| [`HDMA1`](cgb-registers.md#ff51ff52--hdma1-hdma2-cgb-mode-only-vram-dma-source-high-low-write-only) | $FF51 | — | — | — | $FF[8](#footnote-cgb_only) |
+| [`HDMA2`](cgb-registers.md#ff51ff52--hdma1-hdma2-cgb-mode-only-vram-dma-source-high-low-write-only) | $FF52 | — | — | — | $FF[8](#footnote-cgb_only) |
+| [`HDMA3`](cgb-registers.md#ff53ff54--hdma3-hdma4-cgb-mode-only-vram-dma-destination-high-low-write-only) | $FF53 | — | — | — | $FF[8](#footnote-cgb_only) |
+| [`HDMA4`](cgb-registers.md#ff53ff54--hdma3-hdma4-cgb-mode-only-vram-dma-destination-high-low-write-only) | $FF54 | — | — | — | $FF[8](#footnote-cgb_only) |
+| [`HDMA5`](cgb-registers.md#ff55--hdma5-cgb-mode-only-vram-dma-lengthmodestart) | $FF55 | — | — | — | $FF[8](#footnote-cgb_only) |
+| [`RP`](cgb-registers.md#ff56--rp-cgb-mode-only-infrared-communications-port) | $FF56 | — | — | — | $3E[8](#footnote-cgb_only) |
+| [`BCPS`](palettes.md#ff68--bcpsbgpi-cgb-mode-only-background-color-palette-specification--background-palette-index) | $FF68 | — | — | — | ??[9](#footnote-compat-1) |
+| [`BCPD`](palettes.md#ff69--bcpdbgpd-cgb-mode-only-background-color-palette-data--background-palette-data) | $FF69 | — | — | — | ??[9](#footnote-compat-1) |
+| [`OCPS`](palettes.md#ff6aff6b--ocpsobpi-ocpdobpd-cgb-mode-only-obj-color-palette-specification--obj-palette-index-obj-color-palette-data--obj-palette-data) | $FF6A | — | — | — | ??[9](#footnote-compat-1) |
+| [`OCPD`](palettes.md#ff6aff6b--ocpsobpi-ocpdobpd-cgb-mode-only-obj-color-palette-specification--obj-palette-index-obj-color-palette-data--obj-palette-data) | $FF6B | — | — | — | ??[9](#footnote-compat-1) |
+| [`SVBK`](cgb-registers.md#ff70--svbkwbk-cgb-mode-only-wram-bank) | $FF70 | — | — | — | $F8[8](#footnote-cgb_only) |
+| [`IE`](interrupts.md#ffff--ie-interrupt-enable) | $FFFF | $00 | $00 | $00 | $00 |
 
 The table above was obtained from Mooneye-GB tests [`acceptance/boot_hwio-dmg0`](https://github.com/Gekkio/mooneye-gb/blob/ca7ff30b52fd3de4f1527397f27a729ffd848dfa/tests/acceptance/boot_hwio-dmg0.s), [`acceptance/boot_hwio-dmgABCmgb`](https://github.com/Gekkio/mooneye-gb/blob/ca7ff30b52fd3de4f1527397f27a729ffd848dfa/tests/acceptance/boot_hwio-dmgABCmgb.s), [`acceptance/boot_hwio-S`](https://github.com/Gekkio/mooneye-gb/blob/ca7ff30b52fd3de4f1527397f27a729ffd848dfa/tests/acceptance/boot_hwio-S.s), and [`misc/boot_hwio-C`](https://github.com/Gekkio/mooneye-gb/blob/ca7ff30b52fd3de4f1527397f27a729ffd848dfa/tests/misc/boot_hwio-C.s), plus some extra testing.
 
 ---
 
-1. If the [header checksum](#014d--header-checksum) is $00, then the carry and half-carry flags are clear; otherwise, they are both set. [↩](#fr-dmg_c-1) [↩2](#fr-dmg_c-2)
-2. To determine the flags, take the B register you would have gotten on CGB[3](#footnote-cgbdmg_b), and `inc` it.
+1. <a id="footnote-dmg_c"></a><a id="fr-dmg_c-1"></a><a id="fr-dmg_c-2"></a>If the [header checksum](the-cartridge-header.md#014d--header-checksum) is $00, then the carry and half-carry flags are clear; otherwise, they are both set. [↩](#fr-dmg_c-1) [↩2](#fr-dmg_c-2)
+2. <a id="footnote-agbdmg_f"></a><a id="fr-agbdmg_f-1"></a><a id="fr-agbdmg_f-2"></a>To determine the flags, take the B register you would have gotten on CGB[3](#footnote-cgbdmg_b), and `inc` it.
    (To be precise: an `inc b` is the last operation to touch the flags.)
    The carry and direction flags are always clear, though. [↩](#fr-agbdmg_f-1) [↩2](#fr-agbdmg_f-2)
-3. If the [old licensee code](#014b--old-licensee-code) is $01, or the old licensee code is $33 and the [new licensee code](#01440145--new-licensee-code) is `"01"` ($30 $31), then B is the sum of all 16 [title](#0134-0143--title) bytes.
+3. <a id="footnote-cgbdmg_b"></a><a id="fr-cgbdmg_b-1"></a><a id="fr-cgbdmg_b-2"></a><a id="fr-cgbdmg_b-3"></a>If the [old licensee code](the-cartridge-header.md#014b--old-licensee-code) is $01, or the old licensee code is $33 and the [new licensee code](the-cartridge-header.md#01440145--new-licensee-code) is `"01"` ($30 $31), then B is the sum of all 16 [title](the-cartridge-header.md#0134-0143--title) bytes.
    Otherwise, B is $00.
    As indicated by the “+ 1” in the “AGB (DMG mode)” column, if on AGB, that value is increased by 1[2](#footnote-agbdmg_f). [↩](#fr-cgbdmg_b-1) [↩2](#fr-cgbdmg_b-2) [↩3](#fr-cgbdmg_b-3)
-4. There are two possible cases: [↩](#fr-cgbdmg_hl-1) [↩2](#fr-cgbdmg_hl-2) [↩3](#fr-cgbdmg_hl-3) [↩4](#fr-cgbdmg_hl-4)
-5. Since this boot ROM’s duration depends on the header’s contents, a general answer can’t be given.
+4. <a id="footnote-cgbdmg_hl"></a><a id="fr-cgbdmg_hl-1"></a><a id="fr-cgbdmg_hl-2"></a><a id="fr-cgbdmg_hl-3"></a><a id="fr-cgbdmg_hl-4"></a>There are two possible cases: [↩](#fr-cgbdmg_hl-1) [↩2](#fr-cgbdmg_hl-2) [↩3](#fr-cgbdmg_hl-3) [↩4](#fr-cgbdmg_hl-4)
+5. <a id="footnote-unk"></a><a id="fr-unk-1"></a><a id="fr-unk-2"></a><a id="fr-unk-3"></a><a id="fr-unk-4"></a>Since this boot ROM’s duration depends on the header’s contents, a general answer can’t be given.
    The value should be static for a given header, though. [↩](#fr-unk-1) [↩2](#fr-unk-2) [↩3](#fr-unk-3) [↩4](#fr-unk-4)
-6. Since this boot ROM’s duration depends on the header’s contents (and the player’s inputs in compatibility mode), an answer can’t be given.
+6. <a id="footnote-unk_pad"></a><a id="fr-unk_pad-1"></a><a id="fr-unk_pad-2"></a><a id="fr-unk_pad-3"></a>Since this boot ROM’s duration depends on the header’s contents (and the player’s inputs in compatibility mode), an answer can’t be given.
    Just don’t rely on these. [↩](#fr-unk_pad-1) [↩2](#fr-unk_pad-2) [↩3](#fr-unk_pad-3)
-7. These registers are left entirely uninitialized.
+7. <a id="footnote-obp"></a><a id="fr-obp-1"></a><a id="fr-obp-2"></a><a id="fr-obp-3"></a><a id="fr-obp-4"></a><a id="fr-obp-5"></a><a id="fr-obp-6"></a><a id="fr-obp-7"></a><a id="fr-obp-8"></a>These registers are left entirely uninitialized.
    Their value tends to be most often $00 or $FF, but the value is especially not reliable if your software runs after e.g. a flashcart or multicart selection menu.
    Make sure to always set those before displaying objects for the first time. [↩](#fr-obp-1) [↩2](#fr-obp-2) [↩3](#fr-obp-3) [↩4](#fr-obp-4) [↩5](#fr-obp-5) [↩6](#fr-obp-6) [↩7](#fr-obp-7) [↩8](#fr-obp-8)
-8. These registers are only available in CGB Mode, and will read $FF in Non-CGB Mode. [↩](#fr-cgb_only-1) [↩2](#fr-cgb_only-2) [↩3](#fr-cgb_only-3) [↩4](#fr-cgb_only-4) [↩5](#fr-cgb_only-5) [↩6](#fr-cgb_only-6) [↩7](#fr-cgb_only-7) [↩8](#fr-cgb_only-8) [↩9](#fr-cgb_only-9)
-9. These depend on whether compatibility mode is enabled. [↩](#fr-compat-1) [↩2](#fr-compat-2) [↩3](#fr-compat-3) [↩4](#fr-compat-4)
+8. <a id="footnote-cgb_only"></a><a id="fr-cgb_only-1"></a><a id="fr-cgb_only-2"></a><a id="fr-cgb_only-3"></a><a id="fr-cgb_only-4"></a><a id="fr-cgb_only-5"></a><a id="fr-cgb_only-6"></a><a id="fr-cgb_only-7"></a><a id="fr-cgb_only-8"></a><a id="fr-cgb_only-9"></a>These registers are only available in CGB Mode, and will read $FF in Non-CGB Mode. [↩](#fr-cgb_only-1) [↩2](#fr-cgb_only-2) [↩3](#fr-cgb_only-3) [↩4](#fr-cgb_only-4) [↩5](#fr-cgb_only-5) [↩6](#fr-cgb_only-6) [↩7](#fr-cgb_only-7) [↩8](#fr-cgb_only-8) [↩9](#fr-cgb_only-9)
+9. <a id="footnote-compat-1"></a><a id="fr-compat-1"></a><a id="fr-compat-2"></a><a id="fr-compat-3"></a><a id="fr-compat-4"></a>These depend on whether compatibility mode is enabled. [↩](#fr-compat-1) [↩2](#fr-compat-2) [↩3](#fr-compat-3) [↩4](#fr-compat-4)

@@ -1,21 +1,21 @@
 # GBC Infrared Communication
 
-This section was originally compiled by Shonumi in the “Dan Docs”. Upstream source can be found [here](https://shonumi.github.io/dandocs.html).
+This section was originally compiled by Shonumi in the “Dan Docs”. Upstream source can be found on the [Dan Docs page](https://shonumi.github.io/dandocs.html).
 
 The Game Boy Color came with an infrared port on the very top of the handheld. Previously, where IR communications had to be done with special cartridges (like the HuC-1 variants), the Game Boy itself now had the hardware built-in. Unfortunately, the feature was never popular outside of a few games and accessories. The IR port essentially sends out signals and is also capable of receiving them, allowing for fast, wireless, line-of-sight transmission.
 
-- GBC comes with one IR port. Capable of sending and receiving an IR signal (two separate diodes).
-- Turning on the IR light does drain battery, hence not recommended leaving it on when not in use
-- IR port can communicate with non-GBC devices, e.g. anything that sends an IR signal (TV remotes, Wiimotes, household lamps, etc)
+* GBC comes with one IR port. Capable of sending and receiving an IR signal (two separate diodes).
+* Turning on the IR light does drain battery, hence not recommended leaving it on when not in use
+* IR port can communicate with non-GBC devices, e.g. anything that sends an IR signal (TV remotes, Wiimotes, household lamps, etc)
 
 ## Communication Types
 
 While a number of games may use similar formats for their IR communications, there is no “standard” protocol that all games use. IR communication is entirely determined by the game’s code, hence it can vary wildly depending on needs. However, all communications fall into one of several general categories as described below:
 
-- 1-Player Init: These only require one GBC to initiate IR transfers. Both GBCs typically wait for an infrared signal. When one player presses a button, the GBC starts sending pulses. This setup is not unlike how 2-Player Serial I/O is handled (with master and slave Game Boys). Examples include Super Mario Bros. DX score exchange and the GBC-to-GBC Mystery Gifts in Pokemon Gold/Silver/Crystal. Most IR compatible games fall into this group.
-- 2-Player Init: Transfers require both GBCs to initiate at roughly the same time. Examples include Pokemon Pinball score exchange, Pokemon TCG’s “Card Pop”, and trading/fighting Charaboms in the Bomberman games.
-- Active Object Init: Transfers require the GBC to interact with another non-GBC device capable of both sending and receiving infrared signals. These objects are designed to work specifically with GBCs and send pulses in much the same manner as a GBC would. Examples include Mystery Gifts via the Pokemon Pikachu 2 and trading Points via the Pocket Sakura.
-- Inactive Object Init: Transfers require the GBC to interact with another non-GBC device capable of sending infrared signals but not necessarily receiving them. These objects may not be designed to work specifically with GBCs (notable exception is the Full Changer). Communication is input-only for these cases. Examples include Zok Zok Heroes, Chee Chai Alien, the Bomberman Max games’ special stages, and Mission Impossible’s TV remote feature.
+* 1-Player Init: These only require one GBC to initiate IR transfers. Both GBCs typically wait for an infrared signal. When one player presses a button, the GBC starts sending pulses. This setup is not unlike how 2-Player Serial I/O is handled (with master and slave Game Boys). Examples include Super Mario Bros. DX score exchange and the GBC-to-GBC Mystery Gifts in Pokemon Gold/Silver/Crystal. Most IR compatible games fall into this group.
+* 2-Player Init: Transfers require both GBCs to initiate at roughly the same time. Examples include Pokemon Pinball score exchange, Pokemon TCG’s “Card Pop”, and trading/fighting Charaboms in the Bomberman games.
+* Active Object Init: Transfers require the GBC to interact with another non-GBC device capable of both sending and receiving infrared signals. These objects are designed to work specifically with GBCs and send pulses in much the same manner as a GBC would. Examples include Mystery Gifts via the Pokemon Pikachu 2 and trading Points via the Pocket Sakura.
+* Inactive Object Init: Transfers require the GBC to interact with another non-GBC device capable of sending infrared signals but not necessarily receiving them. These objects may not be designed to work specifically with GBCs (notable exception is the Full Changer). Communication is input-only for these cases. Examples include Zok Zok Heroes, Chee Chai Alien, the Bomberman Max games’ special stages, and Mission Impossible’s TV remote feature.
 
 ## Communication Protocol
 
@@ -35,7 +35,7 @@ On the GBC, the MMIO register located at $FF56 controls infrared communication. 
 | --- | --- | --- |
 | 0 | Turn IR light ON (1) or OFF (0) | R/W |
 | 1 | Bit 1 = 1 | R |
-| 2-5 | Unused |  |
+| 2-5 | Unused | |
 | 6-7 | Signal Read Enable (0 = Disable) (3 = Enable) | R/W |
 
 Turning on the IR light is as simple as writing to Bit 0 of RP. Reading is a bit more complicated. Bits 6 and 7 must both be set ($C0), to read Bit 1, otherwise Bit 1 returns 1, acting as if no signal is detected, except in edge cases detailed below in “Obscure Behavior”. With signal reading enabled, Bit 1 will determine the status of any incoming IR signals. Like other Game Boy MMIO registers, unused bits read high (set to 1).

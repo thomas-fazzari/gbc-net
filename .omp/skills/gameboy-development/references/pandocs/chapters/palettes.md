@@ -4,9 +4,9 @@
 
 ### FF47 — BGP (Non-CGB Mode only): BG palette data
 
-This register assigns gray shades to the [color indices](#data-format) of the BG and Window tiles.
+This register assigns gray shades to the [color indices](vram-tile-data.md#data-format) of the BG and Window tiles.
 
-|  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+| | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **Color for...** | ID 3 | | ID 2 | | ID 1 | | ID 0 | |
 
@@ -43,15 +43,15 @@ First comes BGP0 color number 0, then BGP0 color number 1, BGP0 color number 2, 
 BGP1 color number 0, and so on. Thus, address $03 allows accessing the second (upper)
 byte of BGP0 color #1 via BCPD, which contains the color’s blue and upper green bits.
 
-|  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+| | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **BCPS / OCPS** | Auto-increment |  | Address | | | | | |
+| **BCPS / OCPS** | Auto-increment | | Address | | | | | |
 
-- **Auto-increment**: `0` = Disabled; `1` = Increment “Address” field after **writing** to
+* **Auto-increment**: `0` = Disabled; `1` = Increment “Address” field after **writing** to
   [`BCPD`](#ff69--bcpdbgpd-cgb-mode-only-background-color-palette-data--background-palette-data) /
   [`OCPD`](#ff6aff6b--ocpsobpi-ocpdobpd-cgb-mode-only-obj-color-palette-specification--obj-palette-index-obj-color-palette-data--obj-palette-data)
-  (even during [Mode 3](#ppu-modes), despite the write itself failing), reads *never* cause an increment
-- **Address**: Specifies which byte of BG Palette Memory can be accessed through
+  (even during [Mode 3](rendering-overview.md#ppu-modes), despite the write itself failing), reads *never* cause an increment
+* **Address**: Specifies which byte of BG Palette Memory can be accessed through
   [`BCPD`](#ff69--bcpdbgpd-cgb-mode-only-background-color-palette-data--background-palette-data)
 
 Unlike BCPD, this register can be accessed outside VBlank and HBlank.
@@ -61,12 +61,12 @@ Unlike BCPD, this register can be accessed outside VBlank and HBlank.
 This register allows to read/write data to the CGBs background palette memory, addressed through [BCPS/BGPI](#ff68--bcpsbgpi-cgb-mode-only-background-color-palette-specification--background-palette-index).
 Each color is stored as little-endian RGB555:
 
-|  | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+| | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **One color** | Red intensity | | | | | Green intensity | | | | | Blue intensity | | | | |  |
+| **One color** | Red intensity | | | | | Green intensity | | | | | Blue intensity | | | | | |
 
 Much like VRAM, data in palette memory cannot be read or written during the time
-when the PPU is reading from it, that is, [Mode 3](#ppu-modes).
+when the PPU is reading from it, that is, [Mode 3](rendering-overview.md#ppu-modes).
 
 NOTE
 
@@ -90,9 +90,10 @@ In CGB mode, the boot ROM leaves all object colors uninitialized (and thus somew
 aside from setting the first byte of OBJ0 color #0 to $00, which is unused.
 
 In DMG compatibility mode, the boot ROM sets the first 2 object palettes which are
-used by OBP0/OBP1, [as explained here](#compatibility-palettes).
+used by OBP0/OBP1, [as explained here](power-up-sequence.md#compatibility-palettes).
 
 ### RGB Translation by CGBs
+
 When developing graphics on PCs, note that the RGB values will have
 different appearance on CGB displays as on VGA/HDMI monitors calibrated
 to sRGB color. Because the GBC is not lit, the highest intensity will
@@ -122,7 +123,7 @@ darker colors.
 WORKAROUND
 
 Newer CGB games may avoid this effect by changing palette data when
-detecting GBA hardware ([see how](#detecting-cgb-and-gba-functions)).
+detecting GBA hardware ([see how](cgb-registers.md#detecting-cgb-and-gba-functions)).
 Based on measurements of GBC and GBA palettes using the
 [144p Test Suite](https://github.com/pinobatch/240p-test-mini/tree/master/gameboy),
 a fairly close approximation is `GBA = GBC × 3/4 + $08` for each R/G/B

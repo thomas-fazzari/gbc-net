@@ -1,7 +1,7 @@
 # ADR-0001: Emulate the Super Game Boy SNES side with HLE
 
-- Status: Accepted
-- Date: 2026-07-11
+* Status: Accepted
+* Date: 2026-07-11
 
 ## Context
 
@@ -15,36 +15,36 @@ GBC.Net will emulate the Game Boy side as dedicated SGB1 hardware and emulate th
 
 The HLE path will:
 
-- receive SGB command packets through JOYP;
-- implement palette and attribute-map commands;
-- capture and decode VRAM transfers;
-- render custom 256×224 borders around the Game Boy image;
-- implement masking and 2/4-player JOYP multiplexing;
-- preserve SGB1 clock, APU, boot ROM, and post-boot behavior;
-- ignore unsupported SNES-side commands without pretending their effects occurred.
+* receive SGB command packets through JOYP;
+* implement palette and attribute-map commands;
+* capture and decode VRAM transfers;
+* render custom 256×224 borders around the Game Boy image;
+* implement masking and 2/4-player JOYP multiplexing;
+* preserve SGB1 clock, APU, boot ROM, and post-boot behavior;
+* ignore unsupported SNES-side commands without pretending their effects occurred.
 
 GBC.Net will not add a SNES execution core solely for SGB support. SNES-side sound, firmware code execution, menu/test controls, OBJ overlays, palette-priority behavior, and SGB2 remain outside the current scope. `DATA_SND` is recognized as an intentional no-op because HLE does not execute SNES firmware patches.
 
 The supported boundary is guarded by:
 
-- `tests/GbcNet.Tests/Sgb/SgbControllerTests.cs`;
-- `tests/GbcNet.Tests/GameBoyTests.cs`;
-- `tests/GbcNet.Tests/RomTesting/Mooneye/MooneyeSgbRomTests.cs`.
+* `tests/GbcNet.Tests/Sgb/SgbControllerTests.cs`;
+* `tests/GbcNet.Tests/GameBoyTests.cs`;
+* `tests/GbcNet.Tests/RomTesting/Mooneye/MooneyeSgbRomTests.cs`.
 
 ## Consequences
 
 ### Positive
 
-- SGB palettes, attribute maps, borders, masking, transfers, and multiplayer protocol work without a second console core.
-- The implementation reuses the existing DMG CPU, PPU, APU, memory, and timing infrastructure.
-- Scope, runtime cost, and maintenance remain appropriate for a Game Boy emulator.
-- Unsupported commands degrade predictably instead of destabilizing emulation.
+* SGB palettes, attribute maps, borders, masking, transfers, and multiplayer protocol work without a second console core.
+* The implementation reuses the existing DMG CPU, PPU, APU, memory, and timing infrastructure.
+* Scope, runtime cost, and maintenance remain appropriate for a Game Boy emulator.
+* Unsupported commands degrade predictably instead of destabilizing emulation.
 
 ### Negative
 
-- Games depending materially on SNES-side sound, custom SNES code, OBJ overlays, palette priority, or SGB2-specific behavior are incomplete.
-- HLE can reproduce known command effects but not arbitrary behavior of the original SNES firmware.
-- New compatibility findings may require additional command-level implementations.
+* Games depending materially on SNES-side sound, custom SNES code, OBJ overlays, palette priority, or SGB2-specific behavior are incomplete.
+* HLE can reproduce known command effects but not arbitrary behavior of the original SNES firmware.
+* New compatibility findings may require additional command-level implementations.
 
 ## Alternatives considered
 

@@ -9,14 +9,14 @@ elements are displayed on the screen, and how.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | LCD & PPU enable | Window tile map | Window enable | BG & Window tiles | BG tile map | OBJ size | OBJ enable | BG & Window enable / priority |
 
-- **[LCD & PPU enable](#lcdc7--lcd-enable)**: `0` = Off; `1` = On
-- **[Window tile map area](#lcdc6--window-tile-map-area)**: `0` = 9800–9BFF; `1` = 9C00–9FFF
-- **[Window enable](#lcdc5--window-enable)**: `0` = Off; `1` = On
-- **[BG & Window tile data area](#lcdc4--bg-and-window-tile-data-area)**: `0` = 8800–97FF; `1` = 8000–8FFF
-- **[BG tile map area](#lcdc3--bg-tile-map-area)**: `0` = 9800–9BFF; `1` = 9C00–9FFF
-- **[OBJ size](#lcdc2--obj-size)**: `0` = 8×8; `1` = 8×16
-- **[OBJ enable](#lcdc1--obj-enable)**: `0` = Off; `1` = On
-- **[BG & Window enable / priority](#lcdc0--bg-and-window-enablepriority)** *[Different meaning in CGB Mode]*: `0` = Off; `1` = On
+* **[LCD & PPU enable](#lcdc7--lcd-enable)**: `0` = Off; `1` = On
+* **[Window tile map area](#lcdc6--window-tile-map-area)**: `0` = 9800–9BFF; `1` = 9C00–9FFF
+* **[Window enable](#lcdc5--window-enable)**: `0` = Off; `1` = On
+* **[BG & Window tile data area](#lcdc4--bg-and-window-tile-data-area)**: `0` = 8800–97FF; `1` = 8000–8FFF
+* **[BG tile map area](#lcdc3--bg-tile-map-area)**: `0` = 9800–9BFF; `1` = 9C00–9FFF
+* **[OBJ size](#lcdc2--obj-size)**: `0` = 8×8; `1` = 8×16
+* **[OBJ enable](#lcdc1--obj-enable)**: `0` = Off; `1` = On
+* **[BG & Window enable / priority](#lcdc0--bg-and-window-enablepriority)** *[Different meaning in CGB Mode]*: `0` = Off; `1` = On
 
 ### LCDC.7 — LCD enable
 
@@ -55,12 +55,12 @@ This bit is overridden on DMG by [bit 0](#lcdc0--bg-and-window-enablepriority)
 if that bit is clear.
 
 Changing the value of this register mid-frame triggers several more complex behaviours:
-[see the corresponding chapter](#window-mid-frame-behavior).
+[see the corresponding chapter](window-behavior.md#window-mid-frame-behavior).
 
 ### LCDC.4 — BG and Window tile data area
 
 This bit controls which [addressing
-mode](#vram-tile-data) the BG and Window use to
+mode](vram-tile-data.md#vram-tile-data) the BG and Window use to
 pick tiles.
 
 Objects (sprites) aren’t affected by this, and will always use the $8000 addressing mode.
@@ -108,7 +108,7 @@ When Bit 0 is cleared, the background and window lose their priority -
 the objects will be always displayed on top of background and window,
 independently of the priority flags in OAM and BG Map attributes.
 
-When Bit 0 is set, pixel priority is resolved [as described here](#bg-to-obj-priority-in-cgb-mode).
+When Bit 0 is set, pixel priority is resolved [as described here](vram-tile-maps.md#bg-to-obj-priority-in-cgb-mode).
 
 ## Using LCDC
 
@@ -124,8 +124,8 @@ A problem often seen in 8-bit games is objects rendering on top
 of the textbox/status bar. It’s possible to prevent this using LCDC if
 the textbox/status bar is “alone” on its scanlines:
 
-- Set LCDC.1 to 1 for gameplay scanlines
-- Set LCDC.1 to 0 for textbox/status bar scanlines
+* Set LCDC.1 to 1 for gameplay scanlines
+* Set LCDC.1 to 0 for textbox/status bar scanlines
 
 Usually, these bars are either at the top or bottom of the screen, so
 the bit can be set by the VBlank and/or STAT handlers.

@@ -6,13 +6,13 @@ The eight Game Boy action/direction buttons are arranged as a 2×4
 matrix. Select either action or direction buttons by writing to this
 register, then read out the bits 0-3.
 
-|  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+| | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **P1** |  | | Select buttons | Select d-pad | Start / Down | Select / Up | B / Left | A / Right |
+| **P1** | | | Select buttons | Select d-pad | Start / Down | Select / Up | B / Left | A / Right |
 
-- **Select buttons**: If this bit is `0`, then buttons (SsBA) can be read from the lower nibble.
-- **Select d-pad**: If this bit is `0`, then directional keys can be read from the lower nibble.
-- The lower nibble is *Read-only*.
+* **Select buttons**: If this bit is `0`, then buttons (SsBA) can be read from the lower nibble.
+* **Select d-pad**: If this bit is `0`, then directional keys can be read from the lower nibble.
+* The lower nibble is *Read-only*.
   Note that, rather unconventionally for the Game Boy, a button being pressed is seen as the corresponding bit being **`0`**, not `1`.
 
   If neither buttons nor d-pad is selected (`$30` was written), then the low nibble reads `$F` (all buttons released).

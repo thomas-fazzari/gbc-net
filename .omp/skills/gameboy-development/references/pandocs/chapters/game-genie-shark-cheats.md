@@ -8,10 +8,10 @@ plugged in between the Game Boy and the actual game cartridge.
 Game Genie codes consist of nine-digit hex numbers, formatted as
 `ABC-DEF-GHI`, the meaning of the separate digits is:
 
-- `AB`, new data
-- `FCDE`, memory address, XORed by $F000
-- `GI`, old data, XORed by $BA and rotated left by two
-- `H`, Unknown, maybe checksum and/or else
+* `AB`, new data
+* `FCDE`, memory address, XORed by $F000
+* `GI`, old data, XORed by $BA and rotated left by two
+* `H`, Unknown, maybe checksum and/or else
 
 The address should be located in ROM area $0000-7FFF, the adapter
 permanently compares address/old data with address/data being read by

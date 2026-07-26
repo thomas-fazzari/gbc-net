@@ -6,7 +6,7 @@ Used to request multiplayer mode (that is, input from more than one joypad).
 Because this function provides feedback from the SGB/SNES to the Game
 Boy program, it can also be used to detect SGB hardware.
 
-```
+```text
  Byte  Content
  0     Command*8+Length    (fixed length=1)
  1     Multiplayer Control (0-3) (Bit0=Enable, Bit1=Two/Four Players)
@@ -33,7 +33,7 @@ active.
 ## Reading Multiple Controllers (Joypads)
 
 When having enabled multiple controllers by `MLT_REQ`, data for each
-joypad can be read out through [the `P1` register](#ff00--p1joyp-joypad) as follows: First
+joypad can be read out through [the `P1` register](joypad-input.md#ff00--p1joyp-joypad) as follows: First
 set P14 and P15 both HIGH (deselect both Buttons and Cursor keys), you
 can now read the lower 4 bits of `P1`, which indicate the joypad ID for
 the following joypad input:

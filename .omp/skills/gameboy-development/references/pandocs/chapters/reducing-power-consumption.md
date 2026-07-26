@@ -9,7 +9,7 @@ batteries.
 The HALT instruction should be used whenever possible to reduce power
 consumption.
 
-The CPU will remain halted until an interrupt *enabled by [the IE register ($FFFF)](#ffff--ie-interrupt-enable)* is
+The CPU will remain halted until an interrupt *enabled by [the IE register ($FFFF)](interrupts.md#ffff--ie-interrupt-enable)* is
 flagged in IF, at which point the interrupt is serviced if IME is enabled,
 and then execution continues at the instruction immediately following the
 HALT.
@@ -20,7 +20,7 @@ more.
 
 When waiting for a VBlank event, this would be a BAD example:
 
-```
+```asm
 .wait
     ld   a, [$FF44] ; LY
     cp   a, 144
@@ -31,7 +31,7 @@ A better example would be a procedure as shown below. In this case the
 VBlank interrupt must be enabled, and your VBlank interrupt handler
 must set `vblank_flag` (a one-byte variable allocated in RAM) to a non-zero value.
 
-```
+```asm
   ld   hl, vblank_flag  ; hl = pointer to vblank_flag
   xor  a                ; a = 0
 .wait
@@ -80,7 +80,7 @@ reason, d-pad and/or button inputs should be enabled by writing $00,
 $10 or $20 to the `P1` register before entering STOP (depending on which
 buttons you want to terminate the STOP on).
 
-### The bizarre case of the Game Boy STOP instruction, before even considering timing.
+### The bizarre case of the Game Boy STOP instruction, before even considering timing
 
 The Game Boy STOP instruction is weird. Normally, it should enter STOP mode, where the CPU sits idle until a button is pressed. The STOP instruction was reused on the Game Boy Color to trigger a CPU speed switch, so executing STOP after writing 1 to KEY1 normally causes a speed switch. STOP is normally a 2-byte instruction where the second byte is ignored.
 

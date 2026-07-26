@@ -6,8 +6,8 @@ SGB games are required to have a cartridge header with Nintendo logo and
 proper checksum just as normal Game Boy games. Also, two special entries
 must be set in order to unlock SGB functions:
 
-- [SGB flag](#0146--sgb-flag): Must be set to $03 for SGB games
-- [Old licensee code](#014b--old-licensee-code): Must be set to $33 for SGB games
+* [SGB flag](the-cartridge-header.md#0146--sgb-flag): Must be set to $03 for SGB games
+* [Old licensee code](the-cartridge-header.md#014b--old-licensee-code): Must be set to $33 for SGB games
 
 When these entries aren’t set, the game will still work just like all
 “monochrome” Game Boy games, but it cannot access any of the special
@@ -32,7 +32,7 @@ and SGB2 respectively.
 | AGB | $11 | $00 |
 
 For initial register values on all systems, see the table of all [CPU
-registers after power-up](#cpu-registers).
+registers after power-up](power-up-sequence.md#cpu-registers).
 
 The SGB2 doesn’t have any extra features which’d require separate SGB2
 detection except for curiosity purposes, for example, the game “Tetris
@@ -40,16 +40,16 @@ DX” chooses to display an alternate SGB border on SGB2s.
 
 Only the SGB2 contains a link port.
 
-SGB hardware has traditionally been detected by sending [`MLT_REQ` commands](#sgb-command-11--mlt_req), but this
+SGB hardware has traditionally been detected by sending [`MLT_REQ` commands](multiplayer-command.md#sgb-command-11--mlt_req), but this
 method is more complicated and slower than checking the value of the A
 and C registers after startup. The `MLT_REQ` command enables two (or four)
 joypads; a normal handheld Game Boy will ignore this command, but an SGB
 will return incrementing joypad IDs each time when deselecting keypad
-lines ([see `MLT_REQ` description](#reading-multiple-controllers-joypads)). The joypad state/IDs can
+lines ([see `MLT_REQ` description](multiplayer-command.md#reading-multiple-controllers-joypads)). The joypad state/IDs can
 then be read out several times, and if the IDs are changing, then it is
 an SGB (a normal Game Boy would typically always return $0F as the ID).
 Finally, when not intending to use more than one joypad, send another
 `MLT_REQ` command in order to disable the multi-controller mode.
 Detection works regardless of how many joypads are physically connected
 to the SNES. However, unlike the C register method, this detection works only when
-SGB functions [are unlocked from the cartridge header](#cartridge-header).
+SGB functions [are unlocked from the cartridge header](the-cartridge-header.md#cartridge-header).

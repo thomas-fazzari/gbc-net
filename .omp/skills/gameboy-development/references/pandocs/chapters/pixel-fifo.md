@@ -18,10 +18,10 @@ during mode 3 (pixel transfer).
 
 Each pixel in the FIFO has four properties:
 
-- Color: a value between 0 and 3
-- Palette: on CGB a value between 0 and 7 and on DMG this only applies to objects
-- Sprite Priority: on CGB this is the OAM index for the object and on DMG this doesn’t exist
-- Background Priority: holds the value of the [OBJ-to-BG Priority](#object-attribute-memory-oam) bit
+* Color: a value between 0 and 3
+* Palette: on CGB a value between 0 and 7 and on DMG this only applies to objects
+* Sprite Priority: on CGB this is the OAM index for the object and on DMG this doesn’t exist
+* Background Priority: holds the value of the [OBJ-to-BG Priority](object-attribute-memory-oam.md#object-attribute-memory-oam) bit
 
 ## FIFO Pixel Fetcher
 
@@ -30,11 +30,11 @@ them up to be mixed with object pixels. The pixel fetcher has 5 steps.
 The first four steps take 2 dots each and the fifth step is attempted
 every dot until it succeeds. The order of the steps are as follows:
 
-- Get tile
-- Get tile data low
-- Get tile data high
-- Sleep
-- Push
+* Get tile
+* Get tile data low
+* Get tile data high
+* Sleep
+* Push
 
 ### Get Tile
 
@@ -111,16 +111,16 @@ Do nothing.
 At various times during PPU operation read access to VRAM is blocked and
 the value read is $FF:
 
-- LCD turning off
-- At scanline 0 on CGB when not in double speed mode
-- When switching from mode 3 to mode 0
-- On CGB when searching OAM and index 37 is reached
+* LCD turning off
+* At scanline 0 on CGB when not in double speed mode
+* When switching from mode 3 to mode 0
+* On CGB when searching OAM and index 37 is reached
 
 At various times during PPU operation read access to VRAM is restored:
 
-- At scanline 0 on DMG and CGB when in double speed mode
-- On DMG when searching OAM and index 37 is reached
-- After switching from mode 2 (oam search) to mode 3 (pixel transfer)
+* At scanline 0 on DMG and CGB when in double speed mode
+* On DMG when searching OAM and index 37 is reached
+* After switching from mode 2 (oam search) to mode 3 (pixel transfer)
 
 NOTE: These conditions are checked only when entering STOP mode and the
 PPU’s access to VRAM is always restored upon leaving STOP mode.
@@ -234,17 +234,17 @@ The pixel is then finally pushed to the LCD.
 At various times during PPU operation read access to the CGB palette is
 blocked and a black pixel pushed to the LCD when rendering pixels:
 
-- LCD turning off
-- First HBlank of the frame
-- When searching OAM and index 37 is reached
-- After switching from mode 2 (oam search) to mode 3 (pixel transfer)
-- When entering HBlank (mode 0) and not in double speed mode, blocked 2 dots later no matter what
+* LCD turning off
+* First HBlank of the frame
+* When searching OAM and index 37 is reached
+* After switching from mode 2 (oam search) to mode 3 (pixel transfer)
+* When entering HBlank (mode 0) and not in double speed mode, blocked 2 dots later no matter what
 
 At various times during PPU operation read access to the CGB palette is
 restored and pixels are pushed to the LCD normally when rendering pixels:
 
-- At the end of mode 2 (oam search)
-- For only 2 dots when entering HBlank (mode 0) and in double speed mode
+* At the end of mode 2 (oam search)
+* For only 2 dots when entering HBlank (mode 0) and in double speed mode
 
 Note
 

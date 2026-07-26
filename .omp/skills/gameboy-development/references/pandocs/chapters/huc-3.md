@@ -3,7 +3,7 @@
 HuC-3 is an MBC developed by Hudson Soft. Besides ROM and RAM banking,
 it also provides a real-time clock, speaker, and infrared communication.
 The CR2025 coin cell is user-replaceable. It is a successor to the
-[HuC1](#huc1).
+[HuC1](huc1.md#huc1).
 
 The HuC-3 is poorly understood. Observed behavior suggests the
 real-time clock and tone generator are implemented using a 4-bit
@@ -105,15 +105,15 @@ values, and a few higher-level operations.
 
 Games use the following sequence to execute a command:
 
-- Write $0D to $0000 (select RTC Semaphore register)
-- Poll $A000 until least significant bit is set (wait until ready)
-- Write $0B to $0000 (select RTC Command/Argument register)
-- Write command and argument to $A000
-- Write $0D to $0000 (select RTC semaphore register)
-- Write $FE to $A000 (clear semaphore, requesting MCU execute command)
-- Poll $A000 until least significant bit is set (wait for completion)
-- Write $0C to $0000 (select RTC Command/Response register)
-- Read $A000 and use value from 4 least significant bits
+* Write $0D to $0000 (select RTC Semaphore register)
+* Poll $A000 until least significant bit is set (wait until ready)
+* Write $0B to $0000 (select RTC Command/Argument register)
+* Write command and argument to $A000
+* Write $0D to $0000 (select RTC semaphore register)
+* Write $FE to $A000 (clear semaphore, requesting MCU execute command)
+* Poll $A000 until least significant bit is set (wait for completion)
+* Write $0C to $0000 (select RTC Command/Response register)
+* Read $A000 and use value from 4 least significant bits
 
 (The last two steps are not applicable for commands that don’t produce a
 response.)
@@ -163,4 +163,4 @@ The purpose of some locations has been inferred by observing behavior:
 
 ## External links
 
-- Source: [GBDev Forums thread](https://gbdev.gg8.se/forums/viewtopic.php?id=744)
+* Source: [GBDev Forums thread](https://gbdev.gg8.se/forums/viewtopic.php?id=744)

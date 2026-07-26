@@ -18,9 +18,9 @@ in 8×8 squares, called *tiles* (or sometimes “patterns” or “characters”
 the base unit in Game Boy graphics.
 
 A tile does not encode color information. Instead, a tile assigns a
-[*color indices*](#data-format) to each of its pixels, ranging from 0 to 3. For this reason,
+[*color indices*](vram-tile-data.md#data-format) to each of its pixels, ranging from 0 to 3. For this reason,
 Game Boy graphics are also called *2bpp* (2 bits per pixel). When a tile is used
-in the Background or Window, these [color indices](#data-format) are associated with a *palette*. When
+in the Background or Window, these [color indices](vram-tile-data.md#data-format) are associated with a *palette*. When a tile is used
 a tile is used in an object, the indices 1 to 3 are associated with a palette, but
 ID 0 means transparent.
 
@@ -76,6 +76,6 @@ Use of the term has since become more general.
 
 To summarise:
 
-- **Tile**, an 8×8-pixel chunk of graphics.
-- **Object**, an entry in object attribute memory, composed of 1 or 2
+* **Tile**, an 8×8-pixel chunk of graphics.
+* **Object**, an entry in object attribute memory, composed of 1 or 2
   tiles. Can be moved independently of the background.

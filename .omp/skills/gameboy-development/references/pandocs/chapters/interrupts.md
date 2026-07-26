@@ -5,43 +5,43 @@
 `IME` is a flag internal to the CPU that controls whether *any* interrupt handlers are called, regardless of the contents of `IE`.
 `IME` cannot be read in any way, and is modified by these instructions/events only:
 
-- **`ei`**: Enables interrupt handling (that is, `IME := 1`)
-- **`di`**: Disables interrupt handling (that is, `IME := 0`)
-- **`reti`**: Enables interrupts and returns (same as `ei` immediately followed by `ret`)
-- **When an [interrupt handler](#interrupt-handling) is executed**: Disables interrupts before `call`ing the interrupt handler
+* **`ei`**: Enables interrupt handling (that is, `IME := 1`)
+* **`di`**: Disables interrupt handling (that is, `IME := 0`)
+* **`reti`**: Enables interrupts and returns (same as `ei` immediately followed by `ret`)
+* **When an [interrupt handler](#interrupt-handling) is executed**: Disables interrupts before `call`ing the interrupt handler
 
-`IME` is unset (interrupts are disabled) [when the game starts running](#0100-0103--entry-point).
+`IME` is unset (interrupts are disabled) [when the game starts running](the-cartridge-header.md#0100-0103--entry-point).
 
 The effect of `ei` is delayed by one instruction. This means that `ei`
 followed immediately by `di` does not allow any interrupts between them.
-This interacts with the [`halt` bug](#halt-bug) in an interesting way.
+This interacts with the [`halt` bug](halt.md#halt-bug) in an interesting way.
 
 ## FFFF — IE: Interrupt enable
 
-|  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+| | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **IE** |  | | | Joypad | Serial | Timer | LCD | VBlank |
+| **IE** | | | | Joypad | Serial | Timer | LCD | VBlank |
 
-- **VBlank** (*Read/Write*): Controls whether [the VBlank interrupt handler](#int-40--vblank-interrupt) may be called (see `IF` below).
-- **LCD** (*Read/Write*): Controls whether [the LCD interrupt handler](#int-48--stat-interrupt) may be called (see `IF` below).
-- **Timer** (*Read/Write*): Controls whether [the Timer interrupt handler](#int-50--timer-interrupt) may be called (see `IF` below).
-- **Serial** (*Read/Write*): Controls whether [the Serial interrupt handler](#int-58--serial-interrupt) may be called (see `IF` below).
-- **Joypad** (*Read/Write*): Controls whether [the Joypad interrupt handler](#int-60--joypad-interrupt) may be called (see `IF` below).
+* **VBlank** (*Read/Write*): Controls whether [the VBlank interrupt handler](interrupt-sources.md#int-40--vblank-interrupt) may be called (see `IF` below).
+* **LCD** (*Read/Write*): Controls whether [the LCD interrupt handler](interrupt-sources.md#int-48--stat-interrupt) may be called (see `IF` below).
+* **Timer** (*Read/Write*): Controls whether [the Timer interrupt handler](interrupt-sources.md#int-50--timer-interrupt) may be called (see `IF` below).
+* **Serial** (*Read/Write*): Controls whether [the Serial interrupt handler](interrupt-sources.md#int-58--serial-interrupt) may be called (see `IF` below).
+* **Joypad** (*Read/Write*): Controls whether [the Joypad interrupt handler](interrupt-sources.md#int-60--joypad-interrupt) may be called (see `IF` below).
 
 ## FF0F — IF: Interrupt flag
 
-|  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+| | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **IF** |  | | | Joypad | Serial | Timer | LCD | VBlank |
+| **IF** | | | | Joypad | Serial | Timer | LCD | VBlank |
 
-- **VBlank** (*Read/Write*): Controls whether [the VBlank interrupt handler](#int-40--vblank-interrupt) is being requested.
-- **LCD** (*Read/Write*): Controls whether [the LCD interrupt handler](#int-48--stat-interrupt) is being requested.
-- **Timer** (*Read/Write*): Controls whether [the Timer interrupt handler](#int-50--timer-interrupt) is being requested.
-- **Serial** (*Read/Write*): Controls whether [the Serial interrupt handler](#int-58--serial-interrupt) is being requested.
-- **Joypad** (*Read/Write*): Controls whether [the Joypad interrupt handler](#int-60--joypad-interrupt) is being requested.
+* **VBlank** (*Read/Write*): Controls whether [the VBlank interrupt handler](interrupt-sources.md#int-40--vblank-interrupt) is being requested.
+* **LCD** (*Read/Write*): Controls whether [the LCD interrupt handler](interrupt-sources.md#int-48--stat-interrupt) is being requested.
+* **Timer** (*Read/Write*): Controls whether [the Timer interrupt handler](interrupt-sources.md#int-50--timer-interrupt) is being requested.
+* **Serial** (*Read/Write*): Controls whether [the Serial interrupt handler](interrupt-sources.md#int-58--serial-interrupt) is being requested.
+* **Joypad** (*Read/Write*): Controls whether [the Joypad interrupt handler](interrupt-sources.md#int-60--joypad-interrupt) is being requested.
 
 When an interrupt request signal (some internal wire going from the PPU/APU/… to the CPU) changes from low to high, the corresponding bit in the `IF` register becomes set.
-For example, bit 0 becomes set when the PPU enters the [VBlank](#ppu-modes) period.
+For example, bit 0 becomes set when the PPU enters the [VBlank](rendering-overview.md#ppu-modes) period.
 
 Any set bits in the `IF` register are only **requesting** an interrupt.
 The actual **execution** of the interrupt handler happens only if both the `IME` flag and the corresponding bit in the `IE` register are set; otherwise the

@@ -5,15 +5,15 @@ The cartridge header provides the following information about the game itself an
 
 ## 0100-0103 — Entry point
 
-After displaying the Nintendo logo, the built-in [boot ROM](#power-up-sequence) jumps to the address `$0100`, which should then jump to the actual main program in the cartridge.
+After displaying the Nintendo logo, the built-in [boot ROM](power-up-sequence.md#power-up-sequence) jumps to the address `$0100`, which should then jump to the actual main program in the cartridge.
 Most commercial games fill this 4-byte area with a [`nop` instruction](https://rgbds.gbdev.io/docs/gbz80.7#NOP) followed by a [`jp $0150`](https://rgbds.gbdev.io/docs/gbz80.7#JP_n16).
 
 ## 0104-0133 — Nintendo logo
 
 This area contains a bitmap image that is displayed when the Game Boy is powered on.
-It must match the following (hexadecimal) dump, otherwise [the boot ROM](#power-up-sequence) won’t allow the game to run:
+It must match the following (hexadecimal) dump, otherwise [the boot ROM](power-up-sequence.md#power-up-sequence) won’t allow the game to run:
 
-```
+```text
 CE ED 66 66 CC 0D 00 0B 03 73 00 83 00 0C 00 0D
 00 08 11 1F 88 89 00 0E DC CC 6E E6 DD DD D9 99
 BB BB 67 63 6E 0E EC CC DD DC 99 9F BB B9 33 3E
@@ -21,15 +21,15 @@ BB BB 67 63 6E 0E EC CC DD DC 99 9F BB B9 33 3E
 
 The way the pixels are encoded is as follows: ([more visual aid](https://codeberg.org/ISSOtm/gb-bootroms/src/commit/2dce25910043ce2ad1d1d3691436f2c7aabbda00/src/dmg.asm#L259-L269))
 
-- The bytes `$0104`—`$011B` encode the top half of the logo while the bytes `$011C`–`$0133` encode the bottom half.
-- For each half, each nibble encodes 4 pixels (the MSB corresponds to the leftmost pixel, the LSB to the rightmost); a pixel is lit if the corresponding bit is set.
-- The 4-pixel “groups” are laid out top to bottom, left to right.
-- Finally, the monochrome models upscale the entire thing by a factor of 2 (leading to somewhat chunky pixels).
+* The bytes `$0104`—`$011B` encode the top half of the logo while the bytes `$011C`–`$0133` encode the bottom half.
+* For each half, each nibble encodes 4 pixels (the MSB corresponds to the leftmost pixel, the LSB to the rightmost); a pixel is lit if the corresponding bit is set.
+* The 4-pixel “groups” are laid out top to bottom, left to right.
+* Finally, the monochrome models upscale the entire thing by a factor of 2 (leading to somewhat chunky pixels).
 
-The Game Boy’s boot procedure [first displays the logo and then checks](#bypass) that it matches the dump above.
+The Game Boy’s boot procedure [first displays the logo and then checks](power-up-sequence.md#bypass) that it matches the dump above.
 If it doesn’t, the boot ROM **locks itself up**.
 
-The CGB and later models [only check the top half of the logo](Power_Up_Sequence.html?highlight=half#behavior) (the first `$18` bytes).
+The CGB and later models [only check the top half of the logo](power-up-sequence.md#behavior) (the first `$18` bytes).
 
 ## 0134-0143 — Title
 
@@ -56,7 +56,7 @@ Typical values are:
 | `$80` | The game supports CGB enhancements, but is backwards compatible with monochrome Game Boys |
 | `$C0` | The game works on CGB only (the hardware ignores bit 6, so this really functions the same as `$80`) |
 
-Setting bit 7 will trigger a write of this register value to [KEY0 register](#ff4c--key0sys-cgb-mode-only-cpu-mode-select) which sets the CPU mode.
+Setting bit 7 will trigger a write of this register value to [KEY0 register](cgb-registers.md#ff4c--key0sys-cgb-mode-only-cpu-mode-select) which sets the CPU mode.
 
 ## 0144–0145 — New licensee code
 
@@ -88,11 +88,11 @@ Sample licensee codes:
 | `37` | [Taito](https://en.wikipedia.org/wiki/Taito) |
 | `38` | [Hudson Soft](https://en.wikipedia.org/wiki/Hudson_Soft) |
 | `39` | [Banpresto](https://en.wikipedia.org/wiki/Banpresto) |
-| `41` | [Ubi Soft](https://en.wikipedia.org/wiki/Ubisoft)[1](#footnote-ubisoft) |
+| `41` | [Ubi Soft](https://en.wikipedia.org/wiki/Ubisoft)[^ubisoft] |
 | `42` | [Atlus](https://en.wikipedia.org/wiki/Atlus) |
 | `44` | [Malibu Interactive](https://en.wikipedia.org/wiki/Malibu_Comics) |
 | `46` | [Angel](https://www.mobygames.com/company/5083/angel) |
-| `47` | [Bullet-Proof Software](https://en.wikipedia.org/wiki/Blue_Planet_Software)[2](#footnote-blueplanet) |
+| `47` | [Bullet-Proof Software](https://en.wikipedia.org/wiki/Blue_Planet_Software)[^blueplanet] |
 | `49` | [Irem](https://en.wikipedia.org/wiki/Irem) |
 | `50` | [Absolute](https://en.wikipedia.org/wiki/Absolute_Entertainment) |
 | `51` | [Acclaim Entertainment](https://en.wikipedia.org/wiki/Acclaim_Entertainment) |
@@ -105,26 +105,26 @@ Sample licensee codes:
 | `58` | [Mattel](https://en.wikipedia.org/wiki/Mattel) |
 | `59` | [Milton Bradley Company](https://en.wikipedia.org/wiki/Milton_Bradley_Company) |
 | `60` | [Titus Interactive](https://en.wikipedia.org/wiki/Titus_Interactive) |
-| `61` | [Virgin Games Ltd.](https://en.wikipedia.org/wiki/Virgin_Interactive_Entertainment)[3](#footnote-virgin) |
-| `64` | [Lucasfilm Games](https://en.wikipedia.org/wiki/Lucasfilm_Games)[4](#footnote-lucasfilm) |
+| `61` | [Virgin Games Ltd.](https://en.wikipedia.org/wiki/Virgin_Interactive_Entertainment)[^virgin] |
+| `64` | [Lucasfilm Games](https://en.wikipedia.org/wiki/Lucasfilm_Games)[^lucasfilm] |
 | `67` | [Ocean Software](https://en.wikipedia.org/wiki/Ocean_Software) |
 | `69` | [EA (Electronic Arts)](https://en.wikipedia.org/wiki/Electronic_Arts) |
-| `70` | [Infogrames](https://en.wikipedia.org/wiki/Atari_SA)[5](#footnote-atari) |
+| `70` | [Infogrames](https://en.wikipedia.org/wiki/Atari_SA)[^atari] |
 | `71` | [Interplay Entertainment](https://en.wikipedia.org/wiki/Interplay_Entertainment) |
 | `72` | [Broderbund](https://en.wikipedia.org/wiki/Broderbund) |
-| `73` | [Sculptured Software](https://en.wikipedia.org/wiki/Iguana_Entertainment)[6](#footnote-sculptured) |
-| `75` | [The Sales Curve Limited](https://en.wikipedia.org/wiki/SCi_Games)[7](#footnote-sci) |
+| `73` | [Sculptured Software](https://en.wikipedia.org/wiki/Iguana_Entertainment)[^sculptured] |
+| `75` | [The Sales Curve Limited](https://en.wikipedia.org/wiki/SCi_Games)[^sci] |
 | `78` | [THQ](https://en.wikipedia.org/wiki/THQ) |
-| `79` | [Accolade](https://en.wikipedia.org/wiki/Accolade,_Inc.)[8](#footnote-infogrames) |
+| `79` | [Accolade](https://en.wikipedia.org/wiki/Accolade,_Inc.)[^infogrames] |
 | `80` | [Misawa Entertainment](https://www.mobygames.com/company/8225/misawa-entertainment-coltd) |
 | `83` | [LOZC G.](https://en.wikipedia.org/wiki/Category:LOZC_G._Amusements_games) |
 | `86` | [Tokuma Shoten](https://en.wikipedia.org/wiki/Tokuma_Shoten) |
 | `87` | Tsukuda Original |
-| `91` | [Chunsoft Co.](https://en.wikipedia.org/wiki/Spike_Chunsoft)[9](#footnote-spike) |
+| `91` | [Chunsoft Co.](https://en.wikipedia.org/wiki/Spike_Chunsoft)[^spike] |
 | `92` | [Video System](https://en.wikipedia.org/wiki/Category:Video_System_games) |
 | `93` | [Ocean Software](https://en.wikipedia.org/wiki/Ocean_Software)/[Acclaim Entertainment](https://en.wikipedia.org/wiki/Acclaim_Entertainment) |
 | `95` | [Varie](https://en.wikipedia.org/wiki/Varie) |
-| `96` | [Yonezawa](https://en.wikipedia.org/wiki/Sega_Fave)[10](#footnote-segabuy)/S’Pal |
+| `96` | [Yonezawa](https://en.wikipedia.org/wiki/Sega_Fave)[^segabuy]/S’Pal |
 | `97` | [Kaneko](https://en.wikipedia.org/wiki/Kaneko) |
 | `99` | [Pack-In-Video](https://en.wikipedia.org/wiki/Pack-In-Video) |
 | `9H` | Bottom Up |
@@ -135,11 +135,11 @@ Sample licensee codes:
 ## 0146 — SGB flag
 
 This byte specifies whether the game supports SGB functions.
-The SGB will ignore any [command packets](#command-packet-transfers) if this byte is set to a value other than `$03` (typically `$00`).
+The SGB will ignore any [command packets](command-packet-transfers.md#command-packet-transfers) if this byte is set to a value other than `$03` (typically `$00`).
 
 ## 0147 — Cartridge type
 
-This byte indicates what kind of hardware is present on the cartridge — most notably its [mapper](#mbcs).
+This byte indicates what kind of hardware is present on the cartridge — most notably its [mapper](mbcs.md#mbcs).
 
 | Code | Type |
 | --- | --- |
@@ -149,16 +149,16 @@ This byte indicates what kind of hardware is present on the cartridge — most n
 | `$03` | MBC1+RAM+BATTERY |
 | `$05` | MBC2 |
 | `$06` | MBC2+BATTERY |
-| `$08` | ROM+RAM [11](#footnote-rom_ram) |
-| `$09` | ROM+RAM+BATTERY [11](#footnote-rom_ram) |
+| `$08` | ROM+RAM [^rom_ram] |
+| `$09` | ROM+RAM+BATTERY [^rom_ram] |
 | `$0B` | MMM01 |
 | `$0C` | MMM01+RAM |
 | `$0D` | MMM01+RAM+BATTERY |
 | `$0F` | MBC3+TIMER+BATTERY |
-| `$10` | MBC3+TIMER+RAM+BATTERY [12](#footnote-mbc30) |
+| `$10` | MBC3+TIMER+RAM+BATTERY [^mbc30] |
 | `$11` | MBC3 |
-| `$12` | MBC3+RAM [12](#footnote-mbc30) |
-| `$13` | MBC3+RAM+BATTERY [12](#footnote-mbc30) |
+| `$12` | MBC3+RAM [^mbc30] |
+| `$13` | MBC3+RAM+BATTERY [^mbc30] |
 | `$19` | MBC5 |
 | `$1A` | MBC5+RAM |
 | `$1B` | MBC5+RAM+BATTERY |
@@ -188,9 +188,9 @@ In most cases, the ROM size is given by `32 KiB × (1 << <value>)`:
 | `$06` | 2 MiB | 128 |
 | `$07` | 4 MiB | 256 |
 | `$08` | 8 MiB | 512 |
-| `$52` | 1.1 MiB | 72 [13](#footnote-weird_rom_sizes) |
-| `$53` | 1.2 MiB | 80 [13](#footnote-weird_rom_sizes) |
-| `$54` | 1.5 MiB | 96 [13](#footnote-weird_rom_sizes) |
+| `$52` | 1.1 MiB | 72 [^weird_rom_sizes] |
+| `$53` | 1.2 MiB | 80 [^weird_rom_sizes] |
+| `$54` | 1.5 MiB | 96 [^weird_rom_sizes] |
 
 ## 0149 — RAM size
 
@@ -202,7 +202,7 @@ This includes MBC2, since its 512 × 4 bits of memory are built directly into th
 | Code | SRAM size | Comment |
 | --- | --- | --- |
 | `$00` | 0 | No RAM |
-| `$01` | – | Unused [14](#footnote-2kib_sram) |
+| `$01` | – | Unused [^2kib_sram] |
 | `$02` | 8 KiB | 1 bank |
 | `$03` | 32 KiB | 4 banks of 8 KiB each |
 | `$04` | 128 KiB | 16 banks of 8 KiB each |
@@ -225,7 +225,7 @@ Only two values are defined:
 
 This byte is used in older (pre-SGB) cartridges to specify the game’s publisher.
 However, the value `$33` indicates that the [New licensee codes](#01440145--new-licensee-code) must be considered instead.
-(The SGB will ignore any [command packets](#command-packet-transfers) unless this value is `$33`.)
+(The SGB will ignore any [command packets](command-packet-transfers.md#command-packet-transfers) unless this value is `$33`.)
 
 Here is a list of known Old licensee codes ([source](https://raw.githubusercontent.com/gb-archive/salvage/master/txt-files/gbrom.txt)).
 
@@ -243,12 +243,12 @@ Here is a list of known Old licensee codes ([source](https://raw.githubuserconte
 | `19` | [ITC Entertainment](https://en.wikipedia.org/wiki/ITC_Entertainment) |
 | `1A` | [Yanoman](https://en.wikipedia.org/wiki/Category:Yanoman_games) |
 | `1D` | [Japan Clary](https://www.mobygames.com/company/7639/japan-clary-business/) |
-| `1F` | [Virgin Games Ltd.](https://en.wikipedia.org/wiki/Virgin_Interactive_Entertainment)[3](#footnote-virgin) |
+| `1F` | [Virgin Games Ltd.](https://en.wikipedia.org/wiki/Virgin_Interactive_Entertainment)[^virgin] |
 | `24` | [PCM Complete](https://www.mobygames.com/company/9489/pcm-complete) |
 | `25` | [San-X](https://en.wikipedia.org/wiki/San-X) |
 | `28` | [Kemco](https://en.wikipedia.org/wiki/Kemco) |
 | `29` | [SETA Corporation](https://en.wikipedia.org/wiki/SETA_Corporation) |
-| `30` | [Infogrames](https://en.wikipedia.org/wiki/Atari_SA)[5](#footnote-atari) |
+| `30` | [Infogrames](https://en.wikipedia.org/wiki/Atari_SA)[^atari] |
 | `31` | [Nintendo](https://en.wikipedia.org/wiki/Nintendo) |
 | `32` | [Bandai](https://en.wikipedia.org/wiki/Bandai) |
 | `33` | Indicates that the [New licensee code](#01440145--new-licensee-code) should be used instead. |
@@ -258,13 +258,13 @@ Here is a list of known Old licensee codes ([source](https://raw.githubuserconte
 | `39` | [Banpresto](https://en.wikipedia.org/wiki/Banpresto) |
 | `3C` | Entertainment Interactive (stub) |
 | `3E` | [Gremlin](https://en.wikipedia.org/wiki/Gremlin_Interactive) |
-| `41` | [Ubi Soft](https://en.wikipedia.org/wiki/Ubisoft)[1](#footnote-ubisoft) |
+| `41` | [Ubi Soft](https://en.wikipedia.org/wiki/Ubisoft)[^ubisoft] |
 | `42` | [Atlus](https://en.wikipedia.org/wiki/Atlus) |
 | `44` | [Malibu Interactive](https://en.wikipedia.org/wiki/Malibu_Comics) |
 | `46` | [Angel](https://www.mobygames.com/company/5083/angel) |
 | `47` | [Spectrum HoloByte](https://en.wikipedia.org/wiki/Spectrum_HoloByte) |
 | `49` | [Irem](https://en.wikipedia.org/wiki/Irem) |
-| `4A` | [Virgin Games Ltd.](https://en.wikipedia.org/wiki/Virgin_Interactive_Entertainment)[3](#footnote-virgin) |
+| `4A` | [Virgin Games Ltd.](https://en.wikipedia.org/wiki/Virgin_Interactive_Entertainment)[^virgin] |
 | `4D` | [Malibu Interactive](https://en.wikipedia.org/wiki/Malibu_Comics) |
 | `4F` | [U.S. Gold](https://en.wikipedia.org/wiki/U.S._Gold) |
 | `50` | [Absolute](https://en.wikipedia.org/wiki/Absolute_Entertainment) |
@@ -272,42 +272,42 @@ Here is a list of known Old licensee codes ([source](https://raw.githubuserconte
 | `52` | [Activision](https://en.wikipedia.org/wiki/Activision) |
 | `53` | [Sammy USA Corporation](https://en.wikipedia.org/wiki/Sammy_Corporation) |
 | `54` | [GameTek](https://en.wikipedia.org/wiki/GameTek) |
-| `55` | [Park Place](https://en.wikipedia.org/wiki/Park_Place_Entertainment)[15](#footnote-caesars) |
+| `55` | [Park Place](https://en.wikipedia.org/wiki/Park_Place_Entertainment)[^caesars] |
 | `56` | [LJN](https://en.wikipedia.org/wiki/LJN) |
 | `57` | [Matchbox](https://en.wikipedia.org/wiki/Matchbox_(brand)) |
 | `59` | [Milton Bradley Company](https://en.wikipedia.org/wiki/Milton_Bradley_Company) |
 | `5A` | [Mindscape](https://en.wikipedia.org/wiki/Mindscape_(company)) |
 | `5B` | [Romstar](https://en.wikipedia.org/wiki/Romstar) |
-| `5C` | [Naxat Soft](https://en.wikipedia.org/wiki/Kaga_Create)[16](#footnote-kaga) |
+| `5C` | [Naxat Soft](https://en.wikipedia.org/wiki/Kaga_Create)[^kaga] |
 | `5D` | [Tradewest](https://en.wikipedia.org/wiki/Tradewest) |
 | `60` | [Titus Interactive](https://en.wikipedia.org/wiki/Titus_Interactive) |
-| `61` | [Virgin Games Ltd.](https://en.wikipedia.org/wiki/Virgin_Interactive_Entertainment)[3](#footnote-virgin) |
+| `61` | [Virgin Games Ltd.](https://en.wikipedia.org/wiki/Virgin_Interactive_Entertainment)[^virgin] |
 | `67` | [Ocean Software](https://en.wikipedia.org/wiki/Ocean_Software) |
 | `69` | [EA (Electronic Arts)](https://en.wikipedia.org/wiki/Electronic_Arts) |
 | `6E` | [Elite Systems](https://en.wikipedia.org/wiki/Elite_Systems) |
 | `6F` | [Electro Brain](https://en.wikipedia.org/wiki/Electro_Brain) |
-| `70` | [Infogrames](https://en.wikipedia.org/wiki/Atari_SA)[5](#footnote-atari) |
+| `70` | [Infogrames](https://en.wikipedia.org/wiki/Atari_SA)[^atari] |
 | `71` | [Interplay Entertainment](https://en.wikipedia.org/wiki/Interplay_Entertainment) |
 | `72` | [Broderbund](https://en.wikipedia.org/wiki/Broderbund) |
-| `73` | [Sculptured Software](https://en.wikipedia.org/wiki/Iguana_Entertainment)[6](#footnote-sculptured) |
-| `75` | [The Sales Curve Limited](https://en.wikipedia.org/wiki/SCi_Games)[7](#footnote-sci) |
+| `73` | [Sculptured Software](https://en.wikipedia.org/wiki/Iguana_Entertainment)[^sculptured] |
+| `75` | [The Sales Curve Limited](https://en.wikipedia.org/wiki/SCi_Games)[^sci] |
 | `78` | [THQ](https://en.wikipedia.org/wiki/THQ) |
-| `79` | [Accolade](https://en.wikipedia.org/wiki/Accolade,_Inc.)[8](#footnote-infogrames) |
+| `79` | [Accolade](https://en.wikipedia.org/wiki/Accolade,_Inc.)[^infogrames] |
 | `7A` | [Triffix Entertainment](https://www.mobygames.com/company/4307/triffix-entertainment-inc) |
 | `7C` | [MicroProse](https://en.wikipedia.org/wiki/MicroProse) |
 | `7F` | [Kemco](https://en.wikipedia.org/wiki/Kemco) |
 | `80` | [Misawa Entertainment](https://www.mobygames.com/company/8225/misawa-entertainment-coltd) |
 | `83` | [LOZC G.](https://en.wikipedia.org/wiki/Category:LOZC_G._Amusements_games) |
 | `86` | [Tokuma Shoten](https://en.wikipedia.org/wiki/Tokuma_Shoten) |
-| `8B` | [Bullet-Proof Software](https://en.wikipedia.org/wiki/Blue_Planet_Software)[2](#footnote-blueplanet) |
-| `8C` | [Vic Tokai Corp.](https://en.wikipedia.org/wiki/Tokai_Communications)[17](#footnote-tokaicomm) |
-| `8E` | [Ape Inc.](https://en.wikipedia.org/wiki/Creatures_Inc.)[18](#footnote-creatures) |
-| `8F` | [I’Max](https://en.wikipedia.org/wiki/I%27MAX)[19](#footnote-imax) |
-| `91` | [Chunsoft Co.](https://en.wikipedia.org/wiki/Spike_Chunsoft)[9](#footnote-spike) |
+| `8B` | [Bullet-Proof Software](https://en.wikipedia.org/wiki/Blue_Planet_Software)[^blueplanet] |
+| `8C` | [Vic Tokai Corp.](https://en.wikipedia.org/wiki/Tokai_Communications)[^tokaicomm] |
+| `8E` | [Ape Inc.](https://en.wikipedia.org/wiki/Creatures_Inc.)[^creatures] |
+| `8F` | [I’Max](https://en.wikipedia.org/wiki/I%27MAX)[^imax] |
+| `91` | [Chunsoft Co.](https://en.wikipedia.org/wiki/Spike_Chunsoft)[^spike] |
 | `92` | [Video System](https://en.wikipedia.org/wiki/Category:Video_System_games) |
 | `93` | [Tsubaraya Productions](https://en.wikipedia.org/wiki/Tsuburaya_Productions) |
 | `95` | [Varie](https://en.wikipedia.org/wiki/Varie) |
-| `96` | [Yonezawa](https://en.wikipedia.org/wiki/Sega_Fave)[10](#footnote-segabuy)/S’Pal |
+| `96` | [Yonezawa](https://en.wikipedia.org/wiki/Sega_Fave)[^segabuy]/S’Pal |
 | `97` | [Kemco](https://en.wikipedia.org/wiki/Kemco) |
 | `99` | Arc |
 | `9A` | [Nihon Bussan](https://en.wikipedia.org/wiki/Nihon_Bussan) |
@@ -355,7 +355,7 @@ Here is a list of known Old licensee codes ([source](https://raw.githubuserconte
 | `D2` | [Quest](https://en.wikipedia.org/wiki/Quest_Corporation) |
 | `D3` | [Sigma Enterprises](https://www.mobygames.com/company/5001/sigma-enterprises-inc) |
 | `D4` | [ASK Kodansha Co.](https://www.mobygames.com/company/5166/ask-co-ltd/) |
-| `D6` | [Naxat Soft](https://en.wikipedia.org/wiki/Kaga_Create)[16](#footnote-kaga) |
+| `D6` | [Naxat Soft](https://en.wikipedia.org/wiki/Kaga_Create)[^kaga] |
 | `D7` | [Copya System](https://en.wikipedia.org/wiki/Category:Copya_Systems_games) |
 | `D9` | [Banpresto](https://en.wikipedia.org/wiki/Banpresto) |
 | `DA` | [Tomy](https://en.wikipedia.org/wiki/Tomy) |
@@ -389,7 +389,7 @@ It is usually `$00`.
 This byte contains an 8-bit checksum computed from the cartridge header bytes $0134–014C.
 The boot ROM computes the checksum as follows:
 
-```
+```c
 uint8_t checksum = 0;
 for (uint16_t address = 0x0134; address <= 0x014C; address++) {
     checksum = checksum - rom[address] - 1;
@@ -409,26 +409,26 @@ This checksum is not verified, except by Pokémon Stadium’s “GB Tower” emu
 
 ---
 
-1. Later known as [Ubisoft](https://en.wikipedia.org/wiki/Ubisoft). [↩](#fr-ubisoft-1) [↩2](#fr-ubisoft-2)
-2. Later succeeded by [Blue Planet Software](https://en.wikipedia.org/wiki/Blue_Planet_Software), then acquired by [The Tetris Company](https://en.wikipedia.org/wiki/The_Tetris_Company) in 2020. [↩](#fr-blueplanet-1) [↩2](#fr-blueplanet-2)
-3. Later known as [Virgin Mastertronic Ltd., then Virgin Interactive Entertainment, then Avalon Interactive Group, Ltd.](https://en.wikipedia.org/wiki/Virgin_Interactive_Entertainment). [↩](#fr-virgin-1) [↩2](#fr-virgin-2) [↩3](#fr-virgin-3) [↩4](#fr-virgin-4)
-4. Later known as [LucasArts](https://en.wikipedia.org/wiki/Lucasfilm_Games) between 1990-2021. [↩](#fr-lucasfilm-1)
-5. Later known as [Atari SA](https://en.wikipedia.org/wiki/Atari_SA). [↩](#fr-atari-1) [↩2](#fr-atari-2) [↩3](#fr-atari-3)
-6. Later accquired by [Iguana Entertainment](https://en.wikipedia.org/wiki/Iguana_Entertainment) in 1995. Parent studio owned by [Acclaim Entertainment](https://en.wikipedia.org/wiki/Acclaim_Entertainment). [↩](#fr-sculptured-1) [↩2](#fr-sculptured-2)
-7. Later known as [SCi (Sales Curve Interactive), then SCi Entertainment Group plc, then Eidos](https://en.wikipedia.org/wiki/SCi_Games), then acquired by [Square Enix](https://en.wikipedia.org/wiki/Square_Enix) in 2009. [↩](#fr-sci-1) [↩2](#fr-sci-2)
-8. Later Infogrames North America, Inc. [↩](#fr-infogrames-1) [↩2](#fr-infogrames-2)
-9. Later known as [Spike Chunsoft Co., Ltd.](https://en.wikipedia.org/wiki/Spike_Chunsoft). [↩](#fr-spike-1) [↩2](#fr-spike-2)
-10. Merged into Sega as Sega-Yonezawa, later becoming Sega Toys, and finally Sega Fave. [↩](#fr-segabuy-1) [↩2](#fr-segabuy-2)
-11. No licensed cartridge makes use of this option. The exact behavior is unknown. [↩](#fr-rom_ram-1) [↩2](#fr-rom_ram-2)
-12. MBC3 with 64 KiB of SRAM refers to MBC30, used only in *Pocket Monsters: Crystal Version* (the Japanese version of *Pokémon Crystal Version*). [↩](#fr-mbc30-1) [↩2](#fr-mbc30-2) [↩3](#fr-mbc30-3)
-13. Only listed in unofficial docs. No cartridges or ROM files using these sizes are known.
+[^ubisoft]: Later known as [Ubisoft](https://en.wikipedia.org/wiki/Ubisoft).
+[^blueplanet]: Later succeeded by [Blue Planet Software](https://en.wikipedia.org/wiki/Blue_Planet_Software), then acquired by [The Tetris Company](https://en.wikipedia.org/wiki/The_Tetris_Company) in 2020.
+[^virgin]: Later known as [Virgin Mastertronic Ltd., then Virgin Interactive Entertainment, then Avalon Interactive Group, Ltd.](https://en.wikipedia.org/wiki/Virgin_Interactive_Entertainment).
+[^lucasfilm]: Later known as [LucasArts](https://en.wikipedia.org/wiki/Lucasfilm_Games) between 1990-2021.
+[^atari]: Later known as [Atari SA](https://en.wikipedia.org/wiki/Atari_SA).
+[^sculptured]: Later accquired by [Iguana Entertainment](https://en.wikipedia.org/wiki/Iguana_Entertainment) in 1995. Parent studio owned by [Acclaim Entertainment](https://en.wikipedia.org/wiki/Acclaim_Entertainment).
+[^sci]: Later known as [SCi (Sales Curve Interactive), then SCi Entertainment Group plc, then Eidos](https://en.wikipedia.org/wiki/SCi_Games), then acquired by [Square Enix](https://en.wikipedia.org/wiki/Square_Enix) in 2009.
+[^infogrames]: Later Infogrames North America, Inc.
+[^spike]: Later known as [Spike Chunsoft Co., Ltd.](https://en.wikipedia.org/wiki/Spike_Chunsoft).
+[^segabuy]: Merged into Sega as Sega-Yonezawa, later becoming Sega Toys, and finally Sega Fave.
+[^rom_ram]: No licensed cartridge makes use of this option. The exact behavior is unknown.
+[^mbc30]: MBC3 with 64 KiB of SRAM refers to MBC30, used only in *Pocket Monsters: Crystal Version* (the Japanese version of *Pokémon Crystal Version*).
+[^weird_rom_sizes]: Only listed in unofficial docs. No cartridges or ROM files using these sizes are known.
     As the other ROM sizes are all powers of 2, these are likely inaccurate.
-    The source of these values is unknown. [↩](#fr-weird_rom_sizes-1) [↩2](#fr-weird_rom_sizes-2) [↩3](#fr-weird_rom_sizes-3)
-14. Listed in various unofficial docs as 2 KiB.
+    The source of these values is unknown.
+[^2kib_sram]: Listed in various unofficial docs as 2 KiB.
     However, a 2 KiB RAM chip was never used in a cartridge.
-    The source of this value is unknown. [↩](#fr-2kib_sram-1)
-15. Later named Caesars Entertainment, Inc. [↩](#fr-caesars-1)
-16. Later known as [Kaga Create](https://en.wikipedia.org/wiki/Kaga_Create). [↩](#fr-kaga-1) [↩2](#fr-kaga-2)
-17. Known as Vic Tokai Corporation until 2011 when the name changed to Tokai Communications. [↩](#fr-tokaicomm-1)
-18. Now known as Creatures, Inc. [↩](#fr-creatures-1)
-19. Not to be confused with the IMAX motion picture film format. [↩](#fr-imax-1)
+    The source of this value is unknown.
+[^caesars]: Later named Caesars Entertainment, Inc.
+[^kaga]: Later known as [Kaga Create](https://en.wikipedia.org/wiki/Kaga_Create).
+[^tokaicomm]: Known as Vic Tokai Corporation until 2011 when the name changed to Tokai Communications.
+[^creatures]: Now known as Creatures, Inc.
+[^imax]: Not to be confused with the IMAX motion picture film format.

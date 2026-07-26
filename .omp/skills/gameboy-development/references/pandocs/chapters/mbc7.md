@@ -68,10 +68,10 @@ axis, which does not exist on this accelerometer.
 
 Values in this register correspond to 4 pins on the EEPROM:
 
-- Bit 0: Data Out (DO)
-- Bit 1: Data In (DI)
-- Bit 6: Clock (CLK or SK in existing code)
-- Bit 7: Chip Select (CS)
+* Bit 0: Data Out (DO)
+* Bit 1: Data In (DI)
+* Bit 6: Clock (CLK or SK in existing code)
+* Bit 7: Chip Select (CS)
 
 The other pins (notably ORG, which controls 8-bit vs 16-bit addressing)
 do not appear to be connected to this register.
@@ -81,12 +81,12 @@ manually clocking CLK. All commands must be preceded by a 1 bit, and
 existing games precede the 1 bit with a 0 bit (though this is not
 necessary):
 
-- Write $00 (lower CS)
-- Write $80 (raise CS)
-- Write $C0 (shift in 0 bit)
-- Write $82 (lower CS, raise DI)
-- Write $C2 (shift in 1 bit)
-- Write command
+* Write $00 (lower CS)
+* Write $80 (raise CS)
+* Write $C0 (shift in 0 bit)
+* Write $82 (lower CS, raise DI)
+* Write $C2 (shift in 1 bit)
+* Write command
 
 The following commands exist, each 10 bits (excluding data shifted in or
 out). “x” means the value of this bit is ignored. “A” means the
@@ -94,13 +94,13 @@ relevant bit of the address. All data is shifted in or out MSB first.
 Note that data is addressed 16 bits at a time, so address 1 corresponds
 to bits 16-31, thus bytes 2-3.
 
-- READ: 10xAAAAAAAb (then shift out 16 bits)
-- EWEN (Erase/Write enable): 0011xxxxxxb
-- EWDS (Erase/Write disable): 0000xxxxxxb
-- WRITE: 01xAAAAAAAb (then shift in 16 bits)
-- ERASE (fill address with FFFF): 11xAAAAAAAb
-- ERAL (fill EEPROM with FFFF): 0010xxxxxxb
-- WRAL (fill EEPROM with value): 0001xxxxxxb (then shift in 16 bits)
+* READ: 10xAAAAAAAb (then shift out 16 bits)
+* EWEN (Erase/Write enable): 0011xxxxxxb
+* EWDS (Erase/Write disable): 0000xxxxxxb
+* WRITE: 01xAAAAAAAb (then shift in 16 bits)
+* ERASE (fill address with FFFF): 11xAAAAAAAb
+* ERAL (fill EEPROM with FFFF): 0010xxxxxxb
+* WRAL (fill EEPROM with value): 0001xxxxxxb (then shift in 16 bits)
 
 All programming operations (WRITE/ERASE/WRAL/ERAL) must be preceded with
 EWEN.
@@ -141,4 +141,4 @@ enable section as well (0000-1FFF)
 
 ## External links
 
-- Source: [GBDev Forums thread by endrift](https://gbdev.gg8.se/forums/viewtopic.php?id=448)
+* Source: [GBDev Forums thread by endrift](https://gbdev.gg8.se/forums/viewtopic.php?id=448)

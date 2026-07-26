@@ -15,7 +15,7 @@ of the Game Boy screen are used - the masking method is unknown - frozen,
 black, or recommended to be covered by the SGB border, or else ??? Also,
 when the function is enabled, attract mode (built-in borders’ screen saver on idle) is not performed.
 
-```
+```text
  Byte  Content
  0     Command*8+Length (fixed length=1)
  1     Control Bits
@@ -44,7 +44,7 @@ the Game Boy BGP palette register should be set up properly. By following
 that method, SNES OAM data can be defined in the $70 bytes of the
 Game Boy BG tile memory at following addresses:
 
-```
+```text
  8F90-8FEF  SNES OAM, 24 Entries of 4 bytes each (96 bytes)
  8FF0-8FF5  SNES OAM MSBs, 24 Entries of 2 bits each (6 bytes)
  8FF6-8FFF  Not used, don't care (10 bytes)
@@ -55,7 +55,7 @@ the [OAM section of Fullsnes](https://problemkaputt.de/fullsnes.htm#snesppusprit
 Notice that X and Y are swapped compared to GB PPU OAM entries,
 and byte 3 is shifted left by 1 bit compared to GB and GBC OAM.
 
-```
+```text
   Byte 0  OBJ X-Position (0-511, MSB is separately stored, see below)
   Byte 1  OBJ Y-Position (0-255)
   Byte 2  Tile Number
@@ -70,7 +70,7 @@ and byte 3 is shifted left by 1 bit compared to GB and GBC OAM.
 The format of SNES OAM MSB Entries packs 2 bits for each of 4 objects
 into one byte.
 
-```
+```text
   Bit7    OBJ 3 OBJ Size     (0=Small, 1=Large)
   Bit6    OBJ 3 X-Coordinate (upper 1bit)
   Bit5    OBJ 2 OBJ Size     (0=Small, 1=Large)
@@ -86,7 +86,7 @@ into one byte.
 Used to enable/disable test mode for “SGB-CPU variable clock speed
 function”. This function is disabled by default.
 
-```
+```text
  Byte  Content
  0     Command*8+Length    (fixed length=1)
  1     Test Mode Enable    (0=Disable, 1=Enable)

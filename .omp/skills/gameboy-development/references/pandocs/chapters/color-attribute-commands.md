@@ -5,7 +5,7 @@
 Used to specify color attributes for the inside or outside of one or
 more rectangular screen regions.
 
-```
+```text
  Byte  Content
  0     Command*8+Length (length=1..7)
  1     Number of Data Sets ($01..$12)
@@ -40,7 +40,7 @@ zero. The format of the separate Data Sets is described below.
 Used to specify color attributes of one or more horizontal or vertical
 character lines.
 
-```
+```text
  Byte  Content
  0     Command*8+Length (length=1..7)
  1     Number of Data Sets ($01..$6E) (one byte each)
@@ -65,7 +65,7 @@ lastmost data sets will overwrite lines from previous data sets.
 Used to split the screen into two halfes, and to assign separate color
 attributes to each half, and to the division line between them.
 
-```
+```text
  Byte  Content
  0     Command*8+Length   (fixed length=1)
  1     Color Palette Numbers and H/V Mode Bit
@@ -81,7 +81,7 @@ attributes to each half, and to the division line between them.
 
 Used to specify color attributes for separate characters.
 
-```
+```text
  Byte  Content
  0     Command*8+Length (length=1..6)
  1     Beginning X-Coordinate
@@ -109,7 +109,7 @@ directly affect display attributes. Instead, one of the defined ATFs may
 be copied to actual display memory at a later time by using ATTR\_SET or
 PAL\_SET functions.
 
-```
+```text
  Byte  Content
  0     Command*8+Length (fixed length=1)
  1-F   Not used (zero)
@@ -117,7 +117,7 @@ PAL\_SET functions.
 
 The ATF data is sent by VRAM-Transfer (4 KBytes).
 
-```
+```text
  000-FD1  Data for ATF0 through ATF44 (4050 bytes)
  FD2-FFF  Not used
 ```
@@ -132,7 +132,7 @@ so on.
 
 Used to transfer attributes from Attribute File (ATF) to Game Boy window.
 
-```
+```text
  Byte  Content
  0     Command*8+Length (fixed length=1)
  1     Attribute File Number ($00-$2C), Bit 6=Cancel Mask

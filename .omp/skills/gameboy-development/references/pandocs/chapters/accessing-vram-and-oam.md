@@ -2,20 +2,20 @@
 
 Warning
 
-When the PPU is [drawing the screen](#rendering-overview), it is often directly reading from Video Memory (VRAM) and from the Object Attribute Memory (OAM).
+When the PPU is [drawing the screen](rendering-overview.md#rendering-overview), it is often directly reading from Video Memory (VRAM) and from the Object Attribute Memory (OAM).
 During these periods, the Game Boy CPU cannot access VRAM and OAM.
 
 That means that any attempts to write to VRAM or OAM are ignored (data remains unchanged).
 And any attempts to read from VRAM or OAM will return undefined data (typically $FF).
 
 For this reason the program should verify if VRAM/OAM is accessible before actually reading or writing to it.
-This is usually done by reading the Mode bits from [the STAT Register](#ff41--stat-lcd-status).
+This is usually done by reading the Mode bits from [the STAT Register](lcd-status-registers.md#ff41--stat-lcd-status).
 When doing this (as described in the examples below) you should take care that **no interrupts occur between the wait loops and the following memory access**;
 the memory is guaranteed to be accessible only for a few cycles (less than Mode 2’s length) just after a wait loop exits.
 
 ## VRAM (memory area at $8000-$9FFF) is accessible during Modes 0-2
 
-```
+```text
 Mode 0 - HBlank Period,
 Mode 1 - VBlank Period, and
 Mode 2 - Searching OAM Period
@@ -23,7 +23,7 @@ Mode 2 - Searching OAM Period
 
 A typical procedure that waits for accessibility of VRAM would be:
 
-```
+```asm
     ld   hl, $FF41     ; STAT Register
 .wait
     bit  1, [hl]       ; Wait until Mode is 0 or 1
@@ -50,7 +50,7 @@ fits within the worst case timing for mode 0+2.
 
 ## OAM (memory area at $FE00-$FE9F) is accessible during Modes 0-1
 
-```
+```text
 Mode 0 - HBlank Period
 Mode 1 - VBlank Period
 ```
@@ -61,7 +61,7 @@ accessing OAM, and the PPU will read $FF from OAM during that time.
 
 A typical procedure that waits for accessibility of OAM would be:
 
-```
+```asm
     ld   hl, $FF41    ; STAT Register
     ; Wait until Mode is -NOT- 0 or 1
 .waitNotBlank

@@ -2,7 +2,7 @@
 
 SOURCE
 
-This section was originally compiled by Antonio Niño Díaz during his work on reverse engineering the Game Boy Camera. The upstream source can be found [here](https://github.com/AntonioND/gbcam-rev-engineer).
+This section was originally compiled by Antonio Niño Díaz during his work on reverse engineering the Game Boy Camera. The upstream source can be found [the gbcam-rev-engineer repository](https://github.com/AntonioND/gbcam-rev-engineer).
 
 ## Camera Cartridge
 
@@ -58,9 +58,9 @@ The Game Boy Camera I/O registers are mapped to all banks with bit 4 set to ‘1
 
 There are 3 groups of registers:
 
-- The first group is composed by the trigger register A000. This register starts the capture process and returns the current status (working/capture finished).
-- The second group is composed by registers A001-A005, used to configure most parameters of the M64282FP sensor.
-- The third group is composed by 48 registers that form a 4×4 matrix. Each element of the matrix is formed by 3 bytes. This matrix is used by the controller for contrast and dithering.
+* The first group is composed by the trigger register A000. This register starts the capture process and returns the current status (working/capture finished).
+* The second group is composed by registers A001-A005, used to configure most parameters of the M64282FP sensor.
+* The third group is composed by 48 registers that form a 4×4 matrix. Each element of the matrix is formed by 3 bytes. This matrix is used by the controller for contrast and dithering.
 
 All registers are write-only, except the register A000. The others return $00 when read. The initial values of all registers on reset is $00.
 
@@ -79,7 +79,7 @@ This register is mapped to register 1 of M64282FP. It controls the output gain a
 
 These registers are mapped to registers 2 and 3 of M64282FP. They control the exposure time. Register 2 is the MSB, register 3 is the LSB.
 
-```
+```c
 u16 exposure_steps = [A003] | ([A002]<<8);
 ```
 
@@ -95,12 +95,13 @@ This register is mapped to register 0 of M64282FP. It sets the output reference 
 
 Those registers form a 4×4 matrix with 3 bytes per element. They handle dithering and contrast, and they are sorted by rows:
 
-|  | X | | | |
+| | X | | | |
 | --- | --- | --- | --- | --- |
 | Y | 00 | 10 | 20 | 30 |
-| 01 | 11 | 21 | 31 |
-| 02 | 12 | 23 | 33 |
-| 03 | 13 | 23 | 33 |
+| | 01 | 11 | 21 | 31 |
+| | 02 | 12 | 22 | 32 |
+| | 03 | 13 | 23 | 33 |
+
 Horizontal edge processing modes
 Vertical edge processing modes.
 2D edge processing modes.
@@ -124,7 +125,7 @@ Since the PHI signal runs twice as fast in CGB Double-speed mode, the values use
 The time needed to capture and process an image depends on the exposure time and the value of N bit of the register 1 of the M64282FP chip.
 In Game Boy M-cycles (1 MiHz):
 
-```
+```c
 N_bit    = ([A001] & BIT(7)) ? 0 : 512
 exposure = ([A002]<<8) | [A003]
 CYCLES   = 32446 + N_bit + 16 * exposure
@@ -137,7 +138,7 @@ Divide those values by 2 to get the sensor clocks.
 The next values are in sensor clocks.
 Multiply by 2 to get Game Boy M-cycles:
 
-```
+```text
     - Reset pulse.
     - Configure sensor registers.     (11 × 8 CLKs)
     - Wait                                  (1 CLK)
@@ -218,7 +219,7 @@ According to the M64282FP datasheet, each step is 16 µs.
 The GB needs 16 PHI clocks for every step.
 However, if N = “1”, `exposure_steps` should be greater than or equal to $0030.
 
-```
+```c
     u16 exposure_steps ((Reg2)<<8) | [Reg3]
     Step time = 1 / 1048576 Hz * 16 = 0,954 µs * 16 = 15,259 µs
 ```
@@ -242,7 +243,7 @@ The following code is used to convert a greyscale image to the Game Boy Camera f
 
 Note that the actual Game Boy Camera sensor is affected by infrared so the emulation can’t be perfect anyway. A good way of converting a RGB image into grayscale is to do:
 
-```
+```c
 //--------------------------------------------------------------------
 
 // The actual sensor image is 128x126 or so.

@@ -12,8 +12,9 @@ The PPU calculates the bottom-right coordinates of the viewport with those formu
 As suggested by the modulo operations, in case the values are larger than 255 they will “wrap around” towards the top-left corner of the tilemap.
 
 Example from the homebrew game *Mindy’s Hike*:
+
 ## Mid-frame behavior
 
-The scroll registers are re-read on each [tile fetch](#get-tile), except for the low 3 bits of `SCX`, which are only read at the beginning of the scanline (for the initial shifting of pixels).
+The scroll registers are re-read on each [tile fetch](pixel-fifo.md#get-tile), except for the low 3 bits of `SCX`, which are only read at the beginning of the scanline (for the initial shifting of pixels).
 
 All models before the CGB-D read the Y coordinate once for each bitplane (so a very precisely timed `SCY` write allows “desyncing” them), but CGB-D and later use the same Y coordinate for both no matter what.

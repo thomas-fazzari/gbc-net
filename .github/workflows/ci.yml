@@ -9,6 +9,8 @@ on:
       - "feature/**"
       - "hotfix/**"
     paths:
+      - "**.md"
+      - ".markdownlint-cli2.jsonc"
       - "**.cs"
       - "**.csproj"
       - "**.props"
@@ -25,6 +27,8 @@ on:
   pull_request:
     branches: [master]
     paths:
+      - "**.md"
+      - ".markdownlint-cli2.jsonc"
       - "**.cs"
       - "**.csproj"
       - "**.props"
@@ -43,6 +47,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:

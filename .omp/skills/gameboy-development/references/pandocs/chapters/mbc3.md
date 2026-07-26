@@ -71,7 +71,7 @@ clock keeps ticking.
 | $09 | RTC M | Minutes | 0-59 ($00-$3B) |
 | $0A | RTC H | Hours | 0-23 ($00-$17) |
 | $0B | RTC DL | Lower 8 bits of Day Counter | ($00-$FF) |
-| $0C | RTC DH | Upper 1 bit of Day Counter, Carry Bit, Halt Flag.  Bit 0: Most significant bit (Bit 8) of Day Counter Bit 6: Halt (0=Active, 1=Stop Timer) Bit 7: Day Counter Carry Bit (1=Counter Overflow) |  |
+| $0C | RTC DH | Upper 1 bit of Day Counter, Carry Bit, Halt Flag.  Bit 0: Most significant bit (Bit 8) of Day Counter Bit 6: Halt (0=Active, 1=Stop Timer) Bit 7: Day Counter Carry Bit (1=Counter Overflow) | |
 
 The Halt Flag is supposed to be set before **writing** to the RTC
 Registers.

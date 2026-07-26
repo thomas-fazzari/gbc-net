@@ -22,26 +22,26 @@ It is not conversational memory and does not replace the source code. The index 
 
 ## Finding code
 
-- Use `search_graph` to locate classes, functions, methods, interfaces, routes, modules and files.
-- Use `get_code_snippet` only after obtaining the exact qualified name from `search_graph`.
-- Use `search_code` for literal text searches inside indexed files.
-- Fall back to grep/glob only when the graph cannot answer the question or when exact unindexed text is required.
+* Use `search_graph` to locate classes, functions, methods, interfaces, routes, modules and files.
+* Use `get_code_snippet` only after obtaining the exact qualified name from `search_graph`.
+* Use `search_code` for literal text searches inside indexed files.
+* Fall back to grep/glob only when the graph cannot answer the question or when exact unindexed text is required.
 
 ## Understanding relationships
 
-- Use `trace_path` for inbound and outbound call chains.
-- Use `detect_changes` to evaluate the blast radius of current Git changes before implementation or review.
-- Use `get_graph_schema` before writing a custom `query_graph` query.
-- Use `query_graph` for relationship questions not covered by the higher-level tools.
+* Use `trace_path` for inbound and outbound call chains.
+* Use `detect_changes` to evaluate the blast radius of current Git changes before implementation or review.
+* Use `get_graph_schema` before writing a custom `query_graph` query.
+* Use `query_graph` for relationship questions not covered by the higher-level tools.
 
 ## Architecture decisions
 
-- Read existing ADR data when architecture history is relevant.
-- Do not create, update or delete an ADR through `manage_adr` unless the user explicitly requests it or the repository already defines that workflow.
+* Read existing ADR data when architecture history is relevant.
+* Do not create, update or delete an ADR through `manage_adr` unless the user explicitly requests it or the repository already defines that workflow.
 
 ## Reliability
 
-- Treat the graph as an index, not as the final source of truth.
-- Before editing code, verify important conclusions against the actual source files.
-- If a query returns no result, first verify the project name and exact symbol with `list_projects` and `search_graph`.
-- Re-index after structural changes when the watcher has not refreshed the graph.
+* Treat the graph as an index, not as the final source of truth.
+* Before editing code, verify important conclusions against the actual source files.
+* If a query returns no result, first verify the project name and exact symbol with `list_projects` and `search_graph`.
+* Re-index after structural changes when the watcher has not refreshed the graph.

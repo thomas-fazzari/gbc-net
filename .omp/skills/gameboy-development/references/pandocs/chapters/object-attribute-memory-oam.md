@@ -12,15 +12,16 @@ Each of the 40 entries consists of
 four bytes with the following meanings:
 
 ## Byte 0 — Y Position
+
 Y = Object’s vertical position on the screen + 16. So for example:
 
-- Y=0 hides an object,
-- Y=2 hides an 8×8 object but displays the last two rows of an 8×16 object,
-- Y=16 displays an object at the top of the screen,
-- Y=144 displays an 8×16 object aligned with the bottom of the screen,
-- Y=152 displays an 8×8 object aligned with the bottom of the screen,
-- Y=154 displays the first six rows of an object at the bottom of the screen,
-- Y=160 hides an object.
+* Y=0 hides an object,
+* Y=2 hides an 8×8 object but displays the last two rows of an 8×16 object,
+* Y=16 displays an object at the top of the screen,
+* Y=144 displays an 8×16 object aligned with the bottom of the screen,
+* Y=152 displays an 8×8 object aligned with the bottom of the screen,
+* Y=154 displays the first six rows of an object at the bottom of the screen,
+* Y=160 hides an object.
 
 ## Byte 1 — X Position
 
@@ -45,26 +46,26 @@ tile is “NN & $FE”, and the bottom 8×8 tile is “NN | $01”.
 
 ## Byte 3 — Attributes/Flags
 
-|  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+| | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **Attributes** | Priority | Y flip | X flip | DMG palette | Bank | CGB palette | | |
 
-- **Priority**: `0` = No, `1` = BG and Window [color indices](#data-format) 1–3 are drawn over this OBJ
-- **Y flip**: `0` = Normal, `1` = Entire OBJ is vertically mirrored
-- **X flip**: `0` = Normal, `1` = Entire OBJ is horizontally mirrored
-- **DMG palette** *[Non CGB Mode only]*: `0` = OBP0, `1` = OBP1
-- **Bank** *[CGB Mode Only]*: `0` = Fetch tile from VRAM bank 0, `1` = Fetch tile from VRAM bank 1
-- **CGB palette** *[CGB Mode Only]*: Which of OBP0–7 to use
+* **Priority**: `0` = No, `1` = BG and Window [color indices](vram-tile-data.md#data-format) 1–3 are drawn over this OBJ
+* **Y flip**: `0` = Normal, `1` = Entire OBJ is vertically mirrored
+* **X flip**: `0` = Normal, `1` = Entire OBJ is horizontally mirrored
+* **DMG palette** *[Non CGB Mode only]*: `0` = OBP0, `1` = OBP1
+* **Bank** *[CGB Mode Only]*: `0` = Fetch tile from VRAM bank 0, `1` = Fetch tile from VRAM bank 1
+* **CGB palette** *[CGB Mode Only]*: Which of OBP0–7 to use
 
 ## Writing data to OAM
 
 The recommended method is to write the data to a buffer in normal RAM
 (typically WRAM) first, then to copy that buffer to OAM using
-[the DMA transfer functionality](#oam-dma-transfer).
+[the DMA transfer functionality](oam-dma-transfer.md#oam-dma-transfer).
 
 While it is also possible to write data directly to the OAM area
-[by accessing it normally](#oam-memory-area-at-fe00-fe9f-is-accessible-during-modes-0-1),
-this only works [during the HBlank and VBlank periods](#ppu-modes).
+[by accessing it normally](accessing-vram-and-oam.md#oam-memory-area-at-fe00-fe9f-is-accessible-during-modes-0-1),
+this only works [during the HBlank and VBlank periods](rendering-overview.md#ppu-modes).
 
 ## Object Priority and Conflicts
 
@@ -75,8 +76,8 @@ overlap (the Game Boy being a 2D console, there is no Z coordinate).
 
 ### Selection priority
 
-During each scanline’s OAM scan, the PPU compares [`LY`](#ff44--ly-lcd-y-coordinate-read-only)
-([using `LCDC` bit 2 to determine their size](#lcdc2--obj-size)) to each
+During each scanline’s OAM scan, the PPU compares [`LY`](lcd-status-registers.md#ff44--ly-lcd-y-coordinate-read-only)
+([using `LCDC` bit 2 to determine their size](lcd-control.md#lcdc2--obj-size)) to each
 object’s Y position to select up to 10 objects to be drawn on that line.
 The PPU scans OAM sequentially (from $FE00 to $FE9F), selecting the first (up to)
 10 suitably-positioned objects.
@@ -89,7 +90,7 @@ limit, possibly causing another object later in OAM not
 to be drawn. To keep off-screen objects from affecting on-screen ones, make
 sure to set their Y coordinate to Y = 0 or Y ≥ 160
 (144 + 16).
-(Y ≤ 8 also works if [object size](#lcdc2--obj-size) is set to 8×8.)
+(Y ≤ 8 also works if [object size](lcd-control.md#lcdc2--obj-size) is set to 8×8.)
 
 ### Drawing priority
 
@@ -98,15 +99,15 @@ being displayed is determined by another kind of priority: the pixel belonging
 to the higher-priority object wins. However, this priority is determined
 differently when in CGB mode.
 
-- **In Non-CGB mode**, the smaller the X coordinate, the higher the priority.
+* **In Non-CGB mode**, the smaller the X coordinate, the higher the priority.
   When X coordinates are identical, the object located first in OAM has higher
   priority.
-- **In CGB mode**, only the object’s location in OAM determines its priority.
+* **In CGB mode**, only the object’s location in OAM determines its priority.
   The earlier the object, the higher its priority.
 
 Interaction with "BG over OBJ" flag
 
-Object drawing priority and [“BG over OBJ”](#bg-map-attributes-cgb-mode-only) interact in a non-intuitive way.
+Object drawing priority and [“BG over OBJ”](vram-tile-maps.md#bg-map-attributes-cgb-mode-only) interact in a non-intuitive way.
 
 Internally, the PPU first resolves priority between objects to
 pick an “object pixel”, which is the first non-transparent pixel encountered
@@ -124,4 +125,4 @@ This can be exploited to only hide parts of an object behind the background
 ([video demonstration](https://youtu.be/B8sJGgCVvnk)).
 A similar behaviour [can be seen on the NES](https://forums.nesdev.org/viewtopic.php?f=10&t=16861).
 
-**In CGB Mode**, BG vs. OBJ priority is declared in more than one register, [please see this page](#bg-to-obj-priority-in-cgb-mode) for more details.
+**In CGB Mode**, BG vs. OBJ priority is declared in more than one register, [please see this page](vram-tile-maps.md#bg-to-obj-priority-in-cgb-mode) for more details.

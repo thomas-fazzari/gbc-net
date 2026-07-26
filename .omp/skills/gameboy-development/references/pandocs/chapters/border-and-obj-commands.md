@@ -7,7 +7,7 @@ This normally used to define BG tiles for the SGB Border (see PCT\_TRN),
 but might be also used to define moveable SNES foreground sprites (see
 OBJ\_TRN).
 
-```
+```text
  Byte  Content
  0     Command*8+Length    (fixed length=1)
  1     Tile Transfer Destination
@@ -19,7 +19,7 @@ OBJ\_TRN).
 
 The tile data is sent by VRAM transfer (4 KiB).
 
-```
+```text
  000-FFF  Bitmap data for 128 Tiles
 ```
 
@@ -38,7 +38,7 @@ Used to transfer tile map data and palette data to SNES BG Map memory in
 VRAM to be used for the SGB border. The actual tiles must be separately
 transferred by using the CHR\_TRN function.
 
-```
+```text
  Byte  Content
  0     Command*8+Length    (fixed length=1)
  1-F   Not used (zero)
@@ -46,7 +46,7 @@ transferred by using the CHR\_TRN function.
 
 The map data is sent by VRAM transfer (4 KiB).
 
-```
+```text
  000-6FF  BG Map 32×28 Entries of 16 bits each (1792 bytes)
  700-73F  BG Map 1×28 extra row, 32 entries of 16 bits each (64 bytes)
  740-7FF  Not used, don't care
@@ -57,7 +57,7 @@ The map data is sent by VRAM transfer (4 KiB).
 Each BG Map Entry consists of a 16-bit value as such:
 `VH01 PP00 NNNN NNNN```
 
-```
+```text
  Bit 0-9   - Character Number (use only $00-$FF, upper 2 bits zero)
  Bit 10-12 - Palette Number   (use only 4-6)
  Bit 13    - BG Priority      (use only 0)
@@ -79,8 +79,8 @@ All borders repeat tiles. Assuming that the blank space for the GB
 screen is a blank tile, and the letterbox (if any) is a solid tile, a
 border defining all unique tiles would have to define this many tiles:
 
-- (256\*224-160\*144)/64+1 = 537 tiles in full-screen border
-- (256\*176-160\*144)/64+2 = 346 tiles in letterboxed border
+* (256\*224-160\*144)/64+1 = 537 tiles in full-screen border
+* (256\*176-160\*144)/64+2 = 346 tiles in letterboxed border
 
 Because the CHR RAM allocated by SGB for border holds only 256 tiles, a full-screen border must repeat at least 281 tiles and a letterboxed border at least 90.
 

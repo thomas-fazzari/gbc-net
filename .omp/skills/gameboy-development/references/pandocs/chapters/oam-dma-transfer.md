@@ -6,7 +6,7 @@ Writing to this register starts a DMA transfer from ROM or RAM to OAM
 (Object Attribute Memory). The written value specifies the
 transfer source address divided by $100, that is, source and destination are:
 
-```
+```text
 Source:      $XX00-$XX9F   ;XX = $00 to $DF
 Destination: $FE00-$FE9F
 ```
@@ -34,7 +34,7 @@ Thus, it’s critical to prevent interrupts during OAM DMA, especially in a prog
 This can be done by executing DMA within the VBlank interrupt handler or through the `di` instruction.
 
 While an OAM DMA is in progress, the PPU cannot read OAM properly either.
-Thus, most programs execute DMA during [Mode 1](#ppu-modes), inside or immediately after their VBlank handler.
+Thus, most programs execute DMA during [Mode 1](rendering-overview.md#ppu-modes), inside or immediately after their VBlank handler.
 But it is also possible to execute it during display redraw (Modes 2 and 3),
 allowing to display more than 40 objects on the screen (that is, for
 example 40 objects in the top half, and other 40 objects in the bottom half of
@@ -43,19 +43,18 @@ If the transfer is started during Mode 3, graphical glitches may happen.
 
 The details:
 
-- If OAM DMA is active during OAM scan (mode 2), most PPU revisions read each object
+* If OAM DMA is active during OAM scan (mode 2), most PPU revisions read each object
   as being off-screen and thus hidden on that line.
-- If OAM DMA is active during rendering (mode 3), the PPU reads whatever 16-bit word
+* If OAM DMA is active during rendering (mode 3), the PPU reads whatever 16-bit word
   the DMA unit is writing to OAM when the object is fetched.
   This causes an incorrect tile number and attributes for objects already determined to be in range.
-
 
 ## Best practices
 
 This 10-byte routine starts a transfer and waits for it to finish.
 Many games copy a routine like it into HRAM and call it during Mode 1.
 
-```
+```asm
 run_dma:
     ld a, HIGH(start address)
     ldh [$FF46], a  ; start DMA transfer (starts right after instruction)
@@ -69,7 +68,7 @@ run_dma:
 If HRAM is tight, this more compact procedure saves 5 bytes of HRAM
 at the cost of a few M-cycles spent jumping to the tail in HRAM.
 
-```
+```asm
 run_dma:          ; This part must be in ROM.
     ld a, HIGH(start address)
     ld bc, $2846  ; B: wait time; C: LOW($FF46)

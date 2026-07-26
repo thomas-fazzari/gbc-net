@@ -1,7 +1,7 @@
 # 4-Player Adapter
 
 The 4-Player Adapter (DMG-07) is an accessory that allows 4 Game Boys
-to connect for multiplayer via [serial data transfer](#serial-data-transfer-link-cable).
+to connect for multiplayer via [serial data transfer](serial-data-transfer-link-cable.md#serial-data-transfer-link-cable).
 The device is primarily designed for DMG consoles, with later models
 requiring Link Cable adapters.
 
@@ -42,12 +42,12 @@ instead, transfer is clustered at the start, followed by a much longer delay.
 
 The power-up timing for ping packets is as follows:
 
-- Serial Clock period: 15.95 microseconds (62.66 KHz)
-- Transfer time per byte: 128 microseconds
-- Delay between bytes: 1.42 milliseconds
-- Transfer time for all bytes: 4.71 milliseconds
-- Delay between packets: 12.29 milliseconds
-- Total packet and delay time: 17 milliseconds
+* Serial Clock period: 15.95 microseconds (62.66 KHz)
+* Transfer time per byte: 128 microseconds
+* Delay between bytes: 1.42 milliseconds
+* Transfer time for all bytes: 4.71 milliseconds
+* Delay between packets: 12.29 milliseconds
+* Total packet and delay time: 17 milliseconds
 
 This means one ping packet with 4 bytes and its subsequent delay takes
 a little more time than a single Game Boy video frame.
@@ -93,14 +93,14 @@ change the speed, so it should not be used.
 In ping phase RATE only adjusts the delay between packets (byte timing is unchanged)
 and takes effect immediately upon the next packet. The timing is calculated as follows:
 
-```
+```text
 Delay between packets = (12.2 milliseconds) + ((RATE & 0x0F) * 1 millisecond)
 ```
 
 Where:
 
-- Transfer time for all bytes: 4.71 milliseconds (always)
-- Delay between packets: 12.2 to 27.21 milliseconds
+* Transfer time for all bytes: 4.71 milliseconds (always)
+* Delay between packets: 12.2 to 27.21 milliseconds
 
 This yields a range of 12.20 to 27.21 milliseconds for the total packet and delay time.
 
@@ -112,13 +112,13 @@ as described below.
 
 First determine the delay between packet bytes:
 
-```
+```text
 Delay between bytes = ((RATE >> 4) x .106 milliseconds) + 0.887 milliseconds
 ```
 
 Then the total packet and delay time will be whichever of the following is larger:
 
-```
+```text
 ((RATE & 0x0F) x 1 milliseconds) + 17 milliseconds
 or
 (Transfer time per byte + Delay between bytes) x Byte Count) + (between .36 to 2.15 milliseconds)
@@ -126,9 +126,9 @@ or
 
 Where:
 
-- Transfer time per byte: ~0.128 microseconds
-- Byte count: 4, 8, 12 or 16 depending on the setting for SIZE
-- The formula for calculating the .36 to 2.15 milliseconds add-on is not yet understood.
+* Transfer time per byte: ~0.128 microseconds
+* Byte count: 4, 8, 12 or 16 depending on the setting for SIZE
+* The formula for calculating the .36 to 2.15 milliseconds add-on is not yet understood.
 
 This yields a range of 17.0 to 41.6 milliseconds for the total packet and delay time.
 
@@ -218,20 +218,20 @@ connected.
 | Byte 2 | $11 | $88 | STAT1 and ACK2 reply by Game Boy |
 | Byte 3 | $11 | $10 | STAT2 and RATE (with a value of $10) reply by Game Boy |
 | Byte 4 | $11 | $01 | STAT2 and SIZE (with a value of $01) reply by Game Boy |
-|  |  |  |  |
+| | | | |
 | Byte 1 | $FE | $AA | Game Boy initiates switch to transmission (4 x $AA) |
-| Byte 2 | $11 | $AA |  |
-| Byte 3 | $11 | $AA |  |
-| Byte 4 | $11 | $AA |  |
-|  |  |  |  |
+| Byte 2 | $11 | $AA | |
+| Byte 3 | $11 | $AA | |
+| Byte 4 | $11 | $AA | |
+| | | | |
 | Byte 1 | $CC | $00 | Start of transmission phase indicator from DMG-07 (4 x $CC) |
-| Byte 2 | $CC | $00 |  |
-| Byte 3 | $CC | $00 |  |
+| Byte 2 | $CC | $00 | |
+| Byte 3 | $CC | $00 | |
 | Byte 4 | $CC | $00 | Final transmission phase indicator from DMG-07 |
-|  |  |  |  |
+| | | | |
 | Byte 1 | $AA | $12 | First data packet from DMG-07 (with random data) |
-| Byte 2 | $00 | $00 |  |
-| Byte 3 | $00 | $00 |  |
+| Byte 2 | $00 | $00 | |
+| Byte 3 | $00 | $00 | |
 | Byte 4 | $D6 | $00 | End of first data packet |
 
 Note: Bytes in the Received column should have the matching byte in the Reply
@@ -262,7 +262,7 @@ The following chart shows data for two consecutive packets with SIZE of 2
 | 6 | P3.0 (byte 2) | 0 | 0 | 0 | 0 |
 | 7 | P4.0 (byte 1) | 0 | 0 | 0 | 0 |
 | 8 | P4.0 (byte 2) | 0 | 0 | 0 | 0 |
-| Next Packet |  |  |  |  |  |
+| Next Packet | | | | | |
 | 1 | P1.1 (byte 1) | P1.2 (byte 1) | P2.2 (byte 1) | P3.2 (byte 1) | P4.2 (byte 1) |
 | 2 | P1.1 (byte 2) | P1.2 (byte 2) | P2.2 (byte 2) | P3.2 (byte 2) | P4.2 (byte 2) |
 | 3 | P2.1 (byte 1) | 0 | 0 | 0 | 0 |
@@ -319,21 +319,21 @@ $A5 for their data byte.
 | Byte 2 | $A5 | $00 | Data from Player 2 ($A5) |
 | Byte 3 | $A5 | $00 | Data from Player 3 ($A5) |
 | Byte 4 | $A5 | $00 | Data from Player 4 ($A5) |
-|  |  |  |  |
+| | | | |
 | Byte 1 | $81 | $FF | Game Boy initiates ping restart (4×$FF) |
-| Byte 2 | $A5 | $FF |  |
-| Byte 3 | $A5 | $FF |  |
-| Byte 4 | $A5 | $FF |  |
-|  |  |  |  |
+| Byte 2 | $A5 | $FF | |
+| Byte 3 | $A5 | $FF | |
+| Byte 4 | $A5 | $FF | |
+| | | | |
 | Byte 1 | $FF | $00 | Start of switch to ping indicator from DMG-07 (4×$FF) |
-| Byte 2 | $FF | $00 |  |
-| Byte 3 | $FF | $00 |  |
+| Byte 2 | $FF | $00 | |
+| Byte 3 | $FF | $00 | |
 | Byte 4 | $FF | $00 | Final switch to ping indicator from DMG-07 |
-|  |  |  |  |
+| | | | |
 | Byte 1 | $FE | $00 | Now returned to ping phase, start of first Ping packet |
-| Byte 2 | $01 | $88 |  |
-| Byte 3 | $01 | $88 |  |
-| Byte 4 | $F1 | $00 |  |
+| Byte 2 | $01 | $88 | |
+| Byte 3 | $01 | $88 | |
+| Byte 4 | $F1 | $00 | |
 
 Note: Bytes in the Received column should have the matching byte in the Reply
 column loaded into the SB register to be sent during the next serial transfer.

@@ -17,17 +17,17 @@ To be verified
 
 Take the following with a grain of salt, as it hasn’t been verified on authentic EMS hardware. See related github issue to contribute: [#423](https://github.com/gbdev/pandocs/issues/423).
 
-A [header](#the-cartridge-header) matching any of the following is detected as EMS mapper:
+A [header](the-cartridge-header.md#the-cartridge-header) matching any of the following is detected as EMS mapper:
 
-- Header name is “EMSMENU”, NUL-padded
-- Header name is “GB16M”, NUL-padded
-- Cartridge type ($0147) = $1B and region ($014A) = $E1
+* Header name is “EMSMENU”, NUL-padded
+* Header name is “GB16M”, NUL-padded
+* Cartridge type ($0147) = $1B and region ($014A) = $E1
 
 Registers:
 
-- $2000 write: Normal behavior, plus save written value in $2000 latch
-- $1000 write: $A5 enables configure mode, $98 disables it, and other values have no known effect
-- $7000 write while configure mode is on: Copy $2000 latch to OR mask
+* $2000 write: Normal behavior, plus save written value in $2000 latch
+* $1000 write: $A5 enables configure mode, $98 disables it, and other values have no known effect
+* $7000 write while configure mode is on: Copy $2000 latch to OR mask
 
 After the OR mask has been set, all reads from ROM will OR A21-A14 (the
 bank number) with the OR mask. This chooses which game is visible to the
@@ -53,7 +53,7 @@ the mapper consists of a single standard 74 series logic chip, it has
 two unusual properties:
 
 First, unlike a usual MBC, it switches the whole 32 KiB ROM area instead
-of just the $4000-$7FFF area. Therefore, if you want to use [the interrupt vectors](#interrupt-handling)
+of just the $4000-$7FFF area. Therefore, if you want to use [the interrupt vectors](interrupts.md#interrupt-handling)
 with this cart, you should duplicate them across all banks.
 Additionally, since the 74LS377’s contents can’t be guaranteed when powering on,
 the ROM header and some code for switching to a known bank should also
@@ -63,13 +63,13 @@ enough ROM space in each bank for some small initialization code, and
 none of the ROMs wrote to the $0000-$7FFF area. For example, if the
 last 5 bytes of all banks are unused, games can be patched as follows:
 
-```
+```asm
 ; At $0100 in all banks but the first
     nop
     jp $7FFB
 ```
 
-```
+```asm
 ; At $7FFB in all banks
     ld hl, $0100
     ld [hl], a
@@ -98,12 +98,12 @@ multicart hardware.
 Emulator authors who are interested in supporting the other multicart
 mappers are also encouraged to support detection of the following values.
 
-- Detect as Wisdom Tree mapper
-  - [ROM title](#0134-0143--title) is “WISDOM TREE” (the space may be a
+* Detect as Wisdom Tree mapper
+  * [ROM title](the-cartridge-header.md#0134-0143--title) is “WISDOM TREE” (the space may be a
     $00 NUL character instead), $0147 = $00, $0148 = $00, size > 32k.
     This method works for the games released by Wisdom Tree, Inc.
-  - $0147 = $C0, $014A = $D1.
-- Detect as EMS multicart
-  - $0147 = $1b, $014a = $e1
-- Detect as Bung multicart
-  - $0147 = $be
+  * $0147 = $C0, $014A = $D1.
+* Detect as EMS multicart
+  * $0147 = $1b, $014a = $e1
+* Detect as Bung multicart
+  * $0147 = $be
