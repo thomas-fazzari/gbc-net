@@ -21,6 +21,7 @@
 		"biome.enabled": true,
 		"biome.requireConfiguration": false,
 		"files.associations": {
+			"*.axaml": "xml",
 			"*.code-workspace": "jsonc",
 			"*.csproj": "xml",
 			"*.props": "xml",
@@ -52,11 +53,8 @@
 		},
 		"[xml]": {
 			"editor.defaultFormatter": "csharpier.csharpier-vscode",
-			"editor.formatOnSave": true
-		},
-		"[axaml]": {
-			"editor.defaultFormatter": "csharpier.csharpier-vscode",
-			"editor.formatOnSave": true
+			"editor.formatOnSave": true,
+			"editor.formatOnSaveMode": "file"
 		},
 		"[markdown]": {
 			"editor.defaultFormatter": "DavidAnson.vscode-markdownlint",

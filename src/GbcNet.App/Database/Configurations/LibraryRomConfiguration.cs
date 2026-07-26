@@ -65,6 +65,10 @@ internal sealed class LibraryRomConfiguration : IEntityTypeConfiguration<Library
             .HasColumnName("launch_count")
             .HasDefaultValue(0);
         builder
+            .Property(entry => entry.PlayTimeTicks)
+            .HasColumnName("play_time_ticks")
+            .HasDefaultValue(0);
+        builder
             .Property(entry => entry.CoverPath)
             .HasColumnName("cover_path")
             .HasMaxLength(FilePathMaxLength);

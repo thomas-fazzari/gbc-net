@@ -25,13 +25,18 @@ internal sealed class EmulationSessionPresenter(
     StatusBarPresenter statusBar,
     MainMenu menu,
     ShellOperationRunner operationRunner,
-    ILogger<EmulationSessionPresenter> logger
+    ILogger<EmulationSessionPresenter> logger,
+    TimeProvider? timeProvider = null
 )
 {
     private const int RecentRomLimit = 5;
     private const int SaveStateSlotCount = 10;
 
     private string? _loadedRomCoverPath;
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
+    private ReadOnlyMemory<byte> _activeRom;
+    private bool _hasActiveLibraryRom;
+    private long? _playStartedAtTimestamp;
 
     private static readonly FilePickerFileType _gameBoyRomFileType = new("Game Boy ROM")
     {
@@ -77,8 +82,10 @@ internal sealed class EmulationSessionPresenter(
     {
         inputRouter.Clear();
         var state = await controller.OpenRomFileAsync(file);
+        FlushPlayTime();
 
         _loadedRomCoverPath = null;
+        ClearPlayTime();
         ApplyRomActionResult(state);
 
         if (file.Path.IsFile && state.LoadedCartridgeHeader is { } cartridgeHeader)
@@ -90,6 +97,8 @@ internal sealed class EmulationSessionPresenter(
                     state.LoadedRom,
                     cartridgeHeader
                 );
+
+                BeginPlayTime(state.LoadedRom);
                 ShowLoadedRomStatus(state);
                 SyncRecentRoms();
             }
@@ -129,12 +138,20 @@ internal sealed class EmulationSessionPresenter(
     public async Task ResetAsync()
     {
         inputRouter.Clear();
-        ApplyRomActionResult(await controller.ResetAsync());
+        var state = await controller.ResetAsync();
+        ApplyRomActionResult(state);
+
+        if (state.HasSession && !state.IsPaused && _hasActiveLibraryRom)
+        {
+            ResumePlayTime();
+        }
     }
 
     public async Task StopAsync()
     {
         await controller.StopAsync();
+        FlushPlayTime();
+        ClearPlayTime();
         inputRouter.Clear();
         SyncMenuState();
         SessionClosed?.Invoke(this, EventArgs.Empty);
@@ -152,6 +169,14 @@ internal sealed class EmulationSessionPresenter(
     public void TogglePause()
     {
         controller.TogglePause();
+        if (controller.State.IsPaused)
+        {
+            FlushPlayTime();
+        }
+        else if (_hasActiveLibraryRom)
+        {
+            ResumePlayTime();
+        }
         SyncMenuState();
     }
 
@@ -209,6 +234,8 @@ internal sealed class EmulationSessionPresenter(
     {
         Dispatcher.UIThread.Post(() =>
         {
+            FlushPlayTime();
+            ClearPlayTime();
             inputRouter.Clear();
             SessionFaulted?.Invoke(this, EventArgs.Empty);
             SyncMenuState();
@@ -272,6 +299,44 @@ internal sealed class EmulationSessionPresenter(
         operationRunner.Run(() => OpenRomFileAsync(file));
     }
 
+    private void BeginPlayTime(ReadOnlyMemory<byte> rom)
+    {
+        _activeRom = rom;
+        _hasActiveLibraryRom = true;
+        ResumePlayTime();
+    }
+
+    private void ResumePlayTime() => _playStartedAtTimestamp ??= _timeProvider.GetTimestamp();
+
+    private void FlushPlayTime()
+    {
+        if (_playStartedAtTimestamp is not { } startedAt)
+        {
+            return;
+        }
+
+        _playStartedAtTimestamp = null;
+        try
+        {
+            libraryService.RecordPlayTime(
+                _activeRom,
+                _timeProvider.GetElapsedTime(startedAt, _timeProvider.GetTimestamp())
+            );
+        }
+        catch (InvalidOperationException exception)
+        {
+            EmulationSessionPresenterLog.LibraryPlayTimeRecordFailed(logger, exception);
+            statusBar.ShowError(exception.Message);
+        }
+    }
+
+    private void ClearPlayTime()
+    {
+        _activeRom = default;
+        _hasActiveLibraryRom = false;
+        _playStartedAtTimestamp = null;
+    }
+
     private void ApplyRomActionResult(EmulationControllerState state)
     {
         if (state.HasSession)
@@ -306,6 +371,9 @@ internal static partial class EmulationSessionPresenterLog
         Message = "Unavailable recent ROM could not be removed from the library."
     )]
     internal static partial void RecentRomRemovalFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "ROM play time could not be recorded.")]
+    internal static partial void LibraryPlayTimeRecordFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Fast-forward settings could not be saved.")]
     internal static partial void FastForwardSettingsSaveFailed(ILogger logger, Exception exception);

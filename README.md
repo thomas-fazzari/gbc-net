@@ -10,7 +10,7 @@
   A Game Boy, Game Boy Color & Super Game Boy emulator written in C#
 </p>
 
-<h2>🛠️ Work in Progress</h2>
+<h2>Work in Progress</h2>
 <p>
   This project is under active development. Core emulation is functional, but some features are incomplete and bugs are expected.
 </p>

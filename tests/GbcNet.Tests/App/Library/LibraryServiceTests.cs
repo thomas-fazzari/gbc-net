@@ -82,6 +82,25 @@ public sealed class LibraryServiceTests
     }
 
     [Fact]
+    public void RecordPlayTime_AccumulatesDurationForLoadedRom()
+    {
+        using var test = new LibraryTestContext();
+        var rom = TestRomFactory.Create();
+        var cartridge = TestRomFactory.LoadCartridge(rom);
+        var path = Path.Combine(Path.GetDirectoryName(test.DatabasePath)!, "time.gb");
+
+        test.Library.RecordLoadedRom(path, rom, cartridge.Header);
+        test.Library.RecordPlayTime(rom, TimeSpan.FromHours(2) + TimeSpan.FromMinutes(3));
+        test.Library.RecordPlayTime(rom, TimeSpan.FromSeconds(45));
+
+        var entry = Assert.Single(test.Library.GetRoms(limit: 10));
+        Assert.Equal(
+            TimeSpan.FromHours(2) + TimeSpan.FromMinutes(3) + TimeSpan.FromSeconds(45),
+            entry.PlayTime
+        );
+    }
+
+    [Fact]
     public void NoIntroCatalog_ReturnsCanonicalTitleAndRegions()
     {
         var metadata = NoIntroCatalog.Get("DD6E952B730C4BD85F8734156D43A2616B68C053");
@@ -413,6 +432,25 @@ public sealed class LibraryServiceTests
     }
 
     [Fact]
+    public void GetRoms_MostTimePlayedSortOrdersByPlayTimeDescending()
+    {
+        using var test = new LibraryTestContext();
+        InsertSortEntries(test.DatabasePath);
+
+        var entries = test.Library.GetRoms(
+            new LibraryQuery(Sort: LibrarySortMode.MostTimePlayed),
+            limit: 10
+        );
+
+        Assert.Collection(
+            entries,
+            entry => Assert.Equal("alpha.gb", entry.FileName),
+            entry => Assert.Equal("delta.gb", entry.FileName),
+            entry => Assert.Equal("charlie.gb", entry.FileName)
+        );
+    }
+
+    [Fact]
     public async Task AssignCoverImage_CopiesFileAndStoresCoverPath()
     {
         using var test = new LibraryTestContext();
@@ -718,6 +756,7 @@ public sealed class LibraryServiceTests
         string? cartridgeTitle = null,
         string? addedAt = null,
         int launchCount = 1,
+        TimeSpan? playTime = null,
         string? coverPath = null,
         CartridgeHardwareKind hardwareKind = CartridgeHardwareKind.GB,
         string noIntroHash = "0000000000000000000000000000000000000000"
@@ -748,6 +787,11 @@ public sealed class LibraryServiceTests
             );
         }
 
+        if (playTime is not null)
+        {
+            rom.AddPlayTime(playTime.Value);
+        }
+
         rom.SetCoverPath(coverPath);
         using var db = new TestDbContextFactory(databasePath).CreateDbContext();
         db.Roms.Add(rom);
@@ -763,7 +807,8 @@ public sealed class LibraryServiceTests
             "2026-06-27T12:03:00.0000000+00:00",
             cartridgeTitle: "Delta",
             addedAt: "2026-06-27T12:02:00.0000000+00:00",
-            launchCount: 3
+            launchCount: 3,
+            playTime: TimeSpan.FromHours(2)
         );
         InsertLibraryEntry(
             databasePath,
@@ -772,7 +817,8 @@ public sealed class LibraryServiceTests
             "2026-06-27T12:01:00.0000000+00:00",
             cartridgeTitle: "alpha",
             addedAt: "2026-06-27T12:00:00.0000000+00:00",
-            launchCount: 5
+            launchCount: 5,
+            playTime: TimeSpan.FromHours(4)
         );
         InsertLibraryEntry(
             databasePath,
@@ -781,7 +827,8 @@ public sealed class LibraryServiceTests
             "2026-06-27T12:02:00.0000000+00:00",
             cartridgeTitle: "Charlie",
             addedAt: "2026-06-27T12:04:00.0000000+00:00",
-            launchCount: 1
+            launchCount: 1,
+            playTime: TimeSpan.FromHours(1)
         );
     }
 

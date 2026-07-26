@@ -49,6 +49,8 @@ internal sealed class LibraryRom
 
     public int LaunchCount { get; private set; }
 
+    public long PlayTimeTicks { get; private set; }
+
     public string? CoverPath { get; private set; }
 
     public static LibraryRom Opened(
@@ -89,6 +91,8 @@ internal sealed class LibraryRom
     }
 
     public void SetCoverPath(string? coverPath) => CoverPath = coverPath;
+
+    public void AddPlayTime(TimeSpan duration) => PlayTimeTicks += duration.Ticks;
 
     public void StampCreated(DateTimeOffset timestamp) => AddedAt = timestamp;
 

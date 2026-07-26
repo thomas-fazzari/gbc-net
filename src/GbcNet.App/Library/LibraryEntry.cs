@@ -18,5 +18,6 @@ internal sealed record LibraryEntry(
     DateTimeOffset AddedAt,
     DateTimeOffset LastOpenedAt,
     int LaunchCount,
+    TimeSpan PlayTime,
     string? CoverPath
 );

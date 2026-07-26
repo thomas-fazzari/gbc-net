@@ -41,6 +41,7 @@ internal enum LibrarySortMode
     Title = 1,
     MostPlayed = 2,
     RecentlyAdded = 3,
+    MostTimePlayed = 4,
 }
 
 internal sealed class LibraryService(
@@ -86,6 +87,33 @@ internal sealed class LibraryService(
         }
     }
 
+    public void RecordPlayTime(ReadOnlyMemory<byte> rom, TimeSpan duration)
+    {
+        if (duration <= TimeSpan.Zero)
+        {
+            return;
+        }
+
+        try
+        {
+            var romHash = ComputeRomHash(rom.Span);
+            using var db = dbContextFactory.CreateDbContext();
+            var entry = db.Roms.AsTracking().SingleOrDefault(entry => entry.RomHash == romHash);
+
+            if (entry is null)
+            {
+                return;
+            }
+
+            entry.AddPlayTime(duration);
+            db.SaveChanges();
+        }
+        catch (Exception exception) when (IsExpectedLibraryException(exception))
+        {
+            throw CreateLibraryException(exception);
+        }
+    }
+
     public IReadOnlyList<LibraryEntry> GetRoms(int limit) => GetRoms(query: default, limit);
 
     public IReadOnlyList<LibraryEntry> GetRoms(
@@ -116,6 +144,7 @@ internal sealed class LibraryService(
                     rom.AddedAt,
                     rom.LastOpenedAt,
                     rom.LaunchCount,
+                    TimeSpan.FromTicks(rom.PlayTimeTicks),
                     rom.CoverPath
                 ));
 
@@ -149,6 +178,9 @@ internal sealed class LibraryService(
                 ),
                 LibrarySortMode.MostPlayed => entries.OrderByDescending(entry => entry.LaunchCount),
                 LibrarySortMode.RecentlyAdded => entries.OrderByDescending(entry => entry.AddedAt),
+                LibrarySortMode.MostTimePlayed => entries.OrderByDescending(entry =>
+                    entry.PlayTime
+                ),
                 _ => throw new ArgumentOutOfRangeException(
                     paramName: nameof(query),
                     actualValue: query.Sort,

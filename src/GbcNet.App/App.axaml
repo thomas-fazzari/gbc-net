@@ -41,7 +41,7 @@
     <Style Selector="Window">
       <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
     </Style>
-    <Style Selector="Button">
+    <Style Selector="Button, ComboBox, MenuItem, Slider, ToggleButton, ToggleSwitch">
       <Setter Property="Cursor" Value="Hand" />
     </Style>
     <Style Selector="Button, ToggleButton">
@@ -56,7 +56,6 @@
     </Style>
     <Style Selector="MenuItem">
       <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
-      <Setter Property="Cursor" Value="Hand" />
     </Style>
     <Style Selector="Button.chrome-button">
       <Setter Property="Height" Value="30" />

@@ -53,7 +53,8 @@ internal sealed partial class LibraryView : UserControl
         _viewMode = viewMode;
         RomGridControl.IsVisible = viewMode is LibraryViewMode.Grid;
         RomListControl.IsVisible = viewMode is LibraryViewMode.List;
-        RomListHeader.IsVisible = viewMode is LibraryViewMode.List;
+        RomListHeader.IsVisible =
+            viewMode is LibraryViewMode.List && RomListControl.ItemsSource is not null;
         GridViewToggle.IsChecked = viewMode is LibraryViewMode.Grid;
         ListViewToggle.IsChecked = viewMode is LibraryViewMode.List;
     }
@@ -64,6 +65,7 @@ internal sealed partial class LibraryView : UserControl
         var isEmpty = entries.Count == 0;
         var hasActiveQuery = HasActiveQuery;
         LibraryScrollViewer.IsVisible = !isEmpty;
+        RomListHeader.IsVisible = _viewMode is LibraryViewMode.List && !isEmpty;
         EmptyState.IsVisible = isEmpty;
         EmptyStateText.Text = hasActiveQuery ? "No matching ROMs" : "No ROMs yet";
         EmptyStateText.Foreground = AppChrome.Brush(AppChrome.Text);
@@ -106,6 +108,7 @@ internal sealed partial class LibraryView : UserControl
     {
         ClearTiles();
         LibraryScrollViewer.IsVisible = false;
+        RomListHeader.IsVisible = false;
         EmptyState.IsVisible = true;
         EmptyStateText.Text = message;
         EmptyStateText.Foreground = AppChrome.Brush(AppChrome.Error);
@@ -318,16 +321,20 @@ internal sealed partial class LibraryView : UserControl
     {
         public LibraryEntry Entry { get; } = entry;
         public Bitmap? CoverBitmap { get; } = coverBitmap;
+
         public string UserFriendlyTitle { get; } =
             entry.NoIntroMetadata?.Title ?? Path.GetFileNameWithoutExtension(entry.FileName);
+
         public string CartridgeTitle { get; } = entry.CartridgeTitle ?? string.Empty;
         public bool HasCartridgeTitle { get; } = !string.IsNullOrWhiteSpace(entry.CartridgeTitle);
+
         public string PlayCountText { get; } =
-            string.Create(
-                provider: CultureInfo.InvariantCulture,
-                handler: $"{entry.LaunchCount} play{(entry.LaunchCount == 1 ? string.Empty : "s")}"
-            );
+            entry.LaunchCount.ToString(CultureInfo.InvariantCulture);
+
+        public string PlayTimeText { get; } = FormatPlayTime(entry.PlayTime);
+
         public string HardwareText { get; } = entry.HardwareKind.ToString();
+
         public bool HasJapan { get; } =
             entry.NoIntroMetadata?.Regions.HasFlag(NoIntroRegion.Japan) is true;
         public bool HasUsa { get; } =
@@ -336,7 +343,37 @@ internal sealed partial class LibraryView : UserControl
             entry.NoIntroMetadata?.Regions.HasFlag(NoIntroRegion.Europe) is true;
         public bool HasWorld { get; } =
             entry.NoIntroMetadata?.Regions.HasFlag(NoIntroRegion.World) is true;
+        public bool HasOther { get; } =
+            entry.NoIntroMetadata is { Regions: var regions }
+            && (
+                regions
+                & ~(
+                    NoIntroRegion.Japan
+                    | NoIntroRegion.Usa
+                    | NoIntroRegion.Europe
+                    | NoIntroRegion.World
+                )
+            ) != NoIntroRegion.None;
+
         public string LastPlayedText { get; } =
             entry.LastOpenedAt.ToLocalTime().ToString("d", CultureInfo.CurrentCulture);
+
+        private static string FormatPlayTime(TimeSpan playTime)
+        {
+            if (playTime < TimeSpan.FromMinutes(1))
+            {
+                return string.Create(CultureInfo.InvariantCulture, $"{playTime.Seconds} s");
+            }
+
+            if (playTime < TimeSpan.FromHours(1))
+            {
+                return string.Create(CultureInfo.InvariantCulture, $"{playTime.Minutes} min");
+            }
+
+            return string.Create(
+                CultureInfo.InvariantCulture,
+                $"{(int)playTime.TotalHours}h {playTime.Minutes:D2}m"
+            );
+        }
     }
 }

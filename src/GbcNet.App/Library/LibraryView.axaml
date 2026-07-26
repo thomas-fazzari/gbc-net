@@ -262,8 +262,9 @@
             >
               <ComboBoxItem Tag="LastOpened">Last played</ComboBoxItem>
               <ComboBoxItem Tag="Title">Title</ComboBoxItem>
-              <ComboBoxItem Tag="MostPlayed">Most played</ComboBoxItem>
+              <ComboBoxItem Tag="MostPlayed">Frequently played</ComboBoxItem>
               <ComboBoxItem Tag="RecentlyAdded">Recently added</ComboBoxItem>
+              <ComboBoxItem Tag="MostTimePlayed">Time played</ComboBoxItem>
             </ComboBox>
           </Grid>
         </Border>
@@ -276,13 +277,18 @@
             BorderBrush="{DynamicResource ChromeSelectedBorderBrush}"
             BorderThickness="0,0,0,1"
           >
-            <Grid Margin="0,0,12,0" ColumnDefinitions="56,*,90,100,80,132,28" ColumnSpacing="12">
+            <Grid
+              Margin="0,0,12,0"
+              ColumnDefinitions="56,*,76,100,104,74,110,28"
+              ColumnSpacing="12"
+            >
               <TextBlock Grid.Column="0" Classes="library-list-header" Text="Cover" />
               <TextBlock Grid.Column="1" Classes="library-list-header" Text="ROM" />
               <TextBlock Grid.Column="2" Classes="library-list-header" Text="System" />
               <TextBlock Grid.Column="3" Classes="library-list-header" Text="Region" />
-              <TextBlock Grid.Column="4" Classes="library-list-header" Text="Plays" />
-              <TextBlock Grid.Column="5" Classes="library-list-header" Text="Last played" />
+              <TextBlock Grid.Column="4" Classes="library-list-header" Text="Time Played" />
+              <TextBlock Grid.Column="5" Classes="library-list-header" Text="Plays" />
+              <TextBlock Grid.Column="6" Classes="library-list-header" Text="Last played" />
             </Grid>
           </Border>
 
@@ -340,13 +346,25 @@
                           TextWrapping="Wrap"
                           VerticalAlignment="Top"
                         />
-                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,28" ColumnSpacing="8">
-                          <TextBlock
-                            Text="{Binding PlayCountText}"
-                            Foreground="{DynamicResource ChromeMutedBrush}"
-                            FontSize="11"
+                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,28" ColumnSpacing="2">
+                          <StackPanel
+                            Spacing="4"
+                            Orientation="Horizontal"
                             VerticalAlignment="Center"
-                          />
+                          >
+                            <PathIcon
+                              Width="12"
+                              Height="12"
+                              Data="{StaticResource IconTimerRegular}"
+                              Foreground="{DynamicResource ChromeMutedBrush}"
+                            />
+                            <TextBlock
+                              Text="{Binding PlayTimeText}"
+                              Foreground="{DynamicResource ChromeMutedBrush}"
+                              FontSize="11"
+                              VerticalAlignment="Center"
+                            />
+                          </StackPanel>
                           <Border
                             Grid.Column="1"
                             Classes="badge tile-badge"
@@ -387,7 +405,7 @@
                       Width="{Binding Bounds.Width, ElementName=RomListControl}"
                       Click="OnRomTileClick"
                     >
-                      <Grid ColumnDefinitions="56,*,90,100,80,132,28" ColumnSpacing="12">
+                      <Grid ColumnDefinitions="56,*,76,100,104,74,110,28" ColumnSpacing="12">
                         <Border
                           Width="48"
                           Height="48"
@@ -489,16 +507,30 @@
                               Stretch="Fill"
                             />
                           </Border>
+                          <TextBlock
+                            IsVisible="{Binding HasOther}"
+                            Text="Other"
+                            Foreground="{DynamicResource ChromeStatusBrush}"
+                            FontSize="12"
+                            VerticalAlignment="Center"
+                          />
                         </StackPanel>
                         <TextBlock
                           Grid.Column="4"
-                          Text="{Binding PlayCountText}"
+                          Text="{Binding PlayTimeText}"
                           Foreground="{DynamicResource ChromeStatusBrush}"
                           FontSize="12"
                           VerticalAlignment="Center"
                         />
                         <TextBlock
                           Grid.Column="5"
+                          Text="{Binding PlayCountText}"
+                          Foreground="{DynamicResource ChromeStatusBrush}"
+                          FontSize="12"
+                          VerticalAlignment="Center"
+                        />
+                        <TextBlock
+                          Grid.Column="6"
                           Text="{Binding LastPlayedText}"
                           Foreground="{DynamicResource ChromeStatusBrush}"
                           FontSize="12"
@@ -506,7 +538,7 @@
                           VerticalAlignment="Center"
                         />
                         <Button
-                          Grid.Column="6"
+                          Grid.Column="7"
                           Classes="tile-actions"
                           Loaded="OnTileActionsButtonLoaded"
                           Click="OnTileActionsButtonClick"

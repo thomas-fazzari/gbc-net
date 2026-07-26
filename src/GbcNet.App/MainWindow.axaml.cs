@@ -126,7 +126,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         _gamepadManager.Start();
         libraryView.OpenRomRequested = () =>
             _operationRunner.Run(() => _emulationSession.OpenRomAsync(StorageProvider));
-        libraryView.ViewModeChanged = SaveLibraryViewMode;
+        libraryView.ViewModeChanged = viewMode => SaveLibraryViewMode(libraryView, viewMode);
 
         var libraryPresenter = new LibraryPresenter(
             libraryView,
@@ -286,7 +286,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
     }
 
-    private void SaveLibraryViewMode(LibraryViewMode viewMode)
+    private void SaveLibraryViewMode(LibraryView libraryView, LibraryViewMode viewMode)
     {
         try
         {
@@ -295,7 +295,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         catch (ConfigurationException exception)
         {
             MainWindowLog.LibrarySettingsSaveFailed(_logger, exception);
-            _statusBar.ShowError(exception.Message);
+            libraryView.ShowError(exception.Message);
         }
     }
 
