@@ -2,28 +2,50 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Globalization;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using GbcNet.App.Configuration.Sections.Library;
-using GbcNet.App.Database.Entities;
 using GbcNet.App.Shell.Chrome;
 
 namespace GbcNet.App.Library;
 
 internal sealed partial class LibraryView : UserControl
 {
+    private const double MinimumRomTableColumnsWidth = 692;
+    private const double RomTableVerticalScrollbarWidth = 16;
+
+    private static readonly double[] _romTableColumnMinimumWidths =
+    [
+        60,
+        160,
+        72,
+        108,
+        88,
+        50,
+        90,
+        64,
+    ];
+
     private readonly List<Bitmap> _coverBitmaps = [];
     private LibraryHardwareFilter _hardwareFilter;
     private LibraryRegionFilter _regionFilter;
     private LibrarySortMode _sortMode;
     private LibraryViewMode _viewMode;
+    private bool _clampingRomTableColumnWidth;
     private bool _refreshingFilters;
 
     public LibraryView()
     {
         InitializeComponent();
+
+        foreach (var column in RomTableView.Columns)
+        {
+            column.PropertyChanged += OnRomTableColumnWidthChanged;
+        }
+
         _hardwareFilter = LibraryHardwareFilter.All;
         _regionFilter = LibraryRegionFilter.All;
         _sortMode = LibrarySortMode.LastOpened;
@@ -52,9 +74,10 @@ internal sealed partial class LibraryView : UserControl
 
         _viewMode = viewMode;
         RomGridControl.IsVisible = viewMode is LibraryViewMode.Grid;
-        RomListControl.IsVisible = viewMode is LibraryViewMode.List;
-        RomListHeader.IsVisible =
-            viewMode is LibraryViewMode.List && RomListControl.ItemsSource is not null;
+        LibraryScrollViewer.IsVisible =
+            viewMode is LibraryViewMode.Grid && RomGridControl.ItemsSource is not null;
+        RomTableView.IsVisible =
+            viewMode is LibraryViewMode.List && RomTableView.ItemsSource is not null;
         GridViewToggle.IsChecked = viewMode is LibraryViewMode.Grid;
         ListViewToggle.IsChecked = viewMode is LibraryViewMode.List;
     }
@@ -64,8 +87,8 @@ internal sealed partial class LibraryView : UserControl
         ClearTiles();
         var isEmpty = entries.Count == 0;
         var hasActiveQuery = HasActiveQuery;
-        LibraryScrollViewer.IsVisible = !isEmpty;
-        RomListHeader.IsVisible = _viewMode is LibraryViewMode.List && !isEmpty;
+        LibraryScrollViewer.IsVisible = !isEmpty && _viewMode is LibraryViewMode.Grid;
+        RomTableView.IsVisible = !isEmpty && _viewMode is LibraryViewMode.List;
         EmptyState.IsVisible = isEmpty;
         EmptyStateText.Text = hasActiveQuery ? "No matching ROMs" : "No ROMs yet";
         EmptyStateText.Foreground = AppChrome.Brush(AppChrome.Text);
@@ -87,7 +110,7 @@ internal sealed partial class LibraryView : UserControl
         }
 
         RomGridControl.ItemsSource = tiles;
-        RomListControl.ItemsSource = tiles;
+        RomTableView.ItemsSource = tiles;
     }
 
     public Task<bool> ConfirmRemoveAsync()
@@ -108,7 +131,7 @@ internal sealed partial class LibraryView : UserControl
     {
         ClearTiles();
         LibraryScrollViewer.IsVisible = false;
-        RomListHeader.IsVisible = false;
+        RomTableView.IsVisible = false;
         EmptyState.IsVisible = true;
         EmptyStateText.Text = message;
         EmptyStateText.Foreground = AppChrome.Brush(AppChrome.Error);
@@ -121,6 +144,47 @@ internal sealed partial class LibraryView : UserControl
         || _hardwareFilter != LibraryHardwareFilter.All
         || _regionFilter != LibraryRegionFilter.All
         || _sortMode != LibrarySortMode.LastOpened;
+
+    private void OnRomTableColumnWidthChanged(
+        object? sender,
+        AvaloniaPropertyChangedEventArgs change
+    )
+    {
+        if (
+            sender is not TableViewColumn column
+            || _clampingRomTableColumnWidth
+            || change.Property != TableViewColumn.WidthProperty
+            || !column.CanUserEffectivelyResize
+            || !column.Width.IsAbsolute
+        )
+        {
+            return;
+        }
+
+        var columnIndex = RomTableView.Columns.IndexOf(column);
+
+        var minimumWidth = _romTableColumnMinimumWidths[columnIndex];
+        var maximumWidth =
+            RomTableView.Bounds.Width
+            - RomTableVerticalScrollbarWidth
+            - (MinimumRomTableColumnsWidth - minimumWidth);
+
+        var clampedWidth = Math.Clamp(column.Width.Value, minimumWidth, maximumWidth);
+        if (Math.Abs(clampedWidth - column.Width.Value) < 0.01)
+        {
+            return;
+        }
+
+        _clampingRomTableColumnWidth = true;
+        try
+        {
+            column.Width = new GridLength(clampedWidth);
+        }
+        finally
+        {
+            _clampingRomTableColumnWidth = false;
+        }
+    }
 
     private void OnOpenRomClick(object? sender, RoutedEventArgs e) => OpenRomRequested?.Invoke();
 
@@ -236,6 +300,16 @@ internal sealed partial class LibraryView : UserControl
 
     private void OnRomTileClick(object? sender, RoutedEventArgs e)
     {
+        if (
+            sender is TableView tableView
+            && e is SelectionChangedEventArgs { AddedItems: [LibraryTile selectedTile] }
+        )
+        {
+            tableView.SelectedItem = null;
+            RomSelected?.Invoke(selectedTile.Entry);
+            return;
+        }
+
         if (sender is Control { DataContext: LibraryTile tile })
         {
             RomSelected?.Invoke(tile.Entry);
@@ -303,7 +377,7 @@ internal sealed partial class LibraryView : UserControl
     private void ClearTiles()
     {
         RomGridControl.ItemsSource = null;
-        RomListControl.ItemsSource = null;
+        RomTableView.ItemsSource = null;
         DisposeCoverBitmaps();
     }
 

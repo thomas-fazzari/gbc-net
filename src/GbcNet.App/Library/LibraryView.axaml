@@ -88,28 +88,33 @@
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="VerticalContentAlignment" Value="Stretch" />
     </Style>
-    <Style Selector="Button.library-tile:pointerover, Button.library-list-row:pointerover">
+    <Style Selector="Button.library-tile:pointerover">
       <Setter Property="Background" Value="{DynamicResource ChromePanelBrush}" />
     </Style>
-    <Style Selector="Button.library-list-row">
-      <Setter Property="Height" Value="64" />
-      <Setter Property="Margin" Value="0,0,0,1" />
-      <Setter Property="Padding" Value="10,4" />
-      <Setter Property="Background" Value="Transparent" />
+    <Style Selector="TableView.library-list-row">
+      <Setter Property="Foreground" Value="{DynamicResource ChromeStatusBrush}" />
+      <Setter Property="Background" Value="{DynamicResource ChromeBackgroundBrush}" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-      <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="Button.library-list-row:pressed">
-      <Setter Property="RenderTransform" Value="none" />
-    </Style>
-    <Style Selector="TextBlock.library-list-header">
+    <Style Selector="TableView.library-list-row TableViewColumnHeader">
+      <Setter Property="Padding" Value="6,4" />
+      <Setter Property="Background" Value="{DynamicResource ChromeBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeSelectedBorderBrush}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
       <Setter Property="Foreground" Value="{DynamicResource ChromeStatusBrush}" />
       <Setter Property="FontSize" Value="11" />
       <Setter Property="FontWeight" Value="Medium" />
-      <Setter Property="HorizontalAlignment" Value="Left" />
-      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TableView.library-list-row TableViewRow">
+      <Setter Property="MinHeight" Value="64" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="TableView.library-list-row TableViewCell">
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TableView.library-list-row /template/ ScrollViewer#PART_ScrollViewer /template/ ScrollBar#PART_VerticalScrollBar">
+      <Setter Property="Margin" Value="0,22,0,0" />
     </Style>
     <Style Selector="Border.tile-badge">
       <Setter Property="Height" Value="22" />
@@ -269,36 +274,13 @@
           </Grid>
         </Border>
 
-        <Grid Grid.Row="1" RowDefinitions="Auto,*">
-          <Border
-            x:Name="RomListHeader"
-            IsVisible="False"
-            Padding="10,2,10,8"
-            BorderBrush="{DynamicResource ChromeSelectedBorderBrush}"
-            BorderThickness="0,0,0,1"
-          >
-            <Grid
-              Margin="0,0,12,0"
-              ColumnDefinitions="56,*,76,100,104,74,110,28"
-              ColumnSpacing="12"
-            >
-              <TextBlock Grid.Column="0" Classes="library-list-header" Text="Cover" />
-              <TextBlock Grid.Column="1" Classes="library-list-header" Text="ROM" />
-              <TextBlock Grid.Column="2" Classes="library-list-header" Text="System" />
-              <TextBlock Grid.Column="3" Classes="library-list-header" Text="Region" />
-              <TextBlock Grid.Column="4" Classes="library-list-header" Text="Time Played" />
-              <TextBlock Grid.Column="5" Classes="library-list-header" Text="Plays" />
-              <TextBlock Grid.Column="6" Classes="library-list-header" Text="Last played" />
-            </Grid>
-          </Border>
-
+        <Grid Grid.Row="1">
           <ScrollViewer
-            Grid.Row="1"
             x:Name="LibraryScrollViewer"
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto"
           >
-            <Grid Margin="0,0,12,0">
+            <Grid>
               <ItemsControl x:Name="RomGridControl">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
@@ -391,170 +373,211 @@
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
-
-              <ItemsControl x:Name="RomListControl" IsVisible="False">
-                <ItemsControl.Styles>
-                  <Style Selector="ContentPresenter">
-                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                  </Style>
-                </ItemsControl.Styles>
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:CompileBindings="False">
-                    <Button
-                      Classes="library-list-row"
-                      Width="{Binding Bounds.Width, ElementName=RomListControl}"
-                      Click="OnRomTileClick"
-                    >
-                      <Grid ColumnDefinitions="56,*,76,100,104,74,110,28" ColumnSpacing="12">
-                        <Border
-                          Width="48"
-                          Height="48"
-                          Background="{DynamicResource ChromeSurfaceBrush}"
-                          ClipToBounds="True"
-                          CornerRadius="{DynamicResource ChromeCornerRadius}"
-                        >
-                          <Grid>
-                            <Image
-                              Source="{Binding CoverBitmap}"
-                              IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNotNull}}"
-                              Stretch="Fill"
-                            />
-                            <TextBlock
-                              Text="ROM"
-                              IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNull}}"
-                              Foreground="{DynamicResource ChromeMutedBrush}"
-                              FontSize="10"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"
-                            />
-                          </Grid>
-                        </Border>
-                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                          <TextBlock
-                            Text="{Binding UserFriendlyTitle}"
-                            Foreground="{DynamicResource ChromeTextBrush}"
-                            FontSize="13"
-                            FontWeight="Medium"
-                            TextTrimming="CharacterEllipsis"
-                            MaxLines="1"
-                            TextWrapping="NoWrap"
-                          />
-                          <TextBlock
-                            Text="{Binding CartridgeTitle}"
-                            IsVisible="{Binding HasCartridgeTitle}"
-                            Foreground="{DynamicResource ChromeMutedBrush}"
-                            FontSize="11"
-                            TextTrimming="CharacterEllipsis"
-                            MaxLines="1"
-                            TextWrapping="NoWrap"
-                          />
-                        </StackPanel>
-                        <TextBlock
-                          Grid.Column="2"
-                          Text="{Binding HardwareText}"
-                          Foreground="{DynamicResource ChromeStatusBrush}"
-                          FontSize="12"
-                          VerticalAlignment="Center"
-                        />
-                        <StackPanel
-                          Grid.Column="3"
-                          Spacing="4"
-                          Orientation="Horizontal"
-                          VerticalAlignment="Center"
-                        >
-                          <Border
-                            Width="21"
-                            Height="14"
-                            IsVisible="{Binding HasJapan}"
-                            ClipToBounds="True"
-                            CornerRadius="2"
-                          >
-                            <Image
-                              Source="avares://GbcNet/Assets/Images/japan.png"
-                              Stretch="Fill"
-                            />
-                          </Border>
-                          <Border
-                            Width="21"
-                            Height="14"
-                            IsVisible="{Binding HasUsa}"
-                            ClipToBounds="True"
-                            CornerRadius="2"
-                          >
-                            <Image Source="avares://GbcNet/Assets/Images/usa.png" Stretch="Fill" />
-                          </Border>
-                          <Border
-                            Width="21"
-                            Height="14"
-                            IsVisible="{Binding HasEurope}"
-                            ClipToBounds="True"
-                            CornerRadius="2"
-                          >
-                            <Image
-                              Source="avares://GbcNet/Assets/Images/europe.png"
-                              Stretch="Fill"
-                            />
-                          </Border>
-                          <Border
-                            Width="21"
-                            Height="14"
-                            IsVisible="{Binding HasWorld}"
-                            ClipToBounds="True"
-                            CornerRadius="2"
-                          >
-                            <Image
-                              Source="avares://GbcNet/Assets/Images/world.png"
-                              Stretch="Fill"
-                            />
-                          </Border>
-                          <TextBlock
-                            IsVisible="{Binding HasOther}"
-                            Text="Other"
-                            Foreground="{DynamicResource ChromeStatusBrush}"
-                            FontSize="12"
-                            VerticalAlignment="Center"
-                          />
-                        </StackPanel>
-                        <TextBlock
-                          Grid.Column="4"
-                          Text="{Binding PlayTimeText}"
-                          Foreground="{DynamicResource ChromeStatusBrush}"
-                          FontSize="12"
-                          VerticalAlignment="Center"
-                        />
-                        <TextBlock
-                          Grid.Column="5"
-                          Text="{Binding PlayCountText}"
-                          Foreground="{DynamicResource ChromeStatusBrush}"
-                          FontSize="12"
-                          VerticalAlignment="Center"
-                        />
-                        <TextBlock
-                          Grid.Column="6"
-                          Text="{Binding LastPlayedText}"
-                          Foreground="{DynamicResource ChromeStatusBrush}"
-                          FontSize="12"
-                          TextTrimming="CharacterEllipsis"
-                          VerticalAlignment="Center"
-                        />
-                        <Button
-                          Grid.Column="7"
-                          Classes="tile-actions"
-                          Loaded="OnTileActionsButtonLoaded"
-                          Click="OnTileActionsButtonClick"
-                          AutomationProperties.Name="ROM actions"
-                        >
-                          <PathIcon Width="12" Height="12" Data="{StaticResource IconSettings}" />
-                        </Button>
-                      </Grid>
-                    </Button>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
             </Grid>
           </ScrollViewer>
+          <TableView
+            x:Name="RomTableView"
+            IsVisible="False"
+            Classes="library-list-row"
+            CanUserResizeColumns="True"
+            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+            SelectionChanged="OnRomTileClick"
+          >
+            <TableView.Resources>
+              <StaticResource
+                x:Key="SystemControlBackgroundChromeMediumBrush"
+                ResourceKey="ChromeBackgroundBrush"
+              />
+              <StaticResource
+                x:Key="TableViewColumnHeaderSeparatorBackground"
+                ResourceKey="ChromeHairBrush"
+              />
+              <StaticResource x:Key="TableViewRowBackground" ResourceKey="ChromeBackgroundBrush" />
+              <StaticResource
+                x:Key="TableViewRowBackgroundPointerOver"
+                ResourceKey="ChromePanelBrush"
+              />
+              <StaticResource
+                x:Key="TableViewRowBackgroundPressed"
+                ResourceKey="ChromePanelBrush"
+              />
+              <Thickness x:Key="TableViewRowPadding">0</Thickness>
+              <Thickness x:Key="TableViewCellPadding">6,4</Thickness>
+              <ControlTheme x:Key="LibraryTableLastHeaderTheme" TargetType="TableViewColumnHeader">
+                <Setter Property="Template">
+                  <ControlTemplate>
+                    <ContentPresenter
+                      Background="{TemplateBinding Background}"
+                      BorderBrush="{TemplateBinding BorderBrush}"
+                      BorderThickness="{TemplateBinding BorderThickness}"
+                      Content="{TemplateBinding Content}"
+                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                      CornerRadius="{TemplateBinding CornerRadius}"
+                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                      Padding="{TemplateBinding Padding}"
+                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                    />
+                  </ControlTemplate>
+                </Setter>
+              </ControlTheme>
+            </TableView.Resources>
+            <TableView.Columns>
+              <TableViewColumn
+                Header="Cover"
+                Width="60"
+                CanUserResize="False"
+                HorizontalContentAlignment="Center"
+              >
+                <TableViewColumn.CellTemplate>
+                  <DataTemplate x:CompileBindings="False">
+                    <Border
+                      Width="48"
+                      Height="48"
+                      Background="{DynamicResource ChromeSurfaceBrush}"
+                      ClipToBounds="True"
+                      CornerRadius="{DynamicResource ChromeCornerRadius}"
+                    >
+                      <Grid>
+                        <Image
+                          Source="{Binding CoverBitmap}"
+                          IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNotNull}}"
+                          Stretch="Fill"
+                        />
+                        <TextBlock
+                          Text="ROM"
+                          IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNull}}"
+                          Foreground="{DynamicResource ChromeMutedBrush}"
+                          FontSize="10"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                        />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </TableViewColumn.CellTemplate>
+              </TableViewColumn>
+              <TableViewColumn Header="ROM" Width="*">
+                <TableViewColumn.CellTemplate>
+                  <DataTemplate x:CompileBindings="False">
+                    <StackPanel Spacing="2" VerticalAlignment="Center">
+                      <TextBlock
+                        Text="{Binding UserFriendlyTitle}"
+                        Foreground="{DynamicResource ChromeTextBrush}"
+                        FontSize="13"
+                        FontWeight="Medium"
+                        TextTrimming="CharacterEllipsis"
+                        MaxLines="1"
+                        TextWrapping="NoWrap"
+                      />
+                      <TextBlock
+                        Text="{Binding CartridgeTitle}"
+                        IsVisible="{Binding HasCartridgeTitle}"
+                        Foreground="{DynamicResource ChromeMutedBrush}"
+                        FontSize="11"
+                        TextTrimming="CharacterEllipsis"
+                        MaxLines="1"
+                        TextWrapping="NoWrap"
+                      />
+                    </StackPanel>
+                  </DataTemplate>
+                </TableViewColumn.CellTemplate>
+              </TableViewColumn>
+              <TableViewColumn
+                Header="System"
+                Width="96"
+                Binding="{ReflectionBinding HardwareText}"
+              />
+              <TableViewColumn Header="Region" Width="108">
+                <TableViewColumn.CellTemplate>
+                  <DataTemplate x:CompileBindings="False">
+                    <StackPanel Spacing="4" Orientation="Horizontal" VerticalAlignment="Center">
+                      <Border
+                        Width="21"
+                        Height="14"
+                        IsVisible="{Binding HasJapan}"
+                        ClipToBounds="True"
+                        CornerRadius="2"
+                      >
+                        <Image Source="avares://GbcNet/Assets/Images/japan.png" Stretch="Fill" />
+                      </Border>
+                      <Border
+                        Width="21"
+                        Height="14"
+                        IsVisible="{Binding HasUsa}"
+                        ClipToBounds="True"
+                        CornerRadius="2"
+                      >
+                        <Image Source="avares://GbcNet/Assets/Images/usa.png" Stretch="Fill" />
+                      </Border>
+                      <Border
+                        Width="21"
+                        Height="14"
+                        IsVisible="{Binding HasEurope}"
+                        ClipToBounds="True"
+                        CornerRadius="2"
+                      >
+                        <Image Source="avares://GbcNet/Assets/Images/europe.png" Stretch="Fill" />
+                      </Border>
+                      <Border
+                        Width="21"
+                        Height="14"
+                        IsVisible="{Binding HasWorld}"
+                        ClipToBounds="True"
+                        CornerRadius="2"
+                      >
+                        <Image Source="avares://GbcNet/Assets/Images/world.png" Stretch="Fill" />
+                      </Border>
+                      <TextBlock
+                        IsVisible="{Binding HasOther}"
+                        Text="Other"
+                        Foreground="{DynamicResource ChromeStatusBrush}"
+                        FontSize="12"
+                        VerticalAlignment="Center"
+                      />
+                    </StackPanel>
+                  </DataTemplate>
+                </TableViewColumn.CellTemplate>
+              </TableViewColumn>
+              <TableViewColumn
+                Header="Time Played"
+                Width="112"
+                Binding="{ReflectionBinding PlayTimeText}"
+              />
+              <TableViewColumn
+                Header="Plays"
+                Width="80"
+                Binding="{ReflectionBinding PlayCountText}"
+              />
+              <TableViewColumn
+                Header="Last played"
+                Width="120"
+                Binding="{ReflectionBinding LastPlayedText}"
+              />
+              <TableViewColumn
+                Header="Actions"
+                Width="64"
+                CanUserResize="False"
+                HeaderTheme="{StaticResource LibraryTableLastHeaderTheme}"
+                HorizontalContentAlignment="Left"
+              >
+                <TableViewColumn.CellTemplate>
+                  <DataTemplate x:CompileBindings="False">
+                    <Button
+                      Classes="tile-actions"
+                      HorizontalAlignment="Left"
+                      Loaded="OnTileActionsButtonLoaded"
+                      Click="OnTileActionsButtonClick"
+                      AutomationProperties.Name="ROM actions"
+                    >
+                      <PathIcon Width="12" Height="12" Data="{StaticResource IconSettings}" />
+                    </Button>
+                  </DataTemplate>
+                </TableViewColumn.CellTemplate>
+              </TableViewColumn>
+            </TableView.Columns>
+          </TableView>
 
-          <Grid x:Name="EmptyState" Grid.RowSpan="2">
+          <Grid x:Name="EmptyState">
             <StackPanel
               MaxWidth="320"
               Spacing="8"
