@@ -4,6 +4,7 @@
 using System.Security.Cryptography;
 using GbcNet.App.Database;
 using GbcNet.App.Database.Entities;
+using GbcNet.App.Sorting;
 using GbcNet.Core.Cartridges;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -13,8 +14,9 @@ namespace GbcNet.App.Library;
 internal readonly record struct LibraryQuery(
     string? SearchText = null,
     LibraryHardwareFilter Hardware = LibraryHardwareFilter.All,
-    LibrarySortMode Sort = LibrarySortMode.LastOpened,
-    LibraryRegionFilter Region = LibraryRegionFilter.All
+    LibrarySortField Sort = LibrarySortField.LastOpened,
+    LibraryRegionFilter Region = LibraryRegionFilter.All,
+    SortDirection? SortDirection = null
 );
 
 internal enum LibraryHardwareFilter
@@ -35,7 +37,7 @@ internal enum LibraryRegionFilter
     Other = 5,
 }
 
-internal enum LibrarySortMode
+internal enum LibrarySortField
 {
     LastOpened = 0,
     Title = 1,
@@ -122,6 +124,7 @@ internal sealed class LibraryService(
     )
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+
         try
         {
             using var db = dbContextFactory.CreateDbContext();
@@ -167,26 +170,8 @@ internal sealed class LibraryService(
             }
 
             entries = entries.Where(entry => MatchesRegion(entry.NoIntroMetadata, query.Region));
-            var orderedEntries = query.Sort switch
-            {
-                LibrarySortMode.LastOpened => entries.OrderByDescending(entry =>
-                    entry.LastOpenedAt
-                ),
-                LibrarySortMode.Title => entries.OrderBy(
-                    entry => entry.NoIntroMetadata?.Title ?? entry.CartridgeTitle ?? entry.FileName,
-                    StringComparer.OrdinalIgnoreCase
-                ),
-                LibrarySortMode.MostPlayed => entries.OrderByDescending(entry => entry.LaunchCount),
-                LibrarySortMode.RecentlyAdded => entries.OrderByDescending(entry => entry.AddedAt),
-                LibrarySortMode.MostTimePlayed => entries.OrderByDescending(entry =>
-                    entry.PlayTime
-                ),
-                _ => throw new ArgumentOutOfRangeException(
-                    paramName: nameof(query),
-                    actualValue: query.Sort,
-                    message: null
-                ),
-            };
+
+            var orderedEntries = OrderEntries(entries, query);
 
             return
             [
@@ -199,6 +184,54 @@ internal sealed class LibraryService(
         {
             throw CreateLibraryException(exception);
         }
+    }
+
+    private static IOrderedEnumerable<LibraryEntry> OrderEntries(
+        IEnumerable<LibraryEntry> entries,
+        LibraryQuery query
+    )
+    {
+        var isAscending = query.SortDirection switch
+        {
+            SortDirection.Ascending => true,
+            SortDirection.Descending => false,
+            null => query.Sort == LibrarySortField.Title,
+            _ => throw new ArgumentOutOfRangeException(
+                paramName: nameof(query),
+                actualValue: query.SortDirection,
+                message: null
+            ),
+        };
+
+        return query.Sort switch
+        {
+            LibrarySortField.LastOpened => isAscending
+                ? entries.OrderBy(entry => entry.LastOpenedAt)
+                : entries.OrderByDescending(entry => entry.LastOpenedAt),
+            LibrarySortField.Title => isAscending
+                ? entries.OrderBy(
+                    entry => entry.NoIntroMetadata?.Title ?? entry.CartridgeTitle ?? entry.FileName,
+                    StringComparer.OrdinalIgnoreCase
+                )
+                : entries.OrderByDescending(
+                    entry => entry.NoIntroMetadata?.Title ?? entry.CartridgeTitle ?? entry.FileName,
+                    StringComparer.OrdinalIgnoreCase
+                ),
+            LibrarySortField.MostPlayed => isAscending
+                ? entries.OrderBy(entry => entry.LaunchCount)
+                : entries.OrderByDescending(entry => entry.LaunchCount),
+            LibrarySortField.RecentlyAdded => isAscending
+                ? entries.OrderBy(entry => entry.AddedAt)
+                : entries.OrderByDescending(entry => entry.AddedAt),
+            LibrarySortField.MostTimePlayed => isAscending
+                ? entries.OrderBy(entry => entry.PlayTime)
+                : entries.OrderByDescending(entry => entry.PlayTime),
+            _ => throw new ArgumentOutOfRangeException(
+                paramName: nameof(query),
+                actualValue: query.Sort,
+                message: null
+            ),
+        };
     }
 
     public void RemoveRomPath(string path)

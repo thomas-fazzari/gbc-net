@@ -5,6 +5,7 @@ using System.Globalization;
 using GbcNet.App.Database;
 using GbcNet.App.Database.Entities;
 using GbcNet.App.Library;
+using GbcNet.App.Sorting;
 using GbcNet.Core.Cartridges;
 using GbcNet.Tests.Cartridges;
 using Microsoft.EntityFrameworkCore;
@@ -381,7 +382,7 @@ public sealed class LibraryServiceTests
         InsertSortEntries(test.DatabasePath);
 
         var entries = test.Library.GetRoms(
-            new LibraryQuery(Sort: LibrarySortMode.Title),
+            new LibraryQuery(Sort: LibrarySortField.Title),
             limit: 10
         );
 
@@ -394,13 +395,32 @@ public sealed class LibraryServiceTests
     }
 
     [Fact]
+    public void GetRoms_TitleSortOrdersByDisplayTitleDescendingWhenExplicit()
+    {
+        using var test = new LibraryTestContext();
+        InsertSortEntries(test.DatabasePath);
+
+        var entries = test.Library.GetRoms(
+            new LibraryQuery(Sort: LibrarySortField.Title, SortDirection: SortDirection.Descending),
+            limit: 10
+        );
+
+        Assert.Collection(
+            entries,
+            entry => Assert.Equal("delta.gb", entry.FileName),
+            entry => Assert.Equal("charlie.gb", entry.FileName),
+            entry => Assert.Equal("alpha.gb", entry.FileName)
+        );
+    }
+
+    [Fact]
     public void GetRoms_MostPlayedSortOrdersByLaunchCountDescending()
     {
         using var test = new LibraryTestContext();
         InsertSortEntries(test.DatabasePath);
 
         var entries = test.Library.GetRoms(
-            new LibraryQuery(Sort: LibrarySortMode.MostPlayed),
+            new LibraryQuery(Sort: LibrarySortField.MostPlayed),
             limit: 10
         );
 
@@ -419,7 +439,7 @@ public sealed class LibraryServiceTests
         InsertSortEntries(test.DatabasePath);
 
         var entries = test.Library.GetRoms(
-            new LibraryQuery(Sort: LibrarySortMode.RecentlyAdded),
+            new LibraryQuery(Sort: LibrarySortField.RecentlyAdded),
             limit: 10
         );
 
@@ -438,7 +458,7 @@ public sealed class LibraryServiceTests
         InsertSortEntries(test.DatabasePath);
 
         var entries = test.Library.GetRoms(
-            new LibraryQuery(Sort: LibrarySortMode.MostTimePlayed),
+            new LibraryQuery(Sort: LibrarySortField.MostTimePlayed),
             limit: 10
         );
 

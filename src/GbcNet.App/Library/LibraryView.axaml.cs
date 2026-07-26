@@ -1,54 +1,35 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.ComponentModel;
 using System.Globalization;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using GbcNet.App.Configuration.Sections.Library;
 using GbcNet.App.Shell.Chrome;
+using GbcNet.App.Sorting;
 
 namespace GbcNet.App.Library;
 
-internal sealed partial class LibraryView : UserControl
+internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
 {
-    private const double MinimumRomTableColumnsWidth = 692;
-    private const double RomTableVerticalScrollbarWidth = 16;
-
-    private static readonly double[] _romTableColumnMinimumWidths =
-    [
-        60,
-        160,
-        72,
-        108,
-        88,
-        50,
-        90,
-        64,
-    ];
-
     private readonly List<Bitmap> _coverBitmaps = [];
     private LibraryHardwareFilter _hardwareFilter;
     private LibraryRegionFilter _regionFilter;
-    private LibrarySortMode _sortMode;
+    private LibrarySortField? _tableSortMode;
+    private SortDirection? _tableSortDirection;
     private LibraryViewMode _viewMode;
-    private bool _clampingRomTableColumnWidth;
     private bool _refreshingFilters;
+    private PropertyChangedEventHandler? _sortIndicatorsChanged;
 
     public LibraryView()
     {
         InitializeComponent();
 
-        foreach (var column in RomTableView.Columns)
-        {
-            column.PropertyChanged += OnRomTableColumnWidthChanged;
-        }
-
         _hardwareFilter = LibraryHardwareFilter.All;
         _regionFilter = LibraryRegionFilter.All;
-        _sortMode = LibrarySortMode.LastOpened;
         SetViewMode(LibraryViewMode.Grid);
         DetachedFromVisualTree += (_, _) => ClearTiles();
         LibrarySearchTextBox.TextChanged += (_, _) => NotifyQueryChanged();
@@ -62,8 +43,37 @@ internal sealed partial class LibraryView : UserControl
     public Action? QueryChanged { get; set; }
     public Action<LibraryViewMode>? ViewModeChanged { get; set; }
 
+    event PropertyChangedEventHandler? INotifyPropertyChanged.PropertyChanged
+    {
+        add => _sortIndicatorsChanged += value;
+        remove => _sortIndicatorsChanged -= value;
+    }
+
+    public bool IsTitleSortAscending =>
+        IsSortIndicatorVisible(LibrarySortField.Title, SortDirection.Ascending);
+    public bool IsTitleSortDescending =>
+        IsSortIndicatorVisible(LibrarySortField.Title, SortDirection.Descending);
+    public bool IsTimePlayedSortAscending =>
+        IsSortIndicatorVisible(LibrarySortField.MostTimePlayed, SortDirection.Ascending);
+    public bool IsTimePlayedSortDescending =>
+        IsSortIndicatorVisible(LibrarySortField.MostTimePlayed, SortDirection.Descending);
+    public bool IsPlaysSortAscending =>
+        IsSortIndicatorVisible(LibrarySortField.MostPlayed, SortDirection.Ascending);
+    public bool IsPlaysSortDescending =>
+        IsSortIndicatorVisible(LibrarySortField.MostPlayed, SortDirection.Descending);
+    public bool IsLastPlayedSortAscending =>
+        IsSortIndicatorVisible(LibrarySortField.LastOpened, SortDirection.Ascending);
+    public bool IsLastPlayedSortDescending =>
+        IsSortIndicatorVisible(LibrarySortField.LastOpened, SortDirection.Descending);
+
     public LibraryQuery Query =>
-        new(LibrarySearchTextBox.Text, _hardwareFilter, _sortMode, _regionFilter);
+        new(
+            SearchText: LibrarySearchTextBox.Text,
+            Hardware: _hardwareFilter,
+            Sort: _tableSortMode ?? LibrarySortField.LastOpened,
+            Region: _regionFilter,
+            SortDirection: _tableSortDirection
+        );
 
     public void SetViewMode(LibraryViewMode viewMode)
     {
@@ -143,48 +153,7 @@ internal sealed partial class LibraryView : UserControl
         !string.IsNullOrWhiteSpace(LibrarySearchTextBox.Text)
         || _hardwareFilter != LibraryHardwareFilter.All
         || _regionFilter != LibraryRegionFilter.All
-        || _sortMode != LibrarySortMode.LastOpened;
-
-    private void OnRomTableColumnWidthChanged(
-        object? sender,
-        AvaloniaPropertyChangedEventArgs change
-    )
-    {
-        if (
-            sender is not TableViewColumn column
-            || _clampingRomTableColumnWidth
-            || change.Property != TableViewColumn.WidthProperty
-            || !column.CanUserEffectivelyResize
-            || !column.Width.IsAbsolute
-        )
-        {
-            return;
-        }
-
-        var columnIndex = RomTableView.Columns.IndexOf(column);
-
-        var minimumWidth = _romTableColumnMinimumWidths[columnIndex];
-        var maximumWidth =
-            RomTableView.Bounds.Width
-            - RomTableVerticalScrollbarWidth
-            - (MinimumRomTableColumnsWidth - minimumWidth);
-
-        var clampedWidth = Math.Clamp(column.Width.Value, minimumWidth, maximumWidth);
-        if (Math.Abs(clampedWidth - column.Width.Value) < 0.01)
-        {
-            return;
-        }
-
-        _clampingRomTableColumnWidth = true;
-        try
-        {
-            column.Width = new GridLength(clampedWidth);
-        }
-        finally
-        {
-            _clampingRomTableColumnWidth = false;
-        }
-    }
+        || _tableSortMode is not null;
 
     private void OnOpenRomClick(object? sender, RoutedEventArgs e) => OpenRomRequested?.Invoke();
 
@@ -223,13 +192,38 @@ internal sealed partial class LibraryView : UserControl
         }
     }
 
-    private void OnSortModeChanged(object? sender, SelectionChangedEventArgs e)
+    private void OnTableSortClick(object? sender, RoutedEventArgs e)
     {
-        if (TryGetSelectedTag(sender, out LibrarySortMode value) && _sortMode != value)
+        if (
+            sender is not Button { Tag: string tag }
+            || !Enum.TryParse(tag, out LibrarySortField value)
+        )
         {
-            _sortMode = value;
-            NotifyQueryChanged();
+            return;
         }
+
+        var defaultDirection = GetDefaultSortDirection(value);
+        if (_tableSortMode != value)
+        {
+            _tableSortMode = value;
+            _tableSortDirection = defaultDirection;
+        }
+        else if (_tableSortDirection == defaultDirection)
+        {
+            _tableSortDirection =
+                defaultDirection is SortDirection.Ascending
+                    ? SortDirection.Descending
+                    : SortDirection.Ascending;
+        }
+        else
+        {
+            _tableSortMode = null;
+            _tableSortDirection = null;
+        }
+
+        UpdateSortIndicators();
+
+        NotifyQueryChanged();
     }
 
     private void ClearFilters(object? sender, RoutedEventArgs e)
@@ -240,18 +234,29 @@ internal sealed partial class LibraryView : UserControl
             LibrarySearchTextBox.Text = string.Empty;
             _hardwareFilter = LibraryHardwareFilter.All;
             _regionFilter = LibraryRegionFilter.All;
-            _sortMode = LibrarySortMode.LastOpened;
+            _tableSortMode = null;
+            _tableSortDirection = null;
             HardwareFilter.SelectedIndex = 0;
             RegionFilter.SelectedIndex = 0;
-            SortFilter.SelectedIndex = 0;
         }
         finally
         {
             _refreshingFilters = false;
         }
 
+        UpdateSortIndicators();
+
         QueryChanged?.Invoke();
     }
+
+    private static SortDirection GetDefaultSortDirection(LibrarySortField sortMode) =>
+        sortMode is LibrarySortField.Title ? SortDirection.Ascending : SortDirection.Descending;
+
+    private void UpdateSortIndicators() =>
+        _sortIndicatorsChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
+
+    private bool IsSortIndicatorVisible(LibrarySortField sortMode, SortDirection sortDirection) =>
+        _tableSortMode == sortMode && _tableSortDirection == sortDirection;
 
     private void NotifyQueryChanged()
     {

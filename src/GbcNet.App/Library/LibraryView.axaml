@@ -106,6 +106,18 @@
       <Setter Property="FontSize" Value="11" />
       <Setter Property="FontWeight" Value="Medium" />
     </Style>
+    <Style Selector="Button.library-sort-header">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeStatusBrush}" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="Medium" />
+    </Style>
+    <Style Selector="Button.library-sort-header:pointerover">
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+    </Style>
     <Style Selector="TableView.library-list-row TableViewRow">
       <Setter Property="MinHeight" Value="64" />
       <Setter Property="Cursor" Value="Hand" />
@@ -164,7 +176,6 @@
               <ColumnDefinition Width="Auto" />
               <ColumnDefinition Width="*" MinWidth="120" MaxWidth="160" />
               <ColumnDefinition Width="*" MinWidth="104" MaxWidth="144" />
-              <ColumnDefinition Width="*" MinWidth="120" MaxWidth="160" />
               <ColumnDefinition Width="4*" MinWidth="220" />
             </Grid.ColumnDefinitions>
             <StackPanel Spacing="2" Orientation="Horizontal">
@@ -220,7 +231,7 @@
 
             <TextBox
               x:Name="LibrarySearchTextBox"
-              Grid.Column="5"
+              Grid.Column="4"
               Margin="4,0,0,0"
               Classes="library-search"
               HorizontalAlignment="Stretch"
@@ -256,21 +267,6 @@
               <ComboBoxItem Tag="World">World</ComboBoxItem>
               <ComboBoxItem Tag="Other">Other</ComboBoxItem>
             </ComboBox>
-
-            <ComboBox
-              x:Name="SortFilter"
-              Grid.Column="4"
-              Classes="library-filter sort-filter"
-              SelectedIndex="0"
-              SelectionChanged="OnSortModeChanged"
-              ToolTip.Tip="Sort"
-            >
-              <ComboBoxItem Tag="LastOpened">Last played</ComboBoxItem>
-              <ComboBoxItem Tag="Title">Title</ComboBoxItem>
-              <ComboBoxItem Tag="MostPlayed">Frequently played</ComboBoxItem>
-              <ComboBoxItem Tag="RecentlyAdded">Recently added</ComboBoxItem>
-              <ComboBoxItem Tag="MostTimePlayed">Time played</ComboBoxItem>
-            </ComboBox>
           </Grid>
         </Border>
 
@@ -290,11 +286,10 @@
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:CompileBindings="False">
                     <Button Classes="library-tile" Click="OnRomTileClick">
-                      <Grid RowDefinitions="172,48,28">
+                      <Grid RowDefinitions="164,48,*">
                         <Border
                           Grid.Row="0"
-                          Width="172"
-                          Height="172"
+                          Height="164"
                           Background="{DynamicResource ChromeSurfaceBrush}"
                           ClipToBounds="True"
                           CornerRadius="{DynamicResource ChromeCornerRadius}"
@@ -332,7 +327,7 @@
                           <StackPanel
                             Spacing="4"
                             Orientation="Horizontal"
-                            VerticalAlignment="Center"
+                            VerticalAlignment="Bottom"
                           >
                             <PathIcon
                               Width="12"
@@ -351,6 +346,7 @@
                             Grid.Column="1"
                             Classes="badge tile-badge"
                             HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom"
                           >
                             <TextBlock
                               Text="{Binding HardwareText}"
@@ -361,6 +357,7 @@
                           <Button
                             Grid.Column="2"
                             Classes="tile-actions"
+                            VerticalAlignment="Bottom"
                             Loaded="OnTileActionsButtonLoaded"
                             Click="OnTileActionsButtonClick"
                             AutomationProperties.Name="ROM actions"
@@ -379,7 +376,6 @@
             x:Name="RomTableView"
             IsVisible="False"
             Classes="library-list-row"
-            CanUserResizeColumns="True"
             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
             SelectionChanged="OnRomTileClick"
           >
@@ -388,9 +384,9 @@
                 x:Key="SystemControlBackgroundChromeMediumBrush"
                 ResourceKey="ChromeBackgroundBrush"
               />
-              <StaticResource
+              <SolidColorBrush
                 x:Key="TableViewColumnHeaderSeparatorBackground"
-                ResourceKey="ChromeHairBrush"
+                Color="Transparent"
               />
               <StaticResource x:Key="TableViewRowBackground" ResourceKey="ChromeBackgroundBrush" />
               <StaticResource
@@ -403,23 +399,6 @@
               />
               <Thickness x:Key="TableViewRowPadding">0</Thickness>
               <Thickness x:Key="TableViewCellPadding">6,4</Thickness>
-              <ControlTheme x:Key="LibraryTableLastHeaderTheme" TargetType="TableViewColumnHeader">
-                <Setter Property="Template">
-                  <ControlTemplate>
-                    <ContentPresenter
-                      Background="{TemplateBinding Background}"
-                      BorderBrush="{TemplateBinding BorderBrush}"
-                      BorderThickness="{TemplateBinding BorderThickness}"
-                      Content="{TemplateBinding Content}"
-                      ContentTemplate="{TemplateBinding ContentTemplate}"
-                      CornerRadius="{TemplateBinding CornerRadius}"
-                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-                      Padding="{TemplateBinding Padding}"
-                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
-                    />
-                  </ControlTemplate>
-                </Setter>
-              </ControlTheme>
             </TableView.Resources>
             <TableView.Columns>
               <TableViewColumn
@@ -456,7 +435,33 @@
                   </DataTemplate>
                 </TableViewColumn.CellTemplate>
               </TableViewColumn>
-              <TableViewColumn Header="ROM" Width="*">
+              <TableViewColumn Header="ROM" Width="*" CanUserResize="False">
+                <TableViewColumn.HeaderTemplate>
+                  <DataTemplate x:CompileBindings="False">
+                    <Button
+                      Classes="library-sort-header"
+                      Tag="Title"
+                      Click="OnTableSortClick"
+                      ToolTip.Tip="Sort by title"
+                    >
+                      <StackPanel Spacing="8" Orientation="Horizontal">
+                        <TextBlock Text="ROM" />
+                        <PathIcon
+                          Width="10"
+                          Height="10"
+                          Data="{StaticResource IconSortDesc}"
+                          IsVisible="{Binding $parent[UserControl].IsTitleSortAscending}"
+                        />
+                        <PathIcon
+                          Width="10"
+                          Height="10"
+                          Data="{StaticResource IconSortAsc}"
+                          IsVisible="{Binding $parent[UserControl].IsTitleSortDescending}"
+                        />
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </TableViewColumn.HeaderTemplate>
                 <TableViewColumn.CellTemplate>
                   <DataTemplate x:CompileBindings="False">
                     <StackPanel Spacing="2" VerticalAlignment="Center">
@@ -542,22 +547,102 @@
                 Header="Time Played"
                 Width="112"
                 Binding="{ReflectionBinding PlayTimeText}"
-              />
+              >
+                <TableViewColumn.HeaderTemplate>
+                  <DataTemplate x:CompileBindings="False">
+                    <Button
+                      Classes="library-sort-header"
+                      Tag="MostTimePlayed"
+                      Click="OnTableSortClick"
+                      ToolTip.Tip="Sort by time played"
+                    >
+                      <StackPanel Spacing="8" Orientation="Horizontal">
+                        <TextBlock Text="Time Played" />
+                        <PathIcon
+                          Width="10"
+                          Height="10"
+                          Data="{StaticResource IconSortDesc}"
+                          IsVisible="{Binding $parent[UserControl].IsTimePlayedSortAscending}"
+                        />
+                        <PathIcon
+                          Width="10"
+                          Height="10"
+                          Data="{StaticResource IconSortAsc}"
+                          IsVisible="{Binding $parent[UserControl].IsTimePlayedSortDescending}"
+                        />
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </TableViewColumn.HeaderTemplate>
+              </TableViewColumn>
               <TableViewColumn
                 Header="Plays"
                 Width="80"
                 Binding="{ReflectionBinding PlayCountText}"
-              />
+              >
+                <TableViewColumn.HeaderTemplate>
+                  <DataTemplate x:CompileBindings="False">
+                    <Button
+                      Classes="library-sort-header"
+                      Tag="MostPlayed"
+                      Click="OnTableSortClick"
+                      ToolTip.Tip="Sort by plays"
+                    >
+                      <StackPanel Spacing="8" Orientation="Horizontal">
+                        <TextBlock Text="Plays" />
+                        <PathIcon
+                          Width="10"
+                          Height="10"
+                          Data="{StaticResource IconSortDesc}"
+                          IsVisible="{Binding $parent[UserControl].IsPlaysSortAscending}"
+                        />
+                        <PathIcon
+                          Width="10"
+                          Height="10"
+                          Data="{StaticResource IconSortAsc}"
+                          IsVisible="{Binding $parent[UserControl].IsPlaysSortDescending}"
+                        />
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </TableViewColumn.HeaderTemplate>
+              </TableViewColumn>
               <TableViewColumn
                 Header="Last played"
                 Width="120"
                 Binding="{ReflectionBinding LastPlayedText}"
-              />
+              >
+                <TableViewColumn.HeaderTemplate>
+                  <DataTemplate x:CompileBindings="False">
+                    <Button
+                      Classes="library-sort-header"
+                      Tag="LastOpened"
+                      Click="OnTableSortClick"
+                      ToolTip.Tip="Sort by last played"
+                    >
+                      <StackPanel Spacing="8" Orientation="Horizontal">
+                        <TextBlock Text="Last played" />
+                        <PathIcon
+                          Width="10"
+                          Height="10"
+                          Data="{StaticResource IconSortDesc}"
+                          IsVisible="{Binding $parent[UserControl].IsLastPlayedSortAscending}"
+                        />
+                        <PathIcon
+                          Width="10"
+                          Height="10"
+                          Data="{StaticResource IconSortAsc}"
+                          IsVisible="{Binding $parent[UserControl].IsLastPlayedSortDescending}"
+                        />
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </TableViewColumn.HeaderTemplate>
+              </TableViewColumn>
               <TableViewColumn
                 Header="Actions"
                 Width="64"
                 CanUserResize="False"
-                HeaderTheme="{StaticResource LibraryTableLastHeaderTheme}"
                 HorizontalContentAlignment="Left"
               >
                 <TableViewColumn.CellTemplate>

@@ -44,6 +44,12 @@
       <Setter Property="BorderBrush" Value="{DynamicResource ChromeSelectedBorderBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
     </Style>
+    <Style Selector="Button.sidebar-item.selected TextBlock.sidebar-label">
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+    </Style>
+    <Style Selector="Button.sidebar-item.selected PathIcon">
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+    </Style>
     <Style Selector="TextBlock.form-label">
       <Setter Property="FontSize" Value="13" />
       <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
@@ -129,12 +135,7 @@
           AutomationProperties.HelpText="Show boot ROM path settings"
         >
           <Grid ColumnDefinitions="16,*" ColumnSpacing="9">
-            <PathIcon
-              Width="15"
-              Height="15"
-              Data="{StaticResource IconSettings}"
-              Foreground="{DynamicResource ChromeMutedBrush}"
-            />
+            <PathIcon Width="15" Height="15" Data="{StaticResource IconGameBoy}" />
             <TextBlock Grid.Column="1" Classes="chrome-label sidebar-label" Text="Boot ROMs" />
           </Grid>
         </Button>
@@ -147,12 +148,7 @@
           AutomationProperties.HelpText="Show keyboard input profile settings"
         >
           <Grid ColumnDefinitions="16,*" ColumnSpacing="9">
-            <PathIcon
-              Width="15"
-              Height="15"
-              Data="{StaticResource IconGames}"
-              Foreground="{DynamicResource ChromeMutedBrush}"
-            />
+            <PathIcon Width="15" Height="15" Data="{StaticResource IconGames}" />
             <TextBlock Grid.Column="1" Classes="chrome-label sidebar-label" Text="Inputs" />
           </Grid>
         </Button>
@@ -165,12 +161,7 @@
           AutomationProperties.HelpText="Show volume and mute settings"
         >
           <Grid ColumnDefinitions="16,*" ColumnSpacing="9">
-            <PathIcon
-              Width="15"
-              Height="15"
-              Data="{StaticResource IconSettings}"
-              Foreground="{DynamicResource ChromeMutedBrush}"
-            />
+            <PathIcon Width="15" Height="15" Data="{StaticResource IconAudio}" />
             <TextBlock Grid.Column="1" Classes="chrome-label sidebar-label" Text="Audio" />
           </Grid>
         </Button>
