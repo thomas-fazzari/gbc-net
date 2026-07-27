@@ -1,175 +1,189 @@
 {
-	"folders": [
-		{
-			"name": "Root",
-			"path": "."
-		},
-		{
-			"name": "Agents",
-			"path": ".omp"
-		},
-		{
-			"name": "Source",
-			"path": "src"
-		},
-		{
-			"name": "Tests",
-			"path": "tests/GbcNet.Tests"
-		}
-	],
-	"settings": {
-		"biome.enabled": true,
-		"biome.requireConfiguration": false,
-		"files.associations": {
-			"*.axaml": "xml",
-			"*.code-workspace": "jsonc",
-			"*.csproj": "xml",
-			"*.props": "xml",
-			"*.slnx": "xml"
-		},
-		"files.exclude": {
-			"**/.omp": true,
-			"**/src": true,
-			"**/tests": true,
-			"**/.csharpierignore": true,
-			"**/.editorconfig": true,
-			"**/.github": true,
-			"**/.githooks": true,
-			"**/.gitignore": true,
-			"**/.gitattributes": true,
-			"**/global.json": true,
-			"**/.idea": true,
-			"**/LICENSE": true,
-			"**/.slopwatch": true,
-			"**/.vscode": true,
-			"**/.config": true,
-			"**/nuget.config": true,
-			"**/*.DotSettings.*": true,
-			"**/TestResults": true
-		},
-		"[csharp]": {
-			"editor.defaultFormatter": "csharpier.csharpier-vscode",
-			"editor.formatOnSave": true
-		},
-		"[xml]": {
-			"editor.defaultFormatter": "csharpier.csharpier-vscode",
-			"editor.formatOnSave": true,
-			"editor.formatOnSaveMode": "file"
-		},
-		"[markdown]": {
-			"editor.defaultFormatter": "DavidAnson.vscode-markdownlint",
-			"editor.formatOnSave": true
-		},
-		"[json][jsonc]": {
-			"editor.defaultFormatter": "biomejs.biome",
-			"editor.formatOnSave": true
-		},
-		"files.watcherExclude": {
-			"**/bin/**": true,
-			"**/obj/**": true,
-			"**/TestResults/**": true
-		},
-		"search.exclude": {
-			"**/bin/**": true,
-			"**/obj/**": true,
-			"**/TestResults/**": true
-		}
-	},
-	"tasks": {
-		"version": "2.0.0",
-		"tasks": [
-			{
-				"label": "install",
-				"type": "process",
-				"command": "make",
-				"args": ["install"],
-				"options": {
-					"cwd": "${workspaceFolder:Root}"
-				},
-				"problemMatcher": []
-			},
-			{
-				"label": "build",
-				"type": "process",
-				"command": "dotnet",
-				"args": ["build", "GbcNet.slnx", "--configuration", "Debug"],
-				"options": {
-					"cwd": "${workspaceFolder:Root}"
-				},
-				"group": {
-					"kind": "build",
-					"isDefault": true
-				},
-				"problemMatcher": "$msCompile"
-			},
-			{
-				"label": "build-release",
-				"type": "process",
-				"command": "dotnet",
-				"args": ["build", "GbcNet.slnx", "--configuration", "Release"],
-				"options": {
-					"cwd": "${workspaceFolder:Root}"
-				},
-				"problemMatcher": "$msCompile"
-			},
-			{
-				"label": "lint",
-				"type": "process",
-				"command": "make",
-				"args": ["lint"],
-				"options": {
-					"cwd": "${workspaceFolder:Root}"
-				},
-				"problemMatcher": "$msCompile"
-			},
-			{
-				"label": "test",
-				"type": "process",
-				"command": "make",
-				"args": ["test"],
-				"options": {
-					"cwd": "${workspaceFolder:Root}"
-				},
-				"group": {
-					"kind": "test",
-					"isDefault": true
-				},
-				"problemMatcher": "$msCompile"
-			}
-		]
-	},
-	"launch": {
-		"version": "0.2.0",
-		"configurations": [
-			{
-				"name": "Launch GBC.Net (Debug)",
-				"type": "coreclr",
-				"request": "launch",
-				"program": "${workspaceFolder:Source}/GbcNet.App/bin/Debug/net10.0/GbcNet.dll",
-				"cwd": "${workspaceFolder:Root}",
-				"preLaunchTask": "build",
-				"console": "internalConsole",
-				"justMyCode": true
-			},
-			{
-				"name": "Launch GBC.Net (Release)",
-				"type": "coreclr",
-				"request": "launch",
-				"program": "${workspaceFolder:Source}/GbcNet.App/bin/Release/net10.0/GbcNet.dll",
-				"cwd": "${workspaceFolder:Root}",
-				"preLaunchTask": "build-release",
-				"console": "internalConsole",
-				"justMyCode": true
-			}
-		]
-	},
-	"extensions": {
-		"recommendations": [
-			"biomejs.biome",
-			"csharpier.csharpier-vscode",
-			"DavidAnson.vscode-markdownlint",
-			"EditorConfig.EditorConfig",
-			"ms-dotnettools.csdevkit"
-		]
-	}
+  "folders": [
+    {
+      "name": "Root",
+      "path": "."
+    },
+    {
+      "name": "Agents",
+      "path": ".omp"
+    },
+    {
+      "name": "Source",
+      "path": "src"
+    },
+    {
+      "name": "Tests",
+      "path": "tests/GbcNet.Tests"
+    }
+  ],
+  "settings": {
+    "files.associations": {
+      "*.axaml": "xml",
+      "*.code-workspace": "jsonc",
+      "*.csproj": "xml",
+      "*.props": "xml",
+      "*.slnx": "xml"
+    },
+    "files.exclude": {
+      "**/.omp": true,
+      "**/src": true,
+      "**/tests": true,
+      "**/.csharpierignore": true,
+      "**/.editorconfig": true,
+      "**/.github": true,
+      "**/.githooks": true,
+      "**/.gitignore": true,
+      "**/.gitattributes": true,
+      "**/global.json": true,
+      "**/.idea": true,
+      "**/LICENSE": true,
+      "**/.slopwatch": true,
+      "**/.vscode": true,
+      "**/.config": true,
+      "**/nuget.config": true,
+      "**/*.DotSettings.*": true,
+      "**/TestResults": true
+    },
+    "[csharp]": {
+      "editor.defaultFormatter": "csharpier.csharpier-vscode",
+      "editor.formatOnSave": true
+    },
+    "[xml]": {
+      "editor.defaultFormatter": "csharpier.csharpier-vscode",
+      "editor.formatOnSave": true,
+      "editor.formatOnSaveMode": "file"
+    },
+    "[markdown]": {
+      "editor.defaultFormatter": "DavidAnson.vscode-markdownlint",
+      "editor.formatOnSave": true
+    },
+    "[json][jsonc]": {
+      "editor.defaultFormatter": "vscode.json-language-features",
+      "editor.formatOnSave": true
+    },
+    "files.watcherExclude": {
+      "**/bin/**": true,
+      "**/obj/**": true,
+      "**/TestResults/**": true
+    },
+    "search.exclude": {
+      "**/bin/**": true,
+      "**/obj/**": true,
+      "**/TestResults/**": true
+    }
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "install",
+        "type": "process",
+        "command": "make",
+        "args": [
+          "install"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Root}"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "build",
+        "type": "process",
+        "command": "dotnet",
+        "args": [
+          "build",
+          "GbcNet.slnx",
+          "--configuration",
+          "Debug"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Root}"
+        },
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "problemMatcher": "$msCompile"
+      },
+      {
+        "label": "build-release",
+        "type": "process",
+        "command": "dotnet",
+        "args": [
+          "build",
+          "GbcNet.slnx",
+          "--configuration",
+          "Release"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Root}"
+        },
+        "problemMatcher": "$msCompile"
+      },
+      {
+        "label": "lint",
+        "type": "process",
+        "command": "make",
+        "args": [
+          "lint"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Root}"
+        },
+        "problemMatcher": "$msCompile"
+      },
+      {
+        "label": "test",
+        "type": "process",
+        "command": "make",
+        "args": [
+          "test"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Root}"
+        },
+        "group": {
+          "kind": "test",
+          "isDefault": true
+        },
+        "problemMatcher": "$msCompile"
+      }
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Launch GBC.Net (Debug)",
+        "type": "coreclr",
+        "request": "launch",
+        "program": "${workspaceFolder:Source}/GbcNet.App/bin/Debug/net10.0/GbcNet.dll",
+        "cwd": "${workspaceFolder:Root}",
+        "preLaunchTask": "build",
+        "console": "internalConsole",
+        "justMyCode": true
+      },
+      {
+        "name": "Launch GBC.Net (Release)",
+        "type": "coreclr",
+        "request": "launch",
+        "program": "${workspaceFolder:Source}/GbcNet.App/bin/Release/net10.0/GbcNet.dll",
+        "cwd": "${workspaceFolder:Root}",
+        "preLaunchTask": "build-release",
+        "console": "internalConsole",
+        "justMyCode": true
+      }
+    ]
+  },
+  "extensions": {
+    "recommendations": [
+      "csharpier.csharpier-vscode",
+      "DavidAnson.vscode-markdownlint",
+      "EditorConfig.EditorConfig",
+      "ms-dotnettools.csdevkit",
+      "vscode.json-language-features",
+    ]
+  }
 }
