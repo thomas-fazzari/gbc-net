@@ -24,7 +24,7 @@
 
 ```sh
 make install # Also sets up a linting Git hook
-make run
+make
 ```
 
 <h2>Compatibility</h2>
