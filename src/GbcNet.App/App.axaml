@@ -10,7 +10,7 @@
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://GbcNet/Shell/Chrome/Icons.axaml" />
       </ResourceDictionary.MergedDictionaries>
-      <FontFamily x:Key="AppFont">avares://GbcNet/Assets/Fonts#Space Grotesk</FontFamily>
+      <FontFamily x:Key="AppFont">avares://GbcNet/Assets/Fonts#Instrument Sans</FontFamily>
 
       <SolidColorBrush x:Key="ChromeBackgroundBrush">#0d0d0f</SolidColorBrush>
       <SolidColorBrush x:Key="ChromePanelBrush">#131316</SolidColorBrush>
