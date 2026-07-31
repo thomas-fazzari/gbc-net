@@ -26,7 +26,6 @@
       "*.slnx": "xml"
     },
     "files.exclude": {
-      "**/.omp": true,
       "**/src": true,
       "**/tests": true,
       "**/.csharpierignore": true,
