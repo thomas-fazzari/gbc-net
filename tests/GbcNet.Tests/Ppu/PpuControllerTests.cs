@@ -36,22 +36,16 @@ public sealed class PpuControllerTests
     private const ushort CompatibilityBackgroundDarkRgb555 = 0x6180;
     private const ushort CompatibilityObjectDarkRgb555 = 0x1CF2;
 
-    public static TheoryData<ushort, byte> ReadWriteRegisters =>
-        new()
-        {
-            { AddressMap.LcdControlRegister, 0x91 },
-            { AddressMap.ScrollYRegister, 0x12 },
-            { AddressMap.ScrollXRegister, 0x34 },
-            { AddressMap.LcdYCompareRegister, 0x56 },
-            { AddressMap.BackgroundPaletteRegister, 0xFC },
-            { AddressMap.ObjectPalette0Register, 0xA5 },
-            { AddressMap.ObjectPalette1Register, 0x5A },
-            { AddressMap.WindowYRegister, 0x78 },
-            { AddressMap.WindowXRegister, 0x9A },
-        };
-
     [Theory]
-    [MemberData(nameof(ReadWriteRegisters))]
+    [InlineData(AddressMap.LcdControlRegister, 0x91)]
+    [InlineData(AddressMap.ScrollYRegister, 0x12)]
+    [InlineData(AddressMap.ScrollXRegister, 0x34)]
+    [InlineData(AddressMap.LcdYCompareRegister, 0x56)]
+    [InlineData(AddressMap.BackgroundPaletteRegister, 0xFC)]
+    [InlineData(AddressMap.ObjectPalette0Register, 0xA5)]
+    [InlineData(AddressMap.ObjectPalette1Register, 0x5A)]
+    [InlineData(AddressMap.WindowYRegister, 0x78)]
+    [InlineData(AddressMap.WindowXRegister, 0x9A)]
     public void WriteRegister_StoresReadWriteRegisters(ushort address, byte value)
     {
         var ppu = CreatePpu();
