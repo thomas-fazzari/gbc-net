@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.App.Audio;
+using GbcNet.App.Cheats;
 using GbcNet.App.Configuration;
 using GbcNet.App.Database;
 using GbcNet.App.Input;
@@ -31,6 +32,7 @@ internal static class DependencyInjection
         services.AddInput();
         services.AddLibrary();
         services.AddSaves();
+        services.AddCheats();
 
         services.AddTransient<MainWindow>();
         return services.BuildServiceProvider();

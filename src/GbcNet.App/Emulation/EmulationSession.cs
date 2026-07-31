@@ -9,6 +9,7 @@ using GbcNet.App.Audio;
 using GbcNet.App.Saves;
 using GbcNet.Core;
 using GbcNet.Core.Apu;
+using GbcNet.Core.Cheats;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Ppu;
@@ -95,7 +96,7 @@ internal sealed class EmulationSession
         }
 
         // Wait for the emulation loop to run its final save before the next session loads SRAM.
-        await _runTask.ConfigureAwait(continueOnCapturedContext: false);
+        await _runTask;
     }
 
     public async Task PrepareToStopAsync()
@@ -110,14 +111,11 @@ internal sealed class EmulationSession
         try
         {
             await QueueMachineOperation(_ =>
-                {
-                    _batterySaveWriter.QueueSave(force: true);
-                    return true;
-                })
-                .ConfigureAwait(continueOnCapturedContext: false);
-            await _batterySaveWriter
-                .FlushPendingAsync()
-                .ConfigureAwait(continueOnCapturedContext: false);
+            {
+                _batterySaveWriter.QueueSave(force: true);
+                return true;
+            });
+            await _batterySaveWriter.FlushPendingAsync();
         }
         catch
         {
@@ -141,6 +139,17 @@ internal sealed class EmulationSession
             Volatile.Write(location: ref _videoFrameRenderRequested, value: 1);
             Volatile.Write(location: ref _nextFastForwardFrameTimestamp, value: 0);
             _pacingResetRequested = true;
+            return true;
+        });
+    }
+
+    public Task SetGameGenieCodesAsync(GameGenieCode[] codes)
+    {
+        ArgumentNullException.ThrowIfNull(codes);
+
+        return QueueMachineOperation(gameBoy =>
+        {
+            gameBoy.SetGameGenieCodes(codes);
             return true;
         });
     }
@@ -221,8 +230,7 @@ internal sealed class EmulationSession
 
                 if (IsPaused)
                 {
-                    await Task.Delay(TimeSpan.FromMilliseconds(16), CancellationToken.None)
-                        .ConfigureAwait(continueOnCapturedContext: false);
+                    await Task.Delay(TimeSpan.FromMilliseconds(16), CancellationToken.None);
                     continue;
                 }
 
@@ -235,8 +243,7 @@ internal sealed class EmulationSession
                 var stepMachineCycles = _gameBoy.Step();
                 if (stepMachineCycles == 0)
                 {
-                    await Task.Delay(_stoppedCpuSleepInterval, CancellationToken.None)
-                        .ConfigureAwait(continueOnCapturedContext: false);
+                    await Task.Delay(_stoppedCpuSleepInterval, CancellationToken.None);
                     continue;
                 }
 
@@ -277,12 +284,11 @@ internal sealed class EmulationSession
                 if (delayTimestamp > 0)
                 {
                     await Task.Delay(
-                            TimeSpan.FromTicks(
-                                delayTimestamp * TimeSpan.TicksPerSecond / Stopwatch.Frequency
-                            ),
-                            CancellationToken.None
-                        )
-                        .ConfigureAwait(continueOnCapturedContext: false);
+                        TimeSpan.FromTicks(
+                            delayTimestamp * TimeSpan.TicksPerSecond / Stopwatch.Frequency
+                        ),
+                        CancellationToken.None
+                    );
                     timestamp = Stopwatch.GetTimestamp();
                 }
 
@@ -306,9 +312,7 @@ internal sealed class EmulationSession
             {
                 try
                 {
-                    await _batterySaveWriter
-                        .FlushAsync()
-                        .ConfigureAwait(continueOnCapturedContext: false);
+                    await _batterySaveWriter.FlushAsync();
                 }
                 catch (Exception exception)
                     when (exception is IOException or InvalidOperationException)

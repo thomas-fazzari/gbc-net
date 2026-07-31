@@ -71,8 +71,7 @@ internal sealed class CartridgeBatterySaveFileService
             Directory.CreateDirectory(_saveDirectoryPath);
             var temporaryPath = $"{savePath}.{Guid.NewGuid():N}.tmp";
 
-            await File.WriteAllBytesAsync(temporaryPath, save, CancellationToken.None)
-                .ConfigureAwait(continueOnCapturedContext: false);
+            await File.WriteAllBytesAsync(temporaryPath, save, CancellationToken.None);
             File.Move(sourceFileName: temporaryPath, destFileName: savePath, overwrite: true);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)

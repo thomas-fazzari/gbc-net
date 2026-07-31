@@ -7,6 +7,7 @@ using GbcNet.App.Saves;
 using GbcNet.Core;
 using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Cheats;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Memory;
 using GbcNet.Tests.Cartridges;
@@ -42,6 +43,42 @@ public sealed class EmulationSessionTests
                 .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
 
             Assert.True(audioOutput.ClearCount > clearCount);
+        }
+        finally
+        {
+            await session.StopAsync();
+        }
+    }
+
+    [Fact]
+    public async Task SetGameGenieCodesAsync_SwapsAndClearsRomReadsWhilePaused()
+    {
+        Assert.True(GameGenieCode.TryParse("0A1-B9F", out var code));
+        var gameBoy = new GameBoy(TestRomFactory.LoadCartridge(), HardwareModel.Dmg);
+        using var audioOutput = new TestAudioOutput();
+        var session = new EmulationSession(
+            gameBoy,
+            audioOutput,
+            static _ => { },
+            static _ => { },
+            batterySaveWriter: null
+        )
+        {
+            IsPaused = true,
+        };
+
+        try
+        {
+            await session
+                .SetGameGenieCodesAsync([code])
+                .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
+            Assert.Equal(0x0A, gameBoy.Bus.ReadByte(code.Address));
+
+            await session
+                .SetGameGenieCodesAsync([])
+                .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
+            Assert.Equal(0x00, gameBoy.Bus.ReadByte(code.Address));
+            Assert.True(session.IsPaused);
         }
         finally
         {

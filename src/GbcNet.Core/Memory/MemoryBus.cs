@@ -1,8 +1,10 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Runtime.CompilerServices;
 using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Cheats;
 using GbcNet.Core.Clock;
 using GbcNet.Core.Dma;
 using GbcNet.Core.Hardware;
@@ -34,6 +36,8 @@ internal sealed class MemoryBus
     private readonly BootRom? _bootRom;
     private readonly SgbController? _sgb;
     private readonly CgbMiscRegisters _cgbMiscRegisters;
+
+    private GameGenieCode[]?[]? _gameGenieCodesByLowAddress;
 
     /// <summary>
     /// Interrupt request and enable registers routed through FF0F and FFFF.
@@ -185,6 +189,51 @@ internal sealed class MemoryBus
                     "Address must target a CPU-visible hardware register."
                 );
         }
+    }
+
+    internal void SetGameGenieCodes(ReadOnlySpan<GameGenieCode> codes)
+    {
+        Span<int> counts = stackalloc int[byte.MaxValue + 1];
+        counts.Clear();
+
+        foreach (var code in codes)
+        {
+            if (!code.IsValid)
+            {
+                throw new ArgumentException(
+                    "Game Genie codes must be parsed successfully.",
+                    nameof(codes)
+                );
+            }
+
+            counts[(byte)code.Address]++;
+        }
+
+        if (codes.IsEmpty)
+        {
+            _gameGenieCodesByLowAddress = null;
+            return;
+        }
+
+        var codesByLowAddress = new GameGenieCode[]?[byte.MaxValue + 1];
+        Span<int> offsets = stackalloc int[byte.MaxValue + 1];
+        offsets.Clear();
+
+        for (var index = 0; index < codesByLowAddress.Length; index++)
+        {
+            if (counts[index] != 0)
+            {
+                codesByLowAddress[index] = new GameGenieCode[counts[index]];
+            }
+        }
+
+        foreach (var code in codes)
+        {
+            var lowAddress = (byte)code.Address;
+            codesByLowAddress[lowAddress]![offsets[lowAddress]++] = code;
+        }
+
+        _gameGenieCodesByLowAddress = codesByLowAddress;
     }
 
     /// <summary>
@@ -455,10 +504,42 @@ internal sealed class MemoryBus
             _ => 0xFF,
         };
 
-    private byte ReadRomWindowByte(ushort address) =>
-        _bootRom is not null && _bootRom.TryRead(address, out var value)
-            ? value
-            : _cartridge.ReadRom(address);
+    private byte ReadRomWindowByte(ushort address)
+    {
+        if (_bootRom?.IsMapped is true)
+        {
+            return _bootRom.TryRead(address, out var bootRomValue)
+                ? bootRomValue
+                : _cartridge.ReadRom(address);
+        }
+
+        var originalValue = _cartridge.ReadRom(address);
+        var codesByLowAddress = _gameGenieCodesByLowAddress;
+        var codes = codesByLowAddress?[(byte)address];
+
+        return codes is null ? originalValue : ApplyGameGenieCodes(codes, address, originalValue);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static byte ApplyGameGenieCodes(
+        ReadOnlySpan<GameGenieCode> codes,
+        ushort address,
+        byte originalValue
+    )
+    {
+        foreach (var code in codes)
+        {
+            if (
+                code.Address == address
+                && (code.CompareValue is not { } compareValue || compareValue == originalValue)
+            )
+            {
+                return code.ReplacementValue;
+            }
+        }
+
+        return originalValue;
+    }
 
     private void WriteMappedByte(ushort address, byte value)
     {

@@ -17,16 +17,16 @@ namespace GbcNet.Tests.App.Library;
 public sealed class LibraryServiceTests
 {
     [Fact]
-    public async Task RecordOpenedRomAsync_UpsertsByRomHashAndUpdatesLastKnownPath()
+    public async Task RecordLoadedRom_UpsertsByRomHashAndUpdatesLastKnownPath()
     {
         using var test = new LibraryTestContext();
         var rom = TestRomFactory.Create();
         var firstPath = await test.WriteRomAsync("first.gb", rom);
         var secondPath = await test.WriteRomAsync("second.gb", rom);
 
-        await test.Library.RecordOpenedRomAsync(firstPath);
+        await test.RecordRomFromFileAsync(firstPath);
         test.TimeProvider.Advance(TimeSpan.FromMinutes(1));
-        await test.Library.RecordOpenedRomAsync(secondPath);
+        await test.RecordRomFromFileAsync(secondPath);
 
         var entry = Assert.Single(test.Library.GetRoms(limit: 10));
         Assert.Equal(Path.GetFullPath(secondPath), entry.LastKnownPath);
@@ -39,11 +39,11 @@ public sealed class LibraryServiceTests
     }
 
     [Fact]
-    public async Task RecordOpenedRomAsync_ReplacesPreviousHashForSamePathAndRemovesManagedCover()
+    public async Task RecordLoadedRom_ReplacesPreviousHashForSamePathAndRemovesManagedCover()
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
-        await test.Library.RecordOpenedRomAsync(romPath);
+        await test.RecordRomFromFileAsync(romPath);
         var oldRomHash = Assert.Single(test.Library.GetRoms(limit: 10)).RomHash;
         var sourceImagePath = await test.WriteImageAsync("old-cover.png", [0x10, 0x11, 0x12]);
         test.Library.AssignCoverImage(oldRomHash, sourceImagePath);
@@ -56,7 +56,7 @@ public sealed class LibraryServiceTests
         );
 
         Assert.True(File.Exists(oldCoverPath));
-        await test.Library.RecordOpenedRomAsync(romPath);
+        await test.RecordRomFromFileAsync(romPath);
 
         var entry = Assert.Single(test.Library.GetRoms(limit: 10));
         Assert.Equal(Path.GetFullPath(romPath), entry.LastKnownPath);
@@ -68,7 +68,7 @@ public sealed class LibraryServiceTests
     }
 
     [Fact]
-    public void RecordOpenedRom_UsesProvidedRomBytesAndHeader()
+    public void RecordLoadedRom_UsesProvidedRomBytesAndHeader()
     {
         using var test = new LibraryTestContext();
         var rom = TestRomFactory.Create(bytes => "MEMORY ROM"u8.CopyTo(bytes.AsSpan(0x0134)));
@@ -218,7 +218,7 @@ public sealed class LibraryServiceTests
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
-        await test.Library.RecordOpenedRomAsync(romPath);
+        await test.RecordRomFromFileAsync(romPath);
         var romHash = Assert.Single(test.Library.GetRoms(limit: 10)).RomHash;
         var sourceImagePath = await test.WriteImageAsync("cover.png", [0x13, 0x14, 0x15]);
         test.Library.AssignCoverImage(romHash, sourceImagePath);
@@ -475,7 +475,7 @@ public sealed class LibraryServiceTests
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
-        await test.Library.RecordOpenedRomAsync(romPath);
+        await test.RecordRomFromFileAsync(romPath);
         var romHash = Assert.Single(test.Library.GetRoms(limit: 10)).RomHash;
         byte[] imageBytes = [0x89, 0x50, 0x4E, 0x47];
         var sourceImagePath = await test.WriteImageAsync("cover.PNG", imageBytes);
@@ -506,7 +506,7 @@ public sealed class LibraryServiceTests
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
-        await test.Library.RecordOpenedRomAsync(romPath);
+        await test.RecordRomFromFileAsync(romPath);
         var romHash = Assert.Single(test.Library.GetRoms(limit: 10)).RomHash;
 
         var firstSourcePath = await test.WriteImageAsync("first.png", [0x01, 0x02]);
@@ -538,7 +538,7 @@ public sealed class LibraryServiceTests
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
-        await test.Library.RecordOpenedRomAsync(romPath);
+        await test.RecordRomFromFileAsync(romPath);
         var romHash = Assert.Single(test.Library.GetRoms(limit: 10)).RomHash;
         var sourceImagePath = await test.WriteImageAsync(imageFileName, [0x01]);
 
@@ -553,12 +553,12 @@ public sealed class LibraryServiceTests
     }
 
     [Fact]
-    public async Task RecordOpenedRomAsync_PreservesCoverPathWhenUpsertingSameRom()
+    public async Task RecordLoadedRom_PreservesCoverPathWhenUpsertingSameRom()
     {
         using var test = new LibraryTestContext();
         var rom = TestRomFactory.Create();
         var firstPath = await test.WriteRomAsync("first.gb", rom);
-        await test.Library.RecordOpenedRomAsync(firstPath);
+        await test.RecordRomFromFileAsync(firstPath);
         var romHash = Assert.Single(test.Library.GetRoms(limit: 10)).RomHash;
         var sourceImagePath = await test.WriteImageAsync("cover.png", [0x01, 0x02, 0x03]);
         test.Library.AssignCoverImage(romHash, sourceImagePath);
@@ -567,7 +567,7 @@ public sealed class LibraryServiceTests
             ?? throw new InvalidOperationException("Cover path was not stored.");
         var secondPath = await test.WriteRomAsync("second.gb", rom);
 
-        Assert.Equal(coverPath, await test.Library.RecordOpenedRomAsync(secondPath));
+        Assert.Equal(coverPath, await test.RecordRomFromFileAsync(secondPath));
 
         var entry = Assert.Single(test.Library.GetRoms(limit: 10));
         Assert.Equal(coverPath, entry.CoverPath);
@@ -579,7 +579,7 @@ public sealed class LibraryServiceTests
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
-        await test.Library.RecordOpenedRomAsync(romPath);
+        await test.RecordRomFromFileAsync(romPath);
         var romHash = Assert.Single(test.Library.GetRoms(limit: 10)).RomHash;
         var sourceImagePath = await test.WriteImageAsync("cover.png", [0x04, 0x05, 0x06]);
         test.Library.AssignCoverImage(romHash, sourceImagePath);
@@ -601,7 +601,7 @@ public sealed class LibraryServiceTests
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
-        await test.Library.RecordOpenedRomAsync(romPath);
+        await test.RecordRomFromFileAsync(romPath);
         var romHash = Assert.Single(test.Library.GetRoms(limit: 10)).RomHash;
         byte[] oldBytes = [0x10, 0x11, 0x12];
         var oldSourcePath = await test.WriteImageAsync("old.png", oldBytes);
@@ -642,7 +642,7 @@ public sealed class LibraryServiceTests
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
-        await test.Library.RecordOpenedRomAsync(romPath);
+        await test.RecordRomFromFileAsync(romPath);
         var romHash = Assert.Single(test.Library.GetRoms(limit: 10)).RomHash;
         byte[] oldBytes = [0x40, 0x41, 0x42];
         var oldSourcePath = await test.WriteImageAsync("old.png", oldBytes);
@@ -672,7 +672,7 @@ public sealed class LibraryServiceTests
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
-        await test.Library.RecordOpenedRomAsync(romPath);
+        await test.RecordRomFromFileAsync(romPath);
         var romHash = Assert.Single(test.Library.GetRoms(limit: 10)).RomHash;
         var sourceImagePath = await test.WriteImageAsync("cover.png", [0x30, 0x31, 0x32]);
         test.Library.AssignCoverImage(romHash, sourceImagePath);
@@ -702,7 +702,7 @@ public sealed class LibraryServiceTests
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
-        await test.Library.RecordOpenedRomAsync(romPath);
+        await test.RecordRomFromFileAsync(romPath);
         var firstEntry = Assert.Single(test.Library.GetRoms(limit: 10));
         var sourceImagePath = await test.WriteImageAsync("cover.png", [0x50, 0x51, 0x52]);
         test.Library.AssignCoverImage(firstEntry.RomHash, sourceImagePath);
@@ -885,16 +885,21 @@ public sealed class LibraryServiceTests
         public async Task<string> WriteRomAsync(string fileName, byte[] rom)
         {
             var path = Path.Combine(DirectoryPath, fileName);
-            await File.WriteAllBytesAsync(path, rom, TestContext.Current.CancellationToken)
-                .ConfigureAwait(false);
+            await File.WriteAllBytesAsync(path, rom, TestContext.Current.CancellationToken);
             return path;
+        }
+
+        public async Task<string?> RecordRomFromFileAsync(string path)
+        {
+            var rom = await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken);
+            var cartridge = Cartridge.LoadOrThrow(rom);
+            return Library.RecordLoadedRom(path, rom, cartridge.Header);
         }
 
         public async Task<string> WriteImageAsync(string fileName, byte[] image)
         {
             var path = Path.Combine(DirectoryPath, fileName);
-            await File.WriteAllBytesAsync(path, image, TestContext.Current.CancellationToken)
-                .ConfigureAwait(false);
+            await File.WriteAllBytesAsync(path, image, TestContext.Current.CancellationToken);
             return path;
         }
 

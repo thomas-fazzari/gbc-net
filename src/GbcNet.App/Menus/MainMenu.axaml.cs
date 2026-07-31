@@ -42,6 +42,12 @@ internal sealed partial class MainMenu : UserControl
         IsEnabled = false,
     };
 
+    private readonly NativeMenuItem _nativeCheatsMenuItem = new(header: "Cheats...")
+    {
+        Gesture = KeyGesture.Parse(gesture: "Meta+G"),
+        IsEnabled = false,
+    };
+
     private readonly NativeMenu _nativeSaveStateMenu = [];
     private readonly NativeMenu _nativeLoadStateMenu = [];
 
@@ -130,6 +136,8 @@ internal sealed partial class MainMenu : UserControl
 
     public event EventHandler? ResetRequested;
 
+    public event EventHandler? CheatsRequested;
+
     public event EventHandler<StateSlotSelectedEventArgs>? SaveStateRequested;
 
     public event EventHandler<StateSlotSelectedEventArgs>? LoadStateRequested;
@@ -191,6 +199,10 @@ internal sealed partial class MainMenu : UserControl
                 MenuBarRequested?.Invoke(sender: this, e: EventArgs.Empty);
                 return true;
 
+            case Key.G when CheatsMenuItem.IsEnabled:
+                CheatsRequested?.Invoke(sender: this, e: EventArgs.Empty);
+                return true;
+
             case Key.R when ResetEmulationMenuItem.IsEnabled:
                 ResetRequested?.Invoke(sender: this, e: EventArgs.Empty);
                 return true;
@@ -225,6 +237,13 @@ internal sealed partial class MainMenu : UserControl
             isEnabled: isEnabled
         );
     }
+
+    public void SetCheatsEnabled(bool enabled) =>
+        SetEnabled(
+            nativeItem: _nativeCheatsMenuItem,
+            windowItem: CheatsMenuItem,
+            isEnabled: enabled
+        );
 
     public void SetSaveStateDates(IReadOnlyList<DateTime?> dates)
     {
@@ -377,6 +396,7 @@ internal sealed partial class MainMenu : UserControl
             PauseRequested?.Invoke(sender: this, e: EventArgs.Empty);
         ResetEmulationMenuItem.Click += (_, _) =>
             ResetRequested?.Invoke(sender: this, e: EventArgs.Empty);
+        CheatsMenuItem.Click += (_, _) => CheatsRequested?.Invoke(sender: this, e: EventArgs.Empty);
         MuteAudioMenuItem.InputGesture = _muteGesture;
         MuteAudioMenuItem.Click += (_, _) =>
             MuteRequested?.Invoke(sender: this, e: EventArgs.Empty);
@@ -569,6 +589,8 @@ internal sealed partial class MainMenu : UserControl
             PauseRequested?.Invoke(sender: this, e: EventArgs.Empty);
         _nativeResetMenuItem.Click += (_, _) =>
             ResetRequested?.Invoke(sender: this, e: EventArgs.Empty);
+        _nativeCheatsMenuItem.Click += (_, _) =>
+            CheatsRequested?.Invoke(sender: this, e: EventArgs.Empty);
         _nativeMuteAudioMenuItem.Click += (_, _) =>
             MuteRequested?.Invoke(sender: this, e: EventArgs.Empty);
 
@@ -579,6 +601,7 @@ internal sealed partial class MainMenu : UserControl
         [
             _nativePauseMenuItem,
             _nativeResetMenuItem,
+            _nativeCheatsMenuItem,
             _nativeMuteAudioMenuItem,
             new NativeMenuItemSeparator(),
             _nativeSaveStateMenuItem,

@@ -1,0 +1,230 @@
+<Window
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  x:Class="GbcNet.App.Cheats.CheatsWindow"
+  Title="Cheats"
+  Width="960"
+  Height="640"
+  MinWidth="760"
+  MinHeight="520"
+  CanResize="True"
+  WindowStartupLocation="CenterOwner"
+  RequestedThemeVariant="Dark"
+  Background="{DynamicResource ChromeBackgroundBrush}"
+>
+  <Window.Styles>
+    <Style Selector="TextBlock.dialog-title">
+      <Setter Property="FontSize" Value="18" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+    </Style>
+    <Style Selector="Border.input-well, Border.code-list">
+      <Setter Property="Background" Value="{DynamicResource ChromeSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource ChromeCornerRadius}" />
+    </Style>
+    <Style Selector="Border.input-well:focus-within">
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
+    </Style>
+    <Style Selector="Border.input-well.error">
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeErrorBrush}" />
+    </Style>
+    <Style Selector="TextBox.code-input">
+      <Setter Property="Height" Value="34" />
+      <Setter Property="Padding" Value="10,0" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="FocusAdorner" Value="{x:Null}" />
+    </Style>
+    <Style Selector="Border.code-row">
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="Padding" Value="12" />
+    </Style>
+    <Style Selector="ToggleSwitch.code-toggle">
+      <Setter Property="FocusAdorner">
+        <FocusAdornerTemplate>
+          <Border
+            BorderBrush="{DynamicResource ChromeFocusBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="{DynamicResource ChromeCornerRadius}"
+          />
+        </FocusAdornerTemplate>
+      </Setter>
+    </Style>
+    <Style Selector="Button.row-action">
+      <Setter Property="Height" Value="28" />
+      <Setter Property="Padding" Value="8,0" />
+      <Setter Property="FontSize" Value="11" />
+    </Style>
+    <Style Selector="Button.footer-action">
+      <Setter Property="MinWidth" Value="88" />
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="*,Auto" ColumnDefinitions="176,*">
+    <Border
+      Grid.RowSpan="2"
+      Background="{DynamicResource ChromePanelBrush}"
+      BorderBrush="{DynamicResource ChromeHairBrush}"
+      BorderThickness="0,0,1,0"
+      Padding="8"
+    >
+      <StackPanel HorizontalAlignment="Stretch" Spacing="6">
+        <Button
+          x:Name="GameGenieNavButton"
+          Classes="sidebar-item selected"
+          Click="ShowGameGeniePage"
+          AutomationProperties.Name="Game Genie cheats"
+          AutomationProperties.AutomationId="CheatsNavGameGenie"
+          AutomationProperties.HelpText="Show Game Genie ROM patch codes"
+        >
+          <Grid ColumnDefinitions="16,*" ColumnSpacing="9">
+            <PathIcon Width="15" Height="15" Data="{StaticResource IconMagicStaff}" />
+            <TextBlock Grid.Column="1" Classes="chrome-label sidebar-label" Text="Game Genie" />
+          </Grid>
+        </Button>
+      </StackPanel>
+    </Border>
+    <Grid
+      Grid.Column="1"
+      Margin="32,28,32,18"
+      RowDefinitions="Auto,Auto,Auto,*,Auto,Auto"
+      MinHeight="0"
+    >
+      <StackPanel Spacing="4" Margin="0,0,0,20">
+        <TextBlock Classes="dialog-title" Text="Game Genie" />
+        <TextBlock
+          Classes="muted"
+          Text="Codes are checked top to bottom; the first matching code wins."
+        />
+      </StackPanel>
+
+      <Grid Grid.Row="1" RowDefinitions="Auto,Auto" RowSpacing="8">
+        <Border Classes="input-well">
+          <TextBox
+            x:Name="NameTextBox"
+            Classes="code-input"
+            MaxLength="80"
+            PlaceholderText="Name (optional)"
+            AutomationProperties.Name="Cheat name (optional)"
+            AutomationProperties.HelpText="Optional name for the Game Genie code"
+          />
+        </Border>
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+          <Border Classes="input-well">
+            <TextBox
+              x:Name="CodeTextBox"
+              Classes="code-input"
+              MaxLength="32"
+              PlaceholderText="ABC-DEF or ABC-DEF-GHI"
+              TextChanged="ValidateCodeInput"
+              AutomationProperties.Name="Game Genie code"
+              AutomationProperties.HelpText="Enter a six- or nine-digit Game Genie code"
+            />
+          </Border>
+          <Button
+            x:Name="AddButton"
+            Grid.Column="1"
+            Classes="chrome-button"
+            MinWidth="76"
+            Content="_Add"
+            Click="AddCode"
+            AutomationProperties.Name="Add Game Genie code"
+          />
+        </Grid>
+      </Grid>
+
+      <StackPanel Grid.Row="2" Spacing="4" Margin="0,6,0,0" MinHeight="18">
+        <TextBlock
+          x:Name="InputErrorTextBlock"
+          Classes="error"
+          IsVisible="False"
+          AutomationProperties.LiveSetting="Polite"
+        />
+        <TextBlock
+          x:Name="LimitTextBlock"
+          Classes="error"
+          IsVisible="False"
+          AutomationProperties.LiveSetting="Polite"
+        />
+      </StackPanel>
+
+      <Border Grid.Row="3" Classes="code-list" Margin="0,14,0,0" MinHeight="0">
+        <Grid>
+          <TextBlock
+            x:Name="EmptyStateTextBlock"
+            Classes="muted"
+            Text="No codes for this game."
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+          />
+          <ScrollViewer
+            x:Name="EntriesScrollViewer"
+            IsVisible="False"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto"
+          >
+            <StackPanel x:Name="EntriesPanel" />
+          </ScrollViewer>
+        </Grid>
+      </Border>
+
+      <TextBlock
+        x:Name="CounterTextBlock"
+        Grid.Row="4"
+        Classes="muted"
+        Margin="0,8,0,0"
+        HorizontalAlignment="Right"
+        AutomationProperties.Name="Game Genie code count"
+      />
+
+      <TextBlock
+        x:Name="ApplyErrorTextBlock"
+        Grid.Row="5"
+        Classes="error"
+        Margin="0,8,0,0"
+        IsVisible="False"
+        AutomationProperties.LiveSetting="Polite"
+      />
+    </Grid>
+
+    <Border
+      Grid.Row="1"
+      Grid.Column="1"
+      Background="{DynamicResource ChromeBackgroundBrush}"
+      BorderBrush="{DynamicResource ChromeHairBrush}"
+      BorderThickness="0,1,0,0"
+      Padding="32,12"
+    >
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock
+          x:Name="ApplyingTextBlock"
+          Classes="muted"
+          IsVisible="False"
+          VerticalAlignment="Center"
+          AutomationProperties.LiveSetting="Polite"
+        />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button
+            x:Name="CancelButton"
+            Classes="chrome-button footer-action"
+            Content="_Cancel"
+            Click="Cancel"
+            AutomationProperties.Name="Cancel cheat changes"
+          />
+          <Button
+            x:Name="ApplyButton"
+            Classes="chrome-button accent footer-action"
+            Content="_Apply"
+            Click="ApplyAsync"
+            AutomationProperties.Name="Apply cheat changes"
+          />
+        </StackPanel>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

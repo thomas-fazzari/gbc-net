@@ -44,21 +44,22 @@ internal sealed class SaveStateFileService(
         var path = GetSaveStatePath(rom, slot);
         var temporaryPath = $"{path}.{Guid.NewGuid():N}.tmp";
 
-        await _saveLock
-            .WaitAsync(cancellationToken)
-            .ConfigureAwait(continueOnCapturedContext: false);
+        await _saveLock.WaitAsync(cancellationToken);
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var compressedPayload = await Task.Run(
-                    () =>
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        return Compress(payload.Span);
-                    },
-                    cancellationToken
-                )
-                .ConfigureAwait(continueOnCapturedContext: false);
+            var (compressedPayload, payloadHash) = await Task.Run(
+                () =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var compressedPayload = Compress(payload.Span);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var payloadHash = SHA256.HashData(payload.Span);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return (compressedPayload, payloadHash);
+                },
+                cancellationToken
+            );
 
             Directory.CreateDirectory(stateDirectoryPath);
 
@@ -71,29 +72,17 @@ internal sealed class SaveStateFileService(
                 options: FileOptions.Asynchronous | FileOptions.WriteThrough
             );
 
-            await using (stream.ConfigureAwait(continueOnCapturedContext: false))
+            await using (stream)
             {
-                await stream
-                    .WriteAsync(_magic, cancellationToken)
-                    .ConfigureAwait(continueOnCapturedContext: false);
+                await stream.WriteAsync(_magic, cancellationToken);
                 stream.WriteByte(FormatVersion);
                 stream.WriteByte((byte)hardwareModel);
-                await stream
-                    .WriteAsync(rom.Hash, cancellationToken)
-                    .ConfigureAwait(continueOnCapturedContext: false);
-                await WriteInt32Async(stream, payload.Length, cancellationToken)
-                    .ConfigureAwait(continueOnCapturedContext: false);
-                await stream
-                    .WriteAsync(SHA256.HashData(payload.Span), cancellationToken)
-                    .ConfigureAwait(continueOnCapturedContext: false);
-                await WriteInt32Async(stream, compressedPayload.Length, cancellationToken)
-                    .ConfigureAwait(continueOnCapturedContext: false);
-                await stream
-                    .WriteAsync(compressedPayload, cancellationToken)
-                    .ConfigureAwait(continueOnCapturedContext: false);
-                await stream
-                    .FlushAsync(cancellationToken)
-                    .ConfigureAwait(continueOnCapturedContext: false);
+                await stream.WriteAsync(rom.Hash, cancellationToken);
+                await WriteInt32Async(stream, payload.Length, cancellationToken);
+                await stream.WriteAsync(payloadHash, cancellationToken);
+                await WriteInt32Async(stream, compressedPayload.Length, cancellationToken);
+                await stream.WriteAsync(compressedPayload, cancellationToken);
+                await stream.FlushAsync(cancellationToken);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -148,31 +137,40 @@ internal sealed class SaveStateFileService(
                 options: FileOptions.Asynchronous | FileOptions.SequentialScan
             );
 
-            await using (stream.ConfigureAwait(continueOnCapturedContext: false))
+            await using (stream)
             {
-                var header = await ReadHeaderAsync(stream, rom, hardwareModel, cancellationToken)
-                    .ConfigureAwait(continueOnCapturedContext: false);
+                var header = await ReadHeaderAsync(stream, rom, hardwareModel, cancellationToken);
                 var compressedPayload = new byte[header.CompressedPayloadLength];
-                await ReadExactlyAsync(stream, compressedPayload, cancellationToken)
-                    .ConfigureAwait(continueOnCapturedContext: false);
+                await ReadExactlyAsync(stream, compressedPayload, cancellationToken);
 
                 if (stream.Position != stream.Length)
                 {
                     throw new InvalidDataException("Save-state file contains trailing data.");
                 }
 
-                var payload = Decompress(compressedPayload, header.PayloadLength);
-                if (
-                    !CryptographicOperations.FixedTimeEquals(
-                        left: SHA256.HashData(payload),
-                        right: header.PayloadHash
-                    )
-                )
-                {
-                    throw new InvalidDataException("Save-state payload checksum is invalid.");
-                }
+                return await Task.Run(
+                    () =>
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        var payload = Decompress(compressedPayload, header.PayloadLength);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (
+                            !CryptographicOperations.FixedTimeEquals(
+                                left: SHA256.HashData(payload),
+                                right: header.PayloadHash
+                            )
+                        )
+                        {
+                            throw new InvalidDataException(
+                                "Save-state payload checksum is invalid."
+                            );
+                        }
 
-                return payload;
+                        cancellationToken.ThrowIfCancellationRequested();
+                        return payload;
+                    },
+                    cancellationToken
+                );
             }
         }
         catch (Exception exception)
@@ -219,14 +217,14 @@ internal sealed class SaveStateFileService(
 
     private static byte[] Decompress(ReadOnlySpan<byte> compressedPayload, int payloadLength)
     {
+        var payload = new byte[payloadLength];
         using var decompressor = new ZstdSharp.Decompressor();
-        var payload = decompressor.Unwrap(compressedPayload, payloadLength);
-        if (payload.Length != payloadLength)
+        if (decompressor.Unwrap(compressedPayload, payload) != payloadLength)
         {
             throw new InvalidDataException("Save-state payload length does not match its header.");
         }
 
-        return payload.ToArray();
+        return payload;
     }
 
     private static async Task<SaveStateHeader> ReadHeaderAsync(
@@ -237,25 +235,18 @@ internal sealed class SaveStateFileService(
     )
     {
         var magic = new byte[_magic.Length];
-        await ReadExactlyAsync(stream, magic, cancellationToken)
-            .ConfigureAwait(continueOnCapturedContext: false);
+        await ReadExactlyAsync(stream, magic, cancellationToken);
         if (!magic.AsSpan().SequenceEqual(_magic))
         {
             throw new InvalidDataException("Save-state file magic is invalid.");
         }
 
-        if (
-            await ReadByteAsync(stream, cancellationToken)
-                .ConfigureAwait(continueOnCapturedContext: false) != FormatVersion
-        )
+        if (await ReadByteAsync(stream, cancellationToken) != FormatVersion)
         {
             throw new InvalidDataException("Save-state file version is unsupported.");
         }
 
-        if (
-            await ReadByteAsync(stream, cancellationToken)
-                .ConfigureAwait(continueOnCapturedContext: false) != (byte)hardwareModel
-        )
+        if (await ReadByteAsync(stream, cancellationToken) != (byte)hardwareModel)
         {
             throw new InvalidDataException(
                 "Save-state hardware model does not match the active game."
@@ -263,23 +254,19 @@ internal sealed class SaveStateFileService(
         }
 
         var romHash = new byte[SHA256.HashSizeInBytes];
-        await ReadExactlyAsync(stream, romHash, cancellationToken)
-            .ConfigureAwait(continueOnCapturedContext: false);
+        await ReadExactlyAsync(stream, romHash, cancellationToken);
         if (!CryptographicOperations.FixedTimeEquals(left: romHash, right: rom.Hash))
         {
             throw new InvalidDataException("Save-state ROM hash does not match the active game.");
         }
 
-        var payloadLength = await ReadInt32Async(stream, cancellationToken)
-            .ConfigureAwait(continueOnCapturedContext: false);
+        var payloadLength = await ReadInt32Async(stream, cancellationToken);
         ValidatePayloadLength(payloadLength);
 
         var payloadHash = new byte[SHA256.HashSizeInBytes];
-        await ReadExactlyAsync(stream, payloadHash, cancellationToken)
-            .ConfigureAwait(continueOnCapturedContext: false);
+        await ReadExactlyAsync(stream, payloadHash, cancellationToken);
 
-        var compressedPayloadLength = await ReadInt32Async(stream, cancellationToken)
-            .ConfigureAwait(continueOnCapturedContext: false);
+        var compressedPayloadLength = await ReadInt32Async(stream, cancellationToken);
         if (compressedPayloadLength is < 0 or > MaximumCompressedPayloadLength)
         {
             throw new InvalidDataException("Save-state compressed payload length is invalid.");
@@ -300,9 +287,7 @@ internal sealed class SaveStateFileService(
     {
         var bytes = new byte[sizeof(int)];
         BinaryPrimitives.WriteInt32LittleEndian(bytes, value);
-        await stream
-            .WriteAsync(bytes, cancellationToken)
-            .ConfigureAwait(continueOnCapturedContext: false);
+        await stream.WriteAsync(bytes, cancellationToken);
     }
 
     private static async Task<int> ReadInt32Async(
@@ -311,8 +296,7 @@ internal sealed class SaveStateFileService(
     )
     {
         var bytes = new byte[sizeof(int)];
-        await ReadExactlyAsync(stream, bytes, cancellationToken)
-            .ConfigureAwait(continueOnCapturedContext: false);
+        await ReadExactlyAsync(stream, bytes, cancellationToken);
         return BinaryPrimitives.ReadInt32LittleEndian(bytes);
     }
 
@@ -322,8 +306,7 @@ internal sealed class SaveStateFileService(
     )
     {
         var value = new byte[1];
-        await ReadExactlyAsync(stream, value, cancellationToken)
-            .ConfigureAwait(continueOnCapturedContext: false);
+        await ReadExactlyAsync(stream, value, cancellationToken);
         return value[0];
     }
 
@@ -335,9 +318,7 @@ internal sealed class SaveStateFileService(
     {
         while (!destination.IsEmpty)
         {
-            var count = await stream
-                .ReadAsync(destination, cancellationToken)
-                .ConfigureAwait(continueOnCapturedContext: false);
+            var count = await stream.ReadAsync(destination, cancellationToken);
             if (count == 0)
             {
                 throw new InvalidDataException("Save-state file is truncated.");

@@ -30,7 +30,7 @@ public sealed class CartridgeBatterySaveWriterTests
                 if (writes.Count == 1)
                 {
                     firstWriteStarted.SetResult();
-                    await releaseFirstWrite.Task.ConfigureAwait(false);
+                    await releaseFirstWrite.Task;
                 }
             },
             exception => Assert.Fail($"Unexpected error: {exception}")

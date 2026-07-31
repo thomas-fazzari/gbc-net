@@ -1,10 +1,12 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Cheats;
 using GbcNet.Core.Clock;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
@@ -114,6 +116,19 @@ public sealed class GameBoy
     {
         get => Bus.Ppu.VideoRenderingEnabled;
         set => Bus.Ppu.VideoRenderingEnabled = value;
+    }
+
+    /// <summary>
+    /// Replaces the Game Genie ROM read replacements for this machine.
+    /// </summary>
+    /// <remarks>
+    /// The core has single-thread affinity. This guard rejects reentrance while an instruction is
+    /// executing; it does not synchronize calls from multiple threads, which the host must serialize.
+    /// </remarks>
+    public void SetGameGenieCodes(ReadOnlySpan<GameGenieCode> codes)
+    {
+        ThrowIfStepping();
+        Bus.SetGameGenieCodes(codes);
     }
 
     /// <summary>
@@ -348,7 +363,10 @@ internal static class GameBoyStateCodec
             if (payload.FormatVersion != FormatVersion)
             {
                 throw new InvalidDataException(
-                    $"Unsupported Game Boy state format version {payload.FormatVersion}."
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"Unsupported Game Boy state format version {payload.FormatVersion}."
+                    )
                 );
             }
 

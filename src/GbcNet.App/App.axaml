@@ -57,6 +57,52 @@
     <Style Selector="MenuItem">
       <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
     </Style>
+    <Style Selector="TextBlock.chrome-label">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.sidebar-label">
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeMutedBrush}" />
+    </Style>
+    <Style Selector="Button.sidebar-item">
+      <Setter Property="Height" Value="34" />
+      <Setter Property="CornerRadius" Value="{DynamicResource ChromeCornerRadius}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeMutedBrush}" />
+    </Style>
+    <Style Selector="Button.sidebar-item:pointerover">
+      <Setter Property="Background" Value="{DynamicResource ChromeHoverBrush}" />
+    </Style>
+    <Style Selector="Button.sidebar-item:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
+    </Style>
+    <Style Selector="Button.sidebar-item.selected">
+      <Setter Property="Background" Value="{DynamicResource ChromeSelectedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeSelectedBorderBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+    </Style>
+    <Style Selector="Button.sidebar-item.selected TextBlock.sidebar-label">
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+    </Style>
+    <Style Selector="Button.sidebar-item.selected PathIcon">
+      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeMutedBrush}" />
+    </Style>
+    <Style Selector="TextBlock.error">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{DynamicResource ChromeErrorBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
     <Style Selector="Button.chrome-button">
       <Setter Property="Height" Value="30" />
       <Setter Property="MinWidth" Value="0" />

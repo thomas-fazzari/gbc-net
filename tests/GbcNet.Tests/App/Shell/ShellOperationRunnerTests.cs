@@ -45,7 +45,7 @@ public sealed class ShellOperationRunnerTests
         {
             TrackOperationStart();
             firstOperationStarted.SetResult();
-            await releaseFirstOperation.Task.ConfigureAwait(false);
+            await releaseFirstOperation.Task;
             Interlocked.Decrement(ref activeCount);
         });
 

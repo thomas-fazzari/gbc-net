@@ -18,6 +18,8 @@
     }
   ],
   "settings": {
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file",
     "files.associations": {
       "*.axaml": "xml",
       "*.code-workspace": "jsonc",
@@ -26,6 +28,7 @@
       "*.slnx": "xml"
     },
     "files.exclude": {
+      "**/.omp": true,
       "**/src": true,
       "**/tests": true,
       "**/.csharpierignore": true,
@@ -44,22 +47,14 @@
       "**/*.DotSettings.*": true,
       "**/TestResults": true
     },
-    "[csharp]": {
+    "[csharp][xml]": {
       "editor.defaultFormatter": "csharpier.csharpier-vscode",
-      "editor.formatOnSave": true
-    },
-    "[xml]": {
-      "editor.defaultFormatter": "csharpier.csharpier-vscode",
-      "editor.formatOnSave": true,
-      "editor.formatOnSaveMode": "file"
     },
     "[markdown]": {
       "editor.defaultFormatter": "DavidAnson.vscode-markdownlint",
-      "editor.formatOnSave": true
     },
     "[json][jsonc]": {
       "editor.defaultFormatter": "vscode.json-language-features",
-      "editor.formatOnSave": true
     },
     "files.watcherExclude": {
       "**/bin/**": true,

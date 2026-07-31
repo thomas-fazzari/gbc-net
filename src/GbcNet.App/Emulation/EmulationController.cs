@@ -3,9 +3,11 @@
 
 using Avalonia.Platform.Storage;
 using GbcNet.App.Audio;
+using GbcNet.App.Cheats;
 using GbcNet.App.Saves;
 using GbcNet.Core;
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Cheats;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Ppu;
@@ -20,6 +22,7 @@ internal sealed class EmulationController(
     IAudioOutput audioOutput,
     CartridgeBatterySaveFileService cartridgeSaveFileService,
     SaveStateFileService saveStateFileService,
+    GameGenieService gameGenieService,
     Action<LcdFrame> handleFrame,
     Action<Exception> handleFault,
     Action<Exception> handlePersistenceError,
@@ -33,6 +36,7 @@ internal sealed class EmulationController(
     private CartridgeHeader? _loadedCartridgeHeader;
     private string _loadedRomFileName = string.Empty;
     private RomStorageIdentity? _loadedRomStorageIdentity;
+    private GameGenieCodeEntry[] _gameGenieCodes = [];
 
     private bool _fastForwardEnabled = fastForwardEnabled;
     private EmulationSpeed _fastForwardSpeed = Enum.IsDefined(fastForwardSpeed)
@@ -48,7 +52,8 @@ internal sealed class EmulationController(
             LoadedRom: _loadedRom.AsMemory(),
             LoadedCartridgeHeader: _loadedCartridgeHeader,
             LoadedRomFileName: _loadedRomFileName,
-            HardwareModel: _session?.HardwareModel
+            HardwareModel: _session?.HardwareModel,
+            GameGenieCodes: _gameGenieCodes
         );
 
     public void SetBootRomOptions(BootRomOptions options)
@@ -82,14 +87,19 @@ internal sealed class EmulationController(
     {
         var rom = await ReadFileAsync(file);
         var (cartridge, savePath) = LoadCartridge(rom);
+        var identity = RomStorageIdentity.Create(cartridge.Header.Title, rom);
+        var codes = await gameGenieService.LoadAsync(identity.Hash, CancellationToken.None);
+        var activeCodes = GetActiveGameGenieCodes(codes);
+
         await StopAsync();
 
         _loadedRom = rom;
         _loadedCartridgeHeader = cartridge.Header;
         _loadedRomFileName = file.Name;
-        _loadedRomStorageIdentity = RomStorageIdentity.Create(cartridge.Header.Title, rom);
+        _loadedRomStorageIdentity = identity;
+        _gameGenieCodes = codes;
 
-        Start(cartridge, savePath);
+        Start(cartridge, savePath, activeCodes);
         return State;
     }
 
@@ -101,10 +111,11 @@ internal sealed class EmulationController(
         }
 
         var (cartridge, savePath) = LoadCartridge(_loadedRom);
+        var activeCodes = GetActiveGameGenieCodes(_gameGenieCodes);
         await StopAsync();
 
         _loadedCartridgeHeader = cartridge.Header;
-        Start(cartridge, savePath);
+        Start(cartridge, savePath, activeCodes);
         return State;
     }
 
@@ -156,6 +167,39 @@ internal sealed class EmulationController(
         await session.RestoreSaveStateAsync(state);
     }
 
+    public async Task SetGameGenieCodesAsync(
+        IReadOnlyList<GameGenieCodeEntry> entries,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (_session is not { } session || _loadedRomStorageIdentity is not { } identity)
+        {
+            throw new InvalidOperationException("No ROM is loaded.");
+        }
+
+        var codes = await gameGenieService.ReplaceAsync(identity.Hash, entries, cancellationToken);
+        _gameGenieCodes = codes;
+
+        try
+        {
+            await session.SetGameGenieCodesAsync(GetActiveGameGenieCodes(codes));
+        }
+        catch (InvalidOperationException exception)
+            when (string.Equals(
+                    exception.Message,
+                    "Emulation session is stopped.",
+                    StringComparison.Ordinal
+                )
+            )
+        {
+            return;
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+    }
+
     public DateTime?[] GetSaveStateDates(int slotCount)
     {
         if (_loadedRomStorageIdentity is not { } rom)
@@ -173,14 +217,12 @@ internal sealed class EmulationController(
 
     private static async Task<byte[]> ReadFileAsync(IStorageFile file)
     {
-        var stream = await file.OpenReadAsync().ConfigureAwait(continueOnCapturedContext: false);
+        var stream = await file.OpenReadAsync();
         var memoryStream = new MemoryStream();
-        await using (stream.ConfigureAwait(continueOnCapturedContext: false))
-        await using (memoryStream.ConfigureAwait(continueOnCapturedContext: false))
+        await using (stream)
+        await using (memoryStream)
         {
-            await stream
-                .CopyToAsync(memoryStream, CancellationToken.None)
-                .ConfigureAwait(continueOnCapturedContext: false);
+            await stream.CopyToAsync(memoryStream, CancellationToken.None);
             return memoryStream.ToArray();
         }
     }
@@ -201,7 +243,11 @@ internal sealed class EmulationController(
         return (session, rom);
     }
 
-    private void Start(Cartridge cartridge, string? savePath)
+    private void Start(
+        Cartridge cartridge,
+        string? savePath,
+        ReadOnlySpan<GameGenieCode> gameGenieCodes
+    )
     {
         var hardwareModel = cartridge.Header.HardwareKind switch
         {
@@ -220,14 +266,45 @@ internal sealed class EmulationController(
             );
         }
 
+        var gameBoy = new GameBoy(cartridge, hardwareModel, _bootRomOptions);
+        gameBoy.SetGameGenieCodes(gameGenieCodes);
         _session = new EmulationSession(
-            new GameBoy(cartridge, hardwareModel, _bootRomOptions),
+            gameBoy,
             audioOutput,
             handleFrame,
             HandleFatalSessionFault,
             saveWriter
         );
         ApplyFastForwardSettings();
+    }
+
+    private static GameGenieCode[] GetActiveGameGenieCodes(ReadOnlySpan<GameGenieCodeEntry> entries)
+    {
+        var count = 0;
+        foreach (var entry in entries)
+        {
+            if (entry.IsEnabled)
+            {
+                count++;
+            }
+        }
+
+        if (count == 0)
+        {
+            return [];
+        }
+
+        var codes = new GameGenieCode[count];
+        var index = 0;
+        foreach (var entry in entries)
+        {
+            if (entry.IsEnabled)
+            {
+                codes[index++] = entry.Code;
+            }
+        }
+
+        return codes;
     }
 
     private void HandleFatalSessionFault(Exception exception)
@@ -248,7 +325,8 @@ internal readonly record struct EmulationControllerState(
     ReadOnlyMemory<byte> LoadedRom,
     CartridgeHeader? LoadedCartridgeHeader,
     string LoadedRomFileName,
-    HardwareModel? HardwareModel
+    HardwareModel? HardwareModel,
+    ReadOnlyMemory<GameGenieCodeEntry> GameGenieCodes
 )
 {
     public EmulationSpeed EffectiveSpeed =>

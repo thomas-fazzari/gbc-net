@@ -24,6 +24,7 @@ internal sealed class GbcNetDbContext : DbContext
     }
 
     public DbSet<LibraryRom> Roms => Set<LibraryRom>();
+    public DbSet<StoredCheatCode> CheatCodes => Set<StoredCheatCode>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -43,8 +44,12 @@ internal sealed class GbcNetDbContext : DbContext
         );
     }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
-        modelBuilder.ApplyConfiguration(new LibraryRomConfiguration());
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder
+            .ApplyConfiguration(new LibraryRomConfiguration())
+            .ApplyConfiguration(new StoredCheatCodeConfiguration());
+    }
 
     private void StampLibraryEntries()
     {

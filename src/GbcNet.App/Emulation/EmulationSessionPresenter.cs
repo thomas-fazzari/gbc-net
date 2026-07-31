@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using GbcNet.App.Cheats;
 using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.App.Input;
@@ -147,6 +148,55 @@ internal sealed class EmulationSessionPresenter(
         }
     }
 
+    public async Task OpenCheatsAsync(Window owner)
+    {
+        var state = controller.State;
+        if (!state.HasSession)
+        {
+            return;
+        }
+
+        var pausedByThisMethod = false;
+
+        if (!state.IsPaused)
+        {
+            inputRouter.Clear();
+            TogglePause();
+            pausedByThisMethod = true;
+        }
+
+        try
+        {
+            await new CheatsWindow(
+                controller.State.GameGenieCodes.ToArray(),
+                async entries =>
+                {
+                    try
+                    {
+                        await controller.SetGameGenieCodesAsync(entries, CancellationToken.None);
+                    }
+                    catch (Exception exception)
+                        when (exception
+                                is ArgumentException
+                                    or InvalidOperationException
+                                    or OperationCanceledException
+                        )
+                    {
+                        EmulationSessionPresenterLog.GameGenieApplyFailed(logger, exception);
+                        throw;
+                    }
+                }
+            ).ShowDialog<bool?>(owner);
+        }
+        finally
+        {
+            if (pausedByThisMethod && controller.State is { HasSession: true, IsPaused: true })
+            {
+                TogglePause();
+            }
+        }
+    }
+
     public async Task StopAsync()
     {
         await controller.StopAsync();
@@ -248,6 +298,7 @@ internal sealed class EmulationSessionPresenter(
         var state = controller.State;
 
         menu.SetEmulationActionsEnabled(state.HasSession);
+        menu.SetCheatsEnabled(state.HasSession);
         menu.SetPauseState(state.HasSession, state.IsPaused);
         menu.SetFastForwardState(state.FastForwardEnabled, state.FastForwardSpeed);
 
@@ -357,6 +408,9 @@ internal sealed class EmulationSessionPresenter(
 
 internal static partial class EmulationSessionPresenterLog
 {
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Game Genie codes could not be applied.")]
+    internal static partial void GameGenieApplyFailed(ILogger logger, Exception exception);
+
     [LoggerMessage(
         Level = LogLevel.Warning,
         Message = "Loaded ROM could not be recorded in the library."

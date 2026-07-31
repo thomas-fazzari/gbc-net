@@ -56,23 +56,6 @@ internal sealed class LibraryService(
     private readonly string _coverDirectoryPath = Path.GetFullPath(coverDirectoryPath);
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
-    public async Task<string?> RecordOpenedRomAsync(string path)
-    {
-        try
-        {
-            var fullPath = Path.GetFullPath(path);
-            var rom = await File.ReadAllBytesAsync(fullPath, CancellationToken.None)
-                .ConfigureAwait(continueOnCapturedContext: false);
-            var cartridge = Cartridge.LoadOrThrow(rom);
-
-            return RecordOpenedRomCore(fullPath, rom, cartridge.Header);
-        }
-        catch (Exception exception) when (IsExpectedLibraryException(exception))
-        {
-            throw CreateLibraryException(exception);
-        }
-    }
-
     public string? RecordLoadedRom(
         string path,
         ReadOnlyMemory<byte> rom,

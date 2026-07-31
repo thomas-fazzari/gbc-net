@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
 using GbcNet.App.Audio;
+using GbcNet.App.Cheats;
 using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.Library;
@@ -47,6 +48,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         AppConfigurationService configurationService,
         CartridgeBatterySaveFileService cartridgeSaveFileService,
         SaveStateFileService saveStateFileService,
+        GameGenieService gameGenieService,
         LibraryService libraryService,
         IAudioOutput audioOutput,
         ILogger<MainWindow> logger,
@@ -88,6 +90,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             audioOutput,
             cartridgeSaveFileService,
             saveStateFileService,
+            gameGenieService,
             OnFrameCompleted,
             handleFault: OnEmulationFaulted,
             handlePersistenceError: OnPersistenceError,
@@ -208,6 +211,21 @@ internal sealed partial class MainWindow : Window, IDisposable
             _operationRunner.Run(ConfigurationPresenter.OpenLogDirectoryAsync);
         MainMenu.PauseRequested += (_, _) => _emulationSession.TogglePause();
         MainMenu.ResetRequested += (_, _) => _operationRunner.Run(_emulationSession.ResetAsync);
+        MainMenu.CheatsRequested += (_, _) =>
+            _operationRunner.Run(async () =>
+            {
+                var gameplayEnabled = _gamepadManager.GameplayEnabled;
+                _gamepadManager.SetGameplayEnabled(enabled: false);
+                try
+                {
+                    await _emulationSession.OpenCheatsAsync(this);
+                }
+                finally
+                {
+                    _gamepadManager.SetGameplayEnabled(enabled: gameplayEnabled);
+                    Dispatcher.UIThread.Post(() => emulationView.Focus(), DispatcherPriority.Input);
+                }
+            });
         MainMenu.MuteRequested += (_, _) => ToggleMute();
         MainMenu.SaveStateRequested += (_, e) =>
             _operationRunner.Run(() => _emulationSession.SaveStateAsync(e.SlotIndex));
