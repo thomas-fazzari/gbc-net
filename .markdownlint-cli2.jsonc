@@ -3,9 +3,8 @@
   "gitignore": true,
   "globs": [
     "README.md",
-    "AGENTS.md",
     "docs/**/*.md",
-    ".omp/skills/**/*.md"
+    ".omp/**/*.md"
   ],
   "config": {
     "default": true,

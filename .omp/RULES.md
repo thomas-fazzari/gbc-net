@@ -1,33 +1,25 @@
-# RULES.md
+# Hard rules
 
-## Defaults
+* Use the `gameboy-development` skill before changing Game Boy hardware behavior, emulator timing, CPU, PPU, APU, timers, interrupts, DMA, MBC, CGB, or SGB logic.
+* Read the applicable versioned ADR under `docs/adr/` before changing its area. ADRs are the source of truth; synchronize Codebase Memory ADR content when an ADR changes.
+* Respond tersely in the user's language. Do not narrate tool calls, use decorative tables, or dump long logs unless asked.
+* Preserve user changes. Do not overwrite, delete, or reformat unrelated work.
 
-* Use [`gameboy-development`](.omp/skills/gameboy-development/SKILL.md) before changing Game Boy hardware behavior, emulator timing, CPU, PPU, APU, timers, interrupts, DMA, MBC, CGB, or SGB logic.
-* Respond tersely in the user's language. Drop filler, pleasantries, hedging, and unnecessary words; fragments are fine. Preserve technical precision, code, commands, exact errors, and required detail.
-* Do not narrate tool calls, use decorative tables, or dump long logs unless asked. Use full sentences only when compression could make security warnings, destructive actions, or ordered steps ambiguous.
+## Engineering
 
-## Code style
-
-* Avoid unnecessary abstractions, indirections, wrappers/helper methods and intermediate variables: inline simple expressions and one-off construction unless naming significantly improves correctness, readability, reuse, or test diagnostics.
-* Avoid unnecessary fallbacks and backward compatibility layers: write code for the current, explicit requirements. Do not support legacy behaviors, deprecated APIs, or "just in case" edge cases unless explicitly requested.
-
-## Architecture decision records
-
-* Versioned ADRs under `docs/adr/` are the source of truth. Codebase Memory is a discovery cache; keep its ADR content synchronized when a versioned ADR changes.
-* Before changing an area listed below, read its referenced ADR:
-  * SGB behavior or scope: `docs/adr/0001-super-game-boy-hle.md`
-  * Logging: `docs/adr/0002-logging.md`
+* Prefer modern BCL APIs and established maintained libraries over custom machinery.
+* Prefer direct readable code over speculative abstractions, wrappers, helpers, fallbacks, and intermediate variables.
+* Do not preserve backward compatibility unless explicitly requested.
+* Make architectural decisions for the long term; do not add stopgaps intended for later replacement.
 
 ## Tests
 
-* Agents may run `make unit`, but must not use `make tests` or `make integration`. Both execute integration tests on the host. Host execution remains available for developers, VS Code Test Explorer, and CI.
-* Agents must always run integration tests through Podman or Docker:
-  `make integration-c CONFIGURATION=Release`.
-* To filter a class, pass Microsoft Testing Platform arguments through Make:
-  `make integration-c CONFIGURATION=Release TEST_ARGS="--filter-class Fully.Qualified.TestClassName"`.
-* Do not use `dotnet test --filter`; this project uses the MTP runner and that filter option is not supported here.
+* Agents may run `make unit`, but must not use `make tests` or `make integration`. Both execute integration tests on the host.
+* Always run integration tests through Podman or Docker: `make integration-c CONFIGURATION=Release`.
+* Filter a class with `make integration-c CONFIGURATION=Release TEST_ARGS="--filter-class Fully.Qualified.TestClassName"`.
+* Do not use `dotnet test --filter`; this project uses Microsoft Testing Platform and does not support that option.
 
 ## Git
 
-* Do not stage, unstage, commit, reset, restore, checkout, branch, push, or otherwise mutate git state unless the user explicitly asks for that exact git action.
-* For git output requests, run only the requested read-only command and report the important lines.
+* Do not stage, unstage, commit, reset, restore, checkout, branch, push, or otherwise mutate Git state unless the user explicitly requests that exact action.
+* For Git output requests, run only the requested read-only command and report the important lines.
