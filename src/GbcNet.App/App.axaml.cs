@@ -28,8 +28,8 @@ internal sealed class GbcNetApplication : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            using var startupLoggerFactory = LoggerFactory.Create(static builder =>
-                builder.AddDebug().AddSerilog()
+            using var startupLoggerFactory = LoggerFactory.Create(
+                DependencyInjection.ConfigureLogging
             );
 
             var startupConfiguration = StartupConfigurationLoader.Load(

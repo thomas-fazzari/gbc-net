@@ -19,7 +19,7 @@ internal static class DependencyInjection
     public static ServiceProvider BuildServiceProvider(StartupConfiguration startupConfiguration)
     {
         var services = new ServiceCollection();
-        services.AddLogging(static builder => builder.AddDebug().AddSerilog());
+        services.AddLogging(ConfigureLogging);
         services.AddSingleton(startupConfiguration);
 
         services.AddSingleton(provider => new AppConfigurationService(
@@ -36,5 +36,13 @@ internal static class DependencyInjection
 
         services.AddTransient<MainWindow>();
         return services.BuildServiceProvider();
+    }
+
+    internal static void ConfigureLogging(ILoggingBuilder builder)
+    {
+#if DEBUG
+        builder.AddDebug();
+#endif
+        builder.AddSerilog();
     }
 }
