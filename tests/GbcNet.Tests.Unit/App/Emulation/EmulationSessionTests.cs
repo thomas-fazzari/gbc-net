@@ -49,9 +49,9 @@ public sealed class EmulationSessionTests
     }
 
     [Fact]
-    public async Task SetGameGenieCodesAsync_SwapsAndClearsRomReadsWhilePaused()
+    public async Task SetCheatCodesAsync_SwapsAndClearsGameGenieRomReadsWhilePaused()
     {
-        Assert.True(GameGenieCode.TryParse("0A1-B9F", out var code));
+        Assert.True(CheatCode.TryParse(CheatCodeType.GameGenie, "0A1-B9F", out var code));
         var gameBoy = new GameBoy(TestRomFactory.LoadCartridge(), HardwareModel.Dmg);
         using var audioOutput = new TestAudioOutput();
         var session = new EmulationSession(
@@ -68,12 +68,12 @@ public sealed class EmulationSessionTests
         try
         {
             await session
-                .SetGameGenieCodesAsync([code])
+                .SetCheatCodesAsync([code])
                 .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
             Assert.Equal(0x0A, gameBoy.Bus.ReadByte(code.Address));
 
             await session
-                .SetGameGenieCodesAsync([])
+                .SetCheatCodesAsync([])
                 .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
             Assert.Equal(0x00, gameBoy.Bus.ReadByte(code.Address));
             Assert.True(session.IsPaused);

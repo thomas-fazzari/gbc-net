@@ -64,6 +64,7 @@ public sealed class GameBoy
 
         var bootRom = BootRom.Create(hardwareProfile.Model, options);
         Bus = new MemoryBus(cartridge, hardwareProfile, bootRom);
+        Cheats = new CheatController(this, Bus);
         Bus.Serial.ByteTransferred += OnSerialByteTransferred;
         _clock = new MachineClock(Bus);
         Cpu = new Cpu(Bus, _clock.TickMachineCycle);
@@ -119,17 +120,9 @@ public sealed class GameBoy
     }
 
     /// <summary>
-    /// Replaces the Game Genie ROM read replacements for this machine.
+    /// Controls cheat codes applied by this machine.
     /// </summary>
-    /// <remarks>
-    /// The core has single-thread affinity. This guard rejects reentrance while an instruction is
-    /// executing; it does not synchronize calls from multiple threads, which the host must serialize.
-    /// </remarks>
-    public void SetGameGenieCodes(ReadOnlySpan<GameGenieCode> codes)
-    {
-        ThrowIfStepping();
-        Bus.SetGameGenieCodes(codes);
-    }
+    public CheatController Cheats { get; }
 
     /// <summary>
     /// Executes one CPU step and advances hardware that runs from CPU cycles.
@@ -285,7 +278,7 @@ public sealed class GameBoy
 
     internal Cpu Cpu { get; }
 
-    private void ThrowIfStepping()
+    internal void ThrowIfStepping()
     {
         if (_isStepping)
         {

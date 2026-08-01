@@ -38,6 +38,15 @@ internal sealed class MachineClock(MemoryBus bus)
         bus.Apu.Tick(tCycles);
 
         var ppuResult = bus.TickPpu(tCycles);
+
+        if (
+            !bus.IsBootRomMapped
+            && (ppuResult.Interrupts & PpuInterruptRequests.VBlank) is not PpuInterruptRequests.None
+        )
+        {
+            bus.ApplyGameSharkCodes();
+        }
+
         if (ppuResult.EnteredVisibleHBlank)
         {
             bus.VramDma.TransferHBlankBlock();

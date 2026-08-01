@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Net.Mime;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -26,7 +27,7 @@ internal sealed partial class SettingsWindow : Window
     {
         Patterns = ["*.bin", "*"],
         AppleUniformTypeIdentifiers = ["public.data"],
-        MimeTypes = ["application/octet-stream"],
+        MimeTypes = [MediaTypeNames.Application.Octet],
     };
     private readonly InputConfigDraft _inputDraft;
     private readonly GamepadManager _gamepadManager;

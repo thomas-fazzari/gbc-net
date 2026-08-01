@@ -9,7 +9,7 @@ internal static class DependencyInjection
 {
     public static IServiceCollection AddCheats(this IServiceCollection services)
     {
-        services.AddSingleton<GameGenieService>();
+        services.AddSingleton<CheatCodeService>();
         return services;
     }
 }

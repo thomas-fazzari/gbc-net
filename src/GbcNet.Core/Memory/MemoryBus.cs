@@ -36,7 +36,8 @@ internal sealed class MemoryBus
     private readonly SgbController? _sgb;
     private readonly CgbMiscRegisters _cgbMiscRegisters;
 
-    private GameGenieCode[]?[]? _gameGenieCodesByLowAddress;
+    private CheatCode[]?[]? _gameGenieCodesByLowAddress;
+    private CheatCode[]? _gameSharkCodes;
 
     /// <summary>
     /// Interrupt request and enable registers routed through FF0F and FFFF.
@@ -183,49 +184,85 @@ internal sealed class MemoryBus
         }
     }
 
-    internal void SetGameGenieCodes(ReadOnlySpan<GameGenieCode> codes)
+    internal void SetCheatCodes(ReadOnlySpan<CheatCode> codes)
     {
-        Span<int> counts = stackalloc int[byte.MaxValue + 1];
-        counts.Clear();
+        Span<int> gameGenieCounts = stackalloc int[byte.MaxValue + 1];
+        gameGenieCounts.Clear();
+        var gameGenieCodeCount = 0;
+        var gameSharkCount = 0;
 
         foreach (var code in codes)
         {
-            if (!code.IsValid)
+            if (
+                !code.IsValid
+                || code.Type is not (CheatCodeType.GameGenie or CheatCodeType.GameShark)
+            )
             {
                 throw new ArgumentException(
-                    "Game Genie codes must be parsed successfully.",
+                    "Cheat codes must be parsed successfully.",
                     nameof(codes)
                 );
             }
 
-            counts[(byte)code.Address]++;
-        }
-
-        if (codes.IsEmpty)
-        {
-            _gameGenieCodesByLowAddress = null;
-            return;
-        }
-
-        var codesByLowAddress = new GameGenieCode[]?[byte.MaxValue + 1];
-        Span<int> offsets = stackalloc int[byte.MaxValue + 1];
-        offsets.Clear();
-
-        for (var index = 0; index < codesByLowAddress.Length; index++)
-        {
-            if (counts[index] != 0)
+            if (code.Type is CheatCodeType.GameGenie)
             {
-                codesByLowAddress[index] = new GameGenieCode[counts[index]];
+                gameGenieCounts[(byte)code.Address]++;
+                gameGenieCodeCount++;
             }
+            else
+            {
+                gameSharkCount++;
+            }
+        }
+
+        CheatCode[]?[]? gameGenieCodesByLowAddress = null;
+        if (gameGenieCodeCount != 0)
+        {
+            gameGenieCodesByLowAddress = new CheatCode[]?[byte.MaxValue + 1];
+
+            for (var index = 0; index < gameGenieCodesByLowAddress.Length; index++)
+            {
+                if (gameGenieCounts[index] != 0)
+                {
+                    gameGenieCodesByLowAddress[index] = new CheatCode[gameGenieCounts[index]];
+                }
+            }
+        }
+
+        var gameSharkCodes = gameSharkCount == 0 ? null : new CheatCode[gameSharkCount];
+        Span<int> gameGenieOffsets = stackalloc int[byte.MaxValue + 1];
+        gameGenieOffsets.Clear();
+        var gameSharkIndex = 0;
+
+        foreach (var code in codes)
+        {
+            if (code.Type is CheatCodeType.GameGenie)
+            {
+                var lowAddress = (byte)code.Address;
+                gameGenieCodesByLowAddress![lowAddress]![gameGenieOffsets[lowAddress]++] = code;
+            }
+            else
+            {
+                gameSharkCodes![gameSharkIndex++] = code;
+            }
+        }
+
+        _gameGenieCodesByLowAddress = gameGenieCodesByLowAddress;
+        _gameSharkCodes = gameSharkCodes;
+    }
+
+    internal void ApplyGameSharkCodes()
+    {
+        var codes = _gameSharkCodes;
+        if (codes is null)
+        {
+            return;
         }
 
         foreach (var code in codes)
         {
-            var lowAddress = (byte)code.Address;
-            codesByLowAddress[lowAddress]![offsets[lowAddress]++] = code;
+            WriteMappedByte(code.Address, code.Value);
         }
-
-        _gameGenieCodesByLowAddress = codesByLowAddress;
     }
 
     /// <summary>
@@ -512,9 +549,8 @@ internal sealed class MemoryBus
         return codes is null ? originalValue : ApplyGameGenieCodes(codes, address, originalValue);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
     private static byte ApplyGameGenieCodes(
-        ReadOnlySpan<GameGenieCode> codes,
+        ReadOnlySpan<CheatCode> codes,
         ushort address,
         byte originalValue
     )
@@ -526,7 +562,7 @@ internal sealed class MemoryBus
                 && (code.CompareValue is not { } compareValue || compareValue == originalValue)
             )
             {
-                return code.ReplacementValue;
+                return code.Value;
             }
         }
 

@@ -143,13 +143,13 @@ internal sealed class EmulationSession
         });
     }
 
-    public Task SetGameGenieCodesAsync(GameGenieCode[] codes)
+    public Task SetCheatCodesAsync(CheatCode[] codes)
     {
         ArgumentNullException.ThrowIfNull(codes);
 
         return QueueMachineOperation(gameBoy =>
         {
-            gameBoy.SetGameGenieCodes(codes);
+            gameBoy.Cheats.SetCodes(codes);
             return true;
         });
     }

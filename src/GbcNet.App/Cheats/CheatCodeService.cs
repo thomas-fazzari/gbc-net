@@ -10,18 +10,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GbcNet.App.Cheats;
 
-internal readonly record struct GameGenieCodeEntry(
-    GameGenieCode Code,
-    bool IsEnabled,
-    string? Name = null
-);
+internal readonly record struct CheatCodeEntry(CheatCode Code, bool IsEnabled, string? Name = null);
 
-internal sealed class GameGenieService(IDbContextFactory<GbcNetDbContext> dbContextFactory)
+internal sealed class CheatCodeService(IDbContextFactory<GbcNetDbContext> dbContextFactory)
 {
     internal const int MaxEntryCount = 20;
     internal const int MaxNameLength = 80;
 
-    public async Task<GameGenieCodeEntry[]> LoadAsync(
+    public async Task<CheatCodeEntry[]> LoadAsync(
         byte[] romHash,
         CancellationToken cancellationToken
     )
@@ -31,38 +27,40 @@ internal sealed class GameGenieService(IDbContextFactory<GbcNetDbContext> dbCont
         try
         {
             await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-
             var storedCodes = await db
                 .CheatCodes.Where(entry =>
-                    entry.RomHash == storedRomHash && entry.Type == CheatCodeType.GameGenie
+                    entry.RomHash == storedRomHash
+                    && (
+                        entry.Type == CheatCodeType.GameGenie
+                        || entry.Type == CheatCodeType.GameShark
+                    )
                 )
-                .OrderBy(entry => entry.SortOrder)
+                .OrderBy(entry => entry.Type)
+                .ThenBy(entry => entry.SortOrder)
                 .Select(entry => new
                 {
                     entry.Code,
                     entry.Name,
                     entry.IsEnabled,
+                    entry.Type,
                 })
                 .ToArrayAsync(cancellationToken);
-            var entries = new GameGenieCodeEntry[storedCodes.Length];
+            var entries = new CheatCodeEntry[storedCodes.Length];
 
             for (var index = 0; index < storedCodes.Length; index++)
             {
                 var storedCode = storedCodes[index];
+                ValidateStoredName(storedCode.Name);
+
                 if (
-                    !GameGenieCode.TryParse(storedCode.Code, out var code)
+                    !CheatCode.TryParse(storedCode.Type, storedCode.Code, out var code)
                     || !string.Equals(storedCode.Code, code.CanonicalCode, StringComparison.Ordinal)
                 )
                 {
-                    throw new FormatException("Stored Game Genie code is invalid.");
+                    throw new FormatException("Stored cheat code is invalid.");
                 }
 
-                ValidateStoredName(storedCode.Name);
-                entries[index] = new GameGenieCodeEntry(
-                    code,
-                    storedCode.IsEnabled,
-                    storedCode.Name
-                );
+                entries[index] = new CheatCodeEntry(code, storedCode.IsEnabled, storedCode.Name);
             }
 
             ValidateEntries(entries);
@@ -76,29 +74,29 @@ internal sealed class GameGenieService(IDbContextFactory<GbcNetDbContext> dbCont
                         or ArgumentException
             )
         {
-            throw new InvalidOperationException("Game Genie codes could not be loaded.", exception);
+            throw new InvalidOperationException("Cheat codes could not be loaded.", exception);
         }
     }
 
-    public async Task<GameGenieCodeEntry[]> ReplaceAsync(
+    public async Task<CheatCodeEntry[]> ReplaceAsync(
         byte[] romHash,
-        IReadOnlyList<GameGenieCodeEntry> entries,
+        IReadOnlyList<CheatCodeEntry> entries,
         CancellationToken cancellationToken
     )
     {
         var storedRomHash = ValidateRomHash(romHash);
         ArgumentNullException.ThrowIfNull(entries);
 
-        var validatedEntries = entries.ToArray();
-        for (var index = 0; index < validatedEntries.Length; index++)
+        var normalizedEntries = new CheatCodeEntry[entries.Count];
+        for (var index = 0; index < normalizedEntries.Length; index++)
         {
-            validatedEntries[index] = validatedEntries[index] with
+            normalizedEntries[index] = entries[index] with
             {
-                Name = NormalizeName(validatedEntries[index].Name),
+                Name = NormalizeName(entries[index].Name),
             };
         }
 
-        ValidateEntries(validatedEntries);
+        ValidateEntries(normalizedEntries);
 
         try
         {
@@ -109,18 +107,28 @@ internal sealed class GameGenieService(IDbContextFactory<GbcNetDbContext> dbCont
 
             await db
                 .CheatCodes.Where(entry =>
-                    entry.RomHash == storedRomHash && entry.Type == CheatCodeType.GameGenie
+                    entry.RomHash == storedRomHash
+                    && (
+                        entry.Type == CheatCodeType.GameGenie
+                        || entry.Type == CheatCodeType.GameShark
+                    )
                 )
                 .ExecuteDeleteAsync(cancellationToken);
 
-            for (var index = 0; index < validatedEntries.Length; index++)
+            var gameGenieSortOrder = 0;
+            var gameSharkSortOrder = 0;
+            foreach (var entry in normalizedEntries)
             {
-                var entry = validatedEntries[index];
+                var sortOrder =
+                    entry.Code.Type is CheatCodeType.GameGenie
+                        ? gameGenieSortOrder++
+                        : gameSharkSortOrder++;
+
                 db.CheatCodes.Add(
                     new StoredCheatCode(
                         storedRomHash,
-                        CheatCodeType.GameGenie,
-                        index,
+                        entry.Code.Type,
+                        sortOrder,
                         entry.Code.CanonicalCode,
                         entry.IsEnabled,
                         entry.Name
@@ -130,11 +138,11 @@ internal sealed class GameGenieService(IDbContextFactory<GbcNetDbContext> dbCont
 
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            return validatedEntries;
+            return normalizedEntries;
         }
         catch (Exception exception) when (exception is DbException or DbUpdateException)
         {
-            throw new InvalidOperationException("Game Genie codes could not be saved.", exception);
+            throw new InvalidOperationException("Cheat codes could not be saved.", exception);
         }
     }
 
@@ -161,7 +169,7 @@ internal sealed class GameGenieService(IDbContextFactory<GbcNetDbContext> dbCont
         if (normalizedName.Length > MaxNameLength)
         {
             throw new ArgumentException(
-                "Game Genie code names must contain at most 80 characters.",
+                "Cheat code names must contain at most 80 characters.",
                 nameof(name)
             );
         }
@@ -179,39 +187,53 @@ internal sealed class GameGenieService(IDbContextFactory<GbcNetDbContext> dbCont
             )
         )
         {
-            throw new FormatException("Stored Game Genie code name is invalid.");
+            throw new FormatException("Stored cheat code name is invalid.");
         }
     }
 
-    private static void ValidateEntries(ReadOnlySpan<GameGenieCodeEntry> entries)
+    private static void ValidateEntries(ReadOnlySpan<CheatCodeEntry> entries)
     {
-        if (entries.Length > MaxEntryCount)
-        {
-            throw new ArgumentException(
-                "A maximum of 20 Game Genie codes is allowed.",
-                nameof(entries)
-            );
-        }
+        var gameGenieCount = 0;
+        var gameSharkCount = 0;
+        var codes =
+            new HashSet<(CheatCodeType Type, ushort Address, byte Value, byte? CompareValue)>();
 
-        var effectiveCodes =
-            new HashSet<(ushort Address, byte ReplacementValue, byte? CompareValue)>();
         foreach (var entry in entries)
         {
-            if (entry.Code.CanonicalCode.Length == 0)
+            if (
+                entry.Code.Type is not (CheatCodeType.GameGenie or CheatCodeType.GameShark)
+                || !CheatCode.TryParse(
+                    entry.Code.Type,
+                    entry.Code.CanonicalCode,
+                    out var parsedCode
+                )
+                || parsedCode != entry.Code
+            )
             {
                 throw new ArgumentException(
-                    "Game Genie codes must be parsed successfully.",
+                    "Cheat codes must be parsed successfully.",
                     nameof(entries)
                 );
             }
 
             if (
-                !effectiveCodes.Add(
-                    (entry.Code.Address, entry.Code.ReplacementValue, entry.Code.CompareValue)
+                !codes.Add(
+                    (entry.Code.Type, entry.Code.Address, entry.Code.Value, entry.Code.CompareValue)
                 )
             )
             {
-                throw new ArgumentException("Game Genie codes must be unique.", nameof(entries));
+                throw new ArgumentException("Cheat codes must be unique by type.", nameof(entries));
+            }
+
+            if (
+                (entry.Code.Type is CheatCodeType.GameGenie ? ++gameGenieCount : ++gameSharkCount)
+                > MaxEntryCount
+            )
+            {
+                throw new ArgumentException(
+                    "A maximum of 20 cheat codes per type is allowed.",
+                    nameof(entries)
+                );
             }
         }
     }

@@ -19,17 +19,17 @@ public sealed class GameGenieMemoryBusTests
         var cartridge = TestRomFactory.LoadCartridge(bytes => bytes[0x01B9] = 0x44);
         var bus = new MemoryBus(cartridge, DmgHardwareProfile.Instance);
 
-        bus.SetGameGenieCodes([Parse("0A1-B9F")]);
+        bus.SetCheatCodes([Parse("0A1-B9F")]);
 
         Assert.Equal(0x0A, bus.ReadByte(0x01B9));
         Assert.Equal(0x44, cartridge.ReadRom(0x01B9));
 
-        bus.SetGameGenieCodes([Parse("0C1-B9F")]);
+        bus.SetCheatCodes([Parse("0C1-B9F")]);
 
         Assert.Equal(0x0C, bus.ReadByte(0x01B9));
         Assert.Equal(0x44, cartridge.ReadRom(0x01B9));
 
-        bus.SetGameGenieCodes([]);
+        bus.SetCheatCodes([]);
 
         Assert.Equal(0x44, bus.ReadByte(0x01B9));
         Assert.Equal(0x44, cartridge.ReadRom(0x01B9));
@@ -41,13 +41,13 @@ public sealed class GameGenieMemoryBusTests
         var rom = TestRomFactory.Create(bytes => bytes[0x0855] = 0x04);
         var bus = new MemoryBus(TestRomFactory.LoadCartridge(rom), DmgHardwareProfile.Instance);
 
-        bus.SetGameGenieCodes([Parse("068-55F-E66")]);
+        bus.SetCheatCodes([Parse("068-55F-E66")]);
 
         Assert.Equal(0x04, bus.ReadByte(0x0855));
 
         rom[0x0855] = 0x03;
         bus = new MemoryBus(TestRomFactory.LoadCartridge(rom), DmgHardwareProfile.Instance);
-        bus.SetGameGenieCodes([Parse("068-55F-E66")]);
+        bus.SetCheatCodes([Parse("068-55F-E66")]);
 
         Assert.Equal(0x06, bus.ReadByte(0x0855));
     }
@@ -60,7 +60,7 @@ public sealed class GameGenieMemoryBusTests
             DmgHardwareProfile.Instance
         );
 
-        bus.SetGameGenieCodes([Parse("110-00B"), Parse("220-00B")]);
+        bus.SetCheatCodes([Parse("110-00B"), Parse("220-00B")]);
 
         Assert.Equal(0x11, bus.ReadByte(0x4000));
     }
@@ -81,7 +81,7 @@ public sealed class GameGenieMemoryBusTests
         );
         var bus = new MemoryBus(cartridge, DmgHardwareProfile.Instance);
 
-        bus.SetGameGenieCodes([Parse("CC0-00B-602")]);
+        bus.SetCheatCodes([Parse("CC0-00B-602")]);
 
         Assert.Equal(0x11, bus.ReadByte(0x4000));
 
@@ -92,20 +92,17 @@ public sealed class GameGenieMemoryBusTests
     }
 
     [Fact]
-    public void SetGameGenieCodes_RejectsInvalidInputWithoutReplacingCurrentCodes()
+    public void SetCheatCodes_RejectsInvalidSnapshotWithoutReplacingCurrentCodes()
     {
         var bus = new MemoryBus(
             TestRomFactory.LoadCartridge(bytes => bytes[0x01B9] = 0x44),
             DmgHardwareProfile.Instance
         );
-        bus.SetGameGenieCodes([Parse("0A1-B9F")]);
+        bus.SetCheatCodes([Parse("0A1-B9F")]);
 
-        var exception = Assert.Throws<ArgumentException>(() => bus.SetGameGenieCodes([default]));
+        var exception = Assert.Throws<ArgumentException>(() => bus.SetCheatCodes([default]));
 
-        Assert.Equal(
-            "Game Genie codes must be parsed successfully. (Parameter 'codes')",
-            exception.Message
-        );
+        Assert.Equal("codes", exception.ParamName);
         Assert.Equal(0x0A, bus.ReadByte(0x01B9));
     }
 
@@ -118,7 +115,7 @@ public sealed class GameGenieMemoryBusTests
             new BootRomOptions { CgbBootRom = BootRomTestFactory.CreateCgb() }
         );
         var bus = new MemoryBus(cartridge, new CgbHardwareProfile(CgbOperatingMode.Cgb), bootRom);
-        bus.SetGameGenieCodes([Parse("AA1-00F")]);
+        bus.SetCheatCodes([Parse("AA1-00F")]);
 
         Assert.Equal(0x55, bus.ReadByte(0x0100));
 
@@ -134,7 +131,7 @@ public sealed class GameGenieMemoryBusTests
             TestRomFactory.LoadCartridge(bytes => bytes[0x0855] = 0x44),
             new CgbHardwareProfile(CgbOperatingMode.Cgb)
         );
-        bus.SetGameGenieCodes([Parse("068-55F")]);
+        bus.SetCheatCodes([Parse("068-55F")]);
 
         bus.WriteByte(AddressMap.DmaRegister, 0x08);
         bus.TickDma(2);
@@ -153,9 +150,9 @@ public sealed class GameGenieMemoryBusTests
         Assert.Equal(0x06, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x05));
     }
 
-    private static GameGenieCode Parse(string text)
+    private static CheatCode Parse(string text)
     {
-        Assert.True(GameGenieCode.TryParse(text, out var code));
+        Assert.True(CheatCode.TryParse(CheatCodeType.GameGenie, text, out var code));
         return code;
     }
 }

@@ -168,12 +168,12 @@ internal sealed class EmulationSessionPresenter(
         try
         {
             await new CheatsWindow(
-                controller.State.GameGenieCodes.ToArray(),
+                controller.State.CheatCodes.ToArray(),
                 async entries =>
                 {
                     try
                     {
-                        await controller.SetGameGenieCodesAsync(entries, CancellationToken.None);
+                        await controller.SetCheatCodesAsync(entries, CancellationToken.None);
                     }
                     catch (Exception exception)
                         when (exception
@@ -182,7 +182,7 @@ internal sealed class EmulationSessionPresenter(
                                     or OperationCanceledException
                         )
                     {
-                        EmulationSessionPresenterLog.GameGenieApplyFailed(logger, exception);
+                        EmulationSessionPresenterLog.CheatCodeApplyFailed(logger, exception);
                         throw;
                     }
                 }
@@ -408,8 +408,8 @@ internal sealed class EmulationSessionPresenter(
 
 internal static partial class EmulationSessionPresenterLog
 {
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Game Genie codes could not be applied.")]
-    internal static partial void GameGenieApplyFailed(ILogger logger, Exception exception);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Cheat codes could not be applied.")]
+    internal static partial void CheatCodeApplyFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(
         Level = LogLevel.Warning,

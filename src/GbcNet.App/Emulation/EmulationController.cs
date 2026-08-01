@@ -22,7 +22,7 @@ internal sealed class EmulationController(
     IAudioOutput audioOutput,
     CartridgeBatterySaveFileService cartridgeSaveFileService,
     SaveStateFileService saveStateFileService,
-    GameGenieService gameGenieService,
+    CheatCodeService cheatCodeService,
     Action<LcdFrame> handleFrame,
     Action<Exception> handleFault,
     Action<Exception> handlePersistenceError,
@@ -36,7 +36,7 @@ internal sealed class EmulationController(
     private CartridgeHeader? _loadedCartridgeHeader;
     private string _loadedRomFileName = string.Empty;
     private RomStorageIdentity? _loadedRomStorageIdentity;
-    private GameGenieCodeEntry[] _gameGenieCodes = [];
+    private CheatCodeEntry[] _cheatCodes = [];
 
     private bool _fastForwardEnabled = fastForwardEnabled;
     private EmulationSpeed _fastForwardSpeed = Enum.IsDefined(fastForwardSpeed)
@@ -53,7 +53,7 @@ internal sealed class EmulationController(
             LoadedCartridgeHeader: _loadedCartridgeHeader,
             LoadedRomFileName: _loadedRomFileName,
             HardwareModel: _session?.HardwareModel,
-            GameGenieCodes: _gameGenieCodes
+            CheatCodes: _cheatCodes
         );
 
     public void SetBootRomOptions(BootRomOptions options)
@@ -88,8 +88,8 @@ internal sealed class EmulationController(
         var rom = await ReadFileAsync(file);
         var (cartridge, savePath) = LoadCartridge(rom);
         var identity = RomStorageIdentity.Create(cartridge.Header.Title, rom);
-        var codes = await gameGenieService.LoadAsync(identity.Hash, CancellationToken.None);
-        var activeCodes = GetActiveGameGenieCodes(codes);
+        var entries = await cheatCodeService.LoadAsync(identity.Hash, CancellationToken.None);
+        var activeCodes = GetActiveCodes(entries);
 
         await StopAsync();
 
@@ -97,7 +97,7 @@ internal sealed class EmulationController(
         _loadedCartridgeHeader = cartridge.Header;
         _loadedRomFileName = file.Name;
         _loadedRomStorageIdentity = identity;
-        _gameGenieCodes = codes;
+        _cheatCodes = entries;
 
         Start(cartridge, savePath, activeCodes);
         return State;
@@ -111,7 +111,7 @@ internal sealed class EmulationController(
         }
 
         var (cartridge, savePath) = LoadCartridge(_loadedRom);
-        var activeCodes = GetActiveGameGenieCodes(_gameGenieCodes);
+        var activeCodes = GetActiveCodes(_cheatCodes);
         await StopAsync();
 
         _loadedCartridgeHeader = cartridge.Header;
@@ -167,8 +167,8 @@ internal sealed class EmulationController(
         await session.RestoreSaveStateAsync(state);
     }
 
-    public async Task SetGameGenieCodesAsync(
-        IReadOnlyList<GameGenieCodeEntry> entries,
+    public async Task SetCheatCodesAsync(
+        IReadOnlyList<CheatCodeEntry> entries,
         CancellationToken cancellationToken = default
     )
     {
@@ -177,12 +177,16 @@ internal sealed class EmulationController(
             throw new InvalidOperationException("No ROM is loaded.");
         }
 
-        var codes = await gameGenieService.ReplaceAsync(identity.Hash, entries, cancellationToken);
-        _gameGenieCodes = codes;
+        var savedEntries = await cheatCodeService.ReplaceAsync(
+            identity.Hash,
+            entries,
+            cancellationToken
+        );
+        _cheatCodes = savedEntries;
 
         try
         {
-            await session.SetGameGenieCodesAsync(GetActiveGameGenieCodes(codes));
+            await session.SetCheatCodesAsync(GetActiveCodes(savedEntries));
         }
         catch (InvalidOperationException exception)
             when (string.Equals(
@@ -243,11 +247,7 @@ internal sealed class EmulationController(
         return (session, rom);
     }
 
-    private void Start(
-        Cartridge cartridge,
-        string? savePath,
-        ReadOnlySpan<GameGenieCode> gameGenieCodes
-    )
+    private void Start(Cartridge cartridge, string? savePath, ReadOnlySpan<CheatCode> codes)
     {
         var hardwareModel = cartridge.Header.HardwareKind switch
         {
@@ -267,7 +267,7 @@ internal sealed class EmulationController(
         }
 
         var gameBoy = new GameBoy(cartridge, hardwareModel, _bootRomOptions);
-        gameBoy.SetGameGenieCodes(gameGenieCodes);
+        gameBoy.Cheats.SetCodes(codes);
         _session = new EmulationSession(
             gameBoy,
             audioOutput,
@@ -278,7 +278,7 @@ internal sealed class EmulationController(
         ApplyFastForwardSettings();
     }
 
-    private static GameGenieCode[] GetActiveGameGenieCodes(ReadOnlySpan<GameGenieCodeEntry> entries)
+    private static CheatCode[] GetActiveCodes(ReadOnlySpan<CheatCodeEntry> entries)
     {
         var count = 0;
         foreach (var entry in entries)
@@ -294,7 +294,7 @@ internal sealed class EmulationController(
             return [];
         }
 
-        var codes = new GameGenieCode[count];
+        var codes = new CheatCode[count];
         var index = 0;
         foreach (var entry in entries)
         {
@@ -326,7 +326,7 @@ internal readonly record struct EmulationControllerState(
     CartridgeHeader? LoadedCartridgeHeader,
     string LoadedRomFileName,
     HardwareModel? HardwareModel,
-    ReadOnlyMemory<GameGenieCodeEntry> GameGenieCodes
+    ReadOnlyMemory<CheatCodeEntry> CheatCodes
 )
 {
     public EmulationSpeed EffectiveSpeed =>

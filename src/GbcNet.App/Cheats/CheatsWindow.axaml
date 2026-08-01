@@ -87,6 +87,19 @@
             <TextBlock Grid.Column="1" Classes="chrome-label sidebar-label" Text="Game Genie" />
           </Grid>
         </Button>
+        <Button
+          x:Name="GameSharkNavButton"
+          Classes="sidebar-item"
+          Click="ShowGameSharkPage"
+          AutomationProperties.Name="GameShark cheats"
+          AutomationProperties.AutomationId="CheatsNavGameShark"
+          AutomationProperties.HelpText="Show GameShark memory write codes"
+        >
+          <Grid ColumnDefinitions="16,*" ColumnSpacing="9">
+            <PathIcon Width="15" Height="15" Data="{StaticResource IconShark}" />
+            <TextBlock Grid.Column="1" Classes="chrome-label sidebar-label" Text="GameShark" />
+          </Grid>
+        </Button>
       </StackPanel>
     </Border>
     <Grid
@@ -96,8 +109,9 @@
       MinHeight="0"
     >
       <StackPanel Spacing="4" Margin="0,0,0,20">
-        <TextBlock Classes="dialog-title" Text="Game Genie" />
+        <TextBlock x:Name="PageTitleTextBlock" Classes="dialog-title" Text="Game Genie" />
         <TextBlock
+          x:Name="PageHelpTextBlock"
           Classes="muted"
           Text="Codes are checked top to bottom; the first matching code wins."
         />

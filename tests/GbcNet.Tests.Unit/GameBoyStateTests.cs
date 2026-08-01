@@ -196,17 +196,17 @@ public sealed class GameBoyStateTests
     }
 
     [Fact]
-    public void RestoreSaveState_KeepsCurrentGameGenieCodesAndRestoresBootRomGating()
+    public void RestoreSaveState_KeepsCurrentCheatCodesAndRestoresBootRomGating()
     {
         var gameBoy = new GameBoy(
             TestRomFactory.LoadCartridge(bytes => bytes[0x0100] = 0x55),
             HardwareModel.Cgb,
             new BootRomOptions { CgbBootRom = BootRomTestFactory.CreateCgb() }
         );
-        gameBoy.SetGameGenieCodes([Parse("AA1-00F")]);
+        gameBoy.Cheats.SetCodes([Parse("AA1-00F")]);
         var state = gameBoy.CaptureSaveState();
 
-        gameBoy.SetGameGenieCodes([Parse("BB1-00F")]);
+        gameBoy.Cheats.SetCodes([Parse("BB1-00F")]);
         gameBoy.Bus.WriteByte(AddressMap.BootRomDisableRegister, 0x01);
         Assert.Equal(0xBB, gameBoy.Bus.ReadByte(0x0100));
 
@@ -219,9 +219,9 @@ public sealed class GameBoyStateTests
         Assert.Equal(0xBB, gameBoy.Bus.ReadByte(0x0100));
     }
 
-    private static GameGenieCode Parse(string text)
+    private static CheatCode Parse(string text)
     {
-        Assert.True(GameGenieCode.TryParse(text, out var code));
+        Assert.True(CheatCode.TryParse(CheatCodeType.GameGenie, text, out var code));
         return code;
     }
 
@@ -239,7 +239,7 @@ public sealed class GameBoyStateTests
         var state = gameBoy.CaptureState();
         var originalCode = Parse("0A1-B9F");
         var replacementCode = Parse("0C1-B9F");
-        gameBoy.SetGameGenieCodes([originalCode]);
+        gameBoy.Cheats.SetCodes([originalCode]);
         Exception? captureException = null;
         Exception? restoreException = null;
         Exception? gameGenieException = null;
@@ -247,9 +247,7 @@ public sealed class GameBoyStateTests
         {
             captureException = Record.Exception(() => gameBoy.CaptureState());
             restoreException = Record.Exception(() => gameBoy.RestoreState(state));
-            gameGenieException = Record.Exception(() =>
-                gameBoy.SetGameGenieCodes([replacementCode])
-            );
+            gameGenieException = Record.Exception(() => gameBoy.Cheats.SetCodes([replacementCode]));
         };
 
         gameBoy.Step();
