@@ -1,0 +1,221 @@
+// Copyright (C) 2026 thomas-fazzari
+// SPDX-License-Identifier: GPL-3.0-only
+
+using GbcNet.Core.Memory;
+
+namespace GbcNet.Tests.Unit.Sm83;
+
+public sealed class HaltInstructionTests
+{
+    private const byte HaltOpcode = 0x76;
+    private const byte EnableInterruptsOpcode = 0xFB;
+    private const byte IncrementBOpcode = 0x04;
+    private const byte NopOpcode = 0x00;
+    private const byte Restart0Opcode = 0xC7;
+    private const byte VBlankInterrupt = 0b0000_0001;
+
+    private const ushort VBlankVector = 0x0040;
+    private const ushort StackReturnLowByteAddress = 0xFFFC;
+    private const ushort StackReturnHighByteAddress = 0xFFFD;
+
+    [Fact]
+    public void Step_HaltsUntilAnInterruptBecomesPending()
+    {
+        var cpu = CpuTestFactory.CreateCpu(bytes =>
+        {
+            bytes[0x0100] = HaltOpcode;
+            bytes[0x0101] = NopOpcode;
+        });
+
+        Assert.Equal(1, cpu.Step());
+        Assert.True(cpu.Halted);
+        Assert.False(cpu.HaltBugPending);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+
+        Assert.Equal(1, cpu.Step());
+        Assert.True(cpu.Halted);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+    }
+
+    [Fact]
+    public void Step_WakesHaltedCpuWithoutServicingInterruptWhenInterruptMasterEnableIsDisabled()
+    {
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes =>
+        {
+            bytes[0x0100] = HaltOpcode;
+            bytes[0x0101] = NopOpcode;
+        });
+
+        Assert.Equal(1, cpu.Step());
+        Assert.True(cpu.Halted);
+
+        bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+
+        Assert.Equal(1, cpu.Step());
+        Assert.False(cpu.Halted);
+        Assert.False(cpu.Ime);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+        Assert.Equal(0xE1, bus.ReadByte(AddressMap.InterruptFlagRegister));
+
+        Assert.Equal(1, cpu.Step());
+        Assert.Equal(0x0102, cpu.Registers.PC);
+    }
+
+    [Fact]
+    public void Step_TriggersHaltBugWhenInterruptMasterEnableIsDisabledAndInterruptIsPending()
+    {
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes =>
+        {
+            bytes[0x0100] = HaltOpcode;
+            bytes[0x0101] = IncrementBOpcode;
+        });
+        bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+
+        Assert.Equal(1, cpu.Step());
+        Assert.False(cpu.Halted);
+        Assert.True(cpu.HaltBugPending);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+
+        Assert.Equal(1, cpu.Step());
+        Assert.False(cpu.HaltBugPending);
+        Assert.Equal(1, cpu.Registers.B);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+
+        Assert.Equal(1, cpu.Step());
+        Assert.Equal(2, cpu.Registers.B);
+        Assert.Equal(0x0102, cpu.Registers.PC);
+    }
+
+    [Fact]
+    public void Step_HaltBugMakesRestartReturnToRestartOpcode()
+    {
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes =>
+        {
+            bytes[0x0100] = HaltOpcode;
+            bytes[0x0101] = Restart0Opcode;
+        });
+        bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+
+        Assert.Equal(1, cpu.Step());
+        Assert.True(cpu.HaltBugPending);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+
+        Assert.Equal(4, cpu.Step());
+        Assert.False(cpu.HaltBugPending);
+        Assert.Equal(0x0000, cpu.Registers.PC);
+        Assert.Equal(StackReturnLowByteAddress, cpu.Registers.SP);
+        Assert.Equal(0x01, bus.ReadByte(StackReturnLowByteAddress));
+        Assert.Equal(0x01, bus.ReadByte(StackReturnHighByteAddress));
+    }
+
+    [Fact]
+    public void Step_ServicesPendingInterruptAfterHaltWhenInterruptMasterEnableIsEnabled()
+    {
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes => bytes[0x0100] = HaltOpcode);
+        cpu.Ime = true;
+
+        Assert.Equal(1, cpu.Step());
+        Assert.True(cpu.Halted);
+        Assert.False(cpu.HaltBugPending);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+
+        bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+
+        Assert.Equal(6, cpu.Step());
+        Assert.False(cpu.Ime);
+        Assert.False(cpu.Halted);
+        Assert.Equal(VBlankVector, cpu.Registers.PC);
+        Assert.Equal(0x01, bus.ReadByte(StackReturnLowByteAddress));
+        Assert.Equal(0x01, bus.ReadByte(StackReturnHighByteAddress));
+        Assert.Equal(0xE0, bus.ReadByte(AddressMap.InterruptFlagRegister));
+    }
+
+    [Fact]
+    public void Step_EiThenHaltWithPendingInterruptReturnsToHalt()
+    {
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes =>
+        {
+            bytes[0x0100] = EnableInterruptsOpcode;
+            bytes[0x0101] = HaltOpcode;
+        });
+        bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+
+        Assert.Equal(1, cpu.Step());
+        Assert.False(cpu.Ime);
+        Assert.True(cpu.ImeEnablePending);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+
+        Assert.Equal(1, cpu.Step());
+        Assert.True(cpu.Ime);
+        Assert.False(cpu.ImeEnablePending);
+        Assert.False(cpu.Halted);
+        Assert.False(cpu.HaltBugPending);
+        Assert.Equal(0x0101, cpu.Registers.PC);
+
+        Assert.Equal(5, cpu.Step());
+        Assert.False(cpu.Ime);
+        Assert.Equal(VBlankVector, cpu.Registers.PC);
+        Assert.Equal(0x01, bus.ReadByte(StackReturnLowByteAddress));
+        Assert.Equal(0x01, bus.ReadByte(StackReturnHighByteAddress));
+        Assert.Equal(0xE0, bus.ReadByte(AddressMap.InterruptFlagRegister));
+    }
+
+    [Fact]
+    public void CaptureState_ResumesHaltedCpuByServicingPendingInterrupt()
+    {
+        var (source, sourceBus) = CpuTestFactory.CreateCpuWithBus(bytes =>
+            bytes[0x0100] = HaltOpcode
+        );
+        source.Ime = true;
+
+        Assert.Equal(1, source.Step());
+        var state = source.CaptureState();
+
+        var (restored, restoredBus) = CpuTestFactory.CreateCpuWithBus(bytes =>
+            bytes[0x0100] = HaltOpcode
+        );
+        restored.RestoreState(state);
+        sourceBus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        sourceBus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+        restoredBus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        restoredBus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+
+        Assert.Equal(source.Step(), restored.Step());
+        Assert.Equal(VBlankVector, restored.Registers.PC);
+        Assert.Equal(StackReturnLowByteAddress, restored.Registers.SP);
+        Assert.Equal(0x01, restoredBus.ReadByte(StackReturnLowByteAddress));
+        Assert.Equal(0x01, restoredBus.ReadByte(StackReturnHighByteAddress));
+        Assert.Equal(0xE0, restoredBus.ReadByte(AddressMap.InterruptFlagRegister));
+    }
+
+    [Fact]
+    public void CaptureState_PreservesPendingHaltBugForNextInstruction()
+    {
+        var (source, sourceBus) = CpuTestFactory.CreateCpuWithBus(bytes =>
+        {
+            bytes[0x0100] = HaltOpcode;
+            bytes[0x0101] = IncrementBOpcode;
+        });
+        sourceBus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
+        sourceBus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
+
+        Assert.Equal(1, source.Step());
+        var state = source.CaptureState();
+
+        var restored = CpuTestFactory.CreateCpu(bytes =>
+        {
+            bytes[0x0100] = HaltOpcode;
+            bytes[0x0101] = IncrementBOpcode;
+        });
+        restored.RestoreState(state);
+
+        Assert.Equal(source.Step(), restored.Step());
+        Assert.Equal(1, restored.Registers.B);
+        Assert.Equal(0x0101, restored.Registers.PC);
+    }
+}

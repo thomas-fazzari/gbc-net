@@ -186,7 +186,7 @@ internal sealed class PpuController(
         if (!IsLcdEnabled || tCycles == 0)
         {
             return new PpuEngineTickResult(
-                PpuInterruptRequest.None,
+                PpuInterruptRequests.None,
                 CompletedFrame: null,
                 EnteredVisibleHBlank: false
             );
@@ -448,14 +448,14 @@ internal sealed class PpuController(
         }
     }
 
-    private void RequestInterrupts(PpuInterruptRequest requests)
+    private void RequestInterrupts(PpuInterruptRequests requests)
     {
-        if ((requests & PpuInterruptRequest.VBlank) is not PpuInterruptRequest.None)
+        if ((requests & PpuInterruptRequests.VBlank) is not PpuInterruptRequests.None)
         {
             interrupts.Request(InterruptSource.VBlank);
         }
 
-        if ((requests & PpuInterruptRequest.LcdStat) is not PpuInterruptRequest.None)
+        if ((requests & PpuInterruptRequests.LcdStat) is not PpuInterruptRequests.None)
         {
             interrupts.Request(InterruptSource.LcdStat);
         }

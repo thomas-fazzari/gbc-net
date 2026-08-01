@@ -9,7 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="GbcNet.Tests" />
+    <InternalsVisibleTo Include="GbcNet.Tests.Unit" />
+    <InternalsVisibleTo Include="GbcNet.Tests.Integration" />
   </ItemGroup>
 
   <ItemGroup>

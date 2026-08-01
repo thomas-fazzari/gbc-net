@@ -118,7 +118,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
         if (tCycles == 0)
         {
             return new PpuEngineTickResult(
-                PpuInterruptRequest.None,
+                PpuInterruptRequests.None,
                 CompletedFrame: null,
                 EnteredVisibleHBlank: false
             );
@@ -183,7 +183,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
                 && !_statInterruptState.IsInterruptLineAsserted
             )
             {
-                requests |= PpuInterruptRequest.LcdStat;
+                requests |= PpuInterruptRequests.LcdStat;
             }
 
             enteredVisibleHBlank |=
@@ -195,7 +195,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
         return new PpuEngineTickResult(requests, completedFrame, enteredVisibleHBlank);
     }
 
-    public PpuInterruptRequest EnableLcd(PpuEngineInputs inputs, bool renderFrame)
+    public PpuInterruptRequests EnableLcd(PpuEngineInputs inputs, bool renderFrame)
     {
         Timing.EnableLcd();
         BgWindowFetcher.LatchScroll(inputs);
@@ -227,7 +227,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
             lcdEnabled: true,
             requestInterrupt: false
         );
-        return PpuInterruptRequest.None;
+        return PpuInterruptRequests.None;
     }
 
     public void DisableLcd()
@@ -240,7 +240,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
         _statInterruptState.ClearInterruptLine(PpuMode.HBlank);
     }
 
-    public PpuInterruptRequest WriteStatusInterruptSelect(
+    public PpuInterruptRequests WriteStatusInterruptSelect(
         PpuEngineInputs inputs,
         bool lcdEnabled
     ) =>
@@ -250,11 +250,11 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
             requestInterrupt: true
         );
 
-    public PpuInterruptRequest WriteLycCompare(PpuEngineInputs inputs, bool lcdEnabled)
+    public PpuInterruptRequests WriteLycCompare(PpuEngineInputs inputs, bool lcdEnabled)
     {
         if (!lcdEnabled)
         {
-            return PpuInterruptRequest.None;
+            return PpuInterruptRequests.None;
         }
 
         _statInterruptState.RefreshLycEqualsLy(Timing, inputs.LcdYCompare);
@@ -360,7 +360,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
     private PpuEngineTickResult AdvanceScanline(PpuEngineInputs inputs, bool renderFrame)
     {
         Timing.AdvanceScanline();
-        var requests = PpuInterruptRequest.None;
+        var requests = PpuInterruptRequests.None;
         LcdFrame? completedFrame = null;
 
         var shouldRequestMode2Interrupt =
@@ -385,7 +385,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
                 ClearObjects();
                 BgWindowFetcher.ResetForVBlank();
                 ResetRenderer();
-                requests |= PpuInterruptRequest.VBlank;
+                requests |= PpuInterruptRequests.VBlank;
                 if (_renderCurrentFrame)
                 {
 #pragma warning disable CA2000 // Ownership transfers through PpuEngineTickResult.
@@ -397,7 +397,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
 
         if (shouldRequestMode2Interrupt && LcdYCoordinate is 0 or PpuGeometry.VBlankStartLine)
         {
-            requests |= PpuInterruptRequest.LcdStat;
+            requests |= PpuInterruptRequests.LcdStat;
         }
 
         requests |= RefreshPpuState(inputs, requestInterrupt: true);
@@ -405,7 +405,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
         return new PpuEngineTickResult(requests, completedFrame, EnteredVisibleHBlank: false);
     }
 
-    private PpuInterruptRequest RefreshPpuState(PpuEngineInputs inputs, bool requestInterrupt)
+    private PpuInterruptRequests RefreshPpuState(PpuEngineInputs inputs, bool requestInterrupt)
     {
         EnsureObjectsSelected(inputs);
         _statInterruptState.SetMode(Timing.RefreshStatusMode(GetCurrentDrawingEndDots()));

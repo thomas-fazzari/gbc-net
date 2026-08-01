@@ -7,7 +7,7 @@ namespace GbcNet.Core.Ppu;
 /// PPU engine outputs: requested interrupts, completed frame, and visible HBlank entry.
 /// </summary>
 internal readonly record struct PpuEngineTickResult(
-    PpuInterruptRequest Interrupts,
+    PpuInterruptRequests Interrupts,
     LcdFrame? CompletedFrame,
     bool EnteredVisibleHBlank
 );

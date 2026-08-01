@@ -68,7 +68,7 @@ internal interface IPpuEngine
     /// <summary>
     /// Applies the model-specific LCD-enable transition and returns any STAT interrupt request.
     /// </summary>
-    PpuInterruptRequest EnableLcd(PpuEngineInputs inputs, bool renderFrame);
+    PpuInterruptRequests EnableLcd(PpuEngineInputs inputs, bool renderFrame);
 
     /// <summary>
     /// Applies the model-specific LCD-disable transition and clears transient rendering state.
@@ -78,12 +78,12 @@ internal interface IPpuEngine
     /// <summary>
     /// Recomputes the STAT interrupt line after CPU-visible STAT interrupt select bits change.
     /// </summary>
-    PpuInterruptRequest WriteStatusInterruptSelect(PpuEngineInputs inputs, bool lcdEnabled);
+    PpuInterruptRequests WriteStatusInterruptSelect(PpuEngineInputs inputs, bool lcdEnabled);
 
     /// <summary>
     /// Recomputes the LYC=LY comparison and STAT interrupt line after LYC changes.
     /// </summary>
-    PpuInterruptRequest WriteLycCompare(PpuEngineInputs inputs, bool lcdEnabled);
+    PpuInterruptRequests WriteLycCompare(PpuEngineInputs inputs, bool lcdEnabled);
 
     /// <summary>
     /// Seeds STAT mode and LYC=LY state without CPU write side effects.

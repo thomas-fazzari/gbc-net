@@ -20,8 +20,11 @@
 
 ## Tests
 
-* With xUnit v3/Microsoft Testing Platform, filter a specific test class through the test executable:
-  `dotnet run --project tests/GbcNet.Tests/GbcNet.Tests.csproj -- --filter-class Fully.Qualified.TestClassName`.
+* Agents may run `make unit`, but must not use `make tests` or `make integration`. Both execute integration tests on the host. Host execution remains available for developers, VS Code Test Explorer, and CI.
+* Agents must always run integration tests through Podman or Docker:
+  `make integration-c CONFIGURATION=Release`.
+* To filter a class, pass Microsoft Testing Platform arguments through Make:
+  `make integration-c CONFIGURATION=Release TEST_ARGS="--filter-class Fully.Qualified.TestClassName"`.
 * Do not use `dotnet test --filter`; this project uses the MTP runner and that filter option is not supported here.
 
 ## Git

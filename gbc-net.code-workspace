@@ -14,7 +14,7 @@
     },
     {
       "name": "Tests",
-      "path": "tests/GbcNet.Tests"
+      "path": "tests"
     }
   ],
   "settings": {

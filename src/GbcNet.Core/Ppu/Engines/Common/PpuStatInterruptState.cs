@@ -52,7 +52,7 @@ internal sealed class PpuStatInterruptState
             timing.IsLycCompareActiveOnCurrentDot() && timing.LcdYCoordinate == lcdYCompare;
     }
 
-    internal PpuInterruptRequest RefreshInterruptLine(
+    internal PpuInterruptRequests RefreshInterruptLine(
         byte statusInterruptSelect,
         bool lcdEnabled,
         bool requestInterrupt
@@ -64,7 +64,7 @@ internal sealed class PpuStatInterruptState
 
         IsInterruptLineAsserted = statInterruptLine;
 
-        return requestLcdInterrupt ? PpuInterruptRequest.LcdStat : PpuInterruptRequest.None;
+        return requestLcdInterrupt ? PpuInterruptRequests.LcdStat : PpuInterruptRequests.None;
     }
 
     internal bool ShouldSuppressStableLycInterrupt(

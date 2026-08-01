@@ -1,11 +1,16 @@
 SOLUTION := GbcNet.slnx
 APP := src/GbcNet.App/GbcNet.App.csproj
-TESTS := tests/GbcNet.Tests/GbcNet.Tests.csproj
+UNIT_TESTS := tests/GbcNet.Tests.Unit/GbcNet.Tests.Unit.csproj
+INTEGRATION_TESTS := tests/GbcNet.Tests.Integration/GbcNet.Tests.Integration.csproj
 ICON := src/GbcNet.App/Assets/Icon.png
-COVERAGE_SETTINGS := $(CURDIR)/tests/GbcNet.Tests/coverage.settings.xml
+COVERAGE_SETTINGS := tests/coverage.settings.xml
+COVERAGE_DIR := $(CURDIR)/artifacts
 CONFIGURATION ?= Debug
 RUN_CONFIGURATION ?= Release
 RUNTIME ?= osx-arm64
+TEST_ARGS ?=
+CONTAINER_ENGINE ?= $(shell if command -v podman >/dev/null 2>&1; then printf podman; elif command -v docker >/dev/null 2>&1; then printf docker; fi)
+DOTNET_SDK_IMAGE ?= mcr.microsoft.com/dotnet/sdk:10.0.302
 
 DOTNET ?= dotnet
 NPX ?= npx
@@ -14,12 +19,7 @@ CODEBASE_MEMORY ?= codebase-memory-mcp
 .DEFAULT_GOAL := run
 MAKEFLAGS += --no-builtin-rules --warn-undefined-variables
 
-.PHONY: all help install setup init run start lint check fix format fmt test tests coverage mem-index index bundle package pack icons copyrights contributors
-
-all: lint test
-
-help:
-	@awk 'BEGIN { FS = ":.*##"; print "Usage: make <target> [VARIABLE=value]\n\nTargets:" } /^[[:alnum:]_.-]+:.*##/ { printf "  %-14s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+.PHONY: install setup init run start lint check fix format fmt tests unit integration integration-c coverage mem-index index bundle package pack icons copyrights contributors
 
 install: ## Restore dependencies and configure Git hooks
 	$(DOTNET) restore $(SOLUTION)
@@ -47,13 +47,29 @@ format: ## Fix Markdown and C# formatting
 
 fix fmt: format
 
-test: ## Run test suite
-	$(DOTNET) test --solution $(SOLUTION) --configuration $(CONFIGURATION)
+tests: unit integration ## Run all tests
 
-tests: test
+unit: ## Run unit tests
+	$(DOTNET) run --project $(UNIT_TESTS) --configuration $(CONFIGURATION) -- $(TEST_ARGS)
 
-coverage: ## Run tests and write Cobertura coverage
-	$(DOTNET) test --project $(TESTS) --configuration $(CONFIGURATION) -- --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --coverage-settings "$(COVERAGE_SETTINGS)"
+integration: ## Run filesystem and database integration tests
+	$(DOTNET) run --project $(INTEGRATION_TESTS) --configuration $(CONFIGURATION) -- $(TEST_ARGS)
+
+integration-c: ## Run integration tests in Podman or Docker
+	@if [ -z "$(CONTAINER_ENGINE)" ]; then echo "Podman or Docker is required."; exit 1; fi
+	$(CONTAINER_ENGINE) run --rm \
+		--env DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+		--env TESTINGPLATFORM_TELEMETRY_OPTOUT=1 \
+		--volume "$(CURDIR):/workspace:ro" \
+		--volume gbcnet-nuget:/root/.nuget/packages \
+		--workdir /workspace \
+		$(DOTNET_SDK_IMAGE) \
+		dotnet run --project $(INTEGRATION_TESTS) --configuration $(CONFIGURATION) --artifacts-path /tmp/artifacts -- $(TEST_ARGS)
+
+coverage: ## Run all tests and write Cobertura coverage
+	mkdir -p "$(COVERAGE_DIR)"
+	$(DOTNET) run --project $(UNIT_TESTS) --configuration $(CONFIGURATION) -- --coverage --coverage-output-format cobertura --coverage-output "$(COVERAGE_DIR)/unit.cobertura.xml" --coverage-settings "$(CURDIR)/$(COVERAGE_SETTINGS)" $(TEST_ARGS)
+	$(DOTNET) run --project $(INTEGRATION_TESTS) --configuration $(CONFIGURATION) -- --coverage --coverage-output-format cobertura --coverage-output "$(COVERAGE_DIR)/integration.cobertura.xml" --coverage-settings "$(CURDIR)/$(COVERAGE_SETTINGS)" $(TEST_ARGS)
 
 mem-index: ## Index repository for Codebase Memory
 	$(CODEBASE_MEMORY) cli index_repository --repo-path "$(CURDIR)"
