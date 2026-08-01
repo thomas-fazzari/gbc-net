@@ -76,4 +76,4 @@ copyrights: ## Update copyright notices
 	$(DOTNET) fsi scripts/copyrights.fsx --
 
 contributors: ## List project contributors
-	$(DOTNET) fsi scripts/list-contributors.fsx --
+	@git shortlog --all --summary | awk '{ sub(/^[[:space:]]*[0-9]+[[:space:]]+/, ""); if (!seen[tolower($$0)]++) contributors[++count] = $$0 } END { printf "Total : %d contributors(s)\n", count; print "----------------------------------------"; for (i = 1; i <= count; i++) print contributors[i] }'

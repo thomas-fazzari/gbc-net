@@ -13,7 +13,7 @@ public sealed class LcdFrame : IDisposable
     private PixelBufferOwner? _pixels;
 
     internal LcdFrame(int width, int height, LcdPixelFormat pixelFormat, ReadOnlySpan<byte> pixels)
-        : this(width, height, pixelFormat, new OwnedPixelBuffer(pixels.ToArray())) { }
+        : this(width, height, pixelFormat, new OwnedPixelBuffer([.. pixels])) { }
 
     /// <summary>
     /// Creates a frame that owns an already completed pixel buffer.

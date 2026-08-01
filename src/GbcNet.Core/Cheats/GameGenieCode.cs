@@ -54,13 +54,9 @@ public readonly record struct GameGenieCode
         var hasCompareValue = text.Length is 9 or 11;
         var hasHyphens = text.Length is 7 or 11;
 
-        if (text.Length is not (6 or 7 or 9 or 11))
-        {
-            code = default;
-            return false;
-        }
         if (
-            (hasHyphens && (text[3] != '-' || (hasCompareValue && text[7] != '-')))
+            text.Length is not (6 or 7 or 9 or 11)
+            || (hasHyphens && (text[3] != '-' || (hasCompareValue && text[7] != '-')))
             || (!hasHyphens && text.IndexOf('-') >= 0)
         )
         {

@@ -10,45 +10,74 @@ namespace GbcNet.Core.Cartridges;
 /// <summary>
 /// Parsed metadata from the cartridge header at ROM addresses 0100-014F.
 /// </summary>
-/// <param name="Title">
-/// ASCII game title from the header title area.
-/// </param>
-/// <param name="CgbSupport">
-/// Declared CGB compatibility from header byte 0143.
-/// </param>
-/// <param name="HardwareKind">
-/// Primary hardware family advertised by CGB and SGB header flags.
-/// </param>
-/// <param name="CartridgeType">
-/// Cartridge hardware type from header byte 0147.
-/// </param>
-/// <param name="RomSizeBytes">
-/// Declared ROM size, in bytes.
-/// </param>
-/// <param name="RomBankCount">
-/// Declared count of 16 KiB ROM banks.
-/// </param>
-/// <param name="RamSizeBytes">
-/// Declared external cartridge RAM size, in bytes.
-/// </param>
-/// <param name="RamBankCount">
-/// Declared count of 8 KiB external RAM banks.
-/// </param>
-/// <param name="HeaderChecksum">
-/// Header checksum byte at ROM address 014D.
-/// </param>
-public sealed record CartridgeHeader(
-    string Title,
-    CgbSupport CgbSupport,
-    CartridgeHardwareKind HardwareKind,
-    CartridgeType CartridgeType,
-    int RomSizeBytes,
-    int RomBankCount,
-    int RamSizeBytes,
-    int RamBankCount,
-    byte HeaderChecksum
-)
+public sealed record CartridgeHeader
 {
+    private const int RomBankSize = 16 * 1024;
+    private const int RamBankSize = 8 * 1024;
+
+    private CartridgeHeader(
+        string title,
+        CgbSupport cgbSupport,
+        CartridgeHardwareKind hardwareKind,
+        CartridgeType cartridgeType,
+        int romBankCount,
+        int ramBankCount,
+        byte headerChecksum
+    )
+    {
+        Title = title;
+        CgbSupport = cgbSupport;
+        HardwareKind = hardwareKind;
+        CartridgeType = cartridgeType;
+        RomBankCount = romBankCount;
+        RamBankCount = ramBankCount;
+        HeaderChecksum = headerChecksum;
+    }
+
+    /// <summary>
+    /// ASCII game title from the header title area.
+    /// </summary>
+    public string Title { get; }
+
+    /// <summary>
+    /// Declared CGB compatibility from header byte 0143.
+    /// </summary>
+    public CgbSupport CgbSupport { get; }
+
+    /// <summary>
+    /// Primary hardware family advertised by CGB and SGB header flags.
+    /// </summary>
+    public CartridgeHardwareKind HardwareKind { get; }
+
+    /// <summary>
+    /// Cartridge hardware type from header byte 0147.
+    /// </summary>
+    public CartridgeType CartridgeType { get; }
+
+    /// <summary>
+    /// Declared ROM size, in bytes.
+    /// </summary>
+    public int RomSizeBytes => RomBankCount * RomBankSize;
+
+    /// <summary>
+    /// Declared count of 16 KiB ROM banks.
+    /// </summary>
+    public int RomBankCount { get; }
+
+    /// <summary>
+    /// Declared external cartridge RAM size, in bytes.
+    /// </summary>
+    public int RamSizeBytes => RamBankCount * RamBankSize;
+
+    /// <summary>
+    /// Declared count of 8 KiB external RAM banks.
+    /// </summary>
+    public int RamBankCount { get; }
+
+    /// <summary>
+    /// Header checksum byte at ROM address 014D.
+    /// </summary>
+    public byte HeaderChecksum { get; }
     private const int HeaderEndAddress = 0x014F;
     private const int TitleStartAddress = 0x0134;
     private const int TitleEndAddress = 0x0143;
@@ -80,32 +109,18 @@ public sealed record CartridgeHeader(
             return false;
         }
 
-        if (
-            !TryDecodeRomSize(
-                rom[RomSizeAddress],
-                out var romSizeBytes,
-                out var romBankCount,
-                out error
-            )
-        )
+        if (!TryDecodeRomSize(rom[RomSizeAddress], out var romBankCount, out error))
         {
             return false;
         }
 
-        if (
-            !TryDecodeRamSize(
-                rom[RamSizeAddress],
-                out var ramSizeBytes,
-                out var ramBankCount,
-                out error
-            )
-        )
+        if (!TryDecodeRamSize(rom[RamSizeAddress], out var ramBankCount, out error))
         {
             return false;
         }
 
         var cgbSupport = DecodeCgbSupport(rom[CgbFlagAddress]);
-        header = Create(rom, cgbSupport, romSizeBytes, romBankCount, ramSizeBytes, ramBankCount);
+        header = Create(rom, cgbSupport, romBankCount, ramBankCount);
         error = null;
         return true;
     }
@@ -152,9 +167,7 @@ public sealed record CartridgeHeader(
     private static CartridgeHeader Create(
         ReadOnlySpan<byte> rom,
         CgbSupport cgbSupport,
-        int romSizeBytes,
         int romBankCount,
-        int ramSizeBytes,
         int ramBankCount
     ) =>
         new(
@@ -162,9 +175,7 @@ public sealed record CartridgeHeader(
             cgbSupport,
             DecodeHardwareKind(cgbSupport, rom[SgbFlagAddress], rom[OldLicenseeCodeAddress]),
             (CartridgeType)rom[CartridgeTypeAddress],
-            romSizeBytes,
             romBankCount,
-            ramSizeBytes,
             ramBankCount,
             rom[HeaderChecksumAddress]
         );
@@ -243,7 +254,6 @@ public sealed record CartridgeHeader(
 
     private static bool TryDecodeRomSize(
         byte code,
-        out int sizeBytes,
         out int bankCount,
         [NotNullWhen(false)] out CartridgeLoadError? error
     )
@@ -251,27 +261,22 @@ public sealed record CartridgeHeader(
         switch (code)
         {
             case <= 0x08:
-                sizeBytes = 32 * 1024 * (1 << code);
                 bankCount = 2 * (1 << code);
                 error = null;
                 return true;
             case 0x52:
-                sizeBytes = 1_152 * 1024;
                 bankCount = 72;
                 error = null;
                 return true;
             case 0x53:
-                sizeBytes = 1_280 * 1024;
                 bankCount = 80;
                 error = null;
                 return true;
             case 0x54:
-                sizeBytes = 1_536 * 1024;
                 bankCount = 96;
                 error = null;
                 return true;
             default:
-                sizeBytes = 0;
                 bankCount = 0;
                 error = new CartridgeLoadError(
                     CartridgeLoadErrorCode.UnsupportedRomSize,
@@ -287,7 +292,6 @@ public sealed record CartridgeHeader(
 
     private static bool TryDecodeRamSize(
         byte code,
-        out int sizeBytes,
         out int bankCount,
         [NotNullWhen(false)] out CartridgeLoadError? error
     )
@@ -295,32 +299,26 @@ public sealed record CartridgeHeader(
         switch (code)
         {
             case 0x00:
-                sizeBytes = 0;
                 bankCount = 0;
                 error = null;
                 return true;
             case 0x02:
-                sizeBytes = 8 * 1024;
                 bankCount = 1;
                 error = null;
                 return true;
             case 0x03:
-                sizeBytes = 32 * 1024;
                 bankCount = 4;
                 error = null;
                 return true;
             case 0x04:
-                sizeBytes = 128 * 1024;
                 bankCount = 16;
                 error = null;
                 return true;
             case 0x05:
-                sizeBytes = 64 * 1024;
                 bankCount = 8;
                 error = null;
                 return true;
             default:
-                sizeBytes = 0;
                 bankCount = 0;
                 error = new CartridgeLoadError(
                     CartridgeLoadErrorCode.UnsupportedRamSize,

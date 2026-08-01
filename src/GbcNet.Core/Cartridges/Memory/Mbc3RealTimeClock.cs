@@ -29,18 +29,8 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
     private const byte DayHighHaltMask = 0x40;
     private const byte DayHighCarryMask = 0x80;
 
-    private int _seconds;
-    private int _minutes;
-    private int _hours;
-    private int _day;
-    private bool _halted;
-    private bool _carry;
-    private int _latchedSeconds;
-    private int _latchedMinutes;
-    private int _latchedHours;
-    private int _latchedDay;
-    private bool _latchedHalted;
-    private bool _latchedCarry;
+    private RtcRegisterSet _live;
+    private RtcRegisterSet _latched;
     private long _lastUnixTimeSeconds = getUnixTimeSeconds();
 
     /// <summary>
@@ -62,12 +52,7 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
     public void Latch()
     {
         UpdateToNow();
-        _latchedSeconds = _seconds;
-        _latchedMinutes = _minutes;
-        _latchedHours = _hours;
-        _latchedDay = _day;
-        _latchedHalted = _halted;
-        _latchedCarry = _carry;
+        _latched = _live;
         IsDirty = true;
     }
 
@@ -77,11 +62,11 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
     public byte ReadRegister(byte register) =>
         register switch
         {
-            SecondsRegister => (byte)_latchedSeconds,
-            MinutesRegister => (byte)_latchedMinutes,
-            HoursRegister => (byte)_latchedHours,
-            DayLowRegister => (byte)_latchedDay,
-            DayHighRegister => GetDayHigh(_latchedDay, _latchedHalted, _latchedCarry),
+            SecondsRegister => (byte)_latched.Seconds,
+            MinutesRegister => (byte)_latched.Minutes,
+            HoursRegister => (byte)_latched.Hours,
+            DayLowRegister => (byte)_latched.Day,
+            DayHighRegister => GetDayHigh(_latched),
             _ => 0xFF,
         };
 
@@ -92,27 +77,24 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
     {
         UpdateToNow();
 
-        switch (register)
+        _live = register switch
         {
-            case SecondsRegister:
-                _seconds = value & SecondsMask;
-                break;
-            case MinutesRegister:
-                _minutes = value & MinutesMask;
-                break;
-            case HoursRegister:
-                _hours = value & HoursMask;
-                break;
-            case DayLowRegister:
-                _day = (_day & 0x100) | value;
-                break;
-            case DayHighRegister:
-                _day = (_day & 0xFF) | ((value & DayHighDayBitMask) << 8);
-                _halted = (value & DayHighHaltMask) != 0;
-                _carry = (value & DayHighCarryMask) != 0;
-                break;
-            default:
-                return;
+            SecondsRegister => _live with { Seconds = value & SecondsMask },
+            MinutesRegister => _live with { Minutes = value & MinutesMask },
+            HoursRegister => _live with { Hours = value & HoursMask },
+            DayLowRegister => _live with { Day = (_live.Day & 0x100) | value },
+            DayHighRegister => _live with
+            {
+                Day = (_live.Day & 0xFF) | ((value & DayHighDayBitMask) << 8),
+                Halted = (value & DayHighHaltMask) != 0,
+                Carry = (value & DayHighCarryMask) != 0,
+            },
+            _ => _live,
+        };
+
+        if (register is < SecondsRegister or > DayHighRegister)
+        {
+            return;
         }
 
         IsDirty = true;
@@ -127,24 +109,8 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
 
         var data = new byte[SaveStateSize];
 
-        WriteRegisters(
-            data.AsSpan(RealRtcStateOffset, RtcTimeStateSize),
-            _seconds,
-            _minutes,
-            _hours,
-            _day,
-            _halted,
-            _carry
-        );
-        WriteRegisters(
-            data.AsSpan(LatchedRtcStateOffset, RtcTimeStateSize),
-            _latchedSeconds,
-            _latchedMinutes,
-            _latchedHours,
-            _latchedDay,
-            _latchedHalted,
-            _latchedCarry
-        );
+        WriteRegisters(data.AsSpan(RealRtcStateOffset, RtcTimeStateSize), _live);
+        WriteRegisters(data.AsSpan(LatchedRtcStateOffset, RtcTimeStateSize), _latched);
         BinaryPrimitives.WriteInt64LittleEndian(
             data.AsSpan(LastUnixTimeSecondsOffset, sizeof(long)),
             _lastUnixTimeSeconds
@@ -167,24 +133,8 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
             );
         }
 
-        ReadRegisters(
-            data.Slice(RealRtcStateOffset, RtcTimeStateSize),
-            out _seconds,
-            out _minutes,
-            out _hours,
-            out _day,
-            out _halted,
-            out _carry
-        );
-        ReadRegisters(
-            data.Slice(LatchedRtcStateOffset, RtcTimeStateSize),
-            out _latchedSeconds,
-            out _latchedMinutes,
-            out _latchedHours,
-            out _latchedDay,
-            out _latchedHalted,
-            out _latchedCarry
-        );
+        _live = ReadRegisters(data.Slice(RealRtcStateOffset, RtcTimeStateSize));
+        _latched = ReadRegisters(data.Slice(LatchedRtcStateOffset, RtcTimeStateSize));
         _lastUnixTimeSeconds = BinaryPrimitives.ReadInt64LittleEndian(
             data.Slice(LastUnixTimeSecondsOffset, sizeof(long))
         );
@@ -198,40 +148,15 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
     internal Mbc3RealTimeClockState CaptureState()
     {
         var now = getUnixTimeSeconds();
-        var seconds = _seconds;
-        var minutes = _minutes;
-        var hours = _hours;
-        var day = _day;
-        var carry = _carry;
-        var advanced = now > _lastUnixTimeSeconds && !_halted;
+        var live = _live;
+        var advanced = now > _lastUnixTimeSeconds && !live.Halted;
 
         if (advanced)
         {
-            Advance(
-                now - _lastUnixTimeSeconds,
-                ref seconds,
-                ref minutes,
-                ref hours,
-                ref day,
-                ref carry
-            );
+            Advance(now - _lastUnixTimeSeconds, ref live);
         }
 
-        return new(
-            seconds,
-            minutes,
-            hours,
-            day,
-            _halted,
-            carry,
-            _latchedSeconds,
-            _latchedMinutes,
-            _latchedHours,
-            _latchedDay,
-            _latchedHalted,
-            _latchedCarry,
-            IsDirty || advanced
-        );
+        return new(live, _latched, IsDirty || advanced);
     }
 
     /// <summary>
@@ -239,16 +164,7 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
     /// </summary>
     internal static void ValidateState(Mbc3RealTimeClockState state)
     {
-        if (
-            (uint)state.Seconds > SecondsMask
-            || (uint)state.Minutes > MinutesMask
-            || (uint)state.Hours > HoursMask
-            || (uint)state.Day > MaxDay
-            || (uint)state.LatchedSeconds > SecondsMask
-            || (uint)state.LatchedMinutes > MinutesMask
-            || (uint)state.LatchedHours > HoursMask
-            || (uint)state.LatchedDay > MaxDay
-        )
+        if (!IsValid(state.Live) || !IsValid(state.Latched))
         {
             throw new ArgumentException("RTC register value is out of range.", nameof(state));
         }
@@ -262,18 +178,8 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
         ValidateState(state);
         var now = getUnixTimeSeconds();
 
-        _seconds = state.Seconds;
-        _minutes = state.Minutes;
-        _hours = state.Hours;
-        _day = state.Day;
-        _halted = state.Halted;
-        _carry = state.Carry;
-        _latchedSeconds = state.LatchedSeconds;
-        _latchedMinutes = state.LatchedMinutes;
-        _latchedHours = state.LatchedHours;
-        _latchedDay = state.LatchedDay;
-        _latchedHalted = state.LatchedHalted;
-        _latchedCarry = state.LatchedCarry;
+        _live = state.Live;
+        _latched = state.Latched;
         _lastUnixTimeSeconds = now;
         IsDirty = state.IsDirty;
     }
@@ -302,34 +208,37 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
         var elapsedSeconds = now - _lastUnixTimeSeconds;
         _lastUnixTimeSeconds = now;
 
-        if (_halted)
+        if (_live.Halted)
         {
             return;
         }
 
-        Advance(elapsedSeconds, ref _seconds, ref _minutes, ref _hours, ref _day, ref _carry);
+        Advance(elapsedSeconds, ref _live);
         IsDirty = true;
     }
 
-    private static void Advance(
-        long elapsedSeconds,
-        ref int seconds,
-        ref int minutes,
-        ref int hours,
-        ref int day,
-        ref bool carry
-    )
+    private static void Advance(long elapsedSeconds, ref RtcRegisterSet registers)
     {
-        var totalSeconds = seconds + elapsedSeconds;
-        seconds = (int)(totalSeconds % 60);
+        var totalSeconds = registers.Seconds + elapsedSeconds;
+        var seconds = (int)(totalSeconds % 60);
 
-        var totalMinutes = minutes + (totalSeconds / 60);
-        minutes = (int)(totalMinutes % 60);
+        var totalMinutes = registers.Minutes + (totalSeconds / 60);
+        var minutes = (int)(totalMinutes % 60);
 
-        var totalHours = hours + (totalMinutes / 60);
-        hours = (int)(totalHours % 24);
+        var totalHours = registers.Hours + (totalMinutes / 60);
+        var hours = (int)(totalHours % 24);
 
+        var day = registers.Day;
+        var carry = registers.Carry;
         AddDays(totalHours / 24, ref day, ref carry);
+        registers = registers with
+        {
+            Seconds = seconds,
+            Minutes = minutes,
+            Hours = hours,
+            Day = day,
+            Carry = carry,
+        };
     }
 
     private static void AddDays(long days, ref int day, ref bool carry)
@@ -348,61 +257,50 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
         day = (int)(totalDays & MaxDay);
     }
 
-    private static byte GetDayHigh(int day, bool halted, bool carry) =>
+    private static bool IsValid(RtcRegisterSet registers) =>
+        (uint)registers.Seconds <= SecondsMask
+        && (uint)registers.Minutes <= MinutesMask
+        && (uint)registers.Hours <= HoursMask
+        && (uint)registers.Day <= MaxDay;
+
+    private static byte GetDayHigh(RtcRegisterSet registers) =>
         (byte)(
-            ((day >> 8) & DayHighDayBitMask)
-            | (halted ? DayHighHaltMask : 0)
-            | (carry ? DayHighCarryMask : 0)
+            ((registers.Day >> 8) & DayHighDayBitMask)
+            | (registers.Halted ? DayHighHaltMask : 0)
+            | (registers.Carry ? DayHighCarryMask : 0)
         );
 
-    private static void WriteRegisters(
-        Span<byte> destination,
-        int seconds,
-        int minutes,
-        int hours,
-        int day,
-        bool halted,
-        bool carry
-    )
+    private static void WriteRegisters(Span<byte> destination, RtcRegisterSet registers)
     {
-        destination[0] = (byte)seconds;
-        destination[4] = (byte)minutes;
-        destination[8] = (byte)hours;
-        destination[12] = (byte)day;
-        destination[16] = GetDayHigh(day, halted, carry);
+        destination[0] = (byte)registers.Seconds;
+        destination[4] = (byte)registers.Minutes;
+        destination[8] = (byte)registers.Hours;
+        destination[12] = (byte)registers.Day;
+        destination[16] = GetDayHigh(registers);
     }
 
-    private static void ReadRegisters(
-        ReadOnlySpan<byte> source,
-        out int seconds,
-        out int minutes,
-        out int hours,
-        out int day,
-        out bool halted,
-        out bool carry
-    )
-    {
-        seconds = source[0] & SecondsMask;
-        minutes = source[4] & MinutesMask;
-        hours = source[8] & HoursMask;
-        day = source[12] | ((source[16] & DayHighDayBitMask) << 8);
-        halted = (source[16] & DayHighHaltMask) != 0;
-        carry = (source[16] & DayHighCarryMask) != 0;
-    }
+    private static RtcRegisterSet ReadRegisters(ReadOnlySpan<byte> source) =>
+        new(
+            source[0] & SecondsMask,
+            source[4] & MinutesMask,
+            source[8] & HoursMask,
+            source[12] | ((source[16] & DayHighDayBitMask) << 8),
+            (source[16] & DayHighHaltMask) != 0,
+            (source[16] & DayHighCarryMask) != 0
+        );
 }
 
-internal readonly record struct Mbc3RealTimeClockState(
+internal readonly record struct RtcRegisterSet(
     int Seconds,
     int Minutes,
     int Hours,
     int Day,
     bool Halted,
-    bool Carry,
-    int LatchedSeconds,
-    int LatchedMinutes,
-    int LatchedHours,
-    int LatchedDay,
-    bool LatchedHalted,
-    bool LatchedCarry,
+    bool Carry
+);
+
+internal readonly record struct Mbc3RealTimeClockState(
+    RtcRegisterSet Live,
+    RtcRegisterSet Latched,
     bool IsDirty
 );

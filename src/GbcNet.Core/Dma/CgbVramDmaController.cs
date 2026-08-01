@@ -80,7 +80,7 @@ internal sealed class CgbVramDmaController(
             );
         }
 
-        if (state.IsHblankDmaActive && state.HblankBlocksRemaining == 0)
+        if (state is { IsHblankDmaActive: true, HblankBlocksRemaining: 0 })
         {
             throw new ArgumentException(
                 "State active VRAM HBlank DMA must have blocks remaining.",

@@ -18,7 +18,6 @@ internal sealed class BootRom
 
     private readonly byte[] _bytes;
     private readonly HardwareModel _hardwareModel;
-    private bool _mapped = true;
 
     private BootRom(HardwareModel hardwareModel, ReadOnlyMemory<byte> bytes)
     {
@@ -26,7 +25,7 @@ internal sealed class BootRom
         _bytes = bytes.ToArray();
     }
 
-    internal bool IsMapped => _mapped;
+    internal bool IsMapped { get; private set; } = true;
 
     internal static BootRom? Create(HardwareModel hardwareModel, BootRomOptions options)
     {
@@ -66,7 +65,7 @@ internal sealed class BootRom
 
     internal bool TryRead(ushort address, out byte value)
     {
-        if (!_mapped)
+        if (!IsMapped)
         {
             value = 0;
             return false;
@@ -97,13 +96,13 @@ internal sealed class BootRom
     {
         if (value != 0)
         {
-            _mapped = false;
+            IsMapped = false;
         }
     }
 
-    internal BootRomState CaptureState() => new(_mapped);
+    internal BootRomState CaptureState() => new(IsMapped);
 
-    internal void RestoreState(BootRomState state) => _mapped = state.IsMapped;
+    internal void RestoreState(BootRomState state) => IsMapped = state.IsMapped;
 }
 
 internal readonly record struct BootRomState(bool IsMapped);

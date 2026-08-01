@@ -22,18 +22,12 @@ public sealed class Cartridge
     {
         Header = header;
         _memoryController = memoryController;
-        RomLength = header.RomSizeBytes;
     }
 
     /// <summary>
     /// Parsed cartridge header metadata.
     /// </summary>
     public CartridgeHeader Header { get; }
-
-    /// <summary>
-    /// Full ROM payload length, in bytes.
-    /// </summary>
-    public int RomLength { get; }
 
     /// <summary>
     /// Indicates whether the cartridge has battery-backed save data.

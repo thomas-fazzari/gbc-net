@@ -10,18 +10,11 @@ namespace GbcNet.Tests.App.Shell.Chrome;
 public sealed class StatusBarPresenterTests
 {
     [Fact]
-    public void FormatRomFileName_KeepsShortNames()
+    public void FormatRomFileName_PreservesLongNamesForXamlTrimming()
     {
-        Assert.Equal("Tetris", StatusBarPresenter.FormatRomFileName("Tetris.gb"));
-    }
+        var fileName = new string('A', 80) + ".gb";
 
-    [Fact]
-    public void FormatRomFileName_TruncatesLongNamesToStatusLimit()
-    {
-        var formatted = StatusBarPresenter.FormatRomFileName(new string('A', 80));
-
-        Assert.Equal(72, formatted.Length);
-        Assert.EndsWith("...", formatted, StringComparison.Ordinal);
+        Assert.Equal(new string('A', 80), StatusBarPresenter.FormatRomFileName(fileName));
     }
 
     [Fact]

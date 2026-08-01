@@ -195,23 +195,21 @@ internal sealed partial class MainWindow : Window, IDisposable
     private void ConfigureMenu(EmulationView emulationView)
     {
         MainMenu.AttachNativeMenu(this);
-        MainMenu.OpenRomRequested += (_, _) =>
+        MainMenu.OpenRom = () =>
             _operationRunner.Run(() => _emulationSession.OpenRomAsync(StorageProvider));
-        MainMenu.RecentRomsRequested += (_, _) => _emulationSession.SyncRecentRoms();
-        MainMenu.RecentRomSelected += (_, e) =>
-            _operationRunner.Run(() =>
-                _emulationSession.OpenRecentRomAsync(StorageProvider, e.Path)
-            );
-        MainMenu.CloseRequested += (_, _) => _operationRunner.Run(_emulationSession.StopAsync);
-        MainMenu.ConfigurationRequested += (_, _) =>
+        MainMenu.RefreshRecentRoms = _emulationSession.SyncRecentRoms;
+        MainMenu.OpenRecentRom = path =>
+            _operationRunner.Run(() => _emulationSession.OpenRecentRomAsync(StorageProvider, path));
+        MainMenu.Close = () => _operationRunner.Run(_emulationSession.StopAsync);
+        MainMenu.OpenConfiguration = () =>
             _operationRunner.Run(() => _configurationPresenter.OpenAsync(this));
-        MainMenu.ConfigurationFileLocationRequested += (_, _) =>
+        MainMenu.OpenConfigurationFileLocation = () =>
             _operationRunner.Run(_configurationPresenter.OpenConfigurationDirectoryAsync);
-        MainMenu.LogFileLocationRequested += (_, _) =>
+        MainMenu.OpenLogFileLocation = () =>
             _operationRunner.Run(ConfigurationPresenter.OpenLogDirectoryAsync);
-        MainMenu.PauseRequested += (_, _) => _emulationSession.TogglePause();
-        MainMenu.ResetRequested += (_, _) => _operationRunner.Run(_emulationSession.ResetAsync);
-        MainMenu.CheatsRequested += (_, _) =>
+        MainMenu.TogglePause = _emulationSession.TogglePause;
+        MainMenu.Reset = () => _operationRunner.Run(_emulationSession.ResetAsync);
+        MainMenu.OpenCheats = () =>
             _operationRunner.Run(async () =>
             {
                 var gameplayEnabled = _gamepadManager.GameplayEnabled;
@@ -226,24 +224,23 @@ internal sealed partial class MainWindow : Window, IDisposable
                     Dispatcher.UIThread.Post(() => emulationView.Focus(), DispatcherPriority.Input);
                 }
             });
-        MainMenu.MuteRequested += (_, _) => ToggleMute();
-        MainMenu.SaveStateRequested += (_, e) =>
-            _operationRunner.Run(() => _emulationSession.SaveStateAsync(e.SlotIndex));
-        MainMenu.LoadStateRequested += (_, e) =>
-            _operationRunner.Run(() => _emulationSession.LoadStateAsync(e.SlotIndex));
-        MainMenu.FastForwardRequested += (_, _) => _emulationSession.ToggleFastForward();
-        MainMenu.FastForwardSpeedSelected += (_, e) =>
+        MainMenu.ToggleMute = ToggleMute;
+        MainMenu.SaveState = slotIndex =>
+            _operationRunner.Run(() => _emulationSession.SaveStateAsync(slotIndex));
+        MainMenu.LoadState = slotIndex =>
+            _operationRunner.Run(() => _emulationSession.LoadStateAsync(slotIndex));
+        MainMenu.ToggleFastForward = _emulationSession.ToggleFastForward;
+        MainMenu.SetFastForwardSpeed = speed =>
         {
-            _emulationSession.SetFastForwardSpeed(e.Speed);
+            _emulationSession.SetFastForwardSpeed(speed);
             Dispatcher.UIThread.Post(() => emulationView.Focus(), DispatcherPriority.Input);
         };
+        MainMenu.ToggleFullscreen = ToggleFullscreen;
+        MainMenu.ToggleMenuBar = ToggleMenuBar;
+        MainMenu.ToggleStatusBar = ToggleStatusBar;
+        MainMenu.OpenGitHubRepository = () => _operationRunner.Run(OpenGitHubRepositoryAsync);
         Activated += (_, _) => _gamepadManager.SetGameplayEnabled(enabled: true);
         Deactivated += (_, _) => _gamepadManager.SetGameplayEnabled(enabled: false);
-        MainMenu.FullscreenRequested += (_, _) => ToggleFullscreen();
-        MainMenu.MenuBarRequested += (_, _) => ToggleMenuBar();
-        MainMenu.StatusBarRequested += (_, _) => ToggleStatusBar();
-        MainMenu.GitHubRepositoryRequested += (_, _) =>
-            _operationRunner.Run(OpenGitHubRepositoryAsync);
         SyncMenuState();
         _emulationSession.SyncMenuState();
         _emulationSession.SyncRecentRoms();
@@ -384,26 +381,6 @@ internal sealed partial class MainWindow : Window, IDisposable
         MainMenu.SetMenuBarState(isVisible: _menuBarVisibleWhenAvailable);
     }
 
-    private bool TryHandleChromeShortcut(Key key, KeyModifiers modifiers)
-    {
-        switch (key)
-        {
-            case Key.Enter when modifiers.HasFlag(KeyModifiers.Alt):
-                ToggleFullscreen();
-                return true;
-
-            case Key.I
-                when modifiers.HasFlag(
-                    OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control
-                ):
-                ToggleStatusBar();
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
     protected override void OnClosing(WindowClosingEventArgs e)
     {
         base.OnClosing(e);
@@ -465,7 +442,11 @@ internal sealed partial class MainWindow : Window, IDisposable
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
-        ApplyKeyboardEvent(e, pressed: true);
+
+        if (!e.Handled)
+        {
+            ApplyKeyboardEvent(e, pressed: true);
+        }
     }
 
     protected override void OnKeyUp(KeyEventArgs e)
@@ -482,15 +463,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
-        if (
-            (
-                pressed
-                && (
-                    MainMenu.TryHandleShortcut(e.Key, e.KeyModifiers)
-                    || TryHandleChromeShortcut(e.Key, e.KeyModifiers)
-                )
-            ) || _emulationSession.ApplyKeyboardInput(e.Key, pressed: pressed)
-        )
+        if (_emulationSession.ApplyKeyboardInput(e.Key, pressed: pressed))
         {
             e.Handled = true;
         }

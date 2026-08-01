@@ -108,6 +108,7 @@ public sealed class ApuStateTests
         var checkpoint = original.CaptureState();
         Assert.Equal(0x0B, checkpoint.Channel3.SampleBuffer);
         var restored = Restored(ApuModelSpec.Cgb, checkpoint);
+        Assert.Equivalent(checkpoint, restored.CaptureState(), strict: true);
 
         original.Tick(9);
         restored.Tick(9);

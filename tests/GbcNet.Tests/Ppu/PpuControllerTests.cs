@@ -9,6 +9,7 @@ using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu;
 using GbcNet.Core.Ppu.Engines;
+using static GbcNet.Tests.Ppu.PpuTestHelpers;
 
 namespace GbcNet.Tests.Ppu;
 
@@ -35,6 +36,35 @@ public sealed class PpuControllerTests
 
     private const ushort CompatibilityBackgroundDarkRgb555 = 0x6180;
     private const ushort CompatibilityObjectDarkRgb555 = 0x1CF2;
+
+    [Theory]
+    [InlineData(AddressMap.LcdControlRegister)]
+    [InlineData(AddressMap.LcdStatusRegister)]
+    [InlineData(AddressMap.ScrollYRegister)]
+    [InlineData(AddressMap.ScrollXRegister)]
+    [InlineData(AddressMap.LcdYCoordinateRegister)]
+    [InlineData(AddressMap.LcdYCompareRegister)]
+    [InlineData(AddressMap.BackgroundPaletteRegister)]
+    [InlineData(AddressMap.ObjectPalette0Register)]
+    [InlineData(AddressMap.ObjectPalette1Register)]
+    [InlineData(AddressMap.WindowYRegister)]
+    [InlineData(AddressMap.WindowXRegister)]
+    [InlineData(AddressMap.VideoRamBankRegister)]
+    [InlineData(AddressMap.BackgroundPaletteIndexRegister)]
+    [InlineData(AddressMap.BackgroundPaletteDataRegister)]
+    [InlineData(AddressMap.ObjectPaletteIndexRegister)]
+    [InlineData(AddressMap.ObjectPaletteDataRegister)]
+    [InlineData(AddressMap.ObjectPriorityModeRegister)]
+    public void ContainsRegister_ReturnsTrueForAllPpuRegisters(ushort address) =>
+        Assert.True(PpuController.ContainsRegister(address));
+
+    [Theory]
+    [InlineData(AddressMap.DmaRegister)]
+    [InlineData(0xFF4C)]
+    [InlineData(0xFF67)]
+    [InlineData(0xFF6D)]
+    public void ContainsRegister_ReturnsFalseForUnmanagedAddresses(ushort address) =>
+        Assert.False(PpuController.ContainsRegister(address));
 
     [Theory]
     [InlineData(AddressMap.LcdControlRegister, 0x91)]
@@ -1203,19 +1233,6 @@ public sealed class PpuControllerTests
         return Assert.IsType<LcdFrame>(ppu.Tick(456 * 144).CompletedFrame);
     }
 
-    private static void WriteTileRow(
-        PpuController ppu,
-        ushort tileAddress,
-        int row,
-        byte lowByte,
-        byte highByte
-    )
-    {
-        var rowAddress = (ushort)(tileAddress + (row * 2));
-        ppu.VideoRam.Write(rowAddress, lowByte);
-        ppu.VideoRam.Write((ushort)(rowAddress + 1), highByte);
-    }
-
     private static void WriteBankedTileRow(
         PpuController ppu,
         int bank,
@@ -1235,20 +1252,6 @@ public sealed class PpuControllerTests
         ppu.WriteRegister(AddressMap.VideoRamBankRegister, (byte)bank);
         ppu.VideoRam.Write(address, value);
         ppu.WriteRegister(AddressMap.VideoRamBankRegister, 0);
-    }
-
-    private static void WriteBackgroundColor(
-        PpuController ppu,
-        int paletteIndex,
-        byte colorId,
-        ushort rgb555
-    )
-    {
-        var offset = (byte)((((paletteIndex & 0x07) * 4) + (colorId & 0x03)) * 2);
-        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, offset);
-        ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, (byte)rgb555);
-        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, (byte)(offset + 1));
-        ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, (byte)(rgb555 >> 8));
     }
 
     private static void WriteObjectColor(

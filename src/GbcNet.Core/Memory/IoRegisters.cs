@@ -78,13 +78,6 @@ internal sealed class IoRegisters(
             or AddressMap.VideoRamDmaDestinationLowRegister
             or AddressMap.VideoRamDmaLengthModeStartRegister => vramDma.ReadHdmaRegister(address),
 
-            AddressMap.VideoRamBankRegister
-            or AddressMap.BackgroundPaletteIndexRegister
-            or AddressMap.BackgroundPaletteDataRegister
-            or AddressMap.ObjectPaletteIndexRegister
-            or AddressMap.ObjectPaletteDataRegister
-            or AddressMap.ObjectPriorityModeRegister => ppu.ReadRegister(address),
-
             AddressMap.WorkRamBankRegister => workRam.ReadBankRegister(),
 
             _ => 0xFF,
@@ -233,22 +226,6 @@ internal sealed class IoRegisters(
                 else
                 {
                     vramDma.SetHdmaRegisterState(address, value);
-                }
-                return;
-
-            case AddressMap.VideoRamBankRegister:
-            case AddressMap.BackgroundPaletteIndexRegister:
-            case AddressMap.BackgroundPaletteDataRegister:
-            case AddressMap.ObjectPaletteIndexRegister:
-            case AddressMap.ObjectPaletteDataRegister:
-            case AddressMap.ObjectPriorityModeRegister:
-                if (mode is IoRegisterWriteMode.CpuWrite)
-                {
-                    ppu.WriteRegister(address, value);
-                }
-                else
-                {
-                    ppu.SetRegisterState(address, value);
                 }
                 return;
 

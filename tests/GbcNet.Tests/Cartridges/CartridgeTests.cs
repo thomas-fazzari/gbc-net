@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core.Cartridges;
-using GbcNet.Core.Cartridges.Memory;
 
 namespace GbcNet.Tests.Cartridges;
 

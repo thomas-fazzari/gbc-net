@@ -11,7 +11,7 @@ using SDL;
 namespace GbcNet.App.Input;
 
 /// <summary>
-/// Owns SDL gamepad handles and translates their canonical controls on the UI thread.
+/// Owns SDL gamepad handles, per-device physical state, and canonical control translation on the UI thread.
 /// </summary>
 internal sealed unsafe class GamepadManager(
     InputRouter inputRouter,
@@ -342,7 +342,7 @@ internal sealed unsafe class GamepadManager(
 
         if (_gamepads.Remove(deviceId, out var gamepad))
         {
-            ReleaseDeviceContributions(deviceId);
+            ReleaseDeviceContributions(gamepad);
             SDL3.SDL_CloseGamepad(gamepad.Handle);
 
             if (SelectedDeviceId == deviceId)
@@ -398,7 +398,7 @@ internal sealed unsafe class GamepadManager(
 
             if (GameplayEnabled)
             {
-                inputRouter.ApplyGamepadButton(deviceId, mappedButton, pressed);
+                inputRouter.ApplyGamepadButton(mappedButton, pressed);
             }
 
             return;
@@ -406,7 +406,7 @@ internal sealed unsafe class GamepadManager(
 
         if (TryMapDirection(button, out var direction))
         {
-            UpdateDirection(gamepad, deviceId, direction, pressed, gamepad.DpadDirections);
+            UpdateDirection(gamepad, direction, pressed, gamepad.DpadDirections);
         }
     }
 
@@ -421,12 +421,12 @@ internal sealed unsafe class GamepadManager(
         {
             case SDL_GamepadAxis.SDL_GAMEPAD_AXIS_LEFTX:
                 gamepad.LeftX = value;
-                UpdateStickDirections(gamepad, deviceId);
+                UpdateStickDirections(gamepad);
                 break;
 
             case SDL_GamepadAxis.SDL_GAMEPAD_AXIS_LEFTY:
                 gamepad.LeftY = value;
-                UpdateStickDirections(gamepad, deviceId);
+                UpdateStickDirections(gamepad);
                 break;
 
             case SDL_GamepadAxis.SDL_GAMEPAD_AXIS_LEFT_TRIGGER:
@@ -439,11 +439,10 @@ internal sealed unsafe class GamepadManager(
         }
     }
 
-    private void UpdateStickDirections(ConnectedGamepad gamepad, uint deviceId)
+    private void UpdateStickDirections(ConnectedGamepad gamepad)
     {
         UpdateDirection(
             gamepad,
-            deviceId,
             JoypadButton.Left,
             IsNegativeDirectionActive(
                 gamepad.StickDirections.Contains(JoypadButton.Left),
@@ -453,7 +452,6 @@ internal sealed unsafe class GamepadManager(
         );
         UpdateDirection(
             gamepad,
-            deviceId,
             JoypadButton.Right,
             IsPositiveDirectionActive(
                 gamepad.StickDirections.Contains(JoypadButton.Right),
@@ -463,7 +461,6 @@ internal sealed unsafe class GamepadManager(
         );
         UpdateDirection(
             gamepad,
-            deviceId,
             JoypadButton.Up,
             IsNegativeDirectionActive(
                 gamepad.StickDirections.Contains(JoypadButton.Up),
@@ -473,7 +470,6 @@ internal sealed unsafe class GamepadManager(
         );
         UpdateDirection(
             gamepad,
-            deviceId,
             JoypadButton.Down,
             IsPositiveDirectionActive(
                 gamepad.StickDirections.Contains(JoypadButton.Down),
@@ -485,7 +481,6 @@ internal sealed unsafe class GamepadManager(
 
     private void UpdateDirection(
         ConnectedGamepad gamepad,
-        uint deviceId,
         JoypadButton direction,
         bool pressed,
         HashSet<JoypadButton> sourceDirections
@@ -509,7 +504,7 @@ internal sealed unsafe class GamepadManager(
 
         if (changed && GameplayEnabled)
         {
-            inputRouter.ApplyGamepadDirection(deviceId, direction, active);
+            inputRouter.ApplyGamepadDirection(direction, active);
         }
     }
 
@@ -549,15 +544,23 @@ internal sealed unsafe class GamepadManager(
 
     private void ReleaseAllContributions()
     {
-        foreach (var deviceId in _gamepads.Keys)
+        foreach (var gamepad in _gamepads.Values)
         {
-            inputRouter.ReleaseGamepad(deviceId);
+            ReleaseDeviceContributions(gamepad);
         }
     }
 
-    private void ReleaseDeviceContributions(uint deviceId)
+    private void ReleaseDeviceContributions(ConnectedGamepad gamepad)
     {
-        inputRouter.ReleaseGamepad(deviceId);
+        foreach (var button in gamepad.PressedButtons)
+        {
+            inputRouter.ApplyGamepadButton(button, pressed: false);
+        }
+
+        foreach (var direction in gamepad.ActiveDirections)
+        {
+            inputRouter.ApplyGamepadDirection(direction, pressed: false);
+        }
     }
 
     private void RefreshDeviceSnapshots()

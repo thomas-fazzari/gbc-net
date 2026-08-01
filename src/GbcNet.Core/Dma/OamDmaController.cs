@@ -53,7 +53,7 @@ internal sealed class OamDmaController
             throw new ArgumentException("State OAM DMA offset is out of range.", nameof(state));
         }
 
-        if (state.IsActive && state.NextOffset == TransferLength)
+        if (state is { IsActive: true, NextOffset: TransferLength })
         {
             throw new ArgumentException(
                 "State active OAM DMA must have bytes remaining.",

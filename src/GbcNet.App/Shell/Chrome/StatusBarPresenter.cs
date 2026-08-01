@@ -17,7 +17,6 @@ internal sealed class StatusBarPresenter(
     TextBlock speed
 ) : IDisposable
 {
-    private const int RomFileNameMaxLength = 72;
     private Bitmap? _coverBitmap;
 
     public void ShowStatus(string text)
@@ -64,15 +63,10 @@ internal sealed class StatusBarPresenter(
     public void Dispose() => ClearCover();
 
     internal static string FormatRomFileName(string romFileName) =>
-        FormatStatusText(Path.GetFileNameWithoutExtension(romFileName));
+        Path.GetFileNameWithoutExtension(romFileName);
 
     internal static string FormatHardwareModel(HardwareModel hardwareModel) =>
         hardwareModel.ToString().ToUpperInvariant();
-
-    private static string FormatStatusText(string text) =>
-        text.Length <= RomFileNameMaxLength
-            ? text
-            : $"{text.AsSpan(start: 0, length: RomFileNameMaxLength - 3)}...";
 
     private void ShowCover(string? coverPath)
     {

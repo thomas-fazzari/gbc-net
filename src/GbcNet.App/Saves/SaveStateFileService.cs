@@ -141,7 +141,7 @@ internal sealed class SaveStateFileService(
             {
                 var header = await ReadHeaderAsync(stream, rom, hardwareModel, cancellationToken);
                 var compressedPayload = new byte[header.CompressedPayloadLength];
-                await ReadExactlyAsync(stream, compressedPayload, cancellationToken);
+                await stream.ReadExactlyAsync(compressedPayload, cancellationToken);
 
                 if (stream.Position != stream.Length)
                 {
@@ -177,6 +177,15 @@ internal sealed class SaveStateFileService(
             when (exception is FileNotFoundException or OperationCanceledException)
         {
             throw;
+        }
+        catch (EndOfStreamException)
+        {
+            var truncatedFile = new InvalidDataException("Save-state file is truncated.");
+            SaveStateFileServiceLog.SaveStateReadFailed(logger, truncatedFile);
+            throw new InvalidDataException(
+                message: "Save-state file could not be read: " + truncatedFile.Message,
+                innerException: truncatedFile
+            );
         }
         catch (Exception exception)
         {
@@ -235,7 +244,7 @@ internal sealed class SaveStateFileService(
     )
     {
         var magic = new byte[_magic.Length];
-        await ReadExactlyAsync(stream, magic, cancellationToken);
+        await stream.ReadExactlyAsync(magic, cancellationToken);
         if (!magic.AsSpan().SequenceEqual(_magic))
         {
             throw new InvalidDataException("Save-state file magic is invalid.");
@@ -254,7 +263,7 @@ internal sealed class SaveStateFileService(
         }
 
         var romHash = new byte[SHA256.HashSizeInBytes];
-        await ReadExactlyAsync(stream, romHash, cancellationToken);
+        await stream.ReadExactlyAsync(romHash, cancellationToken);
         if (!CryptographicOperations.FixedTimeEquals(left: romHash, right: rom.Hash))
         {
             throw new InvalidDataException("Save-state ROM hash does not match the active game.");
@@ -264,7 +273,7 @@ internal sealed class SaveStateFileService(
         ValidatePayloadLength(payloadLength);
 
         var payloadHash = new byte[SHA256.HashSizeInBytes];
-        await ReadExactlyAsync(stream, payloadHash, cancellationToken);
+        await stream.ReadExactlyAsync(payloadHash, cancellationToken);
 
         var compressedPayloadLength = await ReadInt32Async(stream, cancellationToken);
         if (compressedPayloadLength is < 0 or > MaximumCompressedPayloadLength)
@@ -296,7 +305,7 @@ internal sealed class SaveStateFileService(
     )
     {
         var bytes = new byte[sizeof(int)];
-        await ReadExactlyAsync(stream, bytes, cancellationToken);
+        await stream.ReadExactlyAsync(bytes, cancellationToken);
         return BinaryPrimitives.ReadInt32LittleEndian(bytes);
     }
 
@@ -306,26 +315,8 @@ internal sealed class SaveStateFileService(
     )
     {
         var value = new byte[1];
-        await ReadExactlyAsync(stream, value, cancellationToken);
+        await stream.ReadExactlyAsync(value, cancellationToken);
         return value[0];
-    }
-
-    private static async Task ReadExactlyAsync(
-        Stream stream,
-        Memory<byte> destination,
-        CancellationToken cancellationToken
-    )
-    {
-        while (!destination.IsEmpty)
-        {
-            var count = await stream.ReadAsync(destination, cancellationToken);
-            if (count == 0)
-            {
-                throw new InvalidDataException("Save-state file is truncated.");
-            }
-
-            destination = destination[count..];
-        }
     }
 
     private static void ValidatePayloadLength(int payloadLength)

@@ -17,7 +17,7 @@ internal sealed class MappedMemory(ushort startAddress, ushort endAddress)
         _bytes[address - startAddress] = value;
     }
 
-    internal MappedMemoryState CaptureState() => new(_bytes.ToArray());
+    internal MappedMemoryState CaptureState() => new([.. _bytes]);
 
     internal void ValidateState(MappedMemoryState state)
     {

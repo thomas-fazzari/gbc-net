@@ -7,6 +7,7 @@ using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu;
 using GbcNet.Core.Ppu.Engines;
+using static GbcNet.Tests.Ppu.PpuTestHelpers;
 
 namespace GbcNet.Tests.Ppu;
 
@@ -312,19 +313,6 @@ public sealed class PpuStateTests
         ppu.VideoRam.Write(0x9800, 0);
     }
 
-    private static void WriteTileRow(
-        PpuController ppu,
-        ushort tileAddress,
-        int row,
-        byte lowByte,
-        byte highByte
-    )
-    {
-        var rowAddress = (ushort)(tileAddress + (row * 2));
-        ppu.VideoRam.Write(rowAddress, lowByte);
-        ppu.VideoRam.Write((ushort)(rowAddress + 1), highByte);
-    }
-
     private static void WriteObject(
         PpuController ppu,
         int index,
@@ -339,20 +327,6 @@ public sealed class PpuStateTests
         ppu.ObjectAttributeMemory.Write((ushort)(address + 1), x);
         ppu.ObjectAttributeMemory.Write((ushort)(address + 2), tile);
         ppu.ObjectAttributeMemory.Write((ushort)(address + 3), flags);
-    }
-
-    private static void WriteBackgroundColor(
-        PpuController ppu,
-        int paletteIndex,
-        byte colorId,
-        ushort rgb555
-    )
-    {
-        var offset = (byte)((((paletteIndex & 0x07) * 4) + (colorId & 0x03)) * 2);
-        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, offset);
-        ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, (byte)rgb555);
-        ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, (byte)(offset + 1));
-        ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, (byte)(rgb555 >> 8));
     }
 
     private static LcdFrame DriveIdenticallyToCompletedFrame(

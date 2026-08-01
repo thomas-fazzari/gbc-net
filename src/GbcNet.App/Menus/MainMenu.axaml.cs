@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Windows.Input;
 using Avalonia.Controls;
 using Avalonia.Input;
 using GbcNet.App.Emulation;
@@ -29,76 +30,104 @@ internal sealed partial class MainMenu : UserControl
     private readonly NativeMenuItem[] _nativeLoadStateSlotMenuItems = new NativeMenuItem[
         StateSlotCount
     ];
-
-    private readonly NativeMenuItem _nativePauseMenuItem = new(header: "Pause")
-    {
-        Gesture = KeyGesture.Parse(gesture: "Space"),
-        IsEnabled = false,
-    };
-
-    private readonly NativeMenuItem _nativeResetMenuItem = new(header: "Reset")
-    {
-        Gesture = KeyGesture.Parse(gesture: "Meta+R"),
-        IsEnabled = false,
-    };
-
-    private readonly NativeMenuItem _nativeCheatsMenuItem = new(header: "Cheats...")
-    {
-        Gesture = KeyGesture.Parse(gesture: "Meta+G"),
-        IsEnabled = false,
-    };
-
-    private readonly NativeMenu _nativeSaveStateMenu = [];
-    private readonly NativeMenu _nativeLoadStateMenu = [];
-
-    private readonly NativeMenuItem _nativeSaveStateMenuItem;
-    private readonly NativeMenuItem _nativeLoadStateMenuItem;
-
-    private readonly NativeMenuItem _nativeFastForwardMenuItem = new(header: "Fast Forward")
-    {
-        Gesture = _fastForwardGesture,
-        ToggleType = MenuItemToggleType.CheckBox,
-    };
-
-    private readonly NativeMenuItem _nativeMuteAudioMenuItem = new(header: "Mute Audio")
-    {
-        Gesture = _muteGesture,
-        ToggleType = MenuItemToggleType.CheckBox,
-    };
-
-    private readonly NativeMenuItem _nativeFullscreenMenuItem = new(header: "Fullscreen")
-    {
-        Gesture = _fullscreenGesture,
-        ToggleType = MenuItemToggleType.CheckBox,
-    };
-
-    private readonly NativeMenuItem _nativeStatusBarMenuItem = new(header: "Status Bar")
-    {
-        Gesture = _statusBarGesture,
-        ToggleType = MenuItemToggleType.CheckBox,
-        IsChecked = true,
-    };
-
+    private readonly List<MenuCommand> _commands = [];
     private readonly List<(
         NativeMenuItem NativeItem,
         MenuItem WindowItem,
         EmulationSpeed Speed
     )> _fastForwardSpeedMenuItems = [];
+    private readonly NativeMenu _nativeSaveStateMenu = [];
+    private readonly NativeMenu _nativeLoadStateMenu = [];
     private readonly NativeMenu _nativeFastForwardSpeedMenu = [];
     private readonly NativeMenu _nativeOpenRecentMenu = [];
+    private readonly NativeMenuItem _nativePauseMenuItem;
+    private readonly NativeMenuItem _nativeResetMenuItem;
+    private readonly NativeMenuItem _nativeCheatsMenuItem;
+    private readonly NativeMenuItem _nativeSaveStateMenuItem;
+    private readonly NativeMenuItem _nativeLoadStateMenuItem;
+    private readonly NativeMenuItem _nativeFastForwardMenuItem;
+    private readonly NativeMenuItem _nativeMuteAudioMenuItem;
+    private readonly NativeMenuItem _nativeFullscreenMenuItem;
+    private readonly NativeMenuItem _nativeStatusBarMenuItem;
     private readonly NativeMenuItem _nativeOpenRecentMenuItem;
-    private readonly NativeMenuItem _nativeCloseMenuItem = new(header: "Close")
-    {
-        Gesture = KeyGesture.Parse(gesture: "Meta+W"),
-        IsEnabled = false,
-    };
+    private readonly NativeMenuItem _nativeCloseMenuItem;
     private readonly NativeMenu _nativeMenu;
+    private bool _emulationActionsEnabled;
+    private bool _pauseEnabled;
+    private bool _cheatsEnabled;
+    private bool _statusBarAvailable = true;
 
     public MainMenu()
     {
         InitializeComponent();
 
+        OpenRomCommand = CreateCommand(_ => OpenRom?.Invoke());
+        CloseCommand = CreateCommand(_ => Close?.Invoke(), () => _emulationActionsEnabled);
+        ConfigurationCommand = CreateCommand(_ => OpenConfiguration?.Invoke());
+        ConfigurationFileLocationCommand = CreateCommand(_ =>
+            OpenConfigurationFileLocation?.Invoke()
+        );
+        LogFileLocationCommand = CreateCommand(_ => OpenLogFileLocation?.Invoke());
+        PauseCommand = CreateCommand(_ => TogglePause?.Invoke(), () => _pauseEnabled);
+        ResetCommand = CreateCommand(_ => Reset?.Invoke(), () => _emulationActionsEnabled);
+        CheatsCommand = CreateCommand(_ => OpenCheats?.Invoke(), () => _cheatsEnabled);
+        MuteCommand = CreateCommand(_ => ToggleMute?.Invoke());
+        SaveStateCommand = CreateCommand(
+            parameter =>
+            {
+                if (parameter is int slotIndex)
+                {
+                    SaveState?.Invoke(slotIndex);
+                }
+            },
+            () => _emulationActionsEnabled
+        );
+        LoadStateCommand = CreateCommand(
+            parameter =>
+            {
+                if (parameter is int slotIndex)
+                {
+                    LoadState?.Invoke(slotIndex);
+                }
+            },
+            () => _emulationActionsEnabled
+        );
+        FastForwardCommand = CreateCommand(_ => ToggleFastForward?.Invoke());
+        FastForwardSpeedCommand = CreateCommand(parameter =>
+        {
+            if (parameter is EmulationSpeed speed)
+            {
+                SetFastForwardSpeed?.Invoke(speed);
+            }
+        });
+        OpenRecentRomCommand = CreateCommand(parameter =>
+        {
+            if (parameter is string path)
+            {
+                OpenRecentRom?.Invoke(path);
+            }
+        });
+        FullscreenCommand = CreateCommand(_ => ToggleFullscreen?.Invoke());
+        MenuBarCommand = CreateCommand(_ => ToggleMenuBar?.Invoke());
+        StatusBarCommand = CreateCommand(_ => ToggleStatusBar?.Invoke(), () => _statusBarAvailable);
+        GitHubRepositoryCommand = CreateCommand(_ => OpenGitHubRepository?.Invoke());
+
         IsVisible = !OperatingSystem.IsMacOS();
+        _nativePauseMenuItem = new NativeMenuItem(header: "Pause")
+        {
+            Command = PauseCommand,
+            Gesture = KeyGesture.Parse(gesture: "Space"),
+        };
+        _nativeResetMenuItem = new NativeMenuItem(header: "Reset")
+        {
+            Command = ResetCommand,
+            Gesture = KeyGesture.Parse(gesture: "Meta+R"),
+        };
+        _nativeCheatsMenuItem = new NativeMenuItem(header: "Cheats...")
+        {
+            Command = CheatsCommand,
+            Gesture = KeyGesture.Parse(gesture: "Meta+G"),
+        };
         _nativeOpenRecentMenuItem = new NativeMenuItem(header: "Open Recent")
         {
             IsEnabled = false,
@@ -114,136 +143,141 @@ internal sealed partial class MainMenu : UserControl
             IsEnabled = false,
             Menu = _nativeLoadStateMenu,
         };
+        _nativeFastForwardMenuItem = new NativeMenuItem(header: "Fast Forward")
+        {
+            Command = FastForwardCommand,
+            Gesture = _fastForwardGesture,
+            ToggleType = MenuItemToggleType.CheckBox,
+        };
+        _nativeMuteAudioMenuItem = new NativeMenuItem(header: "Mute Audio")
+        {
+            Command = MuteCommand,
+            Gesture = _muteGesture,
+            ToggleType = MenuItemToggleType.CheckBox,
+        };
+        _nativeFullscreenMenuItem = new NativeMenuItem(header: "Fullscreen")
+        {
+            Command = FullscreenCommand,
+            Gesture = _fullscreenGesture,
+            ToggleType = MenuItemToggleType.CheckBox,
+        };
+        _nativeStatusBarMenuItem = new NativeMenuItem(header: "Status Bar")
+        {
+            Command = StatusBarCommand,
+            Gesture = _statusBarGesture,
+            ToggleType = MenuItemToggleType.CheckBox,
+            IsChecked = true,
+        };
+        _nativeCloseMenuItem = new NativeMenuItem(header: "Close")
+        {
+            Command = CloseCommand,
+            Gesture = KeyGesture.Parse(gesture: "Meta+W"),
+        };
+
         ConfigureWindowMenu();
         _nativeMenu = CreateNativeMenu();
     }
 
-    public event EventHandler? OpenRomRequested;
+    public Action? OpenRom { get; set; }
 
-    public event EventHandler? RecentRomsRequested;
+    public Action? RefreshRecentRoms { get; set; }
 
-    public event EventHandler<RecentRomSelectedEventArgs>? RecentRomSelected;
+    public Action<string>? OpenRecentRom { get; set; }
 
-    public event EventHandler? CloseRequested;
+    public Action? Close { get; set; }
 
-    public event EventHandler? ConfigurationRequested;
+    public Action? OpenConfiguration { get; set; }
 
-    public event EventHandler? ConfigurationFileLocationRequested;
+    public Action? OpenConfigurationFileLocation { get; set; }
 
-    public event EventHandler? LogFileLocationRequested;
+    public Action? OpenLogFileLocation { get; set; }
 
-    public event EventHandler? PauseRequested;
+    public Action? TogglePause { get; set; }
 
-    public event EventHandler? ResetRequested;
+    public Action? Reset { get; set; }
 
-    public event EventHandler? CheatsRequested;
+    public Action? OpenCheats { get; set; }
 
-    public event EventHandler<StateSlotSelectedEventArgs>? SaveStateRequested;
+    public Action<int>? SaveState { get; set; }
 
-    public event EventHandler<StateSlotSelectedEventArgs>? LoadStateRequested;
+    public Action<int>? LoadState { get; set; }
 
-    public event EventHandler? FastForwardRequested;
+    public Action? ToggleFastForward { get; set; }
 
-    public event EventHandler? MuteRequested;
+    public Action<EmulationSpeed>? SetFastForwardSpeed { get; set; }
 
-    public event EventHandler<FastForwardSpeedSelectedEventArgs>? FastForwardSpeedSelected;
+    public Action? ToggleMute { get; set; }
 
-    public event EventHandler? FullscreenRequested;
+    public Action? ToggleFullscreen { get; set; }
 
-    public event EventHandler? MenuBarRequested;
+    public Action? ToggleMenuBar { get; set; }
 
-    public event EventHandler? StatusBarRequested;
+    public Action? ToggleStatusBar { get; set; }
 
-    public event EventHandler? GitHubRepositoryRequested;
+    public Action? OpenGitHubRepository { get; set; }
+
+    public ICommand OpenRomCommand { get; }
+
+    public ICommand CloseCommand { get; }
+
+    public ICommand ConfigurationCommand { get; }
+
+    public ICommand ConfigurationFileLocationCommand { get; }
+
+    public ICommand LogFileLocationCommand { get; }
+
+    public ICommand PauseCommand { get; }
+
+    public ICommand ResetCommand { get; }
+
+    public ICommand CheatsCommand { get; }
+
+    public ICommand MuteCommand { get; }
+
+    public ICommand SaveStateCommand { get; }
+
+    public ICommand LoadStateCommand { get; }
+
+    public ICommand FastForwardCommand { get; }
+
+    public ICommand FastForwardSpeedCommand { get; }
+
+    public ICommand OpenRecentRomCommand { get; }
+
+    public ICommand FullscreenCommand { get; }
+
+    public ICommand MenuBarCommand { get; }
+
+    public ICommand StatusBarCommand { get; }
+
+    public ICommand GitHubRepositoryCommand { get; }
 
     public void AttachNativeMenu(Window window)
     {
+        ConfigureKeyBindings(window);
+
         if (OperatingSystem.IsMacOS())
         {
             NativeMenu.SetMenu(o: window, menu: _nativeMenu);
         }
     }
 
-    public bool TryHandleShortcut(Key key, KeyModifiers modifiers)
-    {
-        if (
-            !OperatingSystem.IsMacOS()
-            && key is Key.M
-            && modifiers is (KeyModifiers.Control | KeyModifiers.Shift)
-        )
-        {
-            MuteRequested?.Invoke(sender: this, e: EventArgs.Empty);
-            return true;
-        }
-
-        if (OperatingSystem.IsMacOS() || modifiers is not KeyModifiers.Control)
-        {
-            return false;
-        }
-
-        switch (key)
-        {
-            case Key.O:
-                OpenRomRequested?.Invoke(sender: this, e: EventArgs.Empty);
-                return true;
-
-            case Key.W when CloseWindowMenuItem.IsEnabled:
-                CloseRequested?.Invoke(sender: this, e: EventArgs.Empty);
-                return true;
-
-            case Key.C:
-                ConfigurationRequested?.Invoke(sender: this, e: EventArgs.Empty);
-                return true;
-
-            case Key.M:
-                MenuBarRequested?.Invoke(sender: this, e: EventArgs.Empty);
-                return true;
-
-            case Key.G when CheatsMenuItem.IsEnabled:
-                CheatsRequested?.Invoke(sender: this, e: EventArgs.Empty);
-                return true;
-
-            case Key.R when ResetEmulationMenuItem.IsEnabled:
-                ResetRequested?.Invoke(sender: this, e: EventArgs.Empty);
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
     public void SetEmulationActionsEnabled(bool isEnabled)
     {
+        _emulationActionsEnabled = isEnabled;
+        SaveStateMenuItem.IsEnabled = isEnabled;
+        _nativeSaveStateMenuItem.IsEnabled = isEnabled;
+        LoadStateMenuItem.IsEnabled = isEnabled;
+        _nativeLoadStateMenuItem.IsEnabled = isEnabled;
         SetPauseState(isEnabled: isEnabled, isPaused: false);
-        SetEnabled(
-            nativeItem: _nativeResetMenuItem,
-            windowItem: ResetEmulationMenuItem,
-            isEnabled: isEnabled
-        );
-        SetEnabled(
-            nativeItem: _nativeSaveStateMenuItem,
-            windowItem: SaveStateMenuItem,
-            isEnabled: isEnabled
-        );
-        SetEnabled(
-            nativeItem: _nativeLoadStateMenuItem,
-            windowItem: LoadStateMenuItem,
-            isEnabled: isEnabled
-        );
-
-        SetEnabled(
-            nativeItem: _nativeCloseMenuItem,
-            windowItem: CloseWindowMenuItem,
-            isEnabled: isEnabled
-        );
+        RefreshCommandStates();
     }
 
-    public void SetCheatsEnabled(bool enabled) =>
-        SetEnabled(
-            nativeItem: _nativeCheatsMenuItem,
-            windowItem: CheatsMenuItem,
-            isEnabled: enabled
-        );
+    public void SetCheatsEnabled(bool enabled)
+    {
+        _cheatsEnabled = enabled;
+        RefreshCommandStates();
+    }
 
     public void SetSaveStateDates(IReadOnlyList<DateTime?> dates)
     {
@@ -261,18 +295,11 @@ internal sealed partial class MainMenu : UserControl
 
     public void SetPauseState(bool isEnabled, bool isPaused)
     {
+        _pauseEnabled = isEnabled;
         var header = isPaused ? "Resume" : "Pause";
-
-        SetHeader(
-            nativeItem: _nativePauseMenuItem,
-            windowItem: PauseEmulationMenuItem,
-            header: header
-        );
-        SetEnabled(
-            nativeItem: _nativePauseMenuItem,
-            windowItem: PauseEmulationMenuItem,
-            isEnabled: isEnabled
-        );
+        _nativePauseMenuItem.Header = header;
+        PauseEmulationMenuItem.Header = header;
+        RefreshCommandStates();
     }
 
     public void SetFastForwardState(bool isEnabled, EmulationSpeed speed)
@@ -285,63 +312,25 @@ internal sealed partial class MainMenu : UserControl
 
         foreach (var (nativeItem, windowItem, itemSpeed) in _fastForwardSpeedMenuItems)
         {
-            SetChecked(
-                nativeItem: nativeItem,
-                windowItem: windowItem,
-                isChecked: itemSpeed == speed
-            );
+            SetChecked(nativeItem, windowItem, itemSpeed == speed);
         }
     }
 
     public void SetMuteState(bool isMuted) =>
-        SetChecked(
-            nativeItem: _nativeMuteAudioMenuItem,
-            windowItem: MuteAudioMenuItem,
-            isChecked: isMuted
-        );
+        SetChecked(_nativeMuteAudioMenuItem, MuteAudioMenuItem, isMuted);
 
     public void SetFullscreenState(bool isFullscreen) =>
-        SetChecked(
-            nativeItem: _nativeFullscreenMenuItem,
-            windowItem: FullscreenMenuItem,
-            isChecked: isFullscreen
-        );
+        SetChecked(_nativeFullscreenMenuItem, FullscreenMenuItem, isFullscreen);
 
-    public void SetMenuBarState(bool isVisible)
-    {
-        MenuBarMenuItem.IsChecked = isVisible;
-    }
+    public void SetMenuBarState(bool isVisible) => MenuBarMenuItem.IsChecked = isVisible;
 
     public void SetStatusBarState(bool isVisible) =>
-        SetChecked(
-            nativeItem: _nativeStatusBarMenuItem,
-            windowItem: StatusBarMenuItem,
-            isChecked: isVisible
-        );
+        SetChecked(_nativeStatusBarMenuItem, StatusBarMenuItem, isVisible);
 
-    public void SetStatusBarAvailability(bool isAvailable) =>
-        SetEnabled(
-            nativeItem: _nativeStatusBarMenuItem,
-            windowItem: StatusBarMenuItem,
-            isEnabled: isAvailable
-        );
-
-    private static void SetChecked(NativeMenuItem nativeItem, MenuItem windowItem, bool isChecked)
+    public void SetStatusBarAvailability(bool isAvailable)
     {
-        nativeItem.IsChecked = isChecked;
-        windowItem.IsChecked = isChecked;
-    }
-
-    private static void SetEnabled(NativeMenuItem nativeItem, MenuItem windowItem, bool isEnabled)
-    {
-        nativeItem.IsEnabled = isEnabled;
-        windowItem.IsEnabled = isEnabled;
-    }
-
-    private static void SetHeader(NativeMenuItem nativeItem, MenuItem windowItem, string header)
-    {
-        nativeItem.Header = header;
-        windowItem.Header = header;
+        _statusBarAvailable = isAvailable;
+        RefreshCommandStates();
     }
 
     public void SetRecentRoms(IReadOnlyList<LibraryEntry> entries)
@@ -355,177 +344,129 @@ internal sealed partial class MainMenu : UserControl
 
         foreach (var entry in entries)
         {
-            OpenRecentMenuItem.Items.Add(value: CreateWindowRecentRomMenuItem(entry: entry));
-            _nativeOpenRecentMenu.Add(item: CreateNativeRecentRomMenuItem(entry: entry));
+            OpenRecentMenuItem.Items.Add(CreateWindowRecentRomMenuItem(entry));
+            _nativeOpenRecentMenu.Add(CreateNativeRecentRomMenuItem(entry));
         }
     }
 
-    #region Window menu
+    private MenuCommand CreateCommand(Action<object?> execute, Func<bool>? canExecute = null)
+    {
+        var command = new MenuCommand(execute, canExecute);
+        _commands.Add(command);
+        return command;
+    }
+
+    private void RefreshCommandStates()
+    {
+        foreach (var command in _commands)
+        {
+            command.RaiseCanExecuteChanged();
+        }
+    }
+
+    private static void SetChecked(NativeMenuItem nativeItem, MenuItem windowItem, bool isChecked)
+    {
+        nativeItem.IsChecked = isChecked;
+        windowItem.IsChecked = isChecked;
+    }
+
     private void ConfigureWindowMenu()
     {
-        ConfigureWindowFileMenu();
-        ConfigureWindowSettingsMenu();
-        ConfigureWindowEmulationMenu();
-        ConfigureWindowViewMenu();
-        ConfigureWindowHelpMenu();
-    }
-
-    private void ConfigureWindowFileMenu()
-    {
-        FileMenuItem.SubmenuOpened += (_, _) =>
-            RecentRomsRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        OpenRomMenuItem.Click += (_, _) =>
-            OpenRomRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        CloseWindowMenuItem.Click += (_, _) =>
-            CloseRequested?.Invoke(sender: this, e: EventArgs.Empty);
-    }
-
-    private void ConfigureWindowSettingsMenu()
-    {
-        ConfigurationMenuItem.Click += (_, _) =>
-            ConfigurationRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        ConfigurationFileLocationMenuItem.Click += (_, _) =>
-            ConfigurationFileLocationRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        LogFileLocationMenuItem.Click += (_, _) =>
-            LogFileLocationRequested?.Invoke(sender: this, e: EventArgs.Empty);
-    }
-
-    private void ConfigureWindowEmulationMenu()
-    {
-        PauseEmulationMenuItem.Click += (_, _) =>
-            PauseRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        ResetEmulationMenuItem.Click += (_, _) =>
-            ResetRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        CheatsMenuItem.Click += (_, _) => CheatsRequested?.Invoke(sender: this, e: EventArgs.Empty);
+        FileMenuItem.SubmenuOpened += (_, _) => RefreshRecentRoms?.Invoke();
         MuteAudioMenuItem.InputGesture = _muteGesture;
-        MuteAudioMenuItem.Click += (_, _) =>
-            MuteRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        ConfigureStateSlotMenuItems();
-
         FastForwardMenuItem.InputGesture = _fastForwardGesture;
-        FastForwardMenuItem.Click += (_, _) =>
-            FastForwardRequested?.Invoke(sender: this, e: EventArgs.Empty);
+        FullscreenMenuItem.InputGesture = _fullscreenGesture;
+        MenuBarMenuItem.InputGesture = _menuBarGesture;
+        StatusBarMenuItem.InputGesture = _statusBarGesture;
+        ConfigureStateSlotMenuItems();
         ConfigureFastForwardSpeedMenuItems();
     }
 
-    private void ConfigureWindowViewMenu()
+    private void ConfigureKeyBindings(Window window)
     {
-        FullscreenMenuItem.InputGesture = _fullscreenGesture;
-        FullscreenMenuItem.Click += (_, _) =>
-            FullscreenRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        MenuBarMenuItem.InputGesture = _menuBarGesture;
-        MenuBarMenuItem.Click += (_, _) =>
-            MenuBarRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        StatusBarMenuItem.InputGesture = _statusBarGesture;
-        StatusBarMenuItem.Click += (_, _) =>
-            StatusBarRequested?.Invoke(sender: this, e: EventArgs.Empty);
+        if (OperatingSystem.IsMacOS())
+        {
+            return;
+        }
+
+        AddKeyBinding(window, "Ctrl+O", OpenRomCommand);
+        AddKeyBinding(window, "Ctrl+W", CloseCommand);
+        AddKeyBinding(window, "Ctrl+C", ConfigurationCommand);
+        AddKeyBinding(window, "Space", PauseCommand);
+        AddKeyBinding(window, "Ctrl+R", ResetCommand);
+        AddKeyBinding(window, "Ctrl+G", CheatsCommand);
+        AddKeyBinding(window, "Ctrl+Shift+M", MuteCommand);
+        AddKeyBinding(window, "Tab", FastForwardCommand);
+        AddKeyBinding(window, "Alt+Enter", FullscreenCommand);
+        AddKeyBinding(window, "Ctrl+M", MenuBarCommand);
+        AddKeyBinding(window, "Ctrl+I", StatusBarCommand);
     }
 
-    private void ConfigureWindowHelpMenu()
-    {
-        GitHubRepositoryMenuItem.Click += (_, _) =>
-            GitHubRepositoryRequested?.Invoke(sender: this, e: EventArgs.Empty);
-    }
+    private static void AddKeyBinding(Window window, string gesture, ICommand command) =>
+        window.KeyBindings.Add(
+            new KeyBinding { Gesture = KeyGesture.Parse(gesture), Command = command }
+        );
 
     private void ConfigureStateSlotMenuItems()
     {
         for (var slotIndex = 0; slotIndex < StateSlotCount; slotIndex++)
         {
-            var saveItem = CreateWindowStateSlotMenuItem(
-                slotIndex: slotIndex,
-                request: OnSaveStateRequested
-            );
-            var loadItem = CreateWindowStateSlotMenuItem(
-                slotIndex: slotIndex,
-                request: OnLoadStateRequested
-            );
-            var nativeSaveItem = CreateNativeStateSlotMenuItem(
-                slotIndex: slotIndex,
-                request: OnSaveStateRequested
-            );
-            var nativeLoadItem = CreateNativeStateSlotMenuItem(
-                slotIndex: slotIndex,
-                request: OnLoadStateRequested
-            );
+            var saveItem = CreateWindowStateSlotMenuItem(slotIndex, SaveStateCommand);
+            var loadItem = CreateWindowStateSlotMenuItem(slotIndex, LoadStateCommand);
+            var nativeSaveItem = CreateNativeStateSlotMenuItem(slotIndex, SaveStateCommand);
+            var nativeLoadItem = CreateNativeStateSlotMenuItem(slotIndex, LoadStateCommand);
 
             _saveStateSlotMenuItems[slotIndex] = saveItem;
             _loadStateSlotMenuItems[slotIndex] = loadItem;
             _nativeSaveStateSlotMenuItems[slotIndex] = nativeSaveItem;
             _nativeLoadStateSlotMenuItems[slotIndex] = nativeLoadItem;
-            SaveStateMenuItem.Items.Add(value: saveItem);
-            LoadStateMenuItem.Items.Add(value: loadItem);
-            _nativeSaveStateMenu.Add(item: nativeSaveItem);
-            _nativeLoadStateMenu.Add(item: nativeLoadItem);
+            SaveStateMenuItem.Items.Add(saveItem);
+            LoadStateMenuItem.Items.Add(loadItem);
+            _nativeSaveStateMenu.Add(nativeSaveItem);
+            _nativeLoadStateMenu.Add(nativeLoadItem);
         }
     }
 
-    private static MenuItem CreateWindowStateSlotMenuItem(int slotIndex, Action<int> request)
-    {
-        var item = new MenuItem { Header = $"Slot {slotIndex + 1}" };
-        item.Click += (_, _) => request(obj: slotIndex);
-        return item;
-    }
+    private static MenuItem CreateWindowStateSlotMenuItem(int slotIndex, ICommand command) =>
+        new()
+        {
+            Header = $"Slot {slotIndex + 1}",
+            Command = command,
+            CommandParameter = slotIndex,
+        };
 
-    private static NativeMenuItem CreateNativeStateSlotMenuItem(int slotIndex, Action<int> request)
-    {
-        NativeMenuItem item = new(header: $"Slot {slotIndex + 1}");
-        item.Click += (_, _) => request(obj: slotIndex);
-        return item;
-    }
-
-    private void OnSaveStateRequested(int slotIndex) =>
-        SaveStateRequested?.Invoke(
-            sender: this,
-            e: new StateSlotSelectedEventArgs(slotIndex: slotIndex)
-        );
-
-    private void OnLoadStateRequested(int slotIndex) =>
-        LoadStateRequested?.Invoke(
-            sender: this,
-            e: new StateSlotSelectedEventArgs(slotIndex: slotIndex)
-        );
+    private static NativeMenuItem CreateNativeStateSlotMenuItem(int slotIndex, ICommand command) =>
+        new(header: $"Slot {slotIndex + 1}") { Command = command, CommandParameter = slotIndex };
 
     private void ConfigureFastForwardSpeedMenuItems()
     {
         foreach (var speed in Enum.GetValues<EmulationSpeed>())
         {
-            var windowItem = CreateWindowFastForwardSpeedMenuItem(speed: speed);
-            var nativeItem = CreateNativeFastForwardSpeedMenuItem(speed: speed);
-            _fastForwardSpeedMenuItems.Add(item: (nativeItem, windowItem, speed));
-            FastForwardSpeedMenuItem.Items.Add(value: windowItem);
-            _nativeFastForwardSpeedMenu.Add(item: nativeItem);
+            var windowItem = CreateWindowFastForwardSpeedMenuItem(speed);
+            var nativeItem = CreateNativeFastForwardSpeedMenuItem(speed);
+            _fastForwardSpeedMenuItems.Add((nativeItem, windowItem, speed));
+            FastForwardSpeedMenuItem.Items.Add(windowItem);
+            _nativeFastForwardSpeedMenu.Add(nativeItem);
         }
     }
 
-    private MenuItem CreateWindowFastForwardSpeedMenuItem(EmulationSpeed speed)
-    {
-        var item = new MenuItem
+    private MenuItem CreateWindowFastForwardSpeedMenuItem(EmulationSpeed speed) =>
+        new()
         {
             Header = speed.GetDisplayName(),
             ToggleType = MenuItemToggleType.CheckBox,
+            Command = FastForwardSpeedCommand,
+            CommandParameter = speed,
         };
-        item.Click += (_, _) =>
-            FastForwardSpeedSelected?.Invoke(
-                sender: this,
-                e: new FastForwardSpeedSelectedEventArgs(speed: speed)
-            );
-        return item;
-    }
 
-    private MenuItem CreateWindowRecentRomMenuItem(LibraryEntry entry)
-    {
-        var item = new MenuItem { Header = entry.FileName };
-        item.Click += (_, _) =>
-            RecentRomSelected?.Invoke(
-                sender: this,
-                e: new RecentRomSelectedEventArgs(path: entry.LastKnownPath)
-            );
-        return item;
-    }
+    private MenuItem CreateWindowRecentRomMenuItem(LibraryEntry entry) =>
+        new()
+        {
+            Header = entry.FileName,
+            Command = OpenRecentRomCommand,
+            CommandParameter = entry.LastKnownPath,
+        };
 
-    #endregion Window menu
-
-    #region Native menu
     private NativeMenu CreateNativeMenu() =>
         [
             new NativeMenuItem(header: "File") { Menu = CreateNativeFileMenu() },
@@ -537,67 +478,37 @@ internal sealed partial class MainMenu : UserControl
 
     private NativeMenu CreateNativeFileMenu()
     {
-        var openItem = new NativeMenuItem(header: "Open ROM...")
-        {
-            Gesture = KeyGesture.Parse(gesture: "Meta+O"),
-        };
-        openItem.Click += (_, _) => OpenRomRequested?.Invoke(sender: this, e: EventArgs.Empty);
-
         var fileMenu = new NativeMenu
         {
-            openItem,
+            new NativeMenuItem(header: "Open ROM...")
+            {
+                Command = OpenRomCommand,
+                Gesture = KeyGesture.Parse(gesture: "Meta+O"),
+            },
             _nativeOpenRecentMenuItem,
             new NativeMenuItemSeparator(),
+            _nativeCloseMenuItem,
         };
-        fileMenu.NeedsUpdate += (_, _) =>
-            RecentRomsRequested?.Invoke(sender: this, e: EventArgs.Empty);
-
-        _nativeCloseMenuItem.Click += (_, _) =>
-            CloseRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        fileMenu.Add(item: _nativeCloseMenuItem);
-
+        fileMenu.NeedsUpdate += (_, _) => RefreshRecentRoms?.Invoke();
         return fileMenu;
     }
 
-    private NativeMenu CreateNativeSettingsMenu()
-    {
-        var configurationItem = new NativeMenuItem(header: "Configuration")
-        {
-            Gesture = KeyGesture.Parse(gesture: "Meta+C"),
-        };
-        configurationItem.Click += (_, _) =>
-            ConfigurationRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        var configLocationItem = new NativeMenuItem(header: "Open Config File Location");
-        configLocationItem.Click += (_, _) =>
-            ConfigurationFileLocationRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        var logLocationItem = new NativeMenuItem(header: "Open Logs Folder");
-        logLocationItem.Click += (_, _) =>
-            LogFileLocationRequested?.Invoke(sender: this, e: EventArgs.Empty);
-
-        return
+    private NativeMenu CreateNativeSettingsMenu() =>
         [
-            configurationItem,
+            new NativeMenuItem(header: "Configuration")
+            {
+                Command = ConfigurationCommand,
+                Gesture = KeyGesture.Parse(gesture: "Meta+C"),
+            },
             new NativeMenuItemSeparator(),
-            configLocationItem,
-            logLocationItem,
+            new NativeMenuItem(header: "Open Config File Location")
+            {
+                Command = ConfigurationFileLocationCommand,
+            },
+            new NativeMenuItem(header: "Open Logs Folder") { Command = LogFileLocationCommand },
         ];
-    }
 
-    private NativeMenu CreateNativeEmulationMenu()
-    {
-        _nativePauseMenuItem.Click += (_, _) =>
-            PauseRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        _nativeResetMenuItem.Click += (_, _) =>
-            ResetRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        _nativeCheatsMenuItem.Click += (_, _) =>
-            CheatsRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        _nativeMuteAudioMenuItem.Click += (_, _) =>
-            MuteRequested?.Invoke(sender: this, e: EventArgs.Empty);
-
-        _nativeFastForwardMenuItem.Click += (_, _) =>
-            FastForwardRequested?.Invoke(sender: this, e: EventArgs.Empty);
-
-        return
+    private NativeMenu CreateNativeEmulationMenu() =>
         [
             _nativePauseMenuItem,
             _nativeResetMenuItem,
@@ -610,63 +521,36 @@ internal sealed partial class MainMenu : UserControl
             _nativeFastForwardMenuItem,
             new NativeMenuItem(header: "Fast Forward Speed") { Menu = _nativeFastForwardSpeedMenu },
         ];
-    }
 
-    private NativeMenu CreateNativeViewMenu()
-    {
-        _nativeFullscreenMenuItem.Click += (_, _) =>
-            FullscreenRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        _nativeStatusBarMenuItem.Click += (_, _) =>
-            StatusBarRequested?.Invoke(sender: this, e: EventArgs.Empty);
+    private NativeMenu CreateNativeViewMenu() =>
+        [_nativeFullscreenMenuItem, new NativeMenuItemSeparator(), _nativeStatusBarMenuItem];
 
-        return [_nativeFullscreenMenuItem, new NativeMenuItemSeparator(), _nativeStatusBarMenuItem];
-    }
+    private NativeMenu CreateNativeHelpMenu() =>
+        [new NativeMenuItem(header: "View on GitHub") { Command = GitHubRepositoryCommand }];
 
-    private NativeMenu CreateNativeHelpMenu()
-    {
-        var item = new NativeMenuItem(header: "View on GitHub");
-        item.Click += (_, _) => GitHubRepositoryRequested?.Invoke(sender: this, e: EventArgs.Empty);
-        return [item];
-    }
-
-    private NativeMenuItem CreateNativeFastForwardSpeedMenuItem(EmulationSpeed speed)
-    {
-        NativeMenuItem item = new(header: speed.GetDisplayName())
+    private NativeMenuItem CreateNativeFastForwardSpeedMenuItem(EmulationSpeed speed) =>
+        new(header: speed.GetDisplayName())
         {
             ToggleType = MenuItemToggleType.CheckBox,
+            Command = FastForwardSpeedCommand,
+            CommandParameter = speed,
         };
-        item.Click += (_, _) =>
-            FastForwardSpeedSelected?.Invoke(
-                sender: this,
-                e: new FastForwardSpeedSelectedEventArgs(speed: speed)
-            );
-        return item;
-    }
 
-    private NativeMenuItem CreateNativeRecentRomMenuItem(LibraryEntry entry)
-    {
-        NativeMenuItem item = new(header: entry.FileName);
-        item.Click += (_, _) =>
-            RecentRomSelected?.Invoke(
-                sender: this,
-                e: new RecentRomSelectedEventArgs(path: entry.LastKnownPath)
-            );
-        return item;
-    }
-    #endregion Native menu
+    private NativeMenuItem CreateNativeRecentRomMenuItem(LibraryEntry entry) =>
+        new(header: entry.FileName)
+        {
+            Command = OpenRecentRomCommand,
+            CommandParameter = entry.LastKnownPath,
+        };
 
-    internal sealed class StateSlotSelectedEventArgs(int slotIndex) : EventArgs
+    private sealed class MenuCommand(Action<object?> execute, Func<bool>? canExecute) : ICommand
     {
-        public int SlotIndex { get; } = slotIndex;
-    }
+        public event EventHandler? CanExecuteChanged;
 
-    internal sealed class RecentRomSelectedEventArgs(string path) : EventArgs
-    {
-        public string Path { get; } = path;
-    }
+        public bool CanExecute(object? parameter) => canExecute?.Invoke() ?? true;
 
-    internal sealed class FastForwardSpeedSelectedEventArgs(EmulationSpeed speed) : EventArgs
-    {
-        public EmulationSpeed Speed { get; } = speed;
+        public void Execute(object? parameter) => execute(parameter);
+
+        public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
     }
 }

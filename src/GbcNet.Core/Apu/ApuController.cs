@@ -481,7 +481,6 @@ internal sealed class ApuController(ApuModelSpec modelSpec)
         }
 
         _channel1.ValidateState(state.Channel1);
-        _channel1Sweep.ValidateState(state.Channel1Sweep);
         _channel2.ValidateState(state.Channel2);
         _channel3.ValidateState(state.Channel3);
         _channel4.ValidateState(state.Channel4);

@@ -120,6 +120,7 @@ dotnet_naming_style.camel_case_underscore.capitalization = camel_case
 
 # .NET analyzers: correctness and perf
 dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.CA1308.severity = none
 dotnet_diagnostic.CA1305.severity = warning
 dotnet_diagnostic.CA1310.severity = warning
 dotnet_diagnostic.CA1822.severity = warning

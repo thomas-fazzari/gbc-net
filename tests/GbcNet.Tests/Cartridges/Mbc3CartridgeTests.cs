@@ -654,7 +654,10 @@ public sealed class Mbc3CartridgeTests
         {
             Controller = mbc3State with
             {
-                RealTimeClock = mbc3State.RealTimeClock!.Value with { Seconds = 0x40 },
+                RealTimeClock = mbc3State.RealTimeClock!.Value with
+                {
+                    Live = mbc3State.RealTimeClock.Value.Live with { Seconds = 0x40 },
+                },
             },
         };
         var cartridge = LoadMbc3TimerCartridge(CartridgeType.Mbc3TimerBattery, clock);

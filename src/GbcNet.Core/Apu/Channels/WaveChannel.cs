@@ -1,6 +1,8 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using GbcNet.Core.Apu.Components;
+
 namespace GbcNet.Core.Apu.Channels;
 
 /// <summary>
@@ -20,19 +22,16 @@ internal sealed class WaveChannel
     private const int OutputLevelShift = 5;
     private const int PeriodHighShift = 8;
     private const int WavePeriodClockTCycles = 2;
-    private const int MaxLength = 256;
     private const int PeriodReloadBase = 2048;
     private const int SampleIndexMask = 0x1F;
 
     private readonly byte[] _waveRam = new byte[16];
-
-    private int _lengthCounter;
+    private readonly LengthCounter _length = new(256);
     private int _periodTimer;
     private int _tCycleAccumulator;
     private byte _outputLevel;
     private byte _sampleIndex;
     private byte _sampleBuffer;
-    private bool _lengthEnabled;
 
     /// <summary>
     /// Whether CH3 generation is currently active and reported through NR52 bit 2.
@@ -107,7 +106,7 @@ internal sealed class WaveChannel
     /// </summary>
     public void WriteLength(byte value)
     {
-        _lengthCounter = MaxLength - value;
+        _length.WriteInitialLength(value);
     }
 
     /// <summary>
@@ -132,18 +131,14 @@ internal sealed class WaveChannel
     public void WriteControl(byte value)
     {
         Period = (ushort)((Period & 0xFF) | ((value & PeriodHighMask) << PeriodHighShift));
-        _lengthEnabled = (value & LengthEnableMask) != 0;
+        _length.SetEnabled((value & LengthEnableMask) != 0);
 
         if ((value & TriggerMask) == 0)
         {
             return;
         }
 
-        if (_lengthCounter == 0)
-        {
-            _lengthCounter = MaxLength;
-        }
-
+        _length.TriggerReloadIfExpired();
         _periodTimer = PeriodReloadBase - Period;
         _tCycleAccumulator = 0;
         _sampleIndex = 0;
@@ -187,13 +182,7 @@ internal sealed class WaveChannel
     /// </summary>
     public void ClockLength()
     {
-        if (!_lengthEnabled || _lengthCounter == 0)
-        {
-            return;
-        }
-
-        _lengthCounter--;
-        if (_lengthCounter == 0)
+        if (_length.Clock())
         {
             IsActive = false;
         }
@@ -204,14 +193,13 @@ internal sealed class WaveChannel
     /// </summary>
     public void PowerOff()
     {
-        _lengthCounter = 0;
+        _length.PowerOff();
         _periodTimer = 0;
         _tCycleAccumulator = 0;
         Period = 0;
         _outputLevel = 0;
         _sampleIndex = 0;
         _sampleBuffer = 0;
-        _lengthEnabled = false;
         DacEnabled = false;
         IsActive = false;
     }
@@ -219,13 +207,12 @@ internal sealed class WaveChannel
     internal WaveChannelState CaptureState() =>
         new(
             (byte[])_waveRam.Clone(),
-            _lengthCounter,
+            _length.CaptureState(),
             _periodTimer,
             _tCycleAccumulator,
             _outputLevel,
             _sampleIndex,
             _sampleBuffer,
-            _lengthEnabled,
             IsActive,
             DacEnabled,
             Period
@@ -241,13 +228,7 @@ internal sealed class WaveChannel
             );
         }
 
-        if (state.LengthCounter is < 0 or > MaxLength)
-        {
-            throw new ArgumentException(
-                "Wave channel length counter must be between 0 and 256.",
-                nameof(state)
-            );
-        }
+        _length.ValidateState(state.Length);
 
         if (state.PeriodTimer is < 0 or > PeriodReloadBase)
         {
@@ -280,7 +261,7 @@ internal sealed class WaveChannel
 
         if (
             state.IsActive
-            && (!state.DacEnabled || state.LengthCounter == 0 || state.PeriodTimer == 0)
+            && (!state.DacEnabled || state.Length.Counter == 0 || state.PeriodTimer == 0)
         )
         {
             throw new ArgumentException(
@@ -302,13 +283,12 @@ internal sealed class WaveChannel
     {
         ValidateState(state);
         state.WaveRam.CopyTo(_waveRam, 0);
-        _lengthCounter = state.LengthCounter;
+        _length.RestoreState(state.Length);
         _periodTimer = state.PeriodTimer;
         _tCycleAccumulator = state.TCycleAccumulator;
         _outputLevel = state.OutputLevel;
         _sampleIndex = state.SampleIndex;
         _sampleBuffer = state.SampleBuffer;
-        _lengthEnabled = state.LengthEnabled;
         IsActive = state.IsActive;
         DacEnabled = state.DacEnabled;
         Period = state.Period;
@@ -317,13 +297,12 @@ internal sealed class WaveChannel
 
 internal readonly record struct WaveChannelState(
     byte[] WaveRam,
-    int LengthCounter,
+    LengthCounterState Length,
     int PeriodTimer,
     int TCycleAccumulator,
     byte OutputLevel,
     byte SampleIndex,
     byte SampleBuffer,
-    bool LengthEnabled,
     bool IsActive,
     bool DacEnabled,
     ushort Period

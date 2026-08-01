@@ -68,6 +68,37 @@ public sealed class SaveStateFileServiceTests
     }
 
     [Fact]
+    public async Task LoadAsync_ReportsTruncatedStateWithTheExistingInvalidDataContract()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        SaveStateFileService saveStates = new(
+            tempDirectory.Path,
+            NullLogger<SaveStateFileService>.Instance
+        );
+        var rom = RomStorageIdentity.Create("Test Rom", [0x01, 0x02]);
+        await saveStates.SaveAsync(
+            rom,
+            0,
+            HardwareModel.Dmg,
+            new byte[] { 0x10 },
+            TestContext.Current.CancellationToken
+        );
+        var path = saveStates.GetSaveStatePath(rom, 0);
+        var bytes = await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken);
+        await File.WriteAllBytesAsync(path, bytes[..^1], TestContext.Current.CancellationToken);
+
+        var exception = await Assert.ThrowsAsync<InvalidDataException>(() =>
+            saveStates.LoadAsync(rom, 0, HardwareModel.Dmg, TestContext.Current.CancellationToken)
+        );
+
+        Assert.Equal(
+            "Save-state file could not be read: Save-state file is truncated.",
+            exception.Message
+        );
+        Assert.IsType<InvalidDataException>(exception.InnerException);
+    }
+
+    [Fact]
     public async Task LoadAsync_DistinguishesMissingSlot()
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();

@@ -61,13 +61,17 @@ internal sealed class PpuController(
     private ObjectPriorityMode _objectPriorityMode;
 
     /// <summary>
-    /// True for CPU-visible LCD/PPU register addresses FF40-FF4B, excluding OAM DMA at FF46.
+    /// True for CPU-visible LCD/PPU registers FF40-FF45, FF47-FF4B, FF4F, and FF68-FF6C.
     /// </summary>
     internal static bool ContainsRegister(ushort address) =>
         address
             is >= AddressMap.LcdControlRegister
+                and <= AddressMap.LcdYCompareRegister
+                or >= AddressMap.BackgroundPaletteRegister
                 and <= AddressMap.WindowXRegister
-                and not AddressMap.DmaRegister;
+                or AddressMap.VideoRamBankRegister
+                or >= AddressMap.BackgroundPaletteIndexRegister
+                and <= AddressMap.ObjectPriorityModeRegister;
 
     /// <summary>
     /// Reads an LCD/PPU register at FF40-FF45, FF47-FF4B, FF4F, FF68-FF6C.

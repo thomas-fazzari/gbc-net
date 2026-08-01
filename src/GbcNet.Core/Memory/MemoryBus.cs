@@ -14,7 +14,6 @@ using GbcNet.Core.Joypad;
 using GbcNet.Core.Ppu;
 using GbcNet.Core.Serial;
 using GbcNet.Core.Snes;
-using GbcNet.Core.Timers;
 
 namespace GbcNet.Core.Memory;
 
@@ -48,11 +47,6 @@ internal sealed class MemoryBus
     /// Shared clock controller routed through DIV and used by timer, serial, and APU frame clocks.
     /// </summary>
     public ClockController Clock { get; }
-
-    /// <summary>
-    /// Divider and timer registers routed through FF04-FF07.
-    /// </summary>
-    public TimerController Timers { get; }
 
     /// <summary>
     /// Joypad matrix register routed through FF00.
@@ -129,8 +123,6 @@ internal sealed class MemoryBus
             hardwareProfile.TicksTimerOnTacDisableWhenInputHigh,
             hardwareProfile.TicksTimerOnTacEnableWhenInputHigh
         );
-
-        Timers = Clock.Timers;
 
         Ppu = new PpuController(
             Interrupts,
@@ -353,7 +345,7 @@ internal sealed class MemoryBus
         OamDmaController.ValidateState(state.OamDma);
         VramDma.ValidateState(state.VramDma);
 
-        if (state.BootRom.HasValue != (_bootRom is not null))
+        if (state.BootRom.HasValue != _bootRom is not null)
         {
             throw new ArgumentException(
                 "State boot ROM topology does not match this Game Boy.",
@@ -361,7 +353,7 @@ internal sealed class MemoryBus
             );
         }
 
-        if (state.Sgb.HasValue != (_sgb is not null))
+        if (state.Sgb.HasValue != _sgb is not null)
         {
             throw new ArgumentException(
                 "State Super Game Boy topology does not match this Game Boy.",

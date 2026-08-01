@@ -2,6 +2,7 @@
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   x:Class="GbcNet.App.Menus.MainMenu"
+  x:Name="Root"
 >
   <Border
     x:Name="MenuChrome"
@@ -11,17 +12,40 @@
   >
     <Menu x:Name="WindowMenu" Background="Transparent">
       <MenuItem x:Name="FileMenuItem" Header="_File">
-        <MenuItem x:Name="OpenRomMenuItem" Header="_Open ROM..." InputGesture="Ctrl+O" />
+        <MenuItem
+          x:Name="OpenRomMenuItem"
+          Header="_Open ROM..."
+          InputGesture="Ctrl+O"
+          Command="{Binding OpenRomCommand, ElementName=Root}"
+        />
         <MenuItem x:Name="OpenRecentMenuItem" Header="Open _Recent" IsEnabled="False" />
         <Separator />
-        <MenuItem x:Name="CloseWindowMenuItem" Header="_Close" InputGesture="Ctrl+W" />
+        <MenuItem
+          x:Name="CloseWindowMenuItem"
+          Header="_Close"
+          InputGesture="Ctrl+W"
+          Command="{Binding CloseCommand, ElementName=Root}"
+        />
       </MenuItem>
 
       <MenuItem Header="_Settings">
-        <MenuItem x:Name="ConfigurationMenuItem" Header="_Configuration..." InputGesture="Ctrl+C" />
+        <MenuItem
+          x:Name="ConfigurationMenuItem"
+          Header="_Configuration..."
+          InputGesture="Ctrl+C"
+          Command="{Binding ConfigurationCommand, ElementName=Root}"
+        />
         <Separator />
-        <MenuItem x:Name="ConfigurationFileLocationMenuItem" Header="_Open Config File Location" />
-        <MenuItem x:Name="LogFileLocationMenuItem" Header="Open _Logs Folder" />
+        <MenuItem
+          x:Name="ConfigurationFileLocationMenuItem"
+          Header="_Open Config File Location"
+          Command="{Binding ConfigurationFileLocationCommand, ElementName=Root}"
+        />
+        <MenuItem
+          x:Name="LogFileLocationMenuItem"
+          Header="Open _Logs Folder"
+          Command="{Binding LogFileLocationCommand, ElementName=Root}"
+        />
       </MenuItem>
 
       <MenuItem Header="_Emulation">
@@ -29,36 +53,52 @@
           x:Name="PauseEmulationMenuItem"
           Header="_Pause"
           InputGesture="Space"
-          IsEnabled="False"
+          Command="{Binding PauseCommand, ElementName=Root}"
         />
         <MenuItem
           x:Name="ResetEmulationMenuItem"
           Header="_Reset"
           InputGesture="Ctrl+R"
-          IsEnabled="False"
+          Command="{Binding ResetCommand, ElementName=Root}"
         />
         <MenuItem
           x:Name="CheatsMenuItem"
           Header="_Cheats..."
           InputGesture="Ctrl+G"
-          IsEnabled="False"
+          Command="{Binding CheatsCommand, ElementName=Root}"
         />
-        <MenuItem x:Name="MuteAudioMenuItem" Header="_Mute Audio" ToggleType="CheckBox" />
+        <MenuItem
+          x:Name="MuteAudioMenuItem"
+          Header="_Mute Audio"
+          ToggleType="CheckBox"
+          Command="{Binding MuteCommand, ElementName=Root}"
+        />
         <Separator />
         <MenuItem x:Name="SaveStateMenuItem" Header="Save _State" IsEnabled="False" />
         <MenuItem x:Name="LoadStateMenuItem" Header="_Load State" IsEnabled="False" />
         <Separator />
-        <MenuItem x:Name="FastForwardMenuItem" Header="_Fast Forward" ToggleType="CheckBox" />
+        <MenuItem
+          x:Name="FastForwardMenuItem"
+          Header="_Fast Forward"
+          ToggleType="CheckBox"
+          Command="{Binding FastForwardCommand, ElementName=Root}"
+        />
         <MenuItem x:Name="FastForwardSpeedMenuItem" Header="Fast Forward _Speed" />
       </MenuItem>
 
       <MenuItem Header="_View">
-        <MenuItem x:Name="FullscreenMenuItem" Header="_Fullscreen" ToggleType="CheckBox" />
+        <MenuItem
+          x:Name="FullscreenMenuItem"
+          Header="_Fullscreen"
+          ToggleType="CheckBox"
+          Command="{Binding FullscreenCommand, ElementName=Root}"
+        />
         <MenuItem
           x:Name="MenuBarMenuItem"
           Header="_Menu Bar"
           ToggleType="CheckBox"
           IsChecked="True"
+          Command="{Binding MenuBarCommand, ElementName=Root}"
         />
         <Separator />
         <MenuItem
@@ -66,11 +106,16 @@
           Header="_Status Bar"
           ToggleType="CheckBox"
           IsChecked="True"
+          Command="{Binding StatusBarCommand, ElementName=Root}"
         />
       </MenuItem>
 
       <MenuItem Header="_Help">
-        <MenuItem x:Name="GitHubRepositoryMenuItem" Header="_View on GitHub" />
+        <MenuItem
+          x:Name="GitHubRepositoryMenuItem"
+          Header="_View on GitHub"
+          Command="{Binding GitHubRepositoryCommand, ElementName=Root}"
+        />
       </MenuItem>
     </Menu>
   </Border>

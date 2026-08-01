@@ -80,8 +80,8 @@ public sealed class InputRouterTests
             }
         )
         {
-            Assert.True(router.ApplyGamepadButton(1, control, pressed: true));
-            Assert.True(router.ApplyGamepadButton(1, control, pressed: false));
+            Assert.True(router.ApplyGamepadButton(control, pressed: true));
+            Assert.True(router.ApplyGamepadButton(control, pressed: false));
         }
 
         Assert.Equal(
@@ -100,7 +100,7 @@ public sealed class InputRouterTests
     }
 
     [Fact]
-    public void Apply_KeyboardAndTwoGamepadsReleaseSharedButtonAfterFinalSource()
+    public void Apply_KeyboardAndGamepadContributionsReleaseSharedButtonAfterFinalSource()
     {
         var updates = new List<(JoypadButton Button, bool Pressed)>();
         InputRouter router = new(
@@ -110,11 +110,9 @@ public sealed class InputRouterTests
         );
 
         router.Apply(Key.A, pressed: true);
-        router.ApplyGamepadButton(1, GamepadButton.South, pressed: true);
-        router.ApplyGamepadButton(2, GamepadButton.South, pressed: true);
+        router.ApplyGamepadButton(GamepadButton.South, pressed: true);
         router.Apply(Key.A, pressed: false);
-        router.ApplyGamepadButton(1, GamepadButton.South, pressed: false);
-        router.ApplyGamepadButton(2, GamepadButton.South, pressed: false);
+        router.ApplyGamepadButton(GamepadButton.South, pressed: false);
 
         Assert.Equal([(JoypadButton.A, true), (JoypadButton.A, false)], updates);
     }
@@ -135,8 +133,8 @@ public sealed class InputRouterTests
             }
         )
         {
-            Assert.True(router.ApplyGamepadDirection(1, direction, pressed: true));
-            Assert.True(router.ApplyGamepadDirection(1, direction, pressed: false));
+            Assert.True(router.ApplyGamepadDirection(direction, pressed: true));
+            Assert.True(router.ApplyGamepadDirection(direction, pressed: false));
         }
 
         foreach (
@@ -149,8 +147,9 @@ public sealed class InputRouterTests
             }
         )
         {
-            Assert.False(router.ApplyGamepadDirection(1, button, pressed: true));
+            Assert.False(router.ApplyGamepadDirection(button, pressed: true));
         }
+
         Assert.Equal(
             [
                 (JoypadButton.Up, true),
@@ -167,61 +166,24 @@ public sealed class InputRouterTests
     }
 
     [Fact]
-    public void ApplyGamepadInput_IsIdempotentPerDevice()
+    public void ApplyGamepadButton_ReleasesSharedButtonAfterFinalContribution()
     {
         var updates = new List<(JoypadButton Button, bool Pressed)>();
         InputRouter router = new(
             [],
-            [new GamepadBinding(GamepadButton.South, JoypadButton.A)],
+            [
+                new GamepadBinding(GamepadButton.South, JoypadButton.A),
+                new GamepadBinding(GamepadButton.East, JoypadButton.A),
+            ],
             (button, pressed) => updates.Add((button, pressed))
         );
 
-        Assert.True(router.ApplyGamepadButton(1, GamepadButton.South, pressed: true));
-        Assert.True(router.ApplyGamepadButton(1, GamepadButton.South, pressed: true));
-        Assert.True(router.ApplyGamepadButton(1, GamepadButton.South, pressed: false));
-        Assert.True(router.ApplyGamepadButton(1, GamepadButton.South, pressed: false));
-        Assert.True(router.ApplyGamepadDirection(1, JoypadButton.Up, pressed: true));
-        Assert.True(router.ApplyGamepadDirection(1, JoypadButton.Up, pressed: true));
-        Assert.True(router.ApplyGamepadDirection(1, JoypadButton.Up, pressed: false));
-        Assert.True(router.ApplyGamepadDirection(1, JoypadButton.Up, pressed: false));
+        router.ApplyGamepadButton(GamepadButton.South, pressed: true);
+        router.ApplyGamepadButton(GamepadButton.East, pressed: true);
+        router.ApplyGamepadButton(GamepadButton.South, pressed: false);
+        router.ApplyGamepadButton(GamepadButton.East, pressed: false);
 
-        Assert.Equal(
-            [
-                (JoypadButton.A, true),
-                (JoypadButton.A, false),
-                (JoypadButton.Up, true),
-                (JoypadButton.Up, false),
-            ],
-            updates
-        );
-    }
-
-    [Fact]
-    public void ReleaseGamepad_ReleasesOnlyThatDevicesContributions()
-    {
-        var updates = new List<(JoypadButton Button, bool Pressed)>();
-        InputRouter router = new(
-            [],
-            [new GamepadBinding(GamepadButton.South, JoypadButton.A)],
-            (button, pressed) => updates.Add((button, pressed))
-        );
-
-        router.ApplyGamepadButton(1, GamepadButton.South, pressed: true);
-        router.ApplyGamepadDirection(1, JoypadButton.Up, pressed: true);
-        router.ApplyGamepadButton(2, GamepadButton.South, pressed: true);
-        router.ApplyGamepadDirection(2, JoypadButton.Up, pressed: true);
-        router.ReleaseGamepad(1);
-        router.ReleaseGamepad(2);
-
-        Assert.Equal(
-            [
-                (JoypadButton.A, true),
-                (JoypadButton.Up, true),
-                (JoypadButton.A, false),
-                (JoypadButton.Up, false),
-            ],
-            updates
-        );
+        Assert.Equal([(JoypadButton.A, true), (JoypadButton.A, false)], updates);
     }
 
     [Fact]
@@ -239,15 +201,15 @@ public sealed class InputRouterTests
 
         router.Apply(Key.A, pressed: true);
         router.Apply(Key.B, pressed: true);
-        router.ApplyGamepadButton(1, GamepadButton.South, pressed: true);
-        router.ApplyGamepadButton(1, GamepadButton.East, pressed: true);
-        router.ApplyGamepadDirection(1, JoypadButton.Up, pressed: true);
+        router.ApplyGamepadButton(GamepadButton.South, pressed: true);
+        router.ApplyGamepadButton(GamepadButton.East, pressed: true);
+        router.ApplyGamepadDirection(JoypadButton.Up, pressed: true);
         router.Clear();
         router.Apply(Key.A, pressed: false);
         router.Apply(Key.B, pressed: false);
-        router.ApplyGamepadButton(1, GamepadButton.South, pressed: false);
-        router.ApplyGamepadButton(1, GamepadButton.East, pressed: false);
-        router.ApplyGamepadDirection(1, JoypadButton.Up, pressed: false);
+        router.ApplyGamepadButton(GamepadButton.South, pressed: false);
+        router.ApplyGamepadButton(GamepadButton.East, pressed: false);
+        router.ApplyGamepadDirection(JoypadButton.Up, pressed: false);
 
         Assert.Equal(8, updates.Count);
         foreach (
@@ -276,7 +238,7 @@ public sealed class InputRouterTests
         );
 
         router.Apply(Key.A, pressed: true);
-        router.ApplyGamepadButton(1, GamepadButton.South, pressed: true);
+        router.ApplyGamepadButton(GamepadButton.South, pressed: true);
 
         Assert.Throws<ArgumentException>(() =>
             router.ReplaceBindings(
@@ -289,9 +251,9 @@ public sealed class InputRouterTests
         );
 
         Assert.True(router.Apply(Key.A, pressed: false));
-        Assert.True(router.ApplyGamepadButton(1, GamepadButton.South, pressed: false));
+        Assert.True(router.ApplyGamepadButton(GamepadButton.South, pressed: false));
         Assert.False(router.Apply(Key.B, pressed: true));
-        Assert.False(router.ApplyGamepadButton(1, GamepadButton.East, pressed: true));
+        Assert.False(router.ApplyGamepadButton(GamepadButton.East, pressed: true));
         Assert.Equal(
             [
                 (JoypadButton.A, true),
@@ -314,16 +276,16 @@ public sealed class InputRouterTests
         );
 
         router.Apply(Key.A, pressed: true);
-        router.ApplyGamepadButton(1, GamepadButton.South, pressed: true);
+        router.ApplyGamepadButton(GamepadButton.South, pressed: true);
         router.ReplaceBindings(
             [new InputBinding(Key.B, JoypadButton.B)],
             [new GamepadBinding(GamepadButton.East, JoypadButton.A)]
         );
 
         Assert.False(router.Apply(Key.A, pressed: false));
-        Assert.False(router.ApplyGamepadButton(1, GamepadButton.South, pressed: false));
+        Assert.False(router.ApplyGamepadButton(GamepadButton.South, pressed: false));
         Assert.True(router.Apply(Key.B, pressed: true));
-        Assert.True(router.ApplyGamepadButton(1, GamepadButton.East, pressed: true));
+        Assert.True(router.ApplyGamepadButton(GamepadButton.East, pressed: true));
         Assert.Equal(
             [
                 (JoypadButton.A, true),

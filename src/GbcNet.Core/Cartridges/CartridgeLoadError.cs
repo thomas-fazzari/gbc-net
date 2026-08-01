@@ -24,14 +24,11 @@ public sealed class CartridgeLoadError(CartridgeLoadErrorCode code, string messa
 /// </summary>
 public sealed class CartridgeLoadResult
 {
-    private readonly Cartridge? _cartridge;
-    private readonly CartridgeLoadError? _error;
-
     private CartridgeLoadResult(Cartridge cartridge)
     {
         ArgumentNullException.ThrowIfNull(cartridge);
 
-        _cartridge = cartridge;
+        Cartridge = cartridge;
         IsSuccess = true;
     }
 
@@ -39,7 +36,7 @@ public sealed class CartridgeLoadResult
     {
         ArgumentNullException.ThrowIfNull(error);
 
-        _error = error;
+        Error = error;
     }
 
     /// <summary>
@@ -56,13 +53,13 @@ public sealed class CartridgeLoadResult
     /// Loaded cartridge. Throws when <see cref="IsSuccess" /> is false.
     /// </summary>
     public Cartridge Cartridge =>
-        _cartridge ?? throw new InvalidOperationException("Cartridge load did not succeed.");
+        field ?? throw new InvalidOperationException("Cartridge load did not succeed.");
 
     /// <summary>
     /// Typed load error. Throws when <see cref="IsFailure" /> is false.
     /// </summary>
     public CartridgeLoadError Error =>
-        _error ?? throw new InvalidOperationException("Cartridge load did not fail.");
+        field ?? throw new InvalidOperationException("Cartridge load did not fail.");
 
     public static CartridgeLoadResult Success(Cartridge cartridge) => new(cartridge);
 

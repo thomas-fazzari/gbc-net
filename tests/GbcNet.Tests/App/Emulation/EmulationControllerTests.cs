@@ -4,15 +4,12 @@
 using System.Reflection;
 using System.Security.Cryptography;
 using Avalonia.Platform.Storage;
-using GbcNet.App.Audio;
 using GbcNet.App.Cheats;
 using GbcNet.App.Database;
 using GbcNet.App.Database.Entities;
 using GbcNet.App.Emulation;
 using GbcNet.App.Saves;
 using GbcNet.Core;
-using GbcNet.Core.Apu;
-using GbcNet.Core.Cartridges;
 using GbcNet.Core.Cheats;
 using GbcNet.Tests.Cartridges;
 using Microsoft.EntityFrameworkCore;
@@ -234,17 +231,6 @@ public sealed class EmulationControllerTests
             InterceptionResult<int> result,
             CancellationToken cancellationToken = default
         ) => throw new DbUpdateException("Synthetic save failure.");
-    }
-
-    private sealed class TestAudioOutput : IAudioOutput
-    {
-        public void EnqueueSamples(ReadOnlySpan<ApuStereoSample> samples) { }
-
-        public void SetVolume(int volumePercent, bool muted) { }
-
-        public void Clear() { }
-
-        public void Dispose() { }
     }
 }
 

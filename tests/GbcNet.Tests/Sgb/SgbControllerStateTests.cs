@@ -1,8 +1,8 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using GbcNet.Core.Ppu;
 using GbcNet.Core.Snes;
+using static GbcNet.Tests.Sgb.SgbTestHelpers;
 
 namespace GbcNet.Tests.Sgb;
 
@@ -30,7 +30,7 @@ public sealed class SgbControllerStateTests
         var sgb = new SgbController(commandsEnabled: true);
         WriteSgbPacket(sgb, command: 0x00, Pal01Payload);
         var before = sgb.CaptureState();
-        var invalidAttributes = (byte[])before.AttributeMap.Clone();
+        var invalidAttributes = (byte[])before.Renderer.AttributeMap.Clone();
         invalidAttributes[^1] = 4;
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -38,7 +38,7 @@ public sealed class SgbControllerStateTests
                 before with
                 {
                     Command = new byte[112],
-                    AttributeMap = invalidAttributes,
+                    Renderer = before.Renderer with { AttributeMap = invalidAttributes },
                 }
             )
         );
@@ -52,11 +52,28 @@ public sealed class SgbControllerStateTests
     }
 
     [Fact]
+    public void RestoreState_RejectsImpossiblePacketPhase()
+    {
+        var sgb = new SgbController(commandsEnabled: true);
+        var before = sgb.CaptureState();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            sgb.RestoreState(
+                before with
+                {
+                    CommandWriteBitIndex = 0,
+                    PacketPhase = SgbPacketPhase.AwaitingStop,
+                }
+            )
+        );
+
+        Assert.Equivalent(before, sgb.CaptureState(), strict: true);
+    }
+
+    [Fact]
     public void RestoreState_ContinuesPartialCommand()
     {
-        Span<byte> packet = stackalloc byte[16];
-        packet[0] = 0x01;
-        Pal01Payload.CopyTo(packet[1..]);
+        var packet = CreatePacket(command: 0x00, Pal01Payload);
         var original = new SgbController(commandsEnabled: true);
         var selectedGroups = (byte)0x30;
         WriteSgbStartPulse(original, ref selectedGroups);
@@ -110,7 +127,7 @@ public sealed class SgbControllerStateTests
         var attributeTransfer = new byte[4096];
         WriteSystemPalette(paletteTransfer, paletteId: 5, 0x1111, 0x2222, 0x3333, 0x4444);
         WriteSystemPalette(paletteTransfer, paletteId: 6, 0x5555, 0x6666, 0x7777, 0x7FFF);
-        attributeTransfer[3 * 90] = 0x40;
+        WriteAttributeFile(attributeTransfer, fileIndex: 3, packedFirstFourTiles: 0x40);
         var sgb = new SgbController(commandsEnabled: true);
 
         WriteSgbPacket(sgb, command: 0x0B, []);
@@ -206,12 +223,6 @@ public sealed class SgbControllerStateTests
         Assert.Equal((byte)0x0D, resumed.ReadLowNibble(0x30, 0x0F));
     }
 
-    private static ReadOnlySpan<byte> Pal01Payload =>
-        [0x11, 0x11, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44, 0x55, 0x55, 0x66, 0x66, 0x77, 0x77, 0x00];
-
-    private static ReadOnlySpan<byte> WhiteColorZeroPal01Payload =>
-        [0xFF, 0x7F, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44, 0x55, 0x55, 0x66, 0x66, 0x77, 0x77, 0x00];
-
     private static SgbController RestoreIntoNewController(SgbController source)
     {
         var target = new SgbController(commandsEnabled: true);
@@ -223,27 +234,28 @@ public sealed class SgbControllerStateTests
     {
         var state = new SgbController(commandsEnabled: true).CaptureState();
         state.Command[0] = 0x5A;
-        state.SystemPalettes[0] = 0x1234;
-        state.AttributeFiles[0] = 0x5A;
-        state.BorderTiles[0] = 0x5A;
-        state.BorderMap[0] = 0x1234;
-        state.BorderPalettes[0] = 0x1234;
-        state.Palettes[0] = 0x1234;
-        state.AttributeMap[0] = 3;
+        state.Renderer.SystemPalettes[0] = 0x1234;
+        state.Renderer.AttributeFiles[0] = 0x5A;
+        state.Renderer.BorderTiles[0] = 0x5A;
+        state.Renderer.BorderMap[0] = 0x1234;
+        state.Renderer.BorderPalettes[0] = 0x1234;
+        state.Renderer.Palettes[0] = 0x1234;
+        state.Renderer.AttributeMap[0] = 3;
         return state with
         {
-            CommandWriteBitIndex = 896,
-            ReadyForPulse = true,
-            ReadyForWrite = true,
-            ReadyForStop = true,
+            CommandWriteBitIndex = 128,
+            PacketPhase = SgbPacketPhase.AwaitingStop,
             PlayerCount = 4,
             CurrentPlayer = 3,
             MaskMode = 3,
             PendingVramTransfer = 5,
             PendingVramTransferFrameDelay = 2,
-            BorderReady = true,
-            VisibleFramePixels = CreateHistory(0x5A),
-            LastBootFramePixels = CreateHistory(0xA5),
+            Renderer = state.Renderer with
+            {
+                BorderReady = true,
+                VisibleFramePixels = CreateHistory(0x5A),
+                LastBootFramePixels = CreateHistory(0xA5),
+            },
         };
     }
 
@@ -251,33 +263,36 @@ public sealed class SgbControllerStateTests
         state with
         {
             Command = (byte[])state.Command.Clone(),
-            SystemPalettes = (ushort[])state.SystemPalettes.Clone(),
-            AttributeFiles = (byte[])state.AttributeFiles.Clone(),
-            BorderTiles = (byte[])state.BorderTiles.Clone(),
-            BorderMap = (ushort[])state.BorderMap.Clone(),
-            BorderPalettes = (ushort[])state.BorderPalettes.Clone(),
-            Palettes = (ushort[])state.Palettes.Clone(),
-            AttributeMap = (byte[])state.AttributeMap.Clone(),
-            VisibleFramePixels = state.VisibleFramePixels is null
-                ? null
-                : (byte[])state.VisibleFramePixels.Clone(),
-            LastBootFramePixels = state.LastBootFramePixels is null
-                ? null
-                : (byte[])state.LastBootFramePixels.Clone(),
+            Renderer = state.Renderer with
+            {
+                SystemPalettes = (ushort[])state.Renderer.SystemPalettes.Clone(),
+                AttributeFiles = (byte[])state.Renderer.AttributeFiles.Clone(),
+                BorderTiles = (byte[])state.Renderer.BorderTiles.Clone(),
+                BorderMap = (ushort[])state.Renderer.BorderMap.Clone(),
+                BorderPalettes = (ushort[])state.Renderer.BorderPalettes.Clone(),
+                Palettes = (ushort[])state.Renderer.Palettes.Clone(),
+                AttributeMap = (byte[])state.Renderer.AttributeMap.Clone(),
+                VisibleFramePixels = state.Renderer.VisibleFramePixels is null
+                    ? null
+                    : (byte[])state.Renderer.VisibleFramePixels.Clone(),
+                LastBootFramePixels = state.Renderer.LastBootFramePixels is null
+                    ? null
+                    : (byte[])state.Renderer.LastBootFramePixels.Clone(),
+            },
         };
 
     private static void MutateBuffers(SgbControllerState state)
     {
         state.Command[0]++;
-        state.SystemPalettes[0]++;
-        state.AttributeFiles[0]++;
-        state.BorderTiles[0]++;
-        state.BorderMap[0]++;
-        state.BorderPalettes[0]++;
-        state.Palettes[0]++;
-        state.AttributeMap[0] = 0;
-        state.VisibleFramePixels![0]++;
-        state.LastBootFramePixels![0]++;
+        state.Renderer.SystemPalettes[0]++;
+        state.Renderer.AttributeFiles[0]++;
+        state.Renderer.BorderTiles[0]++;
+        state.Renderer.BorderMap[0]++;
+        state.Renderer.BorderPalettes[0]++;
+        state.Renderer.Palettes[0]++;
+        state.Renderer.AttributeMap[0] = 0;
+        state.Renderer.VisibleFramePixels![0]++;
+        state.Renderer.LastBootFramePixels![0]++;
     }
 
     private static byte[] CreateHistory(byte value)
@@ -285,112 +300,5 @@ public sealed class SgbControllerStateTests
         var history = new byte[160 * 144 * 2];
         Array.Fill(history, value);
         return history;
-    }
-
-    private static void ApplyBorderTransfers(SgbController sgb, byte[] tiles, byte[] map)
-    {
-        WriteSgbPacket(sgb, command: 0x13, [0x00]);
-        sgb.ApplyPendingVramTransfer(tiles);
-        WriteSgbPacket(sgb, command: 0x14, []);
-        sgb.ApplyPendingVramTransfer(map);
-    }
-
-    private static LcdFrame CreateDmgFrame(byte shade)
-    {
-        var pixels = new byte[160 * 144];
-        Array.Fill(pixels, shade);
-        return new LcdFrame(160, 144, LcdPixelFormat.DmgShadeIndex8, pixels);
-    }
-
-    private static byte[] CreatePalSetPayload(
-        ushort palette0,
-        ushort palette1,
-        ushort palette2,
-        ushort palette3
-    )
-    {
-        var payload = new byte[15];
-        WriteUInt16(payload, 0, palette0);
-        WriteUInt16(payload, 2, palette1);
-        WriteUInt16(payload, 4, palette2);
-        WriteUInt16(payload, 6, palette3);
-        return payload;
-    }
-
-    private static void WriteSystemPalette(
-        byte[] bytes,
-        int paletteId,
-        ushort color0,
-        ushort color1,
-        ushort color2,
-        ushort color3
-    )
-    {
-        var offset = paletteId * 8;
-        WriteUInt16(bytes, offset, color0);
-        WriteUInt16(bytes, offset + 2, color1);
-        WriteUInt16(bytes, offset + 4, color2);
-        WriteUInt16(bytes, offset + 6, color3);
-    }
-
-    private static void WriteBorderTilePixel(byte[] bytes, int tileIndex, byte color)
-    {
-        var offset = tileIndex * 32;
-        bytes[offset] = (byte)(((color & 0x01) != 0 ? 0x80 : 0) | 0);
-        bytes[offset + 1] = (byte)(((color & 0x02) != 0 ? 0x80 : 0) | 0);
-        bytes[offset + 16] = (byte)(((color & 0x04) != 0 ? 0x80 : 0) | 0);
-        bytes[offset + 17] = (byte)(((color & 0x08) != 0 ? 0x80 : 0) | 0);
-    }
-
-    private static void WriteUInt16(byte[] bytes, int offset, ushort value)
-    {
-        bytes[offset] = (byte)value;
-        bytes[offset + 1] = (byte)(value >> 8);
-    }
-
-    private static int SgbGameBoyPixelIndex(int x, int y) => ((40 + y) * 256) + 48 + x;
-
-    private static void WriteSgbPacket(SgbController sgb, byte command, ReadOnlySpan<byte> payload)
-    {
-        Span<byte> packet = stackalloc byte[16];
-        packet[0] = (byte)((command << 3) | 0x01);
-        payload.CopyTo(packet[1..]);
-        var selectedGroups = (byte)0x30;
-        WriteSgbStartPulse(sgb, ref selectedGroups);
-        WriteBits(sgb, ref selectedGroups, packet);
-        WriteSgbBit(sgb, ref selectedGroups, value: false);
-    }
-
-    private static void WriteBits(
-        SgbController sgb,
-        ref byte selectedGroups,
-        ReadOnlySpan<byte> bytes,
-        int start = 0,
-        int count = int.MaxValue
-    )
-    {
-        var end = (int)Math.Min(bytes.Length * 8L, (long)start + count);
-        for (var bit = start; bit < end; bit++)
-        {
-            WriteSgbBit(sgb, ref selectedGroups, (bytes[bit / 8] & (1 << (bit & 7))) != 0);
-        }
-    }
-
-    private static void WriteSgbStartPulse(SgbController sgb, ref byte selectedGroups)
-    {
-        WriteSgbJoyp(sgb, ref selectedGroups, 0x00);
-        WriteSgbJoyp(sgb, ref selectedGroups, 0x30);
-    }
-
-    private static void WriteSgbBit(SgbController sgb, ref byte selectedGroups, bool value)
-    {
-        WriteSgbJoyp(sgb, ref selectedGroups, 0x30);
-        WriteSgbJoyp(sgb, ref selectedGroups, value ? (byte)0x10 : (byte)0x20);
-    }
-
-    private static void WriteSgbJoyp(SgbController sgb, ref byte selectedGroups, byte value)
-    {
-        sgb.Write(value, selectedGroups);
-        selectedGroups = (byte)(value & 0x30);
     }
 }

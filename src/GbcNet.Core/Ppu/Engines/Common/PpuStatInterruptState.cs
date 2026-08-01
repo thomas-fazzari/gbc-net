@@ -8,15 +8,14 @@ namespace GbcNet.Core.Ppu.Engines;
 /// </summary>
 internal sealed class PpuStatInterruptState
 {
-    private bool _statInterruptLine;
     private PpuMode _statInterruptMode;
 
     internal bool LycEqualsLy { get; private set; } = true;
 
-    internal bool IsInterruptLineAsserted => _statInterruptLine;
+    internal bool IsInterruptLineAsserted { get; private set; }
 
     internal PpuStatInterruptLatchState CaptureState() =>
-        new(_statInterruptLine, _statInterruptMode, LycEqualsLy);
+        new(IsInterruptLineAsserted, _statInterruptMode, LycEqualsLy);
 
     internal static void ValidateState(PpuStatInterruptLatchState state)
     {
@@ -32,7 +31,7 @@ internal sealed class PpuStatInterruptState
     internal void RestoreState(PpuStatInterruptLatchState state)
     {
         ValidateState(state);
-        _statInterruptLine = state.IsInterruptLineAsserted;
+        IsInterruptLineAsserted = state.IsInterruptLineAsserted;
         _statInterruptMode = state.InterruptMode;
         LycEqualsLy = state.LycEqualsLy;
     }
@@ -61,9 +60,9 @@ internal sealed class PpuStatInterruptState
     {
         var statInterruptLine = CalculateInterruptLineAsserted(statusInterruptSelect, lcdEnabled);
 
-        var requestLcdInterrupt = requestInterrupt && !_statInterruptLine && statInterruptLine;
+        var requestLcdInterrupt = requestInterrupt && !IsInterruptLineAsserted && statInterruptLine;
 
-        _statInterruptLine = statInterruptLine;
+        IsInterruptLineAsserted = statInterruptLine;
 
         return requestLcdInterrupt ? PpuInterruptRequest.LcdStat : PpuInterruptRequest.None;
     }
@@ -80,7 +79,7 @@ internal sealed class PpuStatInterruptState
     internal void ClearInterruptLine(PpuMode mode)
     {
         _statInterruptMode = mode;
-        _statInterruptLine = false;
+        IsInterruptLineAsserted = false;
     }
 
     private bool CalculateInterruptLineAsserted(byte statusInterruptSelect, bool lcdEnabled)

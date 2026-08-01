@@ -1,11 +1,9 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using GbcNet.App.Audio;
 using GbcNet.App.Emulation;
 using GbcNet.App.Saves;
 using GbcNet.Core;
-using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Cheats;
 using GbcNet.Core.Hardware;
@@ -159,18 +157,5 @@ public sealed class EmulationSessionTests
             allowWrites.TrySetResult();
             await session.StopAsync();
         }
-    }
-
-    private sealed class TestAudioOutput : IAudioOutput
-    {
-        public int ClearCount { get; private set; }
-
-        public void EnqueueSamples(ReadOnlySpan<ApuStereoSample> samples) { }
-
-        public void SetVolume(int volumePercent, bool muted) { }
-
-        public void Clear() => ClearCount++;
-
-        public void Dispose() { }
     }
 }

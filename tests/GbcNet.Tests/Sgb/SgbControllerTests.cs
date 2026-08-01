@@ -3,14 +3,12 @@
 
 using GbcNet.Core.Ppu;
 using GbcNet.Core.Snes;
+using static GbcNet.Tests.Sgb.SgbTestHelpers;
 
 namespace GbcNet.Tests.Sgb;
 
 public sealed class SgbControllerTests
 {
-    private static ReadOnlySpan<byte> Pal01Payload =>
-        [0x11, 0x11, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44, 0x55, 0x55, 0x66, 0x66, 0x77, 0x77, 0x00];
-
     [Fact]
     public void ApplyPalettes_UsesPal01ColorsAndLineAttributes()
     {
@@ -278,138 +276,5 @@ public sealed class SgbControllerTests
 
         Rgb555Assertions.PixelEquals(firstFrame, pixelIndex: 0, expected: 0x7FFF);
         Rgb555Assertions.PixelEquals(updatedFrame, pixelIndex: 0, expected: 0x1357);
-    }
-
-    private static void ApplyBorderTransfers(
-        SgbController sgb,
-        byte[] tileTransfer,
-        byte[] mapTransfer
-    )
-    {
-        WriteSgbPacket(sgb, command: 0x13, [0x00]);
-        sgb.ApplyPendingVramTransfer(tileTransfer);
-        WriteSgbPacket(sgb, command: 0x14, []);
-        sgb.ApplyPendingVramTransfer(mapTransfer);
-    }
-
-    private static LcdFrame CreateDmgFrame(byte shade)
-    {
-        var pixels = new byte[160 * 144];
-        Array.Fill(pixels, shade);
-        return new LcdFrame(160, 144, LcdPixelFormat.DmgShadeIndex8, pixels);
-    }
-
-    private static byte[] CreatePalSetPayload(
-        ushort palette0,
-        ushort palette1,
-        ushort palette2,
-        ushort palette3,
-        byte flags = 0
-    )
-    {
-        var payload = new byte[15];
-        WriteUInt16(payload, offset: 0, palette0);
-        WriteUInt16(payload, offset: 2, palette1);
-        WriteUInt16(payload, offset: 4, palette2);
-        WriteUInt16(payload, offset: 6, palette3);
-        payload[8] = flags;
-        return payload;
-    }
-
-    private static void WriteSystemPalette(
-        byte[] transferData,
-        int paletteId,
-        ushort color0,
-        ushort color1,
-        ushort color2,
-        ushort color3
-    )
-    {
-        var offset = paletteId * 8;
-        WriteUInt16(transferData, offset, color0);
-        WriteUInt16(transferData, offset + 2, color1);
-        WriteUInt16(transferData, offset + 4, color2);
-        WriteUInt16(transferData, offset + 6, color3);
-    }
-
-    private static void WriteAttributeFile(
-        byte[] transferData,
-        int fileIndex,
-        byte packedFirstFourTiles
-    )
-    {
-        transferData[fileIndex * 90] = packedFirstFourTiles;
-    }
-
-    private static void WriteBorderTilePixel(byte[] transferData, int tileIndex, byte color)
-    {
-        var offset = tileIndex * 32;
-
-        if ((color & 0x01) != 0)
-        {
-            transferData[offset] = 0x80;
-        }
-
-        if ((color & 0x02) != 0)
-        {
-            transferData[offset + 1] = 0x80;
-        }
-
-        if ((color & 0x04) != 0)
-        {
-            transferData[offset + 16] = 0x80;
-        }
-
-        if ((color & 0x08) != 0)
-        {
-            transferData[offset + 17] = 0x80;
-        }
-    }
-
-    private static void WriteUInt16(byte[] bytes, int offset, ushort value)
-    {
-        bytes[offset] = (byte)value;
-        bytes[offset + 1] = (byte)(value >> 8);
-    }
-
-    private static int GameBoyPixelIndex(int x, int y) => (y * 160) + x;
-
-    private static int SgbGameBoyPixelIndex(int x, int y) => ((40 + y) * 256) + 48 + x;
-
-    private static void WriteSgbPacket(SgbController sgb, byte command, ReadOnlySpan<byte> payload)
-    {
-        Span<byte> packet = stackalloc byte[16];
-        packet[0] = (byte)((command << 3) | 0x01);
-        payload.CopyTo(packet[1..]);
-
-        var selectedGroups = (byte)0x30;
-        WriteSgbStartPulse(sgb, ref selectedGroups);
-        foreach (var value in packet)
-        {
-            for (var bit = 0; bit < 8; bit++)
-            {
-                WriteSgbBit(sgb, ref selectedGroups, (value & (1 << bit)) != 0);
-            }
-        }
-
-        WriteSgbBit(sgb, ref selectedGroups, value: false);
-    }
-
-    private static void WriteSgbStartPulse(SgbController sgb, ref byte selectedGroups)
-    {
-        WriteSgbJoyp(sgb, ref selectedGroups, 0x00);
-        WriteSgbJoyp(sgb, ref selectedGroups, 0x30);
-    }
-
-    private static void WriteSgbBit(SgbController sgb, ref byte selectedGroups, bool value)
-    {
-        WriteSgbJoyp(sgb, ref selectedGroups, 0x30);
-        WriteSgbJoyp(sgb, ref selectedGroups, value ? (byte)0x10 : (byte)0x20);
-    }
-
-    private static void WriteSgbJoyp(SgbController sgb, ref byte selectedGroups, byte value)
-    {
-        sgb.Write(value, selectedGroups);
-        selectedGroups = (byte)(value & 0x30);
     }
 }

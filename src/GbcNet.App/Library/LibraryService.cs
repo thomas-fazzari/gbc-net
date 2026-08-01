@@ -471,20 +471,7 @@ internal sealed class LibraryService(
             }
         }
 
-        return string.Create(
-            length: extension.Length,
-            state: extension,
-            action: static (result, source) =>
-            {
-                for (var index = 0; index < source.Length; index++)
-                {
-                    var character = source[index];
-                    result[index] = character is >= 'A' and <= 'Z'
-                        ? (char)(character + ('a' - 'A'))
-                        : character;
-                }
-            }
-        );
+        return extension.ToLowerInvariant();
     }
 
     private static string ComputeRomHash(ReadOnlySpan<byte> rom) =>

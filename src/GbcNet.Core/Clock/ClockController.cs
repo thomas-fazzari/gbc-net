@@ -27,7 +27,6 @@ internal sealed class ClockController
 
     private readonly bool _isKey1RegisterEnabled;
     private bool _speedSwitchArmed;
-    private int _speedSwitchPauseCycles;
 
     public ClockController(
         InterruptController interrupts,
@@ -62,7 +61,7 @@ internal sealed class ClockController
     /// <summary>
     /// Remaining CGB speed-switch pause duration in CPU machine cycles.
     /// </summary>
-    public int SpeedSwitchPauseCycles => _speedSwitchPauseCycles;
+    public int SpeedSwitchPauseCycles { get; private set; }
 
     /// <summary>
     /// Number of PPU/APU T-cycles elapsed per CPU machine cycle at the current speed.
@@ -139,7 +138,7 @@ internal sealed class ClockController
         ResetDivider();
         _speedSwitchArmed = false;
         CgbDoubleSpeed = !CgbDoubleSpeed;
-        _speedSwitchPauseCycles = SpeedSwitchPauseDuration;
+        SpeedSwitchPauseCycles = SpeedSwitchPauseDuration;
         return true;
     }
 
@@ -148,12 +147,12 @@ internal sealed class ClockController
     /// </summary>
     public bool TryStepSpeedSwitchPause()
     {
-        if (_speedSwitchPauseCycles == 0)
+        if (SpeedSwitchPauseCycles == 0)
         {
             return false;
         }
 
-        _speedSwitchPauseCycles--;
+        SpeedSwitchPauseCycles--;
         return true;
     }
 
@@ -197,7 +196,7 @@ internal sealed class ClockController
             _systemCounter.DividerCounter,
             CgbDoubleSpeed,
             _speedSwitchArmed,
-            _speedSwitchPauseCycles,
+            SpeedSwitchPauseCycles,
             Timers.CaptureState()
         );
 
@@ -231,7 +230,7 @@ internal sealed class ClockController
         _systemCounter.SetCounter(state.DividerCounter);
         CgbDoubleSpeed = state.CgbDoubleSpeed;
         _speedSwitchArmed = state.SpeedSwitchArmed;
-        _speedSwitchPauseCycles = state.SpeedSwitchPauseCycles;
+        SpeedSwitchPauseCycles = state.SpeedSwitchPauseCycles;
         Timers.RestoreState(state.TimerState);
     }
 

@@ -88,15 +88,8 @@ internal sealed class Channel1Sweep
 
     internal Channel1SweepState CaptureState() => new(_register, _timer, _shadowPeriod, _enabled);
 
-    internal void ValidateState(Channel1SweepState state)
-    {
-        _ = _enabled;
-        _ = state;
-    }
-
     internal void RestoreState(Channel1SweepState state)
     {
-        ValidateState(state);
         _register = state.Register;
         _timer = state.Timer;
         _shadowPeriod = state.ShadowPeriod;
