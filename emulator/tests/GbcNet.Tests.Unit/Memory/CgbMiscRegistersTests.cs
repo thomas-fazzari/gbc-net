@@ -26,9 +26,9 @@ public sealed class CgbMiscRegistersTests
 
         registers.RestoreState(state);
 
-        Assert.Equal(0x12, registers.ReadRegister(AddressMap.CgbUndocumentedRegisterFf72));
-        Assert.Equal(0x34, registers.ReadRegister(AddressMap.CgbUndocumentedRegisterFf73));
-        Assert.Equal(0x56, registers.ReadRegister(AddressMap.CgbUndocumentedRegisterFf74));
-        Assert.Equal(0x9F, registers.ReadRegister(AddressMap.CgbUndocumentedRegisterFf75));
+        registers.ReadRegister(AddressMap.CgbUndocumentedRegisterFf72).Should().Be(0x12);
+        registers.ReadRegister(AddressMap.CgbUndocumentedRegisterFf73).Should().Be(0x34);
+        registers.ReadRegister(AddressMap.CgbUndocumentedRegisterFf74).Should().Be(0x56);
+        registers.ReadRegister(AddressMap.CgbUndocumentedRegisterFf75).Should().Be(0x9F);
     }
 }

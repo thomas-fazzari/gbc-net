@@ -18,7 +18,7 @@ public sealed class SampleBufferTests
 
         var samplesDue = buffer.Tick(SourceClockHz);
 
-        Assert.Equal(SampleRate, samplesDue);
+        samplesDue.Should().Be(SampleRate);
     }
 
     [Fact]
@@ -26,8 +26,8 @@ public sealed class SampleBufferTests
     {
         SampleBuffer<ApuStereoSample> buffer = new(SourceClockHz, SampleRate);
 
-        Assert.Equal(0, buffer.Tick(9));
-        Assert.Equal(1, buffer.Tick(1));
+        buffer.Tick(9).Should().Be(0);
+        buffer.Tick(1).Should().Be(1);
     }
 
     [Fact]
@@ -35,8 +35,8 @@ public sealed class SampleBufferTests
     {
         SampleBuffer<ApuStereoSample> buffer = new(SourceClockHz, SampleRate);
 
-        Assert.Equal(0, buffer.Tick(9));
-        Assert.Equal(0, buffer.Count);
+        buffer.Tick(9).Should().Be(0);
+        buffer.Count.Should().Be(0);
     }
 
     [Fact]
@@ -48,9 +48,9 @@ public sealed class SampleBufferTests
         buffer.Add(new ApuStereoSample(1, 2));
         buffer.Add(new ApuStereoSample(3, 4));
 
-        Assert.Equal(2, buffer.Drain(destination));
-        Assert.Equal([new ApuStereoSample(1, 2), new ApuStereoSample(3, 4)], destination);
-        Assert.Equal(0, buffer.Count);
+        buffer.Drain(destination).Should().Be(2);
+        destination.Should().Equal(new ApuStereoSample(1, 2), new ApuStereoSample(3, 4));
+        buffer.Count.Should().Be(0);
     }
 
     [Fact]
@@ -64,11 +64,11 @@ public sealed class SampleBufferTests
         buffer.Add(new ApuStereoSample(3, 4));
         buffer.Add(new ApuStereoSample(5, 6));
 
-        Assert.Equal(1, buffer.Drain(firstDrain));
-        Assert.Equal([new ApuStereoSample(1, 2)], firstDrain);
-        Assert.Equal(2, buffer.Count);
-        Assert.Equal(2, buffer.Drain(secondDrain));
-        Assert.Equal([new ApuStereoSample(3, 4), new ApuStereoSample(5, 6)], secondDrain);
+        buffer.Drain(firstDrain).Should().Be(1);
+        firstDrain.Should().Equal(new ApuStereoSample(1, 2));
+        buffer.Count.Should().Be(2);
+        buffer.Drain(secondDrain).Should().Be(2);
+        secondDrain.Should().Equal(new ApuStereoSample(3, 4), new ApuStereoSample(5, 6));
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed class SampleBufferTests
         SampleBuffer<ApuStereoSample> buffer = new(SourceClockHz, SampleRate);
         Span<ApuStereoSample> destination = stackalloc ApuStereoSample[1];
 
-        Assert.Equal(0, buffer.Drain(destination));
+        buffer.Drain(destination).Should().Be(0);
     }
 
     [Fact]
@@ -90,9 +90,9 @@ public sealed class SampleBufferTests
         buffer.Add(new ApuStereoSample(3, 4));
         buffer.Add(new ApuStereoSample(5, 6));
 
-        Assert.Equal(2, buffer.Count);
-        Assert.Equal(2, buffer.Drain(destination));
-        Assert.Equal([new ApuStereoSample(3, 4), new ApuStereoSample(5, 6)], destination);
+        buffer.Count.Should().Be(2);
+        buffer.Drain(destination).Should().Be(2);
+        destination.Should().Equal(new ApuStereoSample(3, 4), new ApuStereoSample(5, 6));
     }
 
     [Fact]
@@ -108,8 +108,8 @@ public sealed class SampleBufferTests
         buffer.Add(new ApuStereoSample(5, 6));
         buffer.Add(new ApuStereoSample(7, 8));
 
-        Assert.Equal(2, buffer.Drain(destination));
-        Assert.Equal([new ApuStereoSample(5, 6), new ApuStereoSample(7, 8)], destination);
+        buffer.Drain(destination).Should().Be(2);
+        destination.Should().Equal(new ApuStereoSample(5, 6), new ApuStereoSample(7, 8));
     }
 
     [Theory]
@@ -117,9 +117,10 @@ public sealed class SampleBufferTests
     [InlineData(-1)]
     public void Constructor_RejectsNonPositiveSourceClock(int sourceClockHz)
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new SampleBuffer<ApuStereoSample>(sourceClockHz, SampleRate)
-        );
+        FluentActions
+            .Invoking(() => new SampleBuffer<ApuStereoSample>(sourceClockHz, SampleRate))
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>();
     }
 
     [Theory]
@@ -127,9 +128,10 @@ public sealed class SampleBufferTests
     [InlineData(-1)]
     public void Constructor_RejectsNonPositiveSampleRate(int sampleRate)
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new SampleBuffer<ApuStereoSample>(SourceClockHz, sampleRate)
-        );
+        FluentActions
+            .Invoking(() => new SampleBuffer<ApuStereoSample>(SourceClockHz, sampleRate))
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>();
     }
 
     [Theory]
@@ -137,9 +139,10 @@ public sealed class SampleBufferTests
     [InlineData(-1)]
     public void Constructor_RejectsNonPositiveCapacity(int capacity)
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new SampleBuffer<ApuStereoSample>(SourceClockHz, SampleRate, capacity)
-        );
+        FluentActions
+            .Invoking(() => new SampleBuffer<ApuStereoSample>(SourceClockHz, SampleRate, capacity))
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>();
     }
 
     [Fact]
@@ -153,7 +156,7 @@ public sealed class SampleBufferTests
         source.Drain(discarded);
         source.Add(new ApuStereoSample(5, 6));
         source.Add(new ApuStereoSample(7, 8));
-        Assert.Equal(0, source.Tick(9));
+        source.Tick(9).Should().Be(0);
 
         var state = source.CaptureState();
         SampleBuffer<ApuStereoSample> restored = new(SourceClockHz, SampleRate, capacity: 3);
@@ -161,12 +164,11 @@ public sealed class SampleBufferTests
 
         restored.RestoreState(state);
 
-        Assert.Equal(3, restored.Drain(destination));
-        Assert.Equal(
-            [new ApuStereoSample(3, 4), new ApuStereoSample(5, 6), new ApuStereoSample(7, 8)],
-            destination
-        );
-        Assert.Equal(1, restored.Tick(1));
+        restored.Drain(destination).Should().Be(3);
+        destination
+            .Should()
+            .Equal(new ApuStereoSample(3, 4), new ApuStereoSample(5, 6), new ApuStereoSample(7, 8));
+        restored.Tick(1).Should().Be(1);
     }
 
     [Fact]
@@ -179,16 +181,16 @@ public sealed class SampleBufferTests
 
         state.BufferedSamples[0] = new ApuStereoSample(3, 4);
 
-        Assert.Equal(1, source.Drain(sourceDestination));
-        Assert.Equal([new ApuStereoSample(1, 2)], sourceDestination);
+        source.Drain(sourceDestination).Should().Be(1);
+        sourceDestination.Should().Equal(new ApuStereoSample(1, 2));
 
         SampleBuffer<ApuStereoSample> restored = new(SourceClockHz, SampleRate);
         restored.RestoreState(state);
         state.BufferedSamples[0] = new ApuStereoSample(5, 6);
         var restoredDestination = new ApuStereoSample[1];
 
-        Assert.Equal(1, restored.Drain(restoredDestination));
-        Assert.Equal([new ApuStereoSample(3, 4)], restoredDestination);
+        restored.Drain(restoredDestination).Should().Be(1);
+        restoredDestination.Should().Equal(new ApuStereoSample(3, 4));
     }
 
     [Fact]
@@ -196,29 +198,37 @@ public sealed class SampleBufferTests
     {
         SampleBuffer<ApuStereoSample> buffer = new(SourceClockHz, SampleRate, capacity: 2);
         buffer.Add(new ApuStereoSample(1, 2));
-        Assert.Equal(0, buffer.Tick(9));
+        buffer.Tick(9).Should().Be(0);
 
-        Assert.Throws<ArgumentException>(() =>
-            buffer.ValidateState(new SampleBufferState<ApuStereoSample>(null!, 0))
-        );
-        Assert.Throws<ArgumentException>(() =>
-            buffer.ValidateState(
-                new SampleBufferState<ApuStereoSample>(
-                    [new ApuStereoSample(), new ApuStereoSample(), new ApuStereoSample()],
-                    0
+        FluentActions
+            .Invoking(() => buffer.ValidateState(new SampleBufferState<ApuStereoSample>(null!, 0)))
+            .Should()
+            .ThrowExactly<ArgumentException>();
+        FluentActions
+            .Invoking(() =>
+                buffer.ValidateState(
+                    new SampleBufferState<ApuStereoSample>(
+                        [new ApuStereoSample(), new ApuStereoSample(), new ApuStereoSample()],
+                        0
+                    )
                 )
             )
-        );
-        Assert.Throws<ArgumentException>(() =>
-            buffer.ValidateState(new SampleBufferState<ApuStereoSample>([], -1))
-        );
-        Assert.Throws<ArgumentException>(() =>
-            buffer.RestoreState(new SampleBufferState<ApuStereoSample>([], SourceClockHz))
-        );
+            .Should()
+            .ThrowExactly<ArgumentException>();
+        FluentActions
+            .Invoking(() => buffer.ValidateState(new SampleBufferState<ApuStereoSample>([], -1)))
+            .Should()
+            .ThrowExactly<ArgumentException>();
+        FluentActions
+            .Invoking(() =>
+                buffer.RestoreState(new SampleBufferState<ApuStereoSample>([], SourceClockHz))
+            )
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
         var destination = new ApuStereoSample[1];
-        Assert.Equal(1, buffer.Drain(destination));
-        Assert.Equal([new ApuStereoSample(1, 2)], destination);
-        Assert.Equal(1, buffer.Tick(1));
+        buffer.Drain(destination).Should().Be(1);
+        destination.Should().Equal(new ApuStereoSample(1, 2));
+        buffer.Tick(1).Should().Be(1);
     }
 }

@@ -7,7 +7,6 @@ using GbcNet.Core.Hardware;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu;
-using GbcNet.Tests.Shared;
 using static GbcNet.Tests.Unit.Sgb.SgbTestHelpers;
 
 namespace GbcNet.Tests.Unit;
@@ -34,8 +33,8 @@ public sealed class GameBoyTests
         gameBoy.Step();
         gameBoy.Step();
 
-        Assert.Equal(1, machineCycles);
-        Assert.Equal(0x01, gameBoy.Bus.ReadByte(AddressMap.TimerCounterRegister));
+        machineCycles.Should().Be(1);
+        gameBoy.Bus.ReadByte(AddressMap.TimerCounterRegister).Should().Be(0x01);
     }
 
     [Fact]
@@ -48,8 +47,8 @@ public sealed class GameBoyTests
         });
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
 
-        Assert.Equal(2, gameBoy.Step());
-        Assert.Equal(0, gameBoy.Step());
+        gameBoy.Step().Should().Be(2);
+        gameBoy.Step().Should().Be(0);
     }
 
     [Fact]
@@ -63,12 +62,12 @@ public sealed class GameBoyTests
         });
         var gameBoy = new GameBoy(cartridge, HardwareModel.Cgb);
 
-        Assert.Equal(GameBoyTiming.NormalCpuHz, gameBoy.CpuMachineCyclesPerSecond);
+        gameBoy.CpuMachineCyclesPerSecond.Should().Be(GameBoyTiming.NormalCpuHz);
 
         gameBoy.Bus.WriteByte(AddressMap.Key1Register, 0x01);
         gameBoy.Step();
 
-        Assert.Equal(GameBoyTiming.DoubleCpuHz, gameBoy.CpuMachineCyclesPerSecond);
+        gameBoy.CpuMachineCyclesPerSecond.Should().Be(GameBoyTiming.DoubleCpuHz);
     }
 
     [Fact]
@@ -85,12 +84,12 @@ public sealed class GameBoyTests
         gameBoy.Bus.Clock.SetCounter(0xABCC);
         gameBoy.Bus.WriteByte(AddressMap.Key1Register, 0x01);
 
-        Assert.Equal(2, gameBoy.Step());
+        gameBoy.Step().Should().Be(2);
         var dividerAfterStop = gameBoy.Bus.ReadByte(AddressMap.DividerRegister);
 
-        Assert.True(gameBoy.Bus.Clock.CgbDoubleSpeed);
-        Assert.Equal(0xFE, gameBoy.Bus.ReadByte(AddressMap.Key1Register));
-        Assert.Equal(2050, gameBoy.Bus.Clock.SpeedSwitchPauseCycles);
+        gameBoy.Bus.Clock.CgbDoubleSpeed.Should().BeTrue();
+        gameBoy.Bus.ReadByte(AddressMap.Key1Register).Should().Be(0xFE);
+        gameBoy.Bus.Clock.SpeedSwitchPauseCycles.Should().Be(2050);
 
         var pauseMachineCycles = 0;
         for (var cycle = 0; cycle < 2050; cycle++)
@@ -98,16 +97,16 @@ public sealed class GameBoyTests
             pauseMachineCycles += gameBoy.Step();
         }
 
-        Assert.Equal(2050, pauseMachineCycles);
-        Assert.Equal(0, gameBoy.Bus.Clock.SpeedSwitchPauseCycles);
-        Assert.Equal(dividerAfterStop, gameBoy.Bus.ReadByte(AddressMap.DividerRegister));
-        Assert.Equal(0, gameBoy.Cpu.Registers.B);
-        Assert.Equal(0x0102, gameBoy.Cpu.Registers.PC);
+        pauseMachineCycles.Should().Be(2050);
+        gameBoy.Bus.Clock.SpeedSwitchPauseCycles.Should().Be(0);
+        gameBoy.Bus.ReadByte(AddressMap.DividerRegister).Should().Be(dividerAfterStop);
+        gameBoy.Cpu.Registers.B.Should().Be(0);
+        gameBoy.Cpu.Registers.PC.Should().Be(0x0102);
 
-        Assert.Equal(1, gameBoy.Step());
+        gameBoy.Step().Should().Be(1);
 
-        Assert.Equal(1, gameBoy.Cpu.Registers.B);
-        Assert.Equal(0x0103, gameBoy.Cpu.Registers.PC);
+        gameBoy.Cpu.Registers.B.Should().Be(1);
+        gameBoy.Cpu.Registers.PC.Should().Be(0x0103);
     }
 
     [Fact]
@@ -126,9 +125,9 @@ public sealed class GameBoyTests
             gameBoy.Step();
         }
 
-        Assert.Equal(0xFF, gameBoy.Bus.ReadByte(AddressMap.SerialTransferDataRegister));
-        Assert.Equal(0x7F, gameBoy.Bus.ReadByte(AddressMap.SerialTransferControlRegister));
-        Assert.Equal((byte)0x41, transferredByte);
+        gameBoy.Bus.ReadByte(AddressMap.SerialTransferDataRegister).Should().Be(0xFF);
+        gameBoy.Bus.ReadByte(AddressMap.SerialTransferControlRegister).Should().Be(0x7F);
+        transferredByte.Should().Be(0x41);
     }
 
     [Fact]
@@ -138,9 +137,9 @@ public sealed class GameBoyTests
 
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
 
-        Assert.Equal(HardwareModel.Dmg, gameBoy.HardwareModel);
-        Assert.Equal(0xAB, gameBoy.Bus.ReadByte(AddressMap.DividerRegister));
-        Assert.Equal(0xE1, gameBoy.Bus.ReadByte(AddressMap.InterruptFlagRegister));
+        gameBoy.HardwareModel.Should().Be(HardwareModel.Dmg);
+        gameBoy.Bus.ReadByte(AddressMap.DividerRegister).Should().Be(0xAB);
+        gameBoy.Bus.ReadByte(AddressMap.InterruptFlagRegister).Should().Be(0xE1);
     }
 
     [Fact]
@@ -150,8 +149,8 @@ public sealed class GameBoyTests
 
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg, new BootRomOptions());
 
-        Assert.Equal(0x0100, gameBoy.Cpu.Registers.PC);
-        Assert.Equal(0xAB, gameBoy.Bus.ReadByte(AddressMap.DividerRegister));
+        gameBoy.Cpu.Registers.PC.Should().Be(0x0100);
+        gameBoy.Bus.ReadByte(AddressMap.DividerRegister).Should().Be(0xAB);
     }
 
     [Fact]
@@ -166,13 +165,13 @@ public sealed class GameBoyTests
             new BootRomOptions { DmgBootRom = bootRom }
         );
 
-        Assert.Equal(0x0000, gameBoy.Cpu.Registers.PC);
-        Assert.Equal(IncBOpcode, gameBoy.Bus.ReadByte(0x0000));
+        gameBoy.Cpu.Registers.PC.Should().Be(0x0000);
+        gameBoy.Bus.ReadByte(0x0000).Should().Be(IncBOpcode);
 
         gameBoy.Step();
 
-        Assert.Equal(0x01, gameBoy.Cpu.Registers.B);
-        Assert.Equal(0x0001, gameBoy.Cpu.Registers.PC);
+        gameBoy.Cpu.Registers.B.Should().Be(0x01);
+        gameBoy.Cpu.Registers.PC.Should().Be(0x0001);
     }
 
     [Fact]
@@ -180,19 +179,19 @@ public sealed class GameBoyTests
     {
         var cartridge = TestRomFactory.LoadCartridge();
 
-        var exception = Assert.Throws<ArgumentException>(() =>
-            new GameBoy(
-                cartridge,
-                HardwareModel.Dmg,
-                new BootRomOptions { DmgBootRom = new byte[255] }
+        var exception = FluentActions
+            .Invoking(() =>
+                new GameBoy(
+                    cartridge,
+                    HardwareModel.Dmg,
+                    new BootRomOptions { DmgBootRom = new byte[255] }
+                )
             )
-        );
+            .Should()
+            .ThrowExactly<ArgumentException>()
+            .Which;
 
-        Assert.Contains(
-            "Dmg boot ROM must be 256 bytes",
-            exception.Message,
-            StringComparison.Ordinal
-        );
+        exception.Message.Should().Contain("Dmg boot ROM must be 256 bytes");
     }
 
     [Fact]
@@ -215,12 +214,12 @@ public sealed class GameBoyTests
             new BootRomOptions { DmgBootRom = bootRom }
         );
 
-        Assert.Equal(LoadAImmediate8Opcode, gameBoy.Bus.ReadByte(0x0000));
+        gameBoy.Bus.ReadByte(0x0000).Should().Be(LoadAImmediate8Opcode);
 
         gameBoy.Step();
         gameBoy.Step();
 
-        Assert.Equal(HaltOpcode, gameBoy.Bus.ReadByte(0x0000));
+        gameBoy.Bus.ReadByte(0x0000).Should().Be(HaltOpcode);
     }
 
     [Fact]
@@ -240,10 +239,10 @@ public sealed class GameBoyTests
             new BootRomOptions { DmgBootRom = dmgBootRom, CgbBootRom = cgbBootRom }
         );
 
-        Assert.Equal(HardwareModel.Cgb, gameBoy.HardwareModel);
-        Assert.Equal(LoadAImmediate8Opcode, gameBoy.Bus.ReadByte(0x0000));
-        Assert.Equal(HaltOpcode, gameBoy.Bus.ReadByte(0x0100));
-        Assert.Equal(StopOpcode, gameBoy.Bus.ReadByte(0x0200));
+        gameBoy.HardwareModel.Should().Be(HardwareModel.Cgb);
+        gameBoy.Bus.ReadByte(0x0000).Should().Be(LoadAImmediate8Opcode);
+        gameBoy.Bus.ReadByte(0x0100).Should().Be(HaltOpcode);
+        gameBoy.Bus.ReadByte(0x0200).Should().Be(StopOpcode);
     }
 
     [Fact]
@@ -260,9 +259,9 @@ public sealed class GameBoyTests
             new BootRomOptions { CgbBootRom = cgbBootRom }
         );
 
-        Assert.Equal(LoadAImmediate8Opcode, gameBoy.Bus.ReadByte(0x0000));
-        Assert.Equal(HaltOpcode, gameBoy.Bus.ReadByte(0x0100));
-        Assert.Equal(StopOpcode, gameBoy.Bus.ReadByte(0x0200));
+        gameBoy.Bus.ReadByte(0x0000).Should().Be(LoadAImmediate8Opcode);
+        gameBoy.Bus.ReadByte(0x0100).Should().Be(HaltOpcode);
+        gameBoy.Bus.ReadByte(0x0200).Should().Be(StopOpcode);
     }
 
     [Fact]
@@ -279,10 +278,10 @@ public sealed class GameBoyTests
             new BootRomOptions { DmgBootRom = dmgBootRom }
         );
 
-        Assert.Equal(HardwareModel.Sgb, gameBoy.HardwareModel);
-        Assert.Equal(GameBoyTiming.SgbCpuHz, gameBoy.CpuMachineCyclesPerSecond);
-        Assert.Equal(0x0100, gameBoy.Cpu.Registers.PC);
-        Assert.Equal(HaltOpcode, gameBoy.Bus.ReadByte(0x0000));
+        gameBoy.HardwareModel.Should().Be(HardwareModel.Sgb);
+        gameBoy.CpuMachineCyclesPerSecond.Should().Be(GameBoyTiming.SgbCpuHz);
+        gameBoy.Cpu.Registers.PC.Should().Be(0x0100);
+        gameBoy.Bus.ReadByte(0x0000).Should().Be(HaltOpcode);
     }
 
     [Fact]
@@ -300,14 +299,14 @@ public sealed class GameBoyTests
             new BootRomOptions { DmgBootRom = dmgBootRom, SgbBootRom = sgbBootRom }
         );
 
-        Assert.Equal(HardwareModel.Sgb, gameBoy.HardwareModel);
-        Assert.Equal(0x0000, gameBoy.Cpu.Registers.PC);
-        Assert.Equal(IncBOpcode, gameBoy.Bus.ReadByte(0x0000));
+        gameBoy.HardwareModel.Should().Be(HardwareModel.Sgb);
+        gameBoy.Cpu.Registers.PC.Should().Be(0x0000);
+        gameBoy.Bus.ReadByte(0x0000).Should().Be(IncBOpcode);
 
         gameBoy.Step();
 
-        Assert.Equal(0x01, gameBoy.Cpu.Registers.B);
-        Assert.Equal(0x0001, gameBoy.Cpu.Registers.PC);
+        gameBoy.Cpu.Registers.B.Should().Be(0x01);
+        gameBoy.Cpu.Registers.PC.Should().Be(0x0001);
     }
 
     [Fact]
@@ -320,12 +319,12 @@ public sealed class GameBoyTests
 
         gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x30);
 
-        Assert.Equal(0xFF, gameBoy.Bus.ReadByte(AddressMap.JoypadRegister));
+        gameBoy.Bus.ReadByte(AddressMap.JoypadRegister).Should().Be(0xFF);
 
         gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x10);
         gameBoy.Bus.WriteByte(AddressMap.JoypadRegister, 0x30);
 
-        Assert.Equal(0xFE, gameBoy.Bus.ReadByte(AddressMap.JoypadRegister));
+        gameBoy.Bus.ReadByte(AddressMap.JoypadRegister).Should().Be(0xFE);
     }
 
     [Fact]
@@ -355,12 +354,16 @@ public sealed class GameBoyTests
             ]
         );
 
-        var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 144).CompletedFrame);
+        var frame = gameBoy
+            .Bus.TickPpu(456 * 144)
+            .CompletedFrame.Should()
+            .BeOfType<LcdFrame>()
+            .Subject;
 
-        Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        Assert.Equal(160, frame.Width);
-        Assert.Equal(144, frame.Height);
-        Assert.Equal(160 * 144 * 2, frame.Pixels.Length);
+        frame.PixelFormat.Should().Be(LcdPixelFormat.Rgb555Le);
+        frame.Width.Should().Be(160);
+        frame.Height.Should().Be(144);
+        frame.Pixels.Length.Should().Be(160 * 144 * 2);
         Rgb555Assertions.PixelEquals(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x1234);
     }
 
@@ -377,9 +380,13 @@ public sealed class GameBoyTests
         TickSgbTransferFrames(gameBoy);
         WriteSgbPacket(gameBoy, command: 0x0A, CreatePalSetPayload(9, 9, 9, 9));
 
-        var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
+        var frame = gameBoy
+            .Bus.TickPpu(456 * 154)
+            .CompletedFrame.Should()
+            .BeOfType<LcdFrame>()
+            .Subject;
 
-        Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
+        frame.PixelFormat.Should().Be(LcdPixelFormat.Rgb555Le);
         Rgb555Assertions.PixelEquals(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x1234);
     }
 
@@ -398,9 +405,13 @@ public sealed class GameBoyTests
         WriteSgbPacket(gameBoy, command: 0x16, [0x02]);
         WriteFirstBackgroundPixelShade2(gameBoy);
 
-        var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
+        var frame = gameBoy
+            .Bus.TickPpu(456 * 154)
+            .CompletedFrame.Should()
+            .BeOfType<LcdFrame>()
+            .Subject;
 
-        Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
+        frame.PixelFormat.Should().Be(LcdPixelFormat.Rgb555Le);
         Rgb555Assertions.PixelEquals(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x6666);
         Rgb555Assertions.PixelEquals(frame, GameBoyPixelIndex(x: 8, y: 0), expected: 0x3333);
     }
@@ -425,7 +436,11 @@ public sealed class GameBoyTests
         WriteSgbPacket(gameBoy, command: 0x0A, CreatePalSetPayload(9, 10, 9, 9, flags: 0x83));
         WriteFirstBackgroundPixelShade2(gameBoy);
 
-        var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
+        var frame = gameBoy
+            .Bus.TickPpu(456 * 154)
+            .CompletedFrame.Should()
+            .BeOfType<LcdFrame>()
+            .Subject;
 
         Rgb555Assertions.PixelEquals(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x7777);
         Rgb555Assertions.PixelEquals(frame, GameBoyPixelIndex(x: 8, y: 0), expected: 0x3333);
@@ -454,10 +469,14 @@ public sealed class GameBoyTests
 
         gameBoy.VideoRenderingEnabled = true;
 
-        var frame = Assert.IsType<LcdFrame>(gameBoy.Bus.TickPpu(456 * 154).CompletedFrame);
+        var frame = gameBoy
+            .Bus.TickPpu(456 * 154)
+            .CompletedFrame.Should()
+            .BeOfType<LcdFrame>()
+            .Subject;
 
-        Assert.Equal(256, frame.Width);
-        Assert.Equal(224, frame.Height);
+        frame.Width.Should().Be(256);
+        frame.Height.Should().Be(224);
         Rgb555Assertions.PixelEquals(frame, pixelIndex: 0, expected: 0x1234);
     }
 
@@ -470,8 +489,8 @@ public sealed class GameBoyTests
 
         gameBoy.Bus.Apu.Tick(88);
 
-        Assert.Equal(1, gameBoy.DrainAudioSamples(destination));
-        Assert.Equal(default, destination[0]);
+        gameBoy.DrainAudioSamples(destination).Should().Be(1);
+        destination[0].Should().Be(default(ApuStereoSample));
     }
 
     [Fact]
@@ -484,8 +503,8 @@ public sealed class GameBoyTests
 
         gameBoy.Bus.Apu.Tick(264);
 
-        Assert.Equal(1, gameBoy.DrainAudioSamples(firstDrain));
-        Assert.Equal(2, gameBoy.DrainAudioSamples(secondDrain));
+        gameBoy.DrainAudioSamples(firstDrain).Should().Be(1);
+        gameBoy.DrainAudioSamples(secondDrain).Should().Be(2);
     }
 
     [Fact]
@@ -495,7 +514,7 @@ public sealed class GameBoyTests
         var gameBoy = new GameBoy(cartridge, HardwareModel.Dmg);
         Span<ApuStereoSample> destination = stackalloc ApuStereoSample[1];
 
-        Assert.Equal(0, gameBoy.DrainAudioSamples(destination));
+        gameBoy.DrainAudioSamples(destination).Should().Be(0);
     }
 
     [Fact]
@@ -507,7 +526,7 @@ public sealed class GameBoyTests
 
         gameBoy.SetButtonState(JoypadButton.A, pressed: true);
 
-        Assert.Equal(0xDE, gameBoy.Bus.ReadByte(AddressMap.JoypadRegister));
+        gameBoy.Bus.ReadByte(AddressMap.JoypadRegister).Should().Be(0xDE);
     }
 
     [Fact]
@@ -528,10 +547,10 @@ public sealed class GameBoyTests
             gameBoy.Step();
         }
 
-        using var completedFrame = Assert.Single(completedFrames);
-        Assert.Equal(160, completedFrame.Width);
-        Assert.Equal(144, completedFrame.Height);
-        Assert.Equal(LcdPixelFormat.DmgShadeIndex8, completedFrame.PixelFormat);
+        using var completedFrame = completedFrames.Should().ContainSingle().Which;
+        completedFrame.Width.Should().Be(160);
+        completedFrame.Height.Should().Be(144);
+        completedFrame.PixelFormat.Should().Be(LcdPixelFormat.DmgShadeIndex8);
     }
 
     [Fact]
@@ -559,7 +578,7 @@ public sealed class GameBoyTests
             gameBoy.Step();
         }
 
-        Assert.Equal(160 * 144, Assert.Single(secondSubscriberPixelCounts));
+        secondSubscriberPixelCounts.Should().ContainSingle().Which.Should().Be(160 * 144);
     }
 
     [Fact]
@@ -592,7 +611,7 @@ public sealed class GameBoyTests
             gameBoy.Step();
         }
 
-        using var completedFrame = Assert.Single(completedFrames);
+        using var completedFrame = completedFrames.Should().ContainSingle().Which;
     }
 
     [Fact]
@@ -612,12 +631,12 @@ public sealed class GameBoyTests
             new BootRomOptions { DmgBootRom = bootRom }
         );
 
-        Assert.True(gameBoy.IsBootRomMapped);
+        gameBoy.IsBootRomMapped.Should().BeTrue();
 
         gameBoy.Step();
         gameBoy.Step();
 
-        Assert.False(gameBoy.IsBootRomMapped);
+        gameBoy.IsBootRomMapped.Should().BeFalse();
     }
 
     private static byte[] CreateSgbRom(Action<byte[]>? configure = null) =>

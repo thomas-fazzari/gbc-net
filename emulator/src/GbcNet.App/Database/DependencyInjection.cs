@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.App.Configuration;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GbcNet.App.Database;
@@ -13,7 +12,8 @@ internal static class DependencyInjection
     {
         services.AddSingleton(TimeProvider.System);
         services.AddDbContextFactory<GbcNetDbContext>(
-            (_, options) => options.UseSqlite($"Data Source={UserDataPaths.LibraryDatabasePath}")
+            (_, options) =>
+                SqliteDbContextOptions.Configure(options, UserDataPaths.LibraryDatabasePath)
         );
         return services;
     }

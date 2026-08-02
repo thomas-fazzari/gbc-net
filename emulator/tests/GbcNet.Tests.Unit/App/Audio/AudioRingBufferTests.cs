@@ -11,8 +11,14 @@ public sealed class AudioRingBufferTests
     [Fact]
     public void Constructor_RejectsNonPositiveCapacity()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new AudioRingBuffer(0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new AudioRingBuffer(-1));
+        FluentActions
+            .Invoking(() => new AudioRingBuffer(0))
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>();
+        FluentActions
+            .Invoking(() => new AudioRingBuffer(-1))
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>();
     }
 
     [Fact]
@@ -22,14 +28,14 @@ public sealed class AudioRingBufferTests
 
         buffer.Enqueue([new ApuStereoSample(1, 2), new ApuStereoSample(3, 4)]);
 
-        Assert.Equal(2, buffer.Count);
-        Assert.True(buffer.TryDequeue(out var first));
-        Assert.Equal(new ApuStereoSample(1, 2), first);
-        Assert.True(buffer.TryDequeue(out var second));
-        Assert.Equal(new ApuStereoSample(3, 4), second);
-        Assert.False(buffer.TryDequeue(out var empty));
-        Assert.Equal(default, empty);
-        Assert.Equal(0, buffer.Count);
+        buffer.Count.Should().Be(2);
+        buffer.TryDequeue(out var first).Should().BeTrue();
+        first.Should().Be(new ApuStereoSample(1, 2));
+        buffer.TryDequeue(out var second).Should().BeTrue();
+        second.Should().Be(new ApuStereoSample(3, 4));
+        buffer.TryDequeue(out var empty).Should().BeFalse();
+        empty.Should().Be(default(ApuStereoSample));
+        buffer.Count.Should().Be(0);
     }
 
     [Fact]
@@ -43,12 +49,12 @@ public sealed class AudioRingBufferTests
             new ApuStereoSample(3, 3),
         ]);
 
-        Assert.Equal(2, buffer.Count);
-        Assert.True(buffer.TryDequeue(out var first));
-        Assert.Equal(new ApuStereoSample(1, 1), first);
-        Assert.True(buffer.TryDequeue(out var second));
-        Assert.Equal(new ApuStereoSample(2, 2), second);
-        Assert.False(buffer.TryDequeue(out _));
+        buffer.Count.Should().Be(2);
+        buffer.TryDequeue(out var first).Should().BeTrue();
+        first.Should().Be(new ApuStereoSample(1, 1));
+        buffer.TryDequeue(out var second).Should().BeTrue();
+        second.Should().Be(new ApuStereoSample(2, 2));
+        buffer.TryDequeue(out _).Should().BeFalse();
     }
 
     [Fact]
@@ -57,17 +63,17 @@ public sealed class AudioRingBufferTests
         var buffer = new AudioRingBuffer(capacity: 2);
         buffer.Enqueue([new ApuStereoSample(1, 1), new ApuStereoSample(2, 2)]);
 
-        Assert.True(buffer.TryDequeue(out var first));
-        Assert.Equal(new ApuStereoSample(1, 1), first);
+        buffer.TryDequeue(out var first).Should().BeTrue();
+        first.Should().Be(new ApuStereoSample(1, 1));
 
         buffer.Enqueue([new ApuStereoSample(3, 3)]);
 
-        Assert.Equal(2, buffer.Count);
-        Assert.True(buffer.TryDequeue(out var second));
-        Assert.Equal(new ApuStereoSample(2, 2), second);
-        Assert.True(buffer.TryDequeue(out var third));
-        Assert.Equal(new ApuStereoSample(3, 3), third);
-        Assert.False(buffer.TryDequeue(out _));
+        buffer.Count.Should().Be(2);
+        buffer.TryDequeue(out var second).Should().BeTrue();
+        second.Should().Be(new ApuStereoSample(2, 2));
+        buffer.TryDequeue(out var third).Should().BeTrue();
+        third.Should().Be(new ApuStereoSample(3, 3));
+        buffer.TryDequeue(out _).Should().BeFalse();
     }
 
     [Fact]
@@ -78,12 +84,12 @@ public sealed class AudioRingBufferTests
 
         buffer.Clear();
 
-        Assert.Equal(0, buffer.Count);
+        buffer.Count.Should().Be(0);
 
         buffer.Enqueue([new ApuStereoSample(3, 3)]);
-        Assert.Equal(1, buffer.Count);
+        buffer.Count.Should().Be(1);
 
-        Assert.True(buffer.TryDequeue(out var sample));
-        Assert.Equal(new ApuStereoSample(3, 3), sample);
+        buffer.TryDequeue(out var sample).Should().BeTrue();
+        sample.Should().Be(new ApuStereoSample(3, 3));
     }
 }

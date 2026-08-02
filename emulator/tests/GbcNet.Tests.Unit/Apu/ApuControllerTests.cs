@@ -32,7 +32,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(address, writeValue);
 
-        Assert.Equal(expected, (byte)(apu.ReadRegister(address) & mask));
+        ((byte)(apu.ReadRegister(address) & mask)).Should().Be(expected);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class ApuControllerTests
 
         apu.SetRegisterState(0xFF26, 0x81);
 
-        Assert.Equal(0xF1, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF1);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class ApuControllerTests
 
         apu.WriteRegister(0xFF26, 0x81);
 
-        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
 
     [Fact]
@@ -63,8 +63,8 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, 0x77);
         apu.WriteRegister(0xFF25, 0xFF);
 
-        Assert.Equal(0x00, apu.ReadRegister(0xFF24));
-        Assert.Equal(0x00, apu.ReadRegister(0xFF25));
+        apu.ReadRegister(0xFF24).Should().Be(0x00);
+        apu.ReadRegister(0xFF25).Should().Be(0x00);
     }
 
     [Fact]
@@ -76,8 +76,8 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, 0x77);
         apu.WriteRegister(0xFF25, 0xFF);
 
-        Assert.Equal(0x77, apu.ReadRegister(0xFF24));
-        Assert.Equal(0xFF, apu.ReadRegister(0xFF25));
+        apu.ReadRegister(0xFF24).Should().Be(0x77);
+        apu.ReadRegister(0xFF25).Should().Be(0xFF);
     }
 
     [Fact]
@@ -92,9 +92,9 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF26, 0x00);
         apu.WriteRegister(0xFF26, 0x80);
 
-        Assert.Equal(0x00, apu.ReadRegister(0xFF24));
-        Assert.Equal(0x00, apu.ReadRegister(0xFF25));
-        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF24).Should().Be(0x00);
+        apu.ReadRegister(0xFF25).Should().Be(0x00);
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public sealed class ApuControllerTests
 
         apu.WriteRegister(0xFF26, 0x00);
 
-        Assert.Equal(0x70, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0x70);
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF12, 0xF0);
         apu.WriteRegister(0xFF14, 0x80);
 
-        Assert.Equal(0xF1, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF1);
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF13, 0x00);
         apu.WriteRegister(0xFF14, 0x87);
 
-        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
 
     [Fact]
@@ -152,8 +152,8 @@ public sealed class ApuControllerTests
             events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
         } while (!events.SweepClock);
 
-        Assert.Equal(0x0200, apu.Channel1Period);
-        Assert.Equal(0xF1, apu.ReadRegister(0xFF26));
+        apu.Channel1Period.Should().Be(0x0200);
+        apu.ReadRegister(0xFF26).Should().Be(0xF1);
     }
 
     [Fact]
@@ -173,8 +173,8 @@ public sealed class ApuControllerTests
             events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
         } while (!events.SweepClock);
 
-        Assert.Equal(0x0600, apu.Channel1Period);
-        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+        apu.Channel1Period.Should().Be(0x0600);
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
 
     [Fact]
@@ -194,8 +194,8 @@ public sealed class ApuControllerTests
             events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
         } while (!events.SweepClock);
 
-        Assert.Equal(0x0400, apu.Channel1Period);
-        Assert.Equal(0xF1, apu.ReadRegister(0xFF26));
+        apu.Channel1Period.Should().Be(0x0400);
+        apu.ReadRegister(0xFF26).Should().Be(0xF1);
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF17, 0xF0);
         apu.WriteRegister(0xFF19, 0x80);
 
-        Assert.Equal(0xF2, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF2);
     }
 
     [Fact]
@@ -219,7 +219,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF17, 0x00);
         apu.WriteRegister(0xFF19, 0x80);
 
-        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
 
     [Fact]
@@ -233,7 +233,7 @@ public sealed class ApuControllerTests
 
         apu.WriteRegister(0xFF17, 0x00);
 
-        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
 
     [Fact]
@@ -248,7 +248,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF26, 0x00);
         apu.WriteRegister(0xFF26, 0x80);
 
-        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
 
     [Fact]
@@ -263,7 +263,7 @@ public sealed class ApuControllerTests
 
         apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
 
-        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
 
     [Fact]
@@ -278,7 +278,7 @@ public sealed class ApuControllerTests
 
         apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
 
-        Assert.Equal(0xF2, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF2);
     }
 
     [Fact]
@@ -303,7 +303,7 @@ public sealed class ApuControllerTests
             }
         }
 
-        Assert.Equal(0xF2, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF2);
 
         ApuFrameSequencerEvents events;
         do
@@ -311,7 +311,7 @@ public sealed class ApuControllerTests
             events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
         } while (!events.LengthClock);
 
-        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
 
     [Fact]
@@ -323,7 +323,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF17, 0xA2);
         apu.WriteRegister(0xFF19, 0x80);
 
-        Assert.Equal(10, apu.Channel2Volume);
+        apu.Channel2Volume.Should().Be(10);
     }
 
     [Fact]
@@ -347,7 +347,7 @@ public sealed class ApuControllerTests
             }
         }
 
-        Assert.Equal(2, apu.Channel2Volume);
+        apu.Channel2Volume.Should().Be(2);
     }
 
     [Fact]
@@ -365,7 +365,7 @@ public sealed class ApuControllerTests
             events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
         } while (!events.EnvelopeClock);
 
-        Assert.Equal(1, apu.Channel2Volume);
+        apu.Channel2Volume.Should().Be(1);
     }
 
     [Fact]
@@ -389,7 +389,7 @@ public sealed class ApuControllerTests
             }
         }
 
-        Assert.Equal(5, apu.Channel2Volume);
+        apu.Channel2Volume.Should().Be(5);
     }
 
     [Theory]
@@ -412,7 +412,7 @@ public sealed class ApuControllerTests
             events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
         } while (!events.EnvelopeClock);
 
-        Assert.Equal(expectedVolume, apu.Channel2Volume);
+        apu.Channel2Volume.Should().Be(expectedVolume);
     }
 
     [Fact]
@@ -423,7 +423,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF17, 0xA0);
 
-        Assert.Equal(0, apu.Channel2DigitalOutput);
+        apu.Channel2DigitalOutput.Should().Be(0);
     }
 
     [Fact]
@@ -437,7 +437,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF18, 0xFF);
         apu.WriteRegister(0xFF19, 0x87);
 
-        Assert.Equal(0, apu.Channel2DigitalOutput);
+        apu.Channel2DigitalOutput.Should().Be(0);
     }
 
     [Fact]
@@ -451,11 +451,11 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF18, 0xFF);
         apu.WriteRegister(0xFF19, 0x87);
 
-        Assert.Equal(0, apu.Channel2DigitalOutput);
+        apu.Channel2DigitalOutput.Should().Be(0);
 
         apu.Tick(4);
 
-        Assert.Equal(10, apu.Channel2DigitalOutput);
+        apu.Channel2DigitalOutput.Should().Be(10);
     }
 
     [Fact]
@@ -478,12 +478,12 @@ public sealed class ApuControllerTests
         fastApu.Tick(4);
         slowApu.Tick(4);
 
-        Assert.Equal(15, fastApu.Channel2DigitalOutput);
-        Assert.Equal(0, slowApu.Channel2DigitalOutput);
+        fastApu.Channel2DigitalOutput.Should().Be(15);
+        slowApu.Channel2DigitalOutput.Should().Be(0);
 
         slowApu.Tick(4);
 
-        Assert.Equal(15, slowApu.Channel2DigitalOutput);
+        slowApu.Channel2DigitalOutput.Should().Be(15);
     }
 
     [Fact]
@@ -500,7 +500,7 @@ public sealed class ApuControllerTests
 
         apu.WriteRegister(0xFF19, 0x87);
 
-        Assert.Equal(10, apu.Channel2DigitalOutput);
+        apu.Channel2DigitalOutput.Should().Be(10);
     }
 
     [Fact]
@@ -516,7 +516,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, 0x00);
         apu.WriteRegister(0xFF25, 0x11);
 
-        Assert.Equal(new ApuStereoSample(478, 478), DrainNextSample(apu));
+        DrainNextSample(apu).Should().Be(new ApuStereoSample(478, 478));
     }
 
     [Fact]
@@ -536,7 +536,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, 0x00);
         apu.WriteRegister(0xFF25, 0x03);
 
-        Assert.Equal(new ApuStereoSample(0, 683), DrainNextSample(apu));
+        DrainNextSample(apu).Should().Be(new ApuStereoSample(0, 683));
     }
 
     [Fact]
@@ -548,7 +548,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, 0x77);
         apu.WriteRegister(0xFF25, 0x22);
 
-        Assert.Equal(default, DrainNextSample(apu));
+        DrainNextSample(apu).Should().Be(default(ApuStereoSample));
     }
 
     [Fact]
@@ -564,7 +564,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, 0x77);
         apu.WriteRegister(0xFF25, 0x00);
 
-        Assert.Equal(default, DrainNextSample(apu));
+        DrainNextSample(apu).Should().Be(default(ApuStereoSample));
     }
 
     [Theory]
@@ -590,7 +590,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, masterVolume);
         apu.WriteRegister(0xFF25, panning);
 
-        Assert.Equal(new ApuStereoSample(expectedLeft, expectedRight), DrainNextSample(apu));
+        DrainNextSample(apu).Should().Be(new ApuStereoSample(expectedLeft, expectedRight));
     }
 
     [Fact]
@@ -612,7 +612,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF18, 0xFF);
         apu.WriteRegister(0xFF19, 0x87);
 
-        Assert.Equal(0, apu.Channel2DigitalOutput);
+        apu.Channel2DigitalOutput.Should().Be(0);
     }
 
     [Fact]
@@ -623,8 +623,8 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF30, 0xAB);
         apu.WriteRegister(0xFF3F, 0xCD);
 
-        Assert.Equal(0xAB, apu.ReadRegister(0xFF30));
-        Assert.Equal(0xCD, apu.ReadRegister(0xFF3F));
+        apu.ReadRegister(0xFF30).Should().Be(0xAB);
+        apu.ReadRegister(0xFF3F).Should().Be(0xCD);
     }
 
     [Fact]
@@ -639,9 +639,9 @@ public sealed class ApuControllerTests
 
         apu.WriteRegister(0xFF30, 0xCD);
 
-        Assert.Equal(0xFF, apu.ReadRegister(0xFF30));
+        apu.ReadRegister(0xFF30).Should().Be(0xFF);
         apu.WriteRegister(0xFF1A, 0x00);
-        Assert.Equal(0xAB, apu.ReadRegister(0xFF30));
+        apu.ReadRegister(0xFF30).Should().Be(0xAB);
     }
 
     [Fact]
@@ -657,7 +657,7 @@ public sealed class ApuControllerTests
         apu.SetRegisterState(0xFF30, 0xCD);
         apu.WriteRegister(0xFF1A, 0x00);
 
-        Assert.Equal(0xCD, apu.ReadRegister(0xFF30));
+        apu.ReadRegister(0xFF30).Should().Be(0xCD);
     }
 
     [Fact]
@@ -671,7 +671,7 @@ public sealed class ApuControllerTests
 
         apu.WriteRegister(0xFF1A, 0x00);
 
-        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
 
     [Fact]
@@ -683,7 +683,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF1A, 0x80);
         apu.WriteRegister(0xFF1E, 0x80);
 
-        Assert.Equal(0xF4, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF4);
     }
 
     [Fact]
@@ -695,7 +695,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF1A, 0x00);
         apu.WriteRegister(0xFF1E, 0x80);
 
-        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
 
     [Fact]
@@ -710,7 +710,7 @@ public sealed class ApuControllerTests
 
         apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
 
-        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
 
     [Theory]
@@ -730,7 +730,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF1E, 0x87);
         apu.Tick(2);
 
-        Assert.Equal(expected, apu.Channel3DigitalOutput);
+        apu.Channel3DigitalOutput.Should().Be(expected);
     }
 
     [Fact]
@@ -745,7 +745,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF1D, 0xFF);
         apu.WriteRegister(0xFF1E, 0x87);
 
-        Assert.Equal(0, apu.Channel3DigitalOutput);
+        apu.Channel3DigitalOutput.Should().Be(0);
     }
 
     [Fact]
@@ -762,7 +762,7 @@ public sealed class ApuControllerTests
 
         apu.Tick(2);
 
-        Assert.Equal(0x0B, apu.Channel3DigitalOutput);
+        apu.Channel3DigitalOutput.Should().Be(0x0B);
     }
 
     [Fact]
@@ -787,12 +787,12 @@ public sealed class ApuControllerTests
         fastApu.Tick(2);
         slowApu.Tick(2);
 
-        Assert.Equal(1, fastApu.Channel3DigitalOutput);
-        Assert.Equal(0, slowApu.Channel3DigitalOutput);
+        fastApu.Channel3DigitalOutput.Should().Be(1);
+        slowApu.Channel3DigitalOutput.Should().Be(0);
 
         slowApu.Tick(2);
 
-        Assert.Equal(1, slowApu.Channel3DigitalOutput);
+        slowApu.Channel3DigitalOutput.Should().Be(1);
     }
 
     [Theory]
@@ -819,7 +819,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, masterVolume);
         apu.WriteRegister(0xFF25, panning);
 
-        Assert.Equal(new ApuStereoSample(expectedLeft, expectedRight), DrainNextSample(apu));
+        DrainNextSample(apu).Should().Be(new ApuStereoSample(expectedLeft, expectedRight));
     }
 
     [Fact]
@@ -838,14 +838,14 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF26, 0x00);
         apu.WriteRegister(0xFF26, 0x80);
 
-        Assert.Equal(0x0C, apu.ReadRegister(0xFF30));
+        apu.ReadRegister(0xFF30).Should().Be(0x0C);
 
         apu.WriteRegister(0xFF1A, 0x80);
         apu.WriteRegister(0xFF1C, 0x20);
         apu.WriteRegister(0xFF1D, 0xFF);
         apu.WriteRegister(0xFF1E, 0x87);
 
-        Assert.Equal(0, apu.Channel3DigitalOutput);
+        apu.Channel3DigitalOutput.Should().Be(0);
     }
 
     [Fact]
@@ -857,7 +857,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF21, 0xF0);
         apu.WriteRegister(0xFF23, 0x80);
 
-        Assert.Equal(0xF8, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF8);
     }
 
     [Fact]
@@ -869,7 +869,7 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF21, 0x00);
         apu.WriteRegister(0xFF23, 0x80);
 
-        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
 
     [Fact]
@@ -883,7 +883,7 @@ public sealed class ApuControllerTests
 
         apu.WriteRegister(0xFF21, 0x00);
 
-        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
 
     [Fact]
@@ -898,7 +898,7 @@ public sealed class ApuControllerTests
 
         apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
 
-        Assert.Equal(0xF0, apu.ReadRegister(0xFF26));
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
 
     [Fact]
@@ -922,7 +922,7 @@ public sealed class ApuControllerTests
             }
         }
 
-        Assert.Equal(2, apu.Channel4Volume);
+        apu.Channel4Volume.Should().Be(2);
     }
 
     [Fact]
@@ -940,7 +940,7 @@ public sealed class ApuControllerTests
             events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
         } while (!events.EnvelopeClock);
 
-        Assert.Equal(1, apu.Channel4Volume);
+        apu.Channel4Volume.Should().Be(1);
     }
 
     [Fact]
@@ -964,7 +964,7 @@ public sealed class ApuControllerTests
             }
         }
 
-        Assert.Equal(5, apu.Channel4Volume);
+        apu.Channel4Volume.Should().Be(5);
     }
 
     [Theory]
@@ -993,7 +993,7 @@ public sealed class ApuControllerTests
             }
         }
 
-        Assert.Equal(expectedVolume, apu.Channel4Volume);
+        apu.Channel4Volume.Should().Be(expectedVolume);
     }
 
     [Fact]
@@ -1008,11 +1008,11 @@ public sealed class ApuControllerTests
 
         apu.Tick(255);
 
-        Assert.Equal(0, apu.Channel4DigitalOutput);
+        apu.Channel4DigitalOutput.Should().Be(0);
 
         apu.Tick(1);
 
-        Assert.Equal(15, apu.Channel4DigitalOutput);
+        apu.Channel4DigitalOutput.Should().Be(15);
     }
 
     [Fact]
@@ -1033,8 +1033,8 @@ public sealed class ApuControllerTests
         wideApu.Tick(64);
         normalApu.Tick(64);
 
-        Assert.Equal(15, wideApu.Channel4DigitalOutput);
-        Assert.Equal(0, normalApu.Channel4DigitalOutput);
+        wideApu.Channel4DigitalOutput.Should().Be(15);
+        normalApu.Channel4DigitalOutput.Should().Be(0);
     }
 
     [Theory]
@@ -1051,7 +1051,7 @@ public sealed class ApuControllerTests
 
         apu.Tick(4096);
 
-        Assert.Equal(0, apu.Channel4DigitalOutput);
+        apu.Channel4DigitalOutput.Should().Be(0);
     }
 
     [Theory]
@@ -1075,10 +1075,9 @@ public sealed class ApuControllerTests
         apu.WriteRegister(0xFF24, masterVolume);
         apu.WriteRegister(0xFF25, panning);
 
-        Assert.Equal(
-            new ApuStereoSample(expectedLeft, expectedRight),
-            DrainNextSample(apu, tCycles: 128)
-        );
+        DrainNextSample(apu, tCycles: 128)
+            .Should()
+            .Be(new ApuStereoSample(expectedLeft, expectedRight));
     }
 
     [Fact]
@@ -1090,11 +1089,11 @@ public sealed class ApuControllerTests
 
         apu.Tick(87);
 
-        Assert.Equal(0, apu.DrainBufferedSamples(destination));
+        apu.DrainBufferedSamples(destination).Should().Be(0);
 
         apu.Tick(1);
 
-        Assert.Equal(1, apu.DrainBufferedSamples(destination));
+        apu.DrainBufferedSamples(destination).Should().Be(1);
     }
 
     [Fact]
@@ -1110,8 +1109,8 @@ public sealed class ApuControllerTests
 
         apu.Tick(88);
 
-        Assert.Equal(1, apu.DrainBufferedSamples(destination));
-        Assert.Equal([default], destination);
+        apu.DrainBufferedSamples(destination).Should().Be(1);
+        destination.Should().Equal(default(ApuStereoSample));
     }
 
     [Fact]
@@ -1129,8 +1128,8 @@ public sealed class ApuControllerTests
 
         apu.Tick(88);
 
-        Assert.Equal(1, apu.DrainBufferedSamples(destination));
-        Assert.Equal([default], destination);
+        apu.DrainBufferedSamples(destination).Should().Be(1);
+        destination.Should().Equal(default(ApuStereoSample));
     }
 
     [Fact]
@@ -1150,9 +1149,9 @@ public sealed class ApuControllerTests
 
         apu.Tick(88);
 
-        Assert.Equal(1, apu.DrainBufferedSamples(destination));
-        Assert.Equal([new ApuStereoSample(478, 478)], destination);
-        Assert.Equal(0, apu.DrainBufferedSamples(destination));
+        apu.DrainBufferedSamples(destination).Should().Be(1);
+        destination.Should().Equal(new ApuStereoSample(478, 478));
+        apu.DrainBufferedSamples(destination).Should().Be(0);
     }
 
     [Fact]
@@ -1162,10 +1161,10 @@ public sealed class ApuControllerTests
 
         var events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
 
-        Assert.Equal(1, apu.DivApuStep);
-        Assert.True(events.LengthClock);
-        Assert.False(events.SweepClock);
-        Assert.False(events.EnvelopeClock);
+        apu.DivApuStep.Should().Be(1);
+        events.LengthClock.Should().BeTrue();
+        events.SweepClock.Should().BeFalse();
+        events.EnvelopeClock.Should().BeFalse();
     }
 
     [Fact]
@@ -1175,10 +1174,10 @@ public sealed class ApuControllerTests
 
         var events = apu.TickSystemCounter(new ApuTickInputs(1 << 13, CgbDoubleSpeed: true));
 
-        Assert.Equal(1, apu.DivApuStep);
-        Assert.True(events.LengthClock);
-        Assert.False(events.SweepClock);
-        Assert.False(events.EnvelopeClock);
+        apu.DivApuStep.Should().Be(1);
+        events.LengthClock.Should().BeTrue();
+        events.SweepClock.Should().BeFalse();
+        events.EnvelopeClock.Should().BeFalse();
     }
 
     [Fact]
@@ -1188,8 +1187,8 @@ public sealed class ApuControllerTests
 
         var events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: true));
 
-        Assert.Equal(0, apu.DivApuStep);
-        Assert.Equal(default, events);
+        apu.DivApuStep.Should().Be(0);
+        events.Should().Be(default(ApuFrameSequencerEvents));
     }
 
     [Fact]
@@ -1199,8 +1198,8 @@ public sealed class ApuControllerTests
 
         var events = apu.TickSystemCounter(new ApuTickInputs(1 << 11, CgbDoubleSpeed: false));
 
-        Assert.Equal(0, apu.DivApuStep);
-        Assert.Equal(default, events);
+        apu.DivApuStep.Should().Be(0);
+        events.Should().Be(default(ApuFrameSequencerEvents));
     }
 
     [Theory]
@@ -1228,10 +1227,10 @@ public sealed class ApuControllerTests
             events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
         }
 
-        Assert.Equal(expectedStep, apu.DivApuStep);
-        Assert.Equal(expectedLength, events.LengthClock);
-        Assert.Equal(expectedSweep, events.SweepClock);
-        Assert.Equal(expectedEnvelope, events.EnvelopeClock);
+        apu.DivApuStep.Should().Be(expectedStep);
+        events.LengthClock.Should().Be(expectedLength);
+        events.SweepClock.Should().Be(expectedSweep);
+        events.EnvelopeClock.Should().Be(expectedEnvelope);
     }
 
     [Theory]
@@ -1243,7 +1242,7 @@ public sealed class ApuControllerTests
     [InlineData(0xFF3F)]
     public void ContainsRegister_ReturnsTrueForApuRegisters(ushort address)
     {
-        Assert.True(ApuController.ContainsRegister(address));
+        ApuController.ContainsRegister(address).Should().BeTrue();
     }
 
     [Theory]
@@ -1251,7 +1250,7 @@ public sealed class ApuControllerTests
     [InlineData(0xFF1F)]
     public void ContainsRegister_ReturnsFalseForUnusedApuAddresses(ushort address)
     {
-        Assert.False(ApuController.ContainsRegister(address));
+        ApuController.ContainsRegister(address).Should().BeFalse();
     }
 
     private static ApuStereoSample DrainNextSample(ApuController apu, int tCycles = 88)
@@ -1260,7 +1259,7 @@ public sealed class ApuControllerTests
 
         apu.Tick(tCycles);
 
-        Assert.Equal(1, apu.DrainBufferedSamples(destination));
+        apu.DrainBufferedSamples(destination).Should().Be(1);
         return destination[0];
     }
 

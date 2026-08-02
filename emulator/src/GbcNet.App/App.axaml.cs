@@ -10,7 +10,6 @@ using GbcNet.App.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Serilog;
 
 namespace GbcNet.App;
 
@@ -51,12 +50,9 @@ internal sealed class GbcNetApplication : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    private static void MigrateDatabase(IServiceProvider services)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(UserDataPaths.LibraryDatabasePath) ?? ".");
-        using var db = services
-            .GetRequiredService<IDbContextFactory<GbcNetDbContext>>()
-            .CreateDbContext();
-        db.Database.Migrate();
-    }
+    private static void MigrateDatabase(IServiceProvider services) =>
+        DatabaseMigrator.Migrate(
+            services.GetRequiredService<IDbContextFactory<GbcNetDbContext>>(),
+            UserDataPaths.LibraryDatabasePath
+        );
 }

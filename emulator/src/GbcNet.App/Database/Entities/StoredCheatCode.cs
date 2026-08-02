@@ -2,11 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core.Cheats;
+using JetBrains.Annotations;
 
 namespace GbcNet.App.Database.Entities;
 
 internal sealed class StoredCheatCode
 {
+    [UsedImplicitly]
     private StoredCheatCode() { }
 
     internal StoredCheatCode(

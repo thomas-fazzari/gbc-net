@@ -36,22 +36,23 @@ public sealed class DmgAcid2VisualRomTests
     {
         var rom = File.ReadAllBytes(RomPath);
         var expectedPixels = File.ReadAllBytes(DmgGoldenPath);
-        Assert.Equal(ExpectedRomSha256, ComputeSha256(rom));
-        Assert.Equal(ExpectedDmgGoldenSha256, ComputeSha256(expectedPixels));
-        Assert.Equal(ExpectedDmgPixelCount, expectedPixels.Length);
+        ComputeSha256(rom).Should().Be(ExpectedRomSha256);
+        ComputeSha256(expectedPixels).Should().Be(ExpectedDmgGoldenSha256);
+        expectedPixels.Length.Should().Be(ExpectedDmgPixelCount);
 
         using var result = VisualRomTestRunner.RunToFrame(rom, TargetFrame, MaxMachineCycles);
 
-        Assert.NotNull(result.Frame);
-        Assert.Equal(LcdPixelFormat.DmgShadeIndex8, result.Frame.PixelFormat);
-        Assert.True(
-            expectedPixels.AsSpan().SequenceEqual(result.Frame.Pixels.Span),
-            Rgb555FrameDifference.CreateDmgShadeIndex8Message(
-                result,
-                expectedPixels,
-                MaxReportedDiffOffsets
-            )
-        );
+        result.Frame.Should().NotBeNull();
+        result.Frame.PixelFormat.Should().Be(LcdPixelFormat.DmgShadeIndex8);
+        (expectedPixels.AsSpan().SequenceEqual(result.Frame.Pixels.Span))
+            .Should()
+            .BeTrue(
+                Rgb555FrameDifference.CreateDmgShadeIndex8Message(
+                    result,
+                    expectedPixels,
+                    MaxReportedDiffOffsets
+                )
+            );
     }
 
     [Fact]
@@ -59,9 +60,9 @@ public sealed class DmgAcid2VisualRomTests
     {
         var rom = File.ReadAllBytes(RomPath);
         var expectedPixels = File.ReadAllBytes(CgbGoldenPath);
-        Assert.Equal(ExpectedRomSha256, ComputeSha256(rom));
-        Assert.Equal(ExpectedCgbGoldenSha256, ComputeSha256(expectedPixels));
-        Assert.Equal(ExpectedCgbPixelByteCount, expectedPixels.Length);
+        ComputeSha256(rom).Should().Be(ExpectedRomSha256);
+        ComputeSha256(expectedPixels).Should().Be(ExpectedCgbGoldenSha256);
+        expectedPixels.Length.Should().Be(ExpectedCgbPixelByteCount);
 
         using var result = VisualRomTestRunner.RunToFrame(
             rom,
@@ -70,12 +71,13 @@ public sealed class DmgAcid2VisualRomTests
             HardwareModel.Cgb
         );
 
-        Assert.NotNull(result.Frame);
-        Assert.Equal(LcdPixelFormat.Rgb555Le, result.Frame.PixelFormat);
-        Assert.True(
-            expectedPixels.AsSpan().SequenceEqual(result.Frame.Pixels.Span),
-            Rgb555FrameDifference.CreateMessage(result, expectedPixels, MaxReportedDiffOffsets)
-        );
+        result.Frame.Should().NotBeNull();
+        result.Frame.PixelFormat.Should().Be(LcdPixelFormat.Rgb555Le);
+        (expectedPixels.AsSpan().SequenceEqual(result.Frame.Pixels.Span))
+            .Should()
+            .BeTrue(
+                Rgb555FrameDifference.CreateMessage(result, expectedPixels, MaxReportedDiffOffsets)
+            );
     }
 
     private static string ComputeSha256(ReadOnlySpan<byte> bytes) =>

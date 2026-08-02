@@ -56,7 +56,7 @@ public sealed class PpuControllerTests
     [InlineData(AddressMap.ObjectPaletteDataRegister)]
     [InlineData(AddressMap.ObjectPriorityModeRegister)]
     public void ContainsRegister_ReturnsTrueForAllPpuRegisters(ushort address) =>
-        Assert.True(PpuController.ContainsRegister(address));
+        PpuController.ContainsRegister(address).Should().BeTrue();
 
     [Theory]
     [InlineData(AddressMap.DmaRegister)]
@@ -64,7 +64,7 @@ public sealed class PpuControllerTests
     [InlineData(0xFF67)]
     [InlineData(0xFF6D)]
     public void ContainsRegister_ReturnsFalseForUnmanagedAddresses(ushort address) =>
-        Assert.False(PpuController.ContainsRegister(address));
+        PpuController.ContainsRegister(address).Should().BeFalse();
 
     [Theory]
     [InlineData(AddressMap.LcdControlRegister, 0x91)]
@@ -82,7 +82,7 @@ public sealed class PpuControllerTests
 
         ppu.WriteRegister(address, value);
 
-        Assert.Equal(value, ppu.ReadRegister(address));
+        ppu.ReadRegister(address).Should().Be(value);
     }
 
     [Fact]
@@ -90,17 +90,17 @@ public sealed class PpuControllerTests
     {
         var ppu = CreatePpu(videoRamBankCount: 2, isVideoRamBankRegisterEnabled: true);
 
-        Assert.Equal(0xFE, ppu.ReadRegister(AddressMap.VideoRamBankRegister));
+        ppu.ReadRegister(AddressMap.VideoRamBankRegister).Should().Be(0xFE);
 
         ppu.WriteRegister(AddressMap.VideoRamBankRegister, 0xFF);
 
-        Assert.Equal(1, ppu.VideoRam.SelectedBank);
-        Assert.Equal(0xFF, ppu.ReadRegister(AddressMap.VideoRamBankRegister));
+        ppu.VideoRam.SelectedBank.Should().Be(1);
+        ppu.ReadRegister(AddressMap.VideoRamBankRegister).Should().Be(0xFF);
 
         ppu.WriteRegister(AddressMap.VideoRamBankRegister, 0xFE);
 
-        Assert.Equal(0, ppu.VideoRam.SelectedBank);
-        Assert.Equal(0xFE, ppu.ReadRegister(AddressMap.VideoRamBankRegister));
+        ppu.VideoRam.SelectedBank.Should().Be(0);
+        ppu.ReadRegister(AddressMap.VideoRamBankRegister).Should().Be(0xFE);
     }
 
     [Fact]
@@ -110,8 +110,8 @@ public sealed class PpuControllerTests
 
         ppu.WriteRegister(AddressMap.VideoRamBankRegister, 0x01);
 
-        Assert.Equal(0, ppu.VideoRam.SelectedBank);
-        Assert.Equal(0xFF, ppu.ReadRegister(AddressMap.VideoRamBankRegister));
+        ppu.VideoRam.SelectedBank.Should().Be(0);
+        ppu.ReadRegister(AddressMap.VideoRamBankRegister).Should().Be(0xFF);
     }
 
     [Fact]
@@ -121,8 +121,8 @@ public sealed class PpuControllerTests
 
         ppu.WriteRegister(AddressMap.VideoRamBankRegister, 0x01);
 
-        Assert.Equal(0, ppu.VideoRam.SelectedBank);
-        Assert.Equal(0xFF, ppu.ReadRegister(AddressMap.VideoRamBankRegister));
+        ppu.VideoRam.SelectedBank.Should().Be(0);
+        ppu.ReadRegister(AddressMap.VideoRamBankRegister).Should().Be(0xFF);
     }
 
     [Fact]
@@ -132,11 +132,11 @@ public sealed class PpuControllerTests
 
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0xFF);
 
-        Assert.Equal(0xFF, ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister));
+        ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister).Should().Be(0xFF);
 
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x40);
 
-        Assert.Equal(0x40, ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister));
+        ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister).Should().Be(0x40);
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public sealed class PpuControllerTests
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x02);
         ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0xAB);
 
-        Assert.Equal(0xAB, ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister));
+        ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister).Should().Be(0xAB);
     }
 
     [Fact]
@@ -159,15 +159,15 @@ public sealed class PpuControllerTests
         ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x11);
         ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x22);
 
-        Assert.Equal(0xC4, ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister));
+        ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister).Should().Be(0xC4);
 
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x02);
 
-        Assert.Equal(0x11, ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister));
+        ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister).Should().Be(0x11);
 
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x03);
 
-        Assert.Equal(0x22, ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister));
+        ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister).Should().Be(0x22);
     }
 
     [Fact]
@@ -179,8 +179,8 @@ public sealed class PpuControllerTests
         ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x11);
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x80);
 
-        Assert.Equal(0x11, ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister));
-        Assert.Equal(0xC0, ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister));
+        ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister).Should().Be(0x11);
+        ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister).Should().Be(0xC0);
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public sealed class PpuControllerTests
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0xBF);
         ppu.WriteRegister(AddressMap.BackgroundPaletteDataRegister, 0x33);
 
-        Assert.Equal(0xC0, ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister));
+        ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister).Should().Be(0xC0);
     }
 
     [Fact]
@@ -207,8 +207,8 @@ public sealed class PpuControllerTests
         ppu.WriteRegister(AddressMap.BackgroundPaletteIndexRegister, 0x01);
         ppu.WriteRegister(AddressMap.ObjectPaletteIndexRegister, 0x01);
 
-        Assert.Equal(0x12, ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister));
-        Assert.Equal(0x34, ppu.ReadRegister(AddressMap.ObjectPaletteDataRegister));
+        ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister).Should().Be(0x12);
+        ppu.ReadRegister(AddressMap.ObjectPaletteDataRegister).Should().Be(0x34);
     }
 
     [Fact]
@@ -221,10 +221,10 @@ public sealed class PpuControllerTests
         ppu.WriteRegister(AddressMap.ObjectPaletteIndexRegister, 0x82);
         ppu.WriteRegister(AddressMap.ObjectPaletteDataRegister, 0x34);
 
-        Assert.Equal(0xFF, ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister));
-        Assert.Equal(0xFF, ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister));
-        Assert.Equal(0xFF, ppu.ReadRegister(AddressMap.ObjectPaletteIndexRegister));
-        Assert.Equal(0xFF, ppu.ReadRegister(AddressMap.ObjectPaletteDataRegister));
+        ppu.ReadRegister(AddressMap.BackgroundPaletteIndexRegister).Should().Be(0xFF);
+        ppu.ReadRegister(AddressMap.BackgroundPaletteDataRegister).Should().Be(0xFF);
+        ppu.ReadRegister(AddressMap.ObjectPaletteIndexRegister).Should().Be(0xFF);
+        ppu.ReadRegister(AddressMap.ObjectPaletteDataRegister).Should().Be(0xFF);
     }
 
     [Fact]
@@ -235,7 +235,7 @@ public sealed class PpuControllerTests
 
         ppu.SetRegisterState(AddressMap.LcdStatusRegister, 0x85);
 
-        Assert.Equal(0x85, ppu.ReadRegister(AddressMap.LcdStatusRegister));
+        ppu.ReadRegister(AddressMap.LcdStatusRegister).Should().Be(0x85);
     }
 
     [Fact]
@@ -247,7 +247,7 @@ public sealed class PpuControllerTests
 
         ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x78);
 
-        Assert.Equal(0xFD, ppu.ReadRegister(AddressMap.LcdStatusRegister));
+        ppu.ReadRegister(AddressMap.LcdStatusRegister).Should().Be(0xFD);
     }
 
     [Fact]
@@ -258,7 +258,7 @@ public sealed class PpuControllerTests
 
         ppu.WriteRegister(AddressMap.LcdYCoordinateRegister, 0x99);
 
-        Assert.Equal(0x42, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
+        ppu.ReadRegister(AddressMap.LcdYCoordinateRegister).Should().Be(0x42);
     }
 
     [Fact]
@@ -268,17 +268,17 @@ public sealed class PpuControllerTests
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
         ppu.Tick(79);
-        Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask).Should().Be(0x00);
 
         ppu.Tick(1);
-        Assert.Equal(0x03, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask).Should().Be(0x03);
 
         ppu.Tick(172);
-        Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask).Should().Be(0x00);
 
         ppu.Tick(204);
-        Assert.Equal(0x01, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
-        Assert.Equal(0x02, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
+        ppu.ReadRegister(AddressMap.LcdYCoordinateRegister).Should().Be(0x01);
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask).Should().Be(0x02);
     }
 
     [Fact]
@@ -315,14 +315,14 @@ public sealed class PpuControllerTests
 
         var frame = ppu.Tick(456 * 144).CompletedFrame;
 
-        Assert.Equal(144, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
-        Assert.Equal(0x01, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
-        Assert.Equal(VBlankInterruptMask, interrupts.InterruptFlag);
-        Assert.NotNull(frame);
-        Assert.Equal(PpuGeometry.FrameWidth, frame.Width);
-        Assert.Equal(PpuGeometry.FrameHeight, frame.Height);
-        Assert.Equal(LcdPixelFormat.DmgShadeIndex8, frame.PixelFormat);
-        Assert.Equal(PpuGeometry.FrameWidth * PpuGeometry.FrameHeight, frame.Pixels.Length);
+        ppu.ReadRegister(AddressMap.LcdYCoordinateRegister).Should().Be(144);
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask).Should().Be(0x01);
+        interrupts.InterruptFlag.Should().Be(VBlankInterruptMask);
+        frame.Should().NotBeNull();
+        frame.Width.Should().Be(PpuGeometry.FrameWidth);
+        frame.Height.Should().Be(PpuGeometry.FrameHeight);
+        frame.PixelFormat.Should().Be(LcdPixelFormat.DmgShadeIndex8);
+        frame.Pixels.Length.Should().Be(PpuGeometry.FrameWidth * PpuGeometry.FrameHeight);
     }
 
     [Fact]
@@ -335,9 +335,9 @@ public sealed class PpuControllerTests
 
         var frame = ppu.Tick(456 * 144).CompletedFrame;
 
-        Assert.Null(frame);
-        Assert.Equal(144, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
-        Assert.Equal(VBlankInterruptMask, interrupts.InterruptFlag);
+        frame.Should().BeNull();
+        ppu.ReadRegister(AddressMap.LcdYCoordinateRegister).Should().Be(144);
+        interrupts.InterruptFlag.Should().Be(VBlankInterruptMask);
     }
 
     [Fact]
@@ -347,16 +347,16 @@ public sealed class PpuControllerTests
         ppu.VideoRenderingEnabled = false;
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
-        Assert.Null(ppu.Tick(456 * 144).CompletedFrame);
+        ppu.Tick(456 * 144).CompletedFrame.Should().BeNull();
 
         ppu.VideoRenderingEnabled = true;
         ppu.Tick(456 * 10);
 
         var frame = ppu.Tick(456 * 144).CompletedFrame;
 
-        Assert.NotNull(frame);
-        Assert.Equal(PpuGeometry.FrameWidth, frame.Width);
-        Assert.Equal(PpuGeometry.FrameHeight, frame.Height);
+        frame.Should().NotBeNull();
+        frame.Width.Should().Be(PpuGeometry.FrameWidth);
+        frame.Height.Should().Be(PpuGeometry.FrameHeight);
     }
 
     [Fact]
@@ -369,10 +369,9 @@ public sealed class PpuControllerTests
 
         ppu.Tick(456 * 144);
 
-        Assert.Equal(
-            VBlankInterruptMask | LcdInterruptMask,
-            interrupts.InterruptFlag & (VBlankInterruptMask | LcdInterruptMask)
-        );
+        (interrupts.InterruptFlag & (VBlankInterruptMask | LcdInterruptMask))
+            .Should()
+            .Be(VBlankInterruptMask | LcdInterruptMask);
     }
 
     [Fact]
@@ -385,8 +384,8 @@ public sealed class PpuControllerTests
 
         ppu.Tick(456 * 154);
 
-        Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
-        Assert.Equal(LcdInterruptMask, interrupts.InterruptFlag & LcdInterruptMask);
+        ppu.ReadRegister(AddressMap.LcdYCoordinateRegister).Should().Be(0x00);
+        (interrupts.InterruptFlag & LcdInterruptMask).Should().Be(LcdInterruptMask);
     }
 
     [Fact]
@@ -397,8 +396,8 @@ public sealed class PpuControllerTests
 
         ppu.Tick(456 * 154);
 
-        Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
-        Assert.Equal(0x02, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
+        ppu.ReadRegister(AddressMap.LcdYCoordinateRegister).Should().Be(0x00);
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask).Should().Be(0x02);
     }
 
     [Fact]
@@ -408,9 +407,9 @@ public sealed class PpuControllerTests
 
         var frame = ppu.Tick(456 * 154).CompletedFrame;
 
-        Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
-        Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
-        Assert.Null(frame);
+        ppu.ReadRegister(AddressMap.LcdYCoordinateRegister).Should().Be(0x00);
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask).Should().Be(0x00);
+        frame.Should().BeNull();
     }
 
     [Fact]
@@ -422,8 +421,8 @@ public sealed class PpuControllerTests
 
         ppu.WriteRegister(AddressMap.LcdControlRegister, 0x00);
 
-        Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdYCoordinateRegister));
-        Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
+        ppu.ReadRegister(AddressMap.LcdYCoordinateRegister).Should().Be(0x00);
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask).Should().Be(0x00);
     }
 
     [Fact]
@@ -435,7 +434,7 @@ public sealed class PpuControllerTests
 
         ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x08);
 
-        Assert.Equal(LcdInterruptMask, interrupts.InterruptFlag);
+        interrupts.InterruptFlag.Should().Be(LcdInterruptMask);
     }
 
     [Fact]
@@ -447,12 +446,12 @@ public sealed class PpuControllerTests
         ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x08);
 
         ppu.Tick(252);
-        Assert.Equal(LcdInterruptMask, interrupts.InterruptFlag);
+        interrupts.InterruptFlag.Should().Be(LcdInterruptMask);
 
         interrupts.Clear(InterruptSource.LcdStat);
         ppu.Tick(10);
 
-        Assert.Equal(0x00, interrupts.InterruptFlag);
+        interrupts.InterruptFlag.Should().Be(0x00);
     }
 
     [Fact]
@@ -466,11 +465,10 @@ public sealed class PpuControllerTests
 
         ppu.WriteRegister(AddressMap.LcdYCompareRegister, 0x00);
 
-        Assert.Equal(
-            LcdYCompareStatusMask,
-            ppu.ReadRegister(AddressMap.LcdStatusRegister) & LcdYCompareStatusMask
-        );
-        Assert.Equal(LcdInterruptMask, interrupts.InterruptFlag);
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & LcdYCompareStatusMask)
+            .Should()
+            .Be(LcdYCompareStatusMask);
+        interrupts.InterruptFlag.Should().Be(LcdInterruptMask);
     }
 
     [Fact]
@@ -485,7 +483,7 @@ public sealed class PpuControllerTests
         ppu.WriteRegister(AddressMap.LcdControlRegister, 0x00);
         ppu.WriteRegister(AddressMap.LcdYCompareRegister, 0x01);
 
-        Assert.Equal(0x84, ppu.ReadRegister(AddressMap.LcdStatusRegister));
+        ppu.ReadRegister(AddressMap.LcdStatusRegister).Should().Be(0x84);
     }
 
     [Fact]
@@ -498,11 +496,10 @@ public sealed class PpuControllerTests
 
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
-        Assert.Equal(
-            LcdYCompareStatusMask,
-            ppu.ReadRegister(AddressMap.LcdStatusRegister) & LcdYCompareStatusMask
-        );
-        Assert.Equal(LcdInterruptMask, interrupts.InterruptFlag);
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & LcdYCompareStatusMask)
+            .Should()
+            .Be(LcdYCompareStatusMask);
+        interrupts.InterruptFlag.Should().Be(LcdInterruptMask);
     }
 
     [Fact]
@@ -515,7 +512,7 @@ public sealed class PpuControllerTests
 
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
 
-        Assert.Equal(LcdInterruptMask, interrupts.InterruptFlag);
+        interrupts.InterruptFlag.Should().Be(LcdInterruptMask);
     }
 
     [Fact]
@@ -526,7 +523,7 @@ public sealed class PpuControllerTests
         var frame = new LcdFrame(2, 1, LcdPixelFormat.DmgShadeIndex8, pixels);
         pixels[0] = 0x03;
 
-        Assert.Equal(0x01, frame.Pixels.Span[0]);
+        frame.Pixels.Span[0].Should().Be(0x01);
     }
 
     [Fact]
@@ -536,10 +533,10 @@ public sealed class PpuControllerTests
 
         var frame = LcdFrame.FromOwnedPixels(1, 1, LcdPixelFormat.Rgb555Le, pixels);
 
-        Assert.True(MemoryMarshal.TryGetArray(frame.Pixels, out var segment));
-        Assert.Same(pixels, segment.Array);
-        Assert.Equal(0, segment.Offset);
-        Assert.Equal(pixels.Length, segment.Count);
+        MemoryMarshal.TryGetArray(frame.Pixels, out var segment).Should().BeTrue();
+        segment.Array.Should().BeSameAs(pixels);
+        segment.Offset.Should().Be(0);
+        segment.Count.Should().Be(pixels.Length);
     }
 
     [Fact]
@@ -559,18 +556,20 @@ public sealed class PpuControllerTests
 
         frame.Dispose();
 
-        Assert.Equal(0, pool.ReturnCount);
-        Assert.Same(
-            pixels,
-            MemoryMarshal.TryGetArray(retainedFrame.Pixels, out var segment) ? segment.Array : null
-        );
+        pool.ReturnCount.Should().Be(0);
+        (MemoryMarshal.TryGetArray(retainedFrame.Pixels, out var segment) ? segment.Array : null)
+            .Should()
+            .BeSameAs(pixels);
 
         retainedFrame.Dispose();
         retainedFrame.Dispose();
 
-        Assert.Equal(1, pool.ReturnCount);
-        Assert.Same(pixels, pool.ReturnedArray);
-        Assert.Throws<ObjectDisposedException>(() => _ = retainedFrame.Pixels);
+        pool.ReturnCount.Should().Be(1);
+        pool.ReturnedArray.Should().BeSameAs(pixels);
+        FluentActions
+            .Invoking(() => _ = retainedFrame.Pixels)
+            .Should()
+            .ThrowExactly<ObjectDisposedException>();
     }
 
     [Fact]
@@ -586,7 +585,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
 
-        Assert.Equal(0x01, frame.Pixels.Span[0]);
+        frame.Pixels.Span[0].Should().Be(0x01);
     }
 
     [Fact]
@@ -599,7 +598,7 @@ public sealed class PpuControllerTests
 
         var frame = RenderSecondFrame(ppu, LcdEnable | BackgroundEnable);
 
-        Assert.Equal(0x02, frame.Pixels.Span[0]);
+        frame.Pixels.Span[0].Should().Be(0x02);
     }
 
     [Fact]
@@ -614,7 +613,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
 
-        Assert.Equal(0x01, frame.Pixels.Span[0]);
+        frame.Pixels.Span[0].Should().Be(0x01);
     }
 
     [Fact]
@@ -631,7 +630,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
 
-        Assert.Equal(0x03, frame.Pixels.Span[0]);
+        frame.Pixels.Span[0].Should().Be(0x03);
     }
 
     [Fact]
@@ -647,7 +646,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
 
-        Assert.Equal(0x02, frame.Pixels.Span[0]);
+        frame.Pixels.Span[0].Should().Be(0x02);
     }
 
     [Fact]
@@ -662,7 +661,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
 
-        Assert.Equal(0x01, frame.Pixels.Span[PpuGeometry.FrameWidth - 1]);
+        frame.Pixels.Span[PpuGeometry.FrameWidth - 1].Should().Be(0x01);
     }
 
     [Fact]
@@ -685,8 +684,8 @@ public sealed class PpuControllerTests
                 | WindowTileMap1
         );
 
-        Assert.Equal(0x01, frame.Pixels.Span[0]);
-        Assert.Equal(0x02, frame.Pixels.Span[8]);
+        frame.Pixels.Span[0].Should().Be(0x01);
+        frame.Pixels.Span[8].Should().Be(0x02);
     }
 
     [Fact]
@@ -709,9 +708,9 @@ public sealed class PpuControllerTests
                 | WindowTileMap1
         );
 
-        Assert.Equal(0x00, frame.Pixels.Span[0]);
-        Assert.Equal(0x01, frame.Pixels.Span[PpuGeometry.FrameWidth]);
-        Assert.Equal(0x02, frame.Pixels.Span[PpuGeometry.FrameWidth * 2]);
+        frame.Pixels.Span[0].Should().Be(0x00);
+        frame.Pixels.Span[PpuGeometry.FrameWidth].Should().Be(0x01);
+        frame.Pixels.Span[PpuGeometry.FrameWidth * 2].Should().Be(0x02);
     }
 
     [Fact]
@@ -728,7 +727,7 @@ public sealed class PpuControllerTests
             LcdEnable | UnsignedBackgroundTileData | WindowEnable | WindowTileMap1
         );
 
-        Assert.Equal(0x00, frame.Pixels.Span[0]);
+        frame.Pixels.Span[0].Should().Be(0x00);
     }
 
     [Fact]
@@ -741,8 +740,8 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
 
-        Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        Assert.Equal(PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * 2, frame.Pixels.Length);
+        frame.PixelFormat.Should().Be(LcdPixelFormat.Rgb555Le);
+        frame.Pixels.Length.Should().Be(PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * 2);
     }
 
     [Fact]
@@ -959,8 +958,8 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
         );
 
-        Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        Assert.Equal(PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * 2, frame.Pixels.Length);
+        frame.PixelFormat.Should().Be(LcdPixelFormat.Rgb555Le);
+        frame.Pixels.Length.Should().Be(PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * 2);
     }
 
     [Fact]
@@ -1013,7 +1012,7 @@ public sealed class PpuControllerTests
 
         ppu.Tick(256);
 
-        Assert.Equal(0x03, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask).Should().Be(0x03);
     }
 
     [Fact]
@@ -1024,10 +1023,10 @@ public sealed class PpuControllerTests
         ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable | ObjectEnable);
 
         ppu.Tick(252);
-        Assert.Equal(0x03, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask).Should().Be(0x03);
 
         ppu.Tick(8);
-        Assert.Equal(0x00, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask).Should().Be(0x00);
     }
 
     [Fact]
@@ -1044,7 +1043,7 @@ public sealed class PpuControllerTests
 
         ppu.Tick(256);
 
-        Assert.Equal(0x03, ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask);
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & StatusModeMask).Should().Be(0x03);
     }
 
     [Fact]
@@ -1062,8 +1061,8 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
 
-        Assert.Equal(0x02, frame.Pixels.Span[0]);
-        Assert.Equal(0x03, frame.Pixels.Span[8]);
+        frame.Pixels.Span[0].Should().Be(0x02);
+        frame.Pixels.Span[8].Should().Be(0x03);
     }
 
     [Fact]
@@ -1081,7 +1080,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
 
-        Assert.Equal(0x02, frame.Pixels.Span[0]);
+        frame.Pixels.Span[0].Should().Be(0x02);
     }
 
     [Fact]
@@ -1104,7 +1103,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
 
-        Assert.Equal(0x01, frame.Pixels.Span[0]);
+        frame.Pixels.Span[0].Should().Be(0x01);
     }
 
     [Fact]
@@ -1121,8 +1120,8 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | ObjectEnable | ObjectSize16
         );
 
-        Assert.Equal(0x01, frame.Pixels.Span[0]);
-        Assert.Equal(0x02, frame.Pixels.Span[PpuGeometry.FrameWidth * 8]);
+        frame.Pixels.Span[0].Should().Be(0x01);
+        frame.Pixels.Span[PpuGeometry.FrameWidth * 8].Should().Be(0x02);
     }
 
     [Fact]
@@ -1140,7 +1139,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
 
-        Assert.Equal(0x03, frame.Pixels.Span[1]);
+        frame.Pixels.Span[1].Should().Be(0x03);
     }
 
     [Fact]
@@ -1167,7 +1166,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
 
-        Assert.Equal(0x01, frame.Pixels.Span[0]);
+        frame.Pixels.Span[0].Should().Be(0x01);
     }
 
     [Fact]
@@ -1195,7 +1194,7 @@ public sealed class PpuControllerTests
             LcdEnable | BackgroundEnable | ObjectEnable | UnsignedBackgroundTileData
         );
 
-        Assert.Equal(0x00, frame.Pixels.Span[0]);
+        frame.Pixels.Span[0].Should().Be(0x00);
     }
 
     private static PpuController CreatePpu(
@@ -1230,7 +1229,7 @@ public sealed class PpuControllerTests
     {
         ppu.WriteRegister(AddressMap.LcdControlRegister, lcdControl);
         ppu.Tick(456 * 154);
-        return Assert.IsType<LcdFrame>(ppu.Tick(456 * 144).CompletedFrame);
+        return ppu.Tick(456 * 144).CompletedFrame.Should().BeOfType<LcdFrame>().Subject;
     }
 
     private static void WriteBankedTileRow(
@@ -1294,14 +1293,14 @@ public sealed class PpuControllerTests
 
     private static void AssertVideoRamBlocked(PpuController ppu, bool expected)
     {
-        Assert.Equal(expected, ppu.IsCpuVideoRamReadBlocked);
-        Assert.Equal(expected, ppu.IsCpuVideoRamWriteBlocked);
+        ppu.IsCpuVideoRamReadBlocked.Should().Be(expected);
+        ppu.IsCpuVideoRamWriteBlocked.Should().Be(expected);
     }
 
     private static void AssertObjectAttributeMemoryBlocked(PpuController ppu, bool expected)
     {
-        Assert.Equal(expected, ppu.IsCpuObjectAttributeMemoryReadBlocked);
-        Assert.Equal(expected, ppu.IsCpuObjectAttributeMemoryWriteBlocked);
+        ppu.IsCpuObjectAttributeMemoryReadBlocked.Should().Be(expected);
+        ppu.IsCpuObjectAttributeMemoryWriteBlocked.Should().Be(expected);
     }
 
     private sealed class TrackingArrayPool : ArrayPool<byte>

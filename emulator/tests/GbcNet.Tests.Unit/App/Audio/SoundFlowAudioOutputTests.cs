@@ -20,6 +20,6 @@ public sealed class SoundFlowAudioOutputTests
         float expected
     )
     {
-        Assert.Equal(expected, SoundFlowAudioOutput.CalculateGain(volumePercent, muted));
+        SoundFlowAudioOutput.CalculateGain(volumePercent, muted).Should().Be(expected);
     }
 }

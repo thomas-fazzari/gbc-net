@@ -29,11 +29,11 @@ public sealed class LoadRegisterPairInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(3, machineCycles);
-        Assert.Equal(expectedHl, cpu.Registers.HL);
-        Assert.Equal(stackPointer, cpu.Registers.SP);
-        Assert.Equal(expectedFlags, cpu.Registers.F);
-        Assert.Equal(0x0102, cpu.Registers.PC);
+        machineCycles.Should().Be(3);
+        cpu.Registers.HL.Should().Be(expectedHl);
+        cpu.Registers.SP.Should().Be(stackPointer);
+        cpu.Registers.F.Should().Be(expectedFlags);
+        cpu.Registers.PC.Should().Be(0x0102);
     }
 
     [Fact]
@@ -46,10 +46,10 @@ public sealed class LoadRegisterPairInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(2, machineCycles);
-        Assert.Equal(0xC123, cpu.Registers.SP);
-        Assert.Equal(0xC123, cpu.Registers.HL);
-        Assert.Equal(0xF0, cpu.Registers.F);
-        Assert.Equal(0x0101, cpu.Registers.PC);
+        machineCycles.Should().Be(2);
+        cpu.Registers.SP.Should().Be(0xC123);
+        cpu.Registers.HL.Should().Be(0xC123);
+        cpu.Registers.F.Should().Be(0xF0);
+        cpu.Registers.PC.Should().Be(0x0101);
     }
 }

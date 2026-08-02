@@ -3,7 +3,6 @@
 
 using GbcNet.Core;
 using GbcNet.Core.Hardware;
-using GbcNet.Tests.Shared;
 using GbcNet.Tests.Unit.RomTesting.Utils.ResultObservers;
 
 namespace GbcNet.Tests.Unit.RomTesting.Utils;

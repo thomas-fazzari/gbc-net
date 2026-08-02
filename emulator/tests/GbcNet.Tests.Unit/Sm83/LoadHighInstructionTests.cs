@@ -24,10 +24,10 @@ public sealed class LoadHighInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(3, machineCycles);
-        Assert.Equal(0x42, bus.ReadByte(HighRamAddress));
-        Assert.Equal(0xF0, cpu.Registers.F);
-        Assert.Equal(0x0102, cpu.Registers.PC);
+        machineCycles.Should().Be(3);
+        bus.ReadByte(HighRamAddress).Should().Be(0x42);
+        cpu.Registers.F.Should().Be(0xF0);
+        cpu.Registers.PC.Should().Be(0x0102);
     }
 
     [Fact]
@@ -40,10 +40,10 @@ public sealed class LoadHighInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(2, machineCycles);
-        Assert.Equal(0x34, bus.ReadByte(HighRamAddress));
-        Assert.Equal(0xF0, cpu.Registers.F);
-        Assert.Equal(0x0101, cpu.Registers.PC);
+        machineCycles.Should().Be(2);
+        bus.ReadByte(HighRamAddress).Should().Be(0x34);
+        cpu.Registers.F.Should().Be(0xF0);
+        cpu.Registers.PC.Should().Be(0x0101);
     }
 
     [Fact]
@@ -59,10 +59,10 @@ public sealed class LoadHighInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(3, machineCycles);
-        Assert.Equal(0xA5, cpu.Registers.A);
-        Assert.Equal(0xF0, cpu.Registers.F);
-        Assert.Equal(0x0102, cpu.Registers.PC);
+        machineCycles.Should().Be(3);
+        cpu.Registers.A.Should().Be(0xA5);
+        cpu.Registers.F.Should().Be(0xF0);
+        cpu.Registers.PC.Should().Be(0x0102);
     }
 
     [Fact]
@@ -75,9 +75,9 @@ public sealed class LoadHighInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(2, machineCycles);
-        Assert.Equal(0x5A, cpu.Registers.A);
-        Assert.Equal(0xF0, cpu.Registers.F);
-        Assert.Equal(0x0101, cpu.Registers.PC);
+        machineCycles.Should().Be(2);
+        cpu.Registers.A.Should().Be(0x5A);
+        cpu.Registers.F.Should().Be(0xF0);
+        cpu.Registers.PC.Should().Be(0x0101);
     }
 }

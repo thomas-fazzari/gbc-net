@@ -4,12 +4,10 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using GbcNet.Core;
-using GbcNet.Core.Cartridges;
 using GbcNet.Core.Cheats;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
-using GbcNet.Tests.Shared;
 
 namespace GbcNet.Tests.Unit;
 
@@ -32,11 +30,11 @@ public sealed class GameBoyStateTests
 
         gameBoy.RestoreState(state);
 
-        Assert.Equal(0x00, gameBoy.Bus.ReadByte(AddressMap.HighRamStart));
-        Assert.Equal(0x01, gameBoy.Cpu.Registers.B);
-        Assert.Equal(0x0101, gameBoy.Cpu.Registers.PC);
+        gameBoy.Bus.ReadByte(AddressMap.HighRamStart).Should().Be(0x00);
+        gameBoy.Cpu.Registers.B.Should().Be(0x01);
+        gameBoy.Cpu.Registers.PC.Should().Be(0x0101);
         gameBoy.Step();
-        Assert.Equal(0x02, gameBoy.Cpu.Registers.B);
+        gameBoy.Cpu.Registers.B.Should().Be(0x02);
     }
 
     [Fact]
@@ -50,9 +48,9 @@ public sealed class GameBoyStateTests
 
         gameBoy.RestoreSaveState(state);
 
-        Assert.Equal(0x00, gameBoy.Bus.ReadByte(AddressMap.HighRamStart));
-        Assert.Equal(0x00, gameBoy.Cpu.Registers.B);
-        Assert.Equal(0x0100, gameBoy.Cpu.Registers.PC);
+        gameBoy.Bus.ReadByte(AddressMap.HighRamStart).Should().Be(0x00);
+        gameBoy.Cpu.Registers.B.Should().Be(0x00);
+        gameBoy.Cpu.Registers.PC.Should().Be(0x0100);
     }
 
     [Fact]
@@ -65,10 +63,10 @@ public sealed class GameBoyStateTests
         restored.RestoreSaveState(source.CaptureSaveState());
         restored.Bus.Interrupts.Request(InterruptSource.VBlank);
 
-        Assert.Equal(1, restored.Step());
-        Assert.True(restored.Cpu.Halted);
-        Assert.Equal(0, restored.Bus.Interrupts.InterruptEnable);
-        Assert.Equal(0x0101, restored.Cpu.Registers.PC);
+        restored.Step().Should().Be(1);
+        restored.Cpu.Halted.Should().BeTrue();
+        restored.Bus.Interrupts.InterruptEnable.Should().Be(0);
+        restored.Cpu.Registers.PC.Should().Be(0x0101);
 
         static void ConfigureRom(byte[] bytes) => bytes[0x0100] = 0xD3;
     }
@@ -78,7 +76,10 @@ public sealed class GameBoyStateTests
     {
         var gameBoy = new GameBoy(TestRomFactory.LoadCartridge(), HardwareModel.Dmg);
 
-        Assert.Throws<InvalidDataException>(() => gameBoy.RestoreSaveState([0xC1]));
+        FluentActions
+            .Invoking(() => gameBoy.RestoreSaveState([0xC1]))
+            .Should()
+            .ThrowExactly<InvalidDataException>();
     }
 
     [Fact]
@@ -88,9 +89,10 @@ public sealed class GameBoyStateTests
         var payload = JsonNode.Parse(gameBoy.CaptureSaveState())!.AsObject();
         payload.Remove("Cpu");
 
-        Assert.Throws<InvalidDataException>(() =>
-            gameBoy.RestoreSaveState(JsonSerializer.SerializeToUtf8Bytes(payload))
-        );
+        FluentActions
+            .Invoking(() => gameBoy.RestoreSaveState(JsonSerializer.SerializeToUtf8Bytes(payload)))
+            .Should()
+            .ThrowExactly<InvalidDataException>();
     }
 
     [Fact]
@@ -109,8 +111,11 @@ public sealed class GameBoyStateTests
         );
         gameBoy.Bus.WriteByte(AddressMap.HighRamStart, 0xCD);
 
-        Assert.Throws<ArgumentException>(() => gameBoy.RestoreState(corruptState));
-        Assert.Equal(0xCD, gameBoy.Bus.ReadByte(AddressMap.HighRamStart));
+        FluentActions
+            .Invoking(() => gameBoy.RestoreState(corruptState))
+            .Should()
+            .ThrowExactly<ArgumentException>();
+        gameBoy.Bus.ReadByte(AddressMap.HighRamStart).Should().Be(0xCD);
     }
 
     [Fact]
@@ -125,7 +130,7 @@ public sealed class GameBoyStateTests
 
         gameBoy.RestoreState(state);
 
-        Assert.False(notified);
+        notified.Should().BeFalse();
     }
 
     [Theory]
@@ -182,7 +187,7 @@ public sealed class GameBoyStateTests
         }
 
         var expectedState = gameBoy.CaptureSaveState();
-        var expectedFrame = Assert.IsType<byte[]>(latestFrame);
+        var expectedFrame = latestFrame.Should().BeOfType<byte[]>().Subject;
 
         gameBoy.RestoreSaveState(saveState);
         latestFrame = null;
@@ -191,8 +196,8 @@ public sealed class GameBoyStateTests
             gameBoy.Step();
         }
 
-        Assert.Equal(expectedState, gameBoy.CaptureSaveState());
-        Assert.Equal(expectedFrame, Assert.IsType<byte[]>(latestFrame));
+        gameBoy.CaptureSaveState().Should().Equal(expectedState);
+        latestFrame.Should().BeOfType<byte[]>().Subject.Should().Equal(expectedFrame);
     }
 
     [Fact]
@@ -208,20 +213,20 @@ public sealed class GameBoyStateTests
 
         gameBoy.Cheats.SetCodes([Parse("BB1-00F")]);
         gameBoy.Bus.WriteByte(AddressMap.BootRomDisableRegister, 0x01);
-        Assert.Equal(0xBB, gameBoy.Bus.ReadByte(0x0100));
+        gameBoy.Bus.ReadByte(0x0100).Should().Be(0xBB);
 
         gameBoy.RestoreSaveState(state);
 
-        Assert.Equal(0x55, gameBoy.Bus.ReadByte(0x0100));
+        gameBoy.Bus.ReadByte(0x0100).Should().Be(0x55);
 
         gameBoy.Bus.WriteByte(AddressMap.BootRomDisableRegister, 0x01);
 
-        Assert.Equal(0xBB, gameBoy.Bus.ReadByte(0x0100));
+        gameBoy.Bus.ReadByte(0x0100).Should().Be(0xBB);
     }
 
     private static CheatCode Parse(string text)
     {
-        Assert.True(CheatCode.TryParse(CheatCodeType.GameGenie, text, out var code));
+        CheatCode.TryParse(CheatCodeType.GameGenie, text, out var code).Should().BeTrue();
         return code;
     }
 
@@ -245,16 +250,16 @@ public sealed class GameBoyStateTests
         Exception? gameGenieException = null;
         gameBoy.Cpu.InstructionExecuted += (_, _) =>
         {
-            captureException = Record.Exception(() => gameBoy.CaptureState());
+            captureException = Record.Exception(gameBoy.CaptureState);
             restoreException = Record.Exception(() => gameBoy.RestoreState(state));
             gameGenieException = Record.Exception(() => gameBoy.Cheats.SetCodes([replacementCode]));
         };
 
         gameBoy.Step();
 
-        Assert.IsType<InvalidOperationException>(captureException);
-        Assert.IsType<InvalidOperationException>(gameGenieException);
-        Assert.Equal(0x0A, gameBoy.Bus.ReadByte(0x01B9));
-        Assert.IsType<InvalidOperationException>(restoreException);
+        captureException.Should().BeOfType<InvalidOperationException>();
+        gameGenieException.Should().BeOfType<InvalidOperationException>();
+        gameBoy.Bus.ReadByte(0x01B9).Should().Be(0x0A);
+        restoreException.Should().BeOfType<InvalidOperationException>();
     }
 }

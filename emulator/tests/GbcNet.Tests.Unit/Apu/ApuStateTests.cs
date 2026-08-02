@@ -30,7 +30,9 @@ public sealed class ApuStateTests
         apu.WriteRegister(0xFF26, 0);
         apu.RestoreState(checkpoint);
 
-        Assert.Equivalent(checkpoint, apu.CaptureState(), strict: true);
+        apu.CaptureState()
+            .Should()
+            .BeEquivalentTo(checkpoint, options => options.WithStrictOrdering());
         AssertRegisterBehaviorEqual(apu, Restored(spec, checkpoint));
     }
 
@@ -53,9 +55,9 @@ public sealed class ApuStateTests
         }
 
         var current = apu.CaptureState();
-        Assert.Equal(expectedRegisters, current.Registers);
-        Assert.Equal(expectedWaveRam, current.Channel3.WaveRam);
-        Assert.Equal(expectedSamples, current.SampleBuffer.BufferedSamples);
+        current.Registers.Should().Equal(expectedRegisters);
+        current.Channel3.WaveRam.Should().Equal(expectedWaveRam);
+        current.SampleBuffer.BufferedSamples.Should().Equal(expectedSamples);
     }
 
     [Fact]
@@ -69,8 +71,14 @@ public sealed class ApuStateTests
             OutputFilter = new ApuOutputFilterState(double.NaN, 0),
         };
 
-        Assert.Throws<ArgumentException>(() => target.RestoreState(malformed));
-        Assert.Equivalent(before, target.CaptureState(), strict: true);
+        FluentActions
+            .Invoking(() => target.RestoreState(malformed))
+            .Should()
+            .ThrowExactly<ArgumentException>();
+        target
+            .CaptureState()
+            .Should()
+            .BeEquivalentTo(before, options => options.WithStrictOrdering());
     }
 
     [Fact]
@@ -84,11 +92,11 @@ public sealed class ApuStateTests
         var restored = Restored(ApuModelSpec.Cgb, original.CaptureState());
         for (var index = 0; index < 12; index++)
         {
-            Assert.Equal(TickFrame(original), TickFrame(restored));
+            TickFrame(restored).Should().Be(TickFrame(original));
             original.Tick(137 + index);
             restored.Tick(137 + index);
             AssertRegisterBehaviorEqual(original, restored);
-            Assert.Equal(Drain(original), Drain(restored));
+            Drain(restored).Should().Equal(Drain(original));
         }
     }
 
@@ -106,14 +114,17 @@ public sealed class ApuStateTests
         original.Tick(4);
 
         var checkpoint = original.CaptureState();
-        Assert.Equal(0x0B, checkpoint.Channel3.SampleBuffer);
+        checkpoint.Channel3.SampleBuffer.Should().Be(0x0B);
         var restored = Restored(ApuModelSpec.Cgb, checkpoint);
-        Assert.Equivalent(checkpoint, restored.CaptureState(), strict: true);
+        restored
+            .CaptureState()
+            .Should()
+            .BeEquivalentTo(checkpoint, options => options.WithStrictOrdering());
 
         original.Tick(9);
         restored.Tick(9);
-        Assert.Equal(original.ReadRegister(0xFF77), restored.ReadRegister(0xFF77));
-        Assert.Equal(Drain(original), Drain(restored));
+        restored.ReadRegister(0xFF77).Should().Be(original.ReadRegister(0xFF77));
+        Drain(restored).Should().Equal(Drain(original));
     }
 
     [Fact]
@@ -128,10 +139,10 @@ public sealed class ApuStateTests
         {
             original.Tick(31 + index);
             restored.Tick(31 + index);
-            Assert.Equal(TickFrame(original), TickFrame(restored));
-            Assert.Equal(original.ReadRegister(0xFF77), restored.ReadRegister(0xFF77));
-            Assert.Equal(original.Channel4Volume, restored.Channel4Volume);
-            Assert.Equal(Drain(original), Drain(restored));
+            TickFrame(restored).Should().Be(TickFrame(original));
+            restored.ReadRegister(0xFF77).Should().Be(original.ReadRegister(0xFF77));
+            restored.Channel4Volume.Should().Be(original.Channel4Volume);
+            Drain(restored).Should().Equal(Drain(original));
         }
     }
 
@@ -143,18 +154,20 @@ public sealed class ApuStateTests
         original.Tick(1_001);
         var checkpoint = original.CaptureState();
 
-        Assert.NotEmpty(checkpoint.SampleBuffer.BufferedSamples);
-        Assert.NotEqual(
-            checkpoint.OutputFilter.LeftCapacitor,
-            checkpoint.OutputFilter.RightCapacitor
-        );
+        checkpoint.SampleBuffer.BufferedSamples.Should().NotBeEmpty();
+        checkpoint
+            .OutputFilter.RightCapacitor.Should()
+            .NotBe(checkpoint.OutputFilter.LeftCapacitor);
         var restored = Restored(ApuModelSpec.Cgb, checkpoint);
 
-        Assert.Equal(Drain(original), Drain(restored));
+        Drain(restored).Should().Equal(Drain(original));
         original.Tick(97);
         restored.Tick(97);
-        Assert.Equal(Drain(original), Drain(restored));
-        Assert.Equivalent(original.CaptureState(), restored.CaptureState(), strict: true);
+        Drain(restored).Should().Equal(Drain(original));
+        restored
+            .CaptureState()
+            .Should()
+            .BeEquivalentTo(original.CaptureState(), options => options.WithStrictOrdering());
     }
 
     [Fact]
@@ -165,10 +178,10 @@ public sealed class ApuStateTests
         original.WriteRegister(0xFF26, 0);
 
         var restored = Restored(ApuModelSpec.Dmg, original.CaptureState());
-        Assert.Equal(0x70, restored.ReadRegister(0xFF26));
-        Assert.Equal(0xAB, restored.ReadRegister(0xFF30));
+        restored.ReadRegister(0xFF26).Should().Be(0x70);
+        restored.ReadRegister(0xFF30).Should().Be(0xAB);
         restored.WriteRegister(0xFF24, 0x77);
-        Assert.Equal(0, restored.ReadRegister(0xFF24));
+        restored.ReadRegister(0xFF24).Should().Be(0);
     }
 
     public static TheoryData<string> ModelSpecs => ["DMG", "CGB", "SGB"];
@@ -229,16 +242,16 @@ public sealed class ApuStateTests
         {
             if (address is not (0xFF15 or 0xFF1F))
             {
-                Assert.Equal(expected.ReadRegister(address), actual.ReadRegister(address));
+                actual.ReadRegister(address).Should().Be(expected.ReadRegister(address));
             }
         }
 
         foreach (var address in Enumerable.Range(0xFF30, 0x10).Select(address => (ushort)address))
         {
-            Assert.Equal(expected.ReadRegister(address), actual.ReadRegister(address));
+            actual.ReadRegister(address).Should().Be(expected.ReadRegister(address));
         }
 
-        Assert.Equal(expected.ReadRegister(0xFF76), actual.ReadRegister(0xFF76));
-        Assert.Equal(expected.ReadRegister(0xFF77), actual.ReadRegister(0xFF77));
+        actual.ReadRegister(0xFF76).Should().Be(expected.ReadRegister(0xFF76));
+        actual.ReadRegister(0xFF77).Should().Be(expected.ReadRegister(0xFF77));
     }
 }

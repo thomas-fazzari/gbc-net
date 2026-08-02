@@ -16,7 +16,7 @@ public sealed class JoypadControllerTests
 
         joypad.Write(0x30, requestInterruptOnTransition: true);
 
-        Assert.Equal(0xFF, joypad.Read());
+        joypad.Read().Should().Be(0xFF);
     }
 
     [Fact]
@@ -28,7 +28,7 @@ public sealed class JoypadControllerTests
 
         joypad.SetButtonState(JoypadButton.Right, pressed: true);
 
-        Assert.Equal(0xEE, joypad.Read());
+        joypad.Read().Should().Be(0xEE);
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public sealed class JoypadControllerTests
 
         joypad.SetButtonState(JoypadButton.A, pressed: true);
 
-        Assert.Equal(0xDE, joypad.Read());
+        joypad.Read().Should().Be(0xDE);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class JoypadControllerTests
 
         joypad.SetButtonState(JoypadButton.A, pressed: true);
 
-        Assert.Equal(0xCE, joypad.Read());
+        joypad.Read().Should().Be(0xCE);
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public sealed class JoypadControllerTests
 
         joypad.SetButtonState(JoypadButton.A, pressed: true);
 
-        Assert.Equal(0b0001_0000, interrupts.InterruptFlag);
+        interrupts.InterruptFlag.Should().Be(0b0001_0000);
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public sealed class JoypadControllerTests
 
         joypad.SetButtonState(JoypadButton.A, pressed: true);
 
-        Assert.Equal(0x00, interrupts.InterruptFlag);
+        interrupts.InterruptFlag.Should().Be(0x00);
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed class JoypadControllerTests
 
         joypad.Write(0x10, requestInterruptOnTransition: true);
 
-        Assert.Equal(0b0001_0000, interrupts.InterruptFlag);
+        interrupts.InterruptFlag.Should().Be(0b0001_0000);
     }
 
     [Fact]
@@ -110,18 +110,18 @@ public sealed class JoypadControllerTests
 
         joypad.RestoreState(state);
 
-        Assert.Equal(0, interrupts.InterruptFlag);
+        interrupts.InterruptFlag.Should().Be(0);
 
-        Assert.Equal(0xCC, joypad.Read());
+        joypad.Read().Should().Be(0xCC);
         joypad.Write(0x20, requestInterruptOnTransition: false);
-        Assert.Equal(0xEE, joypad.Read());
+        joypad.Read().Should().Be(0xEE);
         joypad.Write(0x10, requestInterruptOnTransition: false);
-        Assert.Equal(0xDD, joypad.Read());
-        Assert.Equal(0, interrupts.InterruptFlag);
+        joypad.Read().Should().Be(0xDD);
+        interrupts.InterruptFlag.Should().Be(0);
 
         joypad.Write(0x00, requestInterruptOnTransition: false);
         joypad.SetButtonState(JoypadButton.Up, pressed: true);
 
-        Assert.Equal((byte)0b0001_0000, interrupts.InterruptFlag);
+        interrupts.InterruptFlag.Should().Be(0b0001_0000);
     }
 }

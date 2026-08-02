@@ -17,7 +17,7 @@ public sealed class Mbc3RealTimeClockTests
 
         var state = rtc.CaptureState();
 
-        Assert.Equal(10, state.Live.Seconds);
+        state.Live.Seconds.Should().Be(10);
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public sealed class Mbc3RealTimeClockTests
 
         var state = rtc.CaptureState();
 
-        Assert.Equal(11, state.Live.Seconds);
+        state.Live.Seconds.Should().Be(11);
     }
 
     [Fact]
@@ -41,13 +41,13 @@ public sealed class Mbc3RealTimeClockTests
         rtc.RestoreState(CreateState(seconds: 10, halted: true));
         clock.UnixTimeSeconds += 100;
 
-        Assert.Equal(10, rtc.CaptureState().Live.Seconds);
+        rtc.CaptureState().Live.Seconds.Should().Be(10);
 
         rtc.WriteRegister(Mbc3RealTimeClock.DayHighRegister, 0);
         rtc.ClearDirty();
         clock.UnixTimeSeconds++;
 
-        Assert.Equal(11, rtc.CaptureState().Live.Seconds);
+        rtc.CaptureState().Live.Seconds.Should().Be(11);
     }
 
     // Pan Docs MBC3 "The Day Counter": carry remains set until explicitly reset.
@@ -63,10 +63,10 @@ public sealed class Mbc3RealTimeClockTests
         clock.UnixTimeSeconds += 86_400;
         var followingDay = rtc.CaptureState();
 
-        Assert.Equal(0, rollover.Live.Day);
-        Assert.True(rollover.Live.Carry);
-        Assert.Equal(1, followingDay.Live.Day);
-        Assert.True(followingDay.Live.Carry);
+        rollover.Live.Day.Should().Be(0);
+        rollover.Live.Carry.Should().BeTrue();
+        followingDay.Live.Day.Should().Be(1);
+        followingDay.Live.Carry.Should().BeTrue();
     }
 
     [Fact]
@@ -81,10 +81,10 @@ public sealed class Mbc3RealTimeClockTests
         clock.UnixTimeSeconds++;
         var secondCapture = rtc.CaptureState();
 
-        Assert.Equal(15, firstCapture.Live.Seconds);
-        Assert.Equal(7, firstCapture.Latched.Seconds);
-        Assert.Equal(7, rtc.ReadRegister(Mbc3RealTimeClock.SecondsRegister));
-        Assert.Equal(16, secondCapture.Live.Seconds);
+        firstCapture.Live.Seconds.Should().Be(15);
+        firstCapture.Latched.Seconds.Should().Be(7);
+        rtc.ReadRegister(Mbc3RealTimeClock.SecondsRegister).Should().Be(7);
+        secondCapture.Live.Seconds.Should().Be(16);
     }
 
     [Fact]
@@ -94,16 +94,16 @@ public sealed class Mbc3RealTimeClockTests
         Mbc3RealTimeClock rtc = new(clock.Read);
         rtc.RestoreState(CreateState());
 
-        Assert.False(rtc.CaptureState().IsDirty);
+        rtc.CaptureState().IsDirty.Should().BeFalse();
 
         clock.UnixTimeSeconds++;
 
-        Assert.True(rtc.CaptureState().IsDirty);
-        Assert.False(rtc.IsDirty);
+        rtc.CaptureState().IsDirty.Should().BeTrue();
+        rtc.IsDirty.Should().BeFalse();
 
         rtc.WriteRegister(Mbc3RealTimeClock.SecondsRegister, 9);
 
-        Assert.True(rtc.CaptureState().IsDirty);
+        rtc.CaptureState().IsDirty.Should().BeTrue();
     }
 
     [Fact]
@@ -114,14 +114,17 @@ public sealed class Mbc3RealTimeClockTests
         rtc.RestoreState(CreateState(seconds: 10, latchedSeconds: 7));
         clock.ReadCount = 0;
 
-        Assert.Throws<ArgumentException>(() => rtc.RestoreState(CreateState(seconds: 64)));
-        Assert.Equal(0, clock.ReadCount);
+        FluentActions
+            .Invoking(() => rtc.RestoreState(CreateState(seconds: 64)))
+            .Should()
+            .ThrowExactly<ArgumentException>();
+        clock.ReadCount.Should().Be(0);
 
         clock.UnixTimeSeconds++;
         var state = rtc.CaptureState();
 
-        Assert.Equal(11, state.Live.Seconds);
-        Assert.Equal(7, state.Latched.Seconds);
+        state.Live.Seconds.Should().Be(11);
+        state.Latched.Seconds.Should().Be(7);
     }
 
     private static Mbc3RealTimeClockState CreateState(

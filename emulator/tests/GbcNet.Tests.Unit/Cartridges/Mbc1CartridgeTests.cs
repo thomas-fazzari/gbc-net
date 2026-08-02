@@ -18,7 +18,7 @@ public sealed class Mbc1CartridgeTests
 
         var cartridge = TestRomFactory.LoadCartridge(rom);
 
-        Assert.Equal(CartridgeType.Mbc1, cartridge.Header.CartridgeType);
+        cartridge.Header.CartridgeType.Should().Be(CartridgeType.Mbc1);
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public sealed class Mbc1CartridgeTests
         });
         var cartridge = TestRomFactory.LoadCartridge(rom);
 
-        Assert.Equal(0x42, cartridge.ReadRom(0x4000));
+        cartridge.ReadRom(0x4000).Should().Be(0x42);
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public sealed class Mbc1CartridgeTests
 
         cartridge.WriteRom(0x2000, 0x02);
 
-        Assert.Equal(0x22, cartridge.ReadRom(0x4000));
+        cartridge.ReadRom(0x4000).Should().Be(0x22);
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed class Mbc1CartridgeTests
 
         cartridge.WriteRom(0x2000, 0x00);
 
-        Assert.Equal(0x11, cartridge.ReadRom(0x4000));
+        cartridge.ReadRom(0x4000).Should().Be(0x11);
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public sealed class Mbc1CartridgeTests
 
         cartridge.WriteRom(0x2000, 0x10);
 
-        Assert.Equal(0x00, cartridge.ReadRom(0x4000));
+        cartridge.ReadRom(0x4000).Should().Be(0x00);
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public sealed class Mbc1CartridgeTests
 
         cartridge.WriteRom(0x4000, 0x01);
 
-        Assert.Equal(0x21, cartridge.ReadRom(0x4000));
+        cartridge.ReadRom(0x4000).Should().Be(0x21);
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public sealed class Mbc1CartridgeTests
         cartridge.WriteRom(0x4000, 0x01);
         cartridge.WriteRom(0x6000, 0x01);
 
-        Assert.Equal(0x20, cartridge.ReadRom(AddressMap.CartridgeEntryPointAddress));
+        cartridge.ReadRom(AddressMap.CartridgeEntryPointAddress).Should().Be(0x20);
     }
 
     [Fact]
@@ -147,12 +147,12 @@ public sealed class Mbc1CartridgeTests
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
 
-        Assert.Equal(0xFF, cartridge.ReadRam(AddressMap.ExternalRamStart));
+        cartridge.ReadRam(AddressMap.ExternalRamStart).Should().Be(0xFF);
 
         cartridge.WriteRom(0x0000, 0x0A);
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
 
-        Assert.Equal(0x42, cartridge.ReadRam(AddressMap.ExternalRamStart));
+        cartridge.ReadRam(AddressMap.ExternalRamStart).Should().Be(0x42);
     }
 
     [Fact]
@@ -172,11 +172,11 @@ public sealed class Mbc1CartridgeTests
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x22);
         cartridge.WriteRom(0x4000, 0x00);
 
-        Assert.Equal(0x11, cartridge.ReadRam(AddressMap.ExternalRamStart));
+        cartridge.ReadRam(AddressMap.ExternalRamStart).Should().Be(0x11);
 
         cartridge.WriteRom(0x4000, 0x01);
 
-        Assert.Equal(0x22, cartridge.ReadRam(AddressMap.ExternalRamStart));
+        cartridge.ReadRam(AddressMap.ExternalRamStart).Should().Be(0x22);
     }
 
     [Fact]
@@ -192,10 +192,10 @@ public sealed class Mbc1CartridgeTests
         cartridge.WriteRom(0x0000, 0x0A);
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
 
-        Assert.False(cartridge.HasBatteryBackedSave);
-        Assert.Equal(0, cartridge.BatterySaveSize);
-        Assert.False(cartridge.IsBatterySaveDirty);
-        Assert.Empty(cartridge.ExportBatterySave());
+        cartridge.HasBatteryBackedSave.Should().BeFalse();
+        cartridge.BatterySaveSize.Should().Be(0);
+        cartridge.IsBatterySaveDirty.Should().BeFalse();
+        cartridge.ExportBatterySave().Should().BeEmpty();
     }
 
     [Fact]
@@ -216,17 +216,17 @@ public sealed class Mbc1CartridgeTests
 
         var save = cartridge.ExportBatterySave();
 
-        Assert.True(cartridge.HasBatteryBackedSave);
-        Assert.Equal(32 * 1024, cartridge.BatterySaveSize);
-        Assert.True(cartridge.IsBatterySaveDirty);
-        Assert.Equal(0x11, save[0]);
-        Assert.Equal(0x22, save[AddressMap.ExternalRamWindowSize]);
+        cartridge.HasBatteryBackedSave.Should().BeTrue();
+        cartridge.BatterySaveSize.Should().Be(32 * 1024);
+        cartridge.IsBatterySaveDirty.Should().BeTrue();
+        save[0].Should().Be(0x11);
+        save[AddressMap.ExternalRamWindowSize].Should().Be(0x22);
 
         save[0] = 0x99;
-        Assert.Equal(0x11, cartridge.ExportBatterySave()[0]);
+        cartridge.ExportBatterySave()[0].Should().Be(0x11);
 
         cartridge.ClearBatterySaveDirty();
-        Assert.False(cartridge.IsBatterySaveDirty);
+        cartridge.IsBatterySaveDirty.Should().BeFalse();
     }
 
     [Fact]
@@ -244,15 +244,15 @@ public sealed class Mbc1CartridgeTests
 
         var result = cartridge.TryImportBatterySave(save, out var errorMessage);
 
-        Assert.True(result, errorMessage);
-        Assert.False(cartridge.IsBatterySaveDirty);
+        result.Should().BeTrue(errorMessage);
+        cartridge.IsBatterySaveDirty.Should().BeFalse();
 
         cartridge.WriteRom(0x0000, 0x0A);
         cartridge.WriteRom(0x6000, 0x01);
-        Assert.Equal(0x33, cartridge.ReadRam(AddressMap.ExternalRamStart));
+        cartridge.ReadRam(AddressMap.ExternalRamStart).Should().Be(0x33);
 
         cartridge.WriteRom(0x4000, 0x01);
-        Assert.Equal(0x44, cartridge.ReadRam(AddressMap.ExternalRamStart));
+        cartridge.ReadRam(AddressMap.ExternalRamStart).Should().Be(0x44);
     }
 
     [Fact]
@@ -267,7 +267,7 @@ public sealed class Mbc1CartridgeTests
 
         var result = cartridge.TryImportBatterySave(new byte[1], out _);
 
-        Assert.False(result);
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -305,17 +305,17 @@ public sealed class Mbc1CartridgeTests
 
         cartridge.RestoreState(state);
 
-        Assert.True(cartridge.IsBatterySaveDirty);
-        Assert.Equal(0x20, cartridge.ReadRom(AddressMap.CartridgeEntryPointAddress));
-        Assert.Equal(0x21, cartridge.ReadRom(0x4000));
-        Assert.Equal(0x11, cartridge.ReadRam(AddressMap.ExternalRamStart));
+        cartridge.IsBatterySaveDirty.Should().BeTrue();
+        cartridge.ReadRom(AddressMap.CartridgeEntryPointAddress).Should().Be(0x20);
+        cartridge.ReadRom(0x4000).Should().Be(0x21);
+        cartridge.ReadRam(AddressMap.ExternalRamStart).Should().Be(0x11);
 
         cartridge.WriteRom(0x4000, 0x00);
-        Assert.Equal(0x10, cartridge.ReadRam(AddressMap.ExternalRamStart));
+        cartridge.ReadRam(AddressMap.ExternalRamStart).Should().Be(0x10);
 
         cartridge.WriteRom(0x4000, 0x01);
         cartridge.WriteRom(0x2000, 0x02);
-        Assert.Equal(0x22, cartridge.ReadRom(0x4000));
+        cartridge.ReadRom(0x4000).Should().Be(0x22);
     }
 
     [Fact]
@@ -336,11 +336,11 @@ public sealed class Mbc1CartridgeTests
         var state = cartridge.CaptureState();
         cartridge.WriteRom(0x2000, 0x02);
 
-        Assert.Equal(0x22, cartridge.ReadRom(0x4000));
+        cartridge.ReadRom(0x4000).Should().Be(0x22);
 
         cartridge.RestoreState(state);
 
-        Assert.Equal(0x00, cartridge.ReadRom(0x4000));
+        cartridge.ReadRom(0x4000).Should().Be(0x00);
     }
 
     [Fact]
@@ -374,21 +374,20 @@ public sealed class Mbc1CartridgeTests
                 0
             )
         );
-        var malformedRegister = new CartridgeState(
-            new Mbc1MemoryControllerState(
-                controllerState.ExternalRam,
-                0x20,
-                controllerState.BankHigh,
-                controllerState.BankingMode
-            )
-        );
+        var malformedRegister = new CartridgeState(controllerState with { RomBankLow = 0x20 });
 
-        Assert.Throws<ArgumentException>(() => cartridge.RestoreState(malformedRam));
-        Assert.Throws<ArgumentException>(() => cartridge.RestoreState(malformedRegister));
+        FluentActions
+            .Invoking(() => cartridge.RestoreState(malformedRam))
+            .Should()
+            .ThrowExactly<ArgumentException>();
+        FluentActions
+            .Invoking(() => cartridge.RestoreState(malformedRegister))
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
-        Assert.True(cartridge.IsBatterySaveDirty);
-        Assert.Equal(0x20, cartridge.ReadRom(AddressMap.CartridgeEntryPointAddress));
-        Assert.Equal(0x21, cartridge.ReadRom(0x4000));
-        Assert.Equal(0x11, cartridge.ReadRam(AddressMap.ExternalRamStart));
+        cartridge.IsBatterySaveDirty.Should().BeTrue();
+        cartridge.ReadRom(AddressMap.CartridgeEntryPointAddress).Should().Be(0x20);
+        cartridge.ReadRom(0x4000).Should().Be(0x21);
+        cartridge.ReadRam(AddressMap.ExternalRamStart).Should().Be(0x11);
     }
 }

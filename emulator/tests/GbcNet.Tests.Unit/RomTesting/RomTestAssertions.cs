@@ -7,7 +7,7 @@ internal static class RomTestAssertions
 {
     public static void AssertPassed(RomTestResult result)
     {
-        Assert.True(result.Status is RomTestStatus.Passed, result.ToFailureMessage());
+        (result.Status is RomTestStatus.Passed).Should().BeTrue(result.ToFailureMessage());
     }
 
     public static void AssertPassed(
@@ -18,14 +18,10 @@ internal static class RomTestAssertions
         ArgumentNullException.ThrowIfNull(results);
         ArgumentNullException.ThrowIfNull(relativePath);
 
-        if (!results.TryGetValue(relativePath, out var result))
-        {
-            Assert.Fail($"Missing ROM result: {relativePath}");
-        }
+        var result = results.Should().ContainKey(relativePath).WhoseValue;
 
-        Assert.True(
-            result.Status is RomTestStatus.Passed,
-            relativePath + Environment.NewLine + result.ToFailureMessage()
-        );
+        (result.Status is RomTestStatus.Passed)
+            .Should()
+            .BeTrue(relativePath + Environment.NewLine + result.ToFailureMessage());
     }
 }

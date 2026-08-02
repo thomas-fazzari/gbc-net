@@ -30,15 +30,14 @@ public sealed class StackInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(4, machineCycles);
-        Assert.Equal(0xC0FE, cpu.Registers.SP);
-        Assert.Equal((byte)expectedValue, bus.ReadByte(0xC0FE));
-        Assert.Equal((byte)(expectedValue >> 8), bus.ReadByte(0xC0FF));
-        Assert.Equal(
-            expectedValue,
-            cpu.Registers.GetStackRegisterPair((StackRegisterPair)registerPair)
-        );
-        Assert.Equal(0x0101, cpu.Registers.PC);
+        machineCycles.Should().Be(4);
+        cpu.Registers.SP.Should().Be(0xC0FE);
+        bus.ReadByte(0xC0FE).Should().Be((byte)expectedValue);
+        bus.ReadByte(0xC0FF).Should().Be((byte)(expectedValue >> 8));
+        cpu.Registers.GetStackRegisterPair((StackRegisterPair)registerPair)
+            .Should()
+            .Be(expectedValue);
+        cpu.Registers.PC.Should().Be(0x0101);
     }
 
     [Theory]
@@ -60,12 +59,11 @@ public sealed class StackInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(3, machineCycles);
-        Assert.Equal(0xC102, cpu.Registers.SP);
-        Assert.Equal(
-            expectedValue,
-            cpu.Registers.GetStackRegisterPair((StackRegisterPair)registerPair)
-        );
-        Assert.Equal(0x0101, cpu.Registers.PC);
+        machineCycles.Should().Be(3);
+        cpu.Registers.SP.Should().Be(0xC102);
+        cpu.Registers.GetStackRegisterPair((StackRegisterPair)registerPair)
+            .Should()
+            .Be(expectedValue);
+        cpu.Registers.PC.Should().Be(0x0101);
     }
 }

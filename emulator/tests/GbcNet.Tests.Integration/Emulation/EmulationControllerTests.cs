@@ -59,15 +59,20 @@ public sealed class EmulationControllerTests
                 TestStorageFile.Create("active.gb", romA)
             );
 
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                controller.OpenRomFileAsync(TestStorageFile.Create("broken.gb", romB))
-            );
+            var exception = (
+                await FluentActions
+                    .Awaiting(() =>
+                        controller.OpenRomFileAsync(TestStorageFile.Create("broken.gb", romB))
+                    )
+                    .Should()
+                    .ThrowExactlyAsync<InvalidOperationException>()
+            ).Which;
 
-            Assert.Equal("Cheat codes could not be loaded.", exception.Message);
-            Assert.True(controller.State.HasSession);
-            Assert.Equal(active.LoadedRom.ToArray(), controller.State.LoadedRom.ToArray());
-            Assert.Equal(active.LoadedRomFileName, controller.State.LoadedRomFileName);
-            Assert.Equal(expectedCodes, controller.State.CheatCodes.ToArray());
+            exception.Message.Should().Be("Cheat codes could not be loaded.");
+            controller.State.HasSession.Should().BeTrue();
+            controller.State.LoadedRom.ToArray().Should().Equal(active.LoadedRom.ToArray());
+            controller.State.LoadedRomFileName.Should().Be(active.LoadedRomFileName);
+            controller.State.CheatCodes.ToArray().Should().Equal(expectedCodes);
 
             var updatedCodes = new[]
             {
@@ -82,14 +87,15 @@ public sealed class EmulationControllerTests
                 TestContext.Current.CancellationToken
             );
 
-            Assert.Equal(updatedCodes, controller.State.CheatCodes.ToArray());
-            Assert.Equal(
-                updatedCodes,
+            controller.State.CheatCodes.ToArray().Should().Equal(updatedCodes);
+            (
                 await test.CheatCodes.LoadAsync(
                     SHA256.HashData(romA),
                     TestContext.Current.CancellationToken
                 )
-            );
+            )
+                .Should()
+                .Equal(updatedCodes);
         }
         finally
         {
@@ -126,21 +132,26 @@ public sealed class EmulationControllerTests
         {
             await controller.OpenRomFileAsync(TestStorageFile.Create("game.gb", rom));
 
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                controller.SetCheatCodesAsync(
-                    [
-                        new CheatCodeEntry(
-                            ParseCode(CheatCodeType.GameShark, "01AACDC0"),
-                            IsEnabled: true,
-                            "Replacement Shark"
-                        ),
-                    ],
-                    TestContext.Current.CancellationToken
-                )
-            );
+            var exception = (
+                await FluentActions
+                    .Awaiting(() =>
+                        controller.SetCheatCodesAsync(
+                            [
+                                new CheatCodeEntry(
+                                    ParseCode(CheatCodeType.GameShark, "01AACDC0"),
+                                    IsEnabled: true,
+                                    "Replacement Shark"
+                                ),
+                            ],
+                            TestContext.Current.CancellationToken
+                        )
+                    )
+                    .Should()
+                    .ThrowExactlyAsync<InvalidOperationException>()
+            ).Which;
 
-            Assert.Equal("Cheat codes could not be saved.", exception.Message);
-            Assert.Equal(existingCodes, controller.State.CheatCodes.ToArray());
+            exception.Message.Should().Be("Cheat codes could not be saved.");
+            controller.State.CheatCodes.ToArray().Should().Equal(existingCodes);
         }
         finally
         {
@@ -170,7 +181,7 @@ public sealed class EmulationControllerTests
         try
         {
             await controller.OpenRomFileAsync(TestStorageFile.Create("game.gb", rom));
-            Assert.Equal(initialCodes, controller.State.CheatCodes.ToArray());
+            controller.State.CheatCodes.ToArray().Should().Equal(initialCodes);
 
             var changedCodes = new[]
             {
@@ -188,7 +199,7 @@ public sealed class EmulationControllerTests
 
             await controller.ResetAsync();
 
-            Assert.Equal(initialCodes, controller.State.CheatCodes.ToArray());
+            controller.State.CheatCodes.ToArray().Should().Equal(initialCodes);
         }
         finally
         {
@@ -198,7 +209,7 @@ public sealed class EmulationControllerTests
 
     private static CheatCode ParseCode(CheatCodeType type, string text)
     {
-        Assert.True(CheatCode.TryParse(type, text, out var code));
+        CheatCode.TryParse(type, text, out var code).Should().BeTrue();
         return code;
     }
 
@@ -255,7 +266,7 @@ public sealed class EmulationControllerTests
     {
         private readonly DbContextOptions<GbcNetDbContext> _options =
             new DbContextOptionsBuilder<GbcNetDbContext>()
-                .UseSqlite($"Data Source={databasePath}")
+                .UseSqlite(SqliteDbContextOptions.CreateConnectionString(databasePath))
                 .Options;
 
         public GbcNetDbContext CreateDbContext() => new(_options);
@@ -266,7 +277,7 @@ public sealed class EmulationControllerTests
     {
         private readonly DbContextOptions<GbcNetDbContext> _options =
             new DbContextOptionsBuilder<GbcNetDbContext>()
-                .UseSqlite($"Data Source={databasePath}")
+                .UseSqlite(SqliteDbContextOptions.CreateConnectionString(databasePath))
                 .AddInterceptors(FailingSaveChangesInterceptor.Instance)
                 .Options;
 
@@ -287,19 +298,36 @@ public sealed class EmulationControllerTests
 
 public class TestStorageFile : DispatchProxy
 {
-    private byte[] _data = [];
-    private string _name = string.Empty;
+    private static readonly AsyncLocal<StorageFileContent?> _pendingContent = new();
+
+    private readonly byte[] _data;
+    private readonly string _name;
+
+    public TestStorageFile()
+    {
+        var content =
+            _pendingContent.Value
+            ?? throw new InvalidOperationException(
+                "Test storage file content was not initialized."
+            );
+        _name = content.Name;
+        _data = content.Data;
+    }
 
     public static IStorageFile Create(string name, byte[] data)
     {
-        var storageFile = Create<IStorageFile, TestStorageFile>();
-        var proxy = (TestStorageFile)(object)storageFile;
-        proxy._name = name;
-        proxy._data = data;
-        return storageFile;
+        _pendingContent.Value = new StorageFileContent(name, data);
+        try
+        {
+            return Create<IStorageFile, TestStorageFile>();
+        }
+        finally
+        {
+            _pendingContent.Value = null;
+        }
     }
 
-    protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) =>
+    protected override object Invoke(MethodInfo? targetMethod, object?[]? args) =>
         targetMethod?.Name switch
         {
             "get_Name" => _name,
@@ -308,4 +336,6 @@ public class TestStorageFile : DispatchProxy
             ),
             _ => throw new NotSupportedException(targetMethod?.Name),
         };
+
+    private sealed record StorageFileContent(string Name, byte[] Data);
 }

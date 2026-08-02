@@ -28,9 +28,9 @@ public sealed class Arithmetic16InstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(4, machineCycles);
-        Assert.Equal(expectedStackPointer, cpu.Registers.SP);
-        Assert.Equal(expectedFlags, cpu.Registers.F);
-        Assert.Equal(0x0102, cpu.Registers.PC);
+        machineCycles.Should().Be(4);
+        cpu.Registers.SP.Should().Be(expectedStackPointer);
+        cpu.Registers.F.Should().Be(expectedFlags);
+        cpu.Registers.PC.Should().Be(0x0102);
     }
 }

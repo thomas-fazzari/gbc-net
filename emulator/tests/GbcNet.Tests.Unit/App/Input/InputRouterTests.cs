@@ -17,8 +17,8 @@ public sealed class InputRouterTests
 
         var handled = router.Apply(Key.A, pressed: true);
 
-        Assert.False(handled);
-        Assert.Empty(updates);
+        handled.Should().BeFalse();
+        updates.Should().BeEmpty();
     }
 
     [Fact]
@@ -31,10 +31,10 @@ public sealed class InputRouterTests
             (button, pressed) => updates.Add((button, pressed))
         );
 
-        Assert.True(router.Apply(Key.A, pressed: true));
-        Assert.True(router.Apply(Key.A, pressed: true));
+        router.Apply(Key.A, pressed: true).Should().BeTrue();
+        router.Apply(Key.A, pressed: true).Should().BeTrue();
 
-        Assert.Equal([(JoypadButton.A, true)], updates);
+        updates.Should().Equal((JoypadButton.A, true));
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class InputRouterTests
         router.Apply(Key.A, pressed: false);
         router.Apply(Key.B, pressed: false);
 
-        Assert.Equal([(JoypadButton.A, true), (JoypadButton.A, false)], updates);
+        updates.Should().Equal((JoypadButton.A, true), (JoypadButton.A, false));
     }
 
     [Fact]
@@ -80,12 +80,13 @@ public sealed class InputRouterTests
             }
         )
         {
-            Assert.True(router.ApplyGamepadButton(control, pressed: true));
-            Assert.True(router.ApplyGamepadButton(control, pressed: false));
+            router.ApplyGamepadButton(control, pressed: true).Should().BeTrue();
+            router.ApplyGamepadButton(control, pressed: false).Should().BeTrue();
         }
 
-        Assert.Equal(
-            [
+        updates
+            .Should()
+            .Equal(
                 (JoypadButton.A, true),
                 (JoypadButton.A, false),
                 (JoypadButton.B, true),
@@ -93,10 +94,8 @@ public sealed class InputRouterTests
                 (JoypadButton.Start, true),
                 (JoypadButton.Start, false),
                 (JoypadButton.Select, true),
-                (JoypadButton.Select, false),
-            ],
-            updates
-        );
+                (JoypadButton.Select, false)
+            );
     }
 
     [Fact]
@@ -114,7 +113,7 @@ public sealed class InputRouterTests
         router.Apply(Key.A, pressed: false);
         router.ApplyGamepadButton(GamepadButton.South, pressed: false);
 
-        Assert.Equal([(JoypadButton.A, true), (JoypadButton.A, false)], updates);
+        updates.Should().Equal((JoypadButton.A, true), (JoypadButton.A, false));
     }
 
     [Fact]
@@ -133,8 +132,8 @@ public sealed class InputRouterTests
             }
         )
         {
-            Assert.True(router.ApplyGamepadDirection(direction, pressed: true));
-            Assert.True(router.ApplyGamepadDirection(direction, pressed: false));
+            router.ApplyGamepadDirection(direction, pressed: true).Should().BeTrue();
+            router.ApplyGamepadDirection(direction, pressed: false).Should().BeTrue();
         }
 
         foreach (
@@ -147,11 +146,12 @@ public sealed class InputRouterTests
             }
         )
         {
-            Assert.False(router.ApplyGamepadDirection(button, pressed: true));
+            router.ApplyGamepadDirection(button, pressed: true).Should().BeFalse();
         }
 
-        Assert.Equal(
-            [
+        updates
+            .Should()
+            .Equal(
                 (JoypadButton.Up, true),
                 (JoypadButton.Up, false),
                 (JoypadButton.Down, true),
@@ -159,10 +159,8 @@ public sealed class InputRouterTests
                 (JoypadButton.Left, true),
                 (JoypadButton.Left, false),
                 (JoypadButton.Right, true),
-                (JoypadButton.Right, false),
-            ],
-            updates
-        );
+                (JoypadButton.Right, false)
+            );
     }
 
     [Fact]
@@ -183,7 +181,7 @@ public sealed class InputRouterTests
         router.ApplyGamepadButton(GamepadButton.South, pressed: false);
         router.ApplyGamepadButton(GamepadButton.East, pressed: false);
 
-        Assert.Equal([(JoypadButton.A, true), (JoypadButton.A, false)], updates);
+        updates.Should().Equal((JoypadButton.A, true), (JoypadButton.A, false));
     }
 
     [Fact]
@@ -211,7 +209,7 @@ public sealed class InputRouterTests
         router.ApplyGamepadButton(GamepadButton.East, pressed: false);
         router.ApplyGamepadDirection(JoypadButton.Up, pressed: false);
 
-        Assert.Equal(8, updates.Count);
+        updates.Count.Should().Be(8);
         foreach (
             var button in new[]
             {
@@ -222,8 +220,8 @@ public sealed class InputRouterTests
             }
         )
         {
-            Assert.Equal(1, updates.Count(update => update == (button, true)));
-            Assert.Equal(1, updates.Count(update => update == (button, false)));
+            updates.Count(update => update == (button, true)).Should().Be(1);
+            updates.Count(update => update == (button, false)).Should().Be(1);
         }
     }
 
@@ -240,29 +238,31 @@ public sealed class InputRouterTests
         router.Apply(Key.A, pressed: true);
         router.ApplyGamepadButton(GamepadButton.South, pressed: true);
 
-        Assert.Throws<ArgumentException>(() =>
-            router.ReplaceBindings(
-                [new InputBinding(Key.B, JoypadButton.B)],
-                [
-                    new GamepadBinding(GamepadButton.East, JoypadButton.A),
-                    new GamepadBinding(GamepadButton.East, JoypadButton.B),
-                ]
+        FluentActions
+            .Invoking(() =>
+                router.ReplaceBindings(
+                    [new InputBinding(Key.B, JoypadButton.B)],
+                    [
+                        new GamepadBinding(GamepadButton.East, JoypadButton.A),
+                        new GamepadBinding(GamepadButton.East, JoypadButton.B),
+                    ]
+                )
             )
-        );
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
-        Assert.True(router.Apply(Key.A, pressed: false));
-        Assert.True(router.ApplyGamepadButton(GamepadButton.South, pressed: false));
-        Assert.False(router.Apply(Key.B, pressed: true));
-        Assert.False(router.ApplyGamepadButton(GamepadButton.East, pressed: true));
-        Assert.Equal(
-            [
+        router.Apply(Key.A, pressed: false).Should().BeTrue();
+        router.ApplyGamepadButton(GamepadButton.South, pressed: false).Should().BeTrue();
+        router.Apply(Key.B, pressed: true).Should().BeFalse();
+        router.ApplyGamepadButton(GamepadButton.East, pressed: true).Should().BeFalse();
+        updates
+            .Should()
+            .Equal(
                 (JoypadButton.A, true),
                 (JoypadButton.B, true),
                 (JoypadButton.A, false),
-                (JoypadButton.B, false),
-            ],
-            updates
-        );
+                (JoypadButton.B, false)
+            );
     }
 
     [Fact]
@@ -282,20 +282,19 @@ public sealed class InputRouterTests
             [new GamepadBinding(GamepadButton.East, JoypadButton.A)]
         );
 
-        Assert.False(router.Apply(Key.A, pressed: false));
-        Assert.False(router.ApplyGamepadButton(GamepadButton.South, pressed: false));
-        Assert.True(router.Apply(Key.B, pressed: true));
-        Assert.True(router.ApplyGamepadButton(GamepadButton.East, pressed: true));
-        Assert.Equal(
-            [
+        router.Apply(Key.A, pressed: false).Should().BeFalse();
+        router.ApplyGamepadButton(GamepadButton.South, pressed: false).Should().BeFalse();
+        router.Apply(Key.B, pressed: true).Should().BeTrue();
+        router.ApplyGamepadButton(GamepadButton.East, pressed: true).Should().BeTrue();
+        updates
+            .Should()
+            .Equal(
                 (JoypadButton.A, true),
                 (JoypadButton.B, true),
                 (JoypadButton.A, false),
                 (JoypadButton.B, false),
                 (JoypadButton.B, true),
-                (JoypadButton.A, true),
-            ],
-            updates
-        );
+                (JoypadButton.A, true)
+            );
     }
 }

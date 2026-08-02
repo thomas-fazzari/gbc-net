@@ -4,7 +4,6 @@
 using Avalonia.Input;
 using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.Input;
-using GbcNet.Core.Joypad;
 
 namespace GbcNet.Tests.Unit.App.Configuration;
 
@@ -15,11 +14,11 @@ public sealed class InputConfigValidatorTests
     {
         var config = AppConfigurationFile.CreateDefaultInputConfig();
 
-        Assert.Empty(InputConfigValidator.Validate(config));
-        Assert.Equal(InputConfig.DefaultProfileName, config.Keyboard.ActiveProfile);
-        Assert.Equal(InputConfig.DefaultProfileName, config.Gamepad.ActiveProfile);
-        Assert.True(config.Keyboard.Profiles.ContainsKey(InputConfig.DefaultProfileName));
-        Assert.True(config.Gamepad.Profiles.ContainsKey(InputConfig.DefaultProfileName));
+        InputConfigValidator.Validate(config).Should().BeEmpty();
+        config.Keyboard.ActiveProfile.Should().Be(InputConfig.DefaultProfileName);
+        config.Gamepad.ActiveProfile.Should().Be(InputConfig.DefaultProfileName);
+        config.Keyboard.Profiles.ContainsKey(InputConfig.DefaultProfileName).Should().BeTrue();
+        config.Gamepad.Profiles.ContainsKey(InputConfig.DefaultProfileName).Should().BeTrue();
     }
 
     [Fact]
@@ -34,10 +33,10 @@ public sealed class InputConfigValidatorTests
                 StringComparer.Ordinal
             );
 
-        Assert.Equal("East", bindings["A"]);
-        Assert.Equal("South", bindings["B"]);
-        Assert.Equal("Start", bindings["Start"]);
-        Assert.Equal("Back", bindings["Select"]);
+        bindings["A"].Should().Be("East");
+        bindings["B"].Should().Be("South");
+        bindings["Start"].Should().Be("Start");
+        bindings["Select"].Should().Be("Back");
     }
 
     [Fact]
@@ -66,9 +65,9 @@ public sealed class InputConfigValidatorTests
 
         var errors = InputConfigValidator.Validate(config);
 
-        Assert.Empty(errors);
-        Assert.Equal("keyboard-only", config.Keyboard.ActiveProfile);
-        Assert.Equal("shared", config.Gamepad.ActiveProfile);
+        errors.Should().BeEmpty();
+        config.Keyboard.ActiveProfile.Should().Be("keyboard-only");
+        config.Gamepad.ActiveProfile.Should().Be("shared");
     }
 
     [Theory]
@@ -81,10 +80,9 @@ public sealed class InputConfigValidatorTests
 
         var errors = InputConfigValidator.Validate(config);
 
-        Assert.Contains(
-            errors,
-            error => error.Contains("version", StringComparison.OrdinalIgnoreCase)
-        );
+        errors
+            .Should()
+            .Contain(error => error.Contains("version", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -105,18 +103,15 @@ public sealed class InputConfigValidatorTests
 
         var errors = InputConfigValidator.Validate(config);
 
-        Assert.Contains(
-            errors,
-            error => error.Contains("exactly 8", StringComparison.OrdinalIgnoreCase)
-        );
-        Assert.Contains(
-            errors,
-            error => error.Contains("more than once", StringComparison.OrdinalIgnoreCase)
-        );
-        Assert.Contains(
-            errors,
-            error => error.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
-        );
+        errors
+            .Should()
+            .Contain(error => error.Contains("exactly 8", StringComparison.OrdinalIgnoreCase));
+        errors
+            .Should()
+            .Contain(error => error.Contains("more than once", StringComparison.OrdinalIgnoreCase));
+        errors
+            .Should()
+            .Contain(error => error.Contains("does not exist", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -141,7 +136,7 @@ public sealed class InputConfigValidatorTests
             },
         };
 
-        Assert.Empty(InputConfigValidator.Validate(config));
+        InputConfigValidator.Validate(config).Should().BeEmpty();
     }
 
     [Fact]
@@ -168,18 +163,21 @@ public sealed class InputConfigValidatorTests
 
         var errors = InputConfigValidator.Validate(config);
 
-        Assert.Contains(
-            errors,
-            error => error.Contains("control 'East' more than once", StringComparison.Ordinal)
-        );
-        Assert.Contains(
-            errors,
-            error => error.Contains("cannot bind joypad button 'Up'", StringComparison.Ordinal)
-        );
-        Assert.Contains(
-            errors,
-            error => error.Contains("missing joypad button 'Select'", StringComparison.Ordinal)
-        );
+        errors
+            .Should()
+            .Contain(error =>
+                error.Contains("control 'East' more than once", StringComparison.Ordinal)
+            );
+        errors
+            .Should()
+            .Contain(error =>
+                error.Contains("cannot bind joypad button 'Up'", StringComparison.Ordinal)
+            );
+        errors
+            .Should()
+            .Contain(error =>
+                error.Contains("missing joypad button 'Select'", StringComparison.Ordinal)
+            );
     }
 
     [Fact]
@@ -195,15 +193,17 @@ public sealed class InputConfigValidatorTests
         var exception = Record.Exception(() => InputConfigValidator.Validate(config));
         var errors = InputConfigValidator.Validate(config);
 
-        Assert.Null(exception);
-        Assert.Contains(
-            errors,
-            error => error.Contains("Keyboard input config is malformed", StringComparison.Ordinal)
-        );
-        Assert.Contains(
-            errors,
-            error => error.Contains("Gamepad input config is malformed", StringComparison.Ordinal)
-        );
+        exception.Should().BeNull();
+        errors
+            .Should()
+            .Contain(error =>
+                error.Contains("Keyboard input config is malformed", StringComparison.Ordinal)
+            );
+        errors
+            .Should()
+            .Contain(error =>
+                error.Contains("Gamepad input config is malformed", StringComparison.Ordinal)
+            );
     }
 
     [Theory]
@@ -212,7 +212,7 @@ public sealed class InputConfigValidatorTests
     [InlineData(Key.Enter, false)]
     public void IsReservedKey_IdentifiesApplicationShortcutKeys(Key key, bool expected)
     {
-        Assert.Equal(expected, InputConfigValidator.IsReservedKey(key));
+        InputConfigValidator.IsReservedKey(key).Should().Be(expected);
     }
 
     private static KeyboardProfileConfig CompleteKeyboardProfile() =>

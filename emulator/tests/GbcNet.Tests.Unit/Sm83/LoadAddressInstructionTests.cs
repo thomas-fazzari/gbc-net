@@ -25,10 +25,10 @@ public sealed class LoadAddressInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(4, machineCycles);
-        Assert.Equal(0x42, bus.ReadByte(WorkRamAddress));
-        Assert.Equal(0xF0, cpu.Registers.F);
-        Assert.Equal(0x0103, cpu.Registers.PC);
+        machineCycles.Should().Be(4);
+        bus.ReadByte(WorkRamAddress).Should().Be(0x42);
+        cpu.Registers.F.Should().Be(0xF0);
+        cpu.Registers.PC.Should().Be(0x0103);
     }
 
     [Fact]
@@ -45,9 +45,9 @@ public sealed class LoadAddressInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(4, machineCycles);
-        Assert.Equal(0xA5, cpu.Registers.A);
-        Assert.Equal(0xF0, cpu.Registers.F);
-        Assert.Equal(0x0103, cpu.Registers.PC);
+        machineCycles.Should().Be(4);
+        cpu.Registers.A.Should().Be(0xA5);
+        cpu.Registers.F.Should().Be(0xF0);
+        cpu.Registers.PC.Should().Be(0x0103);
     }
 }

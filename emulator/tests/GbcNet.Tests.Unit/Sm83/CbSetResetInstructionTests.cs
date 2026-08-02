@@ -37,10 +37,10 @@ public sealed class CbSetResetInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(2, machineCycles);
-        Assert.Equal(expectedValue, cpu.Registers.GetRegister(register8));
-        Assert.Equal(AllFlags, cpu.Registers.F);
-        Assert.Equal(0x0102, cpu.Registers.PC);
+        machineCycles.Should().Be(2);
+        cpu.Registers.GetRegister(register8).Should().Be(expectedValue);
+        cpu.Registers.F.Should().Be(AllFlags);
+        cpu.Registers.PC.Should().Be(0x0102);
     }
 
     [Theory]
@@ -65,10 +65,10 @@ public sealed class CbSetResetInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(4, machineCycles);
-        Assert.Equal(expectedValue, bus.ReadByte(0xC123));
-        Assert.Equal(AllFlags, cpu.Registers.F);
-        Assert.Equal(0x0102, cpu.Registers.PC);
+        machineCycles.Should().Be(4);
+        bus.ReadByte(0xC123).Should().Be(expectedValue);
+        cpu.Registers.F.Should().Be(AllFlags);
+        cpu.Registers.PC.Should().Be(0x0102);
     }
 
     [Fact]
@@ -94,9 +94,9 @@ public sealed class CbSetResetInstructionTests
 
             var machineCycles = cpu.Step();
 
-            Assert.Equal((prefixedOpcode & 0x07) == 0x06 ? 4 : 2, machineCycles);
-            Assert.Equal(AllFlags, cpu.Registers.F);
-            Assert.Equal(0x0102, cpu.Registers.PC);
+            machineCycles.Should().Be((prefixedOpcode & 0x07) == 0x06 ? 4 : 2);
+            cpu.Registers.F.Should().Be(AllFlags);
+            cpu.Registers.PC.Should().Be(0x0102);
         }
     }
 }

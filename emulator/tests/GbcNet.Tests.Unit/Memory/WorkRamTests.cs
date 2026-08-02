@@ -17,12 +17,12 @@ public sealed class WorkRamTests
         workRam.SelectSwitchableBank(2);
         workRam.Write(0xD000, 0x33);
 
-        Assert.Equal(0x11, workRam.Read(0xC000));
-        Assert.Equal(0x33, workRam.Read(0xD000));
+        workRam.Read(0xC000).Should().Be(0x11);
+        workRam.Read(0xD000).Should().Be(0x33);
 
         workRam.SelectSwitchableBank(1);
 
-        Assert.Equal(0x22, workRam.Read(0xD000));
+        workRam.Read(0xD000).Should().Be(0x22);
     }
 
     [Fact]
@@ -34,8 +34,8 @@ public sealed class WorkRamTests
         workRam.SelectSwitchableBank(3);
         workRam.Write(0xF000, 0x55);
 
-        Assert.Equal(0x44, workRam.Read(0xE000));
-        Assert.Equal(0x55, workRam.Read(0xD000));
+        workRam.Read(0xE000).Should().Be(0x44);
+        workRam.Read(0xD000).Should().Be(0x55);
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public sealed class WorkRamTests
         workRam.Write(0xD000, 0x77);
         workRam.SelectSwitchableBank(0);
 
-        Assert.Equal(0x66, workRam.Read(0xD000));
+        workRam.Read(0xD000).Should().Be(0x66);
     }
 
     [Fact]
@@ -61,8 +61,8 @@ public sealed class WorkRamTests
         workRam.Write(AddressMap.WorkRamSwitchableBankStart, 0x22);
         workRam.WriteBankRegister(0);
 
-        Assert.Equal(0xF8, workRam.ReadBankRegister());
-        Assert.Equal(0x11, workRam.Read(AddressMap.WorkRamSwitchableBankStart));
+        workRam.ReadBankRegister().Should().Be(0xF8);
+        workRam.Read(AddressMap.WorkRamSwitchableBankStart).Should().Be(0x11);
     }
 
     [Fact]
@@ -74,13 +74,13 @@ public sealed class WorkRamTests
         workRam.Write(AddressMap.WorkRamSwitchableBankStart, 0x77);
         workRam.WriteBankRegister(1);
 
-        Assert.Equal(0xF9, workRam.ReadBankRegister());
-        Assert.Equal(0x00, workRam.Read(AddressMap.WorkRamSwitchableBankStart));
+        workRam.ReadBankRegister().Should().Be(0xF9);
+        workRam.Read(AddressMap.WorkRamSwitchableBankStart).Should().Be(0x00);
 
         workRam.WriteBankRegister(7);
 
-        Assert.Equal(0xFF, workRam.ReadBankRegister());
-        Assert.Equal(0x77, workRam.Read(AddressMap.WorkRamSwitchableBankStart));
+        workRam.ReadBankRegister().Should().Be(0xFF);
+        workRam.Read(AddressMap.WorkRamSwitchableBankStart).Should().Be(0x77);
     }
 
     [Fact]
@@ -92,8 +92,8 @@ public sealed class WorkRamTests
         workRam.WriteBankRegister(7);
         workRam.Write(AddressMap.WorkRamSwitchableBankStart, 0x34);
 
-        Assert.Equal(0xFF, workRam.ReadBankRegister());
-        Assert.Equal(0x34, workRam.Read(AddressMap.WorkRamSwitchableBankStart));
+        workRam.ReadBankRegister().Should().Be(0xFF);
+        workRam.Read(AddressMap.WorkRamSwitchableBankStart).Should().Be(0x34);
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public sealed class WorkRamTests
         workRam.Write(0xD000, 0x88);
         workRam.SelectSwitchableBank(7);
 
-        Assert.Equal(0x88, workRam.Read(0xD000));
+        workRam.Read(0xD000).Should().Be(0x88);
     }
 
     [Fact]
@@ -133,13 +133,13 @@ public sealed class WorkRamTests
         state.Banks[0x1000] = 0x33;
         state.Banks[7 * 0x1000] = 0x99;
 
-        Assert.Equal(0x10, restored.Read(AddressMap.WorkRamStart));
-        Assert.Equal(0xF8, restored.ReadBankRegister());
-        Assert.Equal(0x11, restored.Read(AddressMap.WorkRamSwitchableBankStart));
+        restored.Read(AddressMap.WorkRamStart).Should().Be(0x10);
+        restored.ReadBankRegister().Should().Be(0xF8);
+        restored.Read(AddressMap.WorkRamSwitchableBankStart).Should().Be(0x11);
 
         restored.WriteBankRegister(7);
 
-        Assert.Equal(0x77, restored.Read(AddressMap.WorkRamSwitchableBankStart));
+        restored.Read(AddressMap.WorkRamSwitchableBankStart).Should().Be(0x77);
     }
 
     [Fact]
@@ -150,12 +150,13 @@ public sealed class WorkRamTests
         workRam.WriteBankRegister(7);
         workRam.Write(AddressMap.WorkRamSwitchableBankStart, 0xBB);
 
-        Assert.Throws<ArgumentException>(() =>
-            workRam.RestoreState(new WorkRamState(new byte[0x1000], 0))
-        );
+        FluentActions
+            .Invoking(() => workRam.RestoreState(new WorkRamState(new byte[0x1000], 0)))
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
-        Assert.Equal(0xAA, workRam.Read(AddressMap.WorkRamStart));
-        Assert.Equal(0xFF, workRam.ReadBankRegister());
-        Assert.Equal(0xBB, workRam.Read(AddressMap.WorkRamSwitchableBankStart));
+        workRam.Read(AddressMap.WorkRamStart).Should().Be(0xAA);
+        workRam.ReadBankRegister().Should().Be(0xFF);
+        workRam.Read(AddressMap.WorkRamSwitchableBankStart).Should().Be(0xBB);
     }
 }

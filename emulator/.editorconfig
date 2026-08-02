@@ -203,3 +203,7 @@ dotnet_diagnostic.S6640.severity = none
 # Extension block members must be public, CA1515 misreads generated public members in WinExe projects.
 [src/GbcNet.App/Emulation/EmulationSpeed.cs]
 dotnet_diagnostic.CA1515.severity = none
+
+[src/GbcNet.App/Program.cs]
+# Process entry point intentionally handles every fatal failure.
+dotnet_diagnostic.CA1031.severity = none

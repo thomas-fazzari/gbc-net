@@ -34,8 +34,8 @@ public sealed class PpuStateTests
 
         var restoredState = destination.CaptureState();
 
-        Assert.Equal(state.Engine.GetType(), restoredState.Engine.GetType());
-        Assert.Equivalent(state, restoredState, strict: true);
+        restoredState.Engine.GetType().Should().Be(state.Engine.GetType());
+        restoredState.Should().BeEquivalentTo(state, options => options.WithStrictOrdering());
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed class PpuStateTests
         ppu.Tick(100);
 
         var captured = ppu.CaptureState();
-        var cgb = Assert.IsType<CgbPpuEngineState>(captured.Engine);
+        var cgb = captured.Engine.Should().BeOfType<CgbPpuEngineState>().Subject;
         var expectedVideoRam = captured.VideoRam.Banks.ToArray();
         var expectedBackgroundPalette = captured.BackgroundPaletteRam.Bytes.ToArray();
         var expectedObjectPalette = captured.ObjectPaletteRam.Bytes.ToArray();
@@ -70,15 +70,15 @@ public sealed class PpuStateTests
         cgb.BackgroundAttributeFifo[0] ^= 0xFF;
         cgb.Objects.Selector.Objects[0] = default;
 
-        var recaptured = Assert.IsType<CgbPpuEngineState>(ppu.CaptureState().Engine);
-        Assert.Equal(expectedVideoRam, ppu.CaptureState().VideoRam.Banks);
-        Assert.Equal(expectedBackgroundPalette, ppu.CaptureState().BackgroundPaletteRam.Bytes);
-        Assert.Equal(expectedObjectPalette, ppu.CaptureState().ObjectPaletteRam.Bytes);
-        Assert.Equal(expectedOam, ppu.CaptureState().ObjectAttributeMemory.Bytes);
-        Assert.Equal(expectedFrameBuffer, recaptured.Common.FrameBuffer);
-        Assert.Equal(expectedBackgroundColors, recaptured.BackgroundColorFifo);
-        Assert.Equal(expectedBackgroundAttributes, recaptured.BackgroundAttributeFifo);
-        Assert.Equal(expectedObjects, recaptured.Objects.Selector.Objects);
+        var recaptured = ppu.CaptureState().Engine.Should().BeOfType<CgbPpuEngineState>().Subject;
+        ppu.CaptureState().VideoRam.Banks.Should().Equal(expectedVideoRam);
+        ppu.CaptureState().BackgroundPaletteRam.Bytes.Should().Equal(expectedBackgroundPalette);
+        ppu.CaptureState().ObjectPaletteRam.Bytes.Should().Equal(expectedObjectPalette);
+        ppu.CaptureState().ObjectAttributeMemory.Bytes.Should().Equal(expectedOam);
+        recaptured.Common.FrameBuffer.Should().Equal(expectedFrameBuffer);
+        recaptured.BackgroundColorFifo.Should().Equal(expectedBackgroundColors);
+        recaptured.BackgroundAttributeFifo.Should().Equal(expectedBackgroundAttributes);
+        recaptured.Objects.Selector.Objects.Should().Equal(expectedObjects);
     }
 
     [Fact]
@@ -105,17 +105,23 @@ public sealed class PpuStateTests
             ObjectAttributeMemory = new MappedMemoryState(new byte[1]),
         };
 
-        Assert.Throws<ArgumentException>(() => destination.RestoreState(malformed));
+        FluentActions
+            .Invoking(() => destination.RestoreState(malformed))
+            .Should()
+            .ThrowExactly<ArgumentException>();
         var afterMalformed = destination.CaptureState();
-        Assert.Equal(before.Engine.GetType(), afterMalformed.Engine.GetType());
-        Assert.Equivalent(before, afterMalformed, strict: true);
+        afterMalformed.Engine.GetType().Should().Be(before.Engine.GetType());
+        afterMalformed.Should().BeEquivalentTo(before, options => options.WithStrictOrdering());
 
         var wrongEngine = source.CaptureState() with { Engine = new DmgPpuEngine().CaptureState() };
 
-        Assert.Throws<ArgumentException>(() => destination.RestoreState(wrongEngine));
+        FluentActions
+            .Invoking(() => destination.RestoreState(wrongEngine))
+            .Should()
+            .ThrowExactly<ArgumentException>();
         var afterWrongEngine = destination.CaptureState();
-        Assert.Equal(before.Engine.GetType(), afterWrongEngine.Engine.GetType());
-        Assert.Equivalent(before, afterWrongEngine, strict: true);
+        afterWrongEngine.Engine.GetType().Should().Be(before.Engine.GetType());
+        afterWrongEngine.Should().BeEquivalentTo(before, options => options.WithStrictOrdering());
     }
 
     [Theory]
@@ -136,14 +142,14 @@ public sealed class PpuStateTests
         sourceInterrupts.SetInterruptFlag(0);
 
         var state = source.CaptureState();
-        Assert.True(GetCommon(state.Engine).RenderedPixels > 0);
-        Assert.True(GetCommon(state.Engine).BackgroundWindowFetcher.BackgroundFifoCount > 0);
+        (GetCommon(state.Engine).RenderedPixels > 0).Should().BeTrue();
+        (GetCommon(state.Engine).BackgroundWindowFetcher.BackgroundFifoCount > 0).Should().BeTrue();
 
         var restored = CreatePpu(profile, out var restoredInterrupts);
         restored.RestoreState(state);
 
-        Assert.Equal(0, restoredInterrupts.InterruptFlag);
-        Assert.Null(restored.Tick(0).CompletedFrame);
+        restoredInterrupts.InterruptFlag.Should().Be(0);
+        restored.Tick(0).CompletedFrame.Should().BeNull();
         DriveIdenticallyToCompletedFrame(source, sourceInterrupts, restored, restoredInterrupts);
     }
 
@@ -177,9 +183,9 @@ public sealed class PpuStateTests
             restored,
             restoredInterrupts
         );
-        Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        Assert.Equal(0x34, frame.Pixels.Span[0]);
-        Assert.Equal(0x12, frame.Pixels.Span[1]);
+        frame.PixelFormat.Should().Be(LcdPixelFormat.Rgb555Le);
+        frame.Pixels.Span[0].Should().Be(0x34);
+        frame.Pixels.Span[1].Should().Be(0x12);
     }
 
     [Theory]
@@ -199,7 +205,7 @@ public sealed class PpuStateTests
         sourceInterrupts.SetInterruptFlag(0);
 
         var state = source.CaptureState();
-        Assert.True(GetCommon(state.Engine).BackgroundWindowFetcher.WindowActiveThisLine);
+        GetCommon(state.Engine).BackgroundWindowFetcher.WindowActiveThisLine.Should().BeTrue();
         var restored = CreatePpu(profile, out var restoredInterrupts);
         restored.RestoreState(state);
 
@@ -222,7 +228,7 @@ public sealed class PpuStateTests
         sourceInterrupts.SetInterruptFlag(0);
 
         var state = source.CaptureState();
-        Assert.True(GetObjects(state.Engine).Selected);
+        GetObjects(state.Engine).Selected.Should().BeTrue();
         var restored = CreatePpu(profile, out var restoredInterrupts);
         restored.RestoreState(state);
 
@@ -235,22 +241,29 @@ public sealed class PpuStateTests
         var cgb = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb), out _);
         var cgbState = cgb.CaptureState();
 
-        Assert.Throws<ArgumentException>(() =>
-            cgb.ValidateState(cgbState with { StatusInterruptSelect = 0x80 })
-        );
-        Assert.Throws<ArgumentException>(() =>
-            cgb.ValidateState(cgbState with { ObjectPriorityMode = (ObjectPriorityMode)2 })
-        );
+        FluentActions
+            .Invoking(() => cgb.ValidateState(cgbState with { StatusInterruptSelect = 0x80 }))
+            .Should()
+            .ThrowExactly<ArgumentException>();
+        FluentActions
+            .Invoking(() =>
+                cgb.ValidateState(cgbState with { ObjectPriorityMode = (ObjectPriorityMode)2 })
+            )
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
         var dmg = CreatePpu(DmgHardwareProfile.Instance, out _);
-        Assert.Throws<ArgumentException>(() =>
-            dmg.ValidateState(
-                dmg.CaptureState() with
-                {
-                    ObjectPriorityMode = ObjectPriorityMode.LowerXWins,
-                }
+        FluentActions
+            .Invoking(() =>
+                dmg.ValidateState(
+                    dmg.CaptureState() with
+                    {
+                        ObjectPriorityMode = ObjectPriorityMode.LowerXWins,
+                    }
+                )
             )
-        );
+            .Should()
+            .ThrowExactly<ArgumentException>();
     }
 
     [Fact]
@@ -271,14 +284,14 @@ public sealed class PpuStateTests
         var restored = CreatePpu(profile, out var restoredInterrupts);
         restored.RestoreState(state);
 
-        Assert.False(restored.VideoRenderingEnabled);
+        restored.VideoRenderingEnabled.Should().BeFalse();
         var frame = DriveIdenticallyToCompletedFrame(
             source,
             sourceInterrupts,
             restored,
             restoredInterrupts
         );
-        Assert.NotEmpty(frame.Pixels.Span.ToArray());
+        frame.Pixels.Span.ToArray().Should().NotBeEmpty();
     }
 
     private static IHardwareProfile CreateProfile(int profileIndex) =>
@@ -342,34 +355,32 @@ public sealed class PpuStateTests
             var sourceResult = source.Tick(dots);
             var restoredResult = restored.Tick(dots);
 
-            Assert.Equal(sourceResult.Interrupts, restoredResult.Interrupts);
-            Assert.Equal(sourceResult.EnteredVisibleHBlank, restoredResult.EnteredVisibleHBlank);
-            Assert.Equal(sourceInterrupts.InterruptFlag, restoredInterrupts.InterruptFlag);
-            Assert.Equal(
-                source.ReadRegister(AddressMap.LcdYCoordinateRegister),
-                restored.ReadRegister(AddressMap.LcdYCoordinateRegister)
-            );
-            Assert.Equal(
-                source.ReadRegister(AddressMap.LcdStatusRegister),
-                restored.ReadRegister(AddressMap.LcdStatusRegister)
-            );
-            Assert.Equal(source.IsCpuVideoRamReadBlocked, restored.IsCpuVideoRamReadBlocked);
-            Assert.Equal(
-                source.IsCpuObjectAttributeMemoryReadBlocked,
-                restored.IsCpuObjectAttributeMemoryReadBlocked
-            );
-            Assert.Equal(
-                sourceResult.CompletedFrame is null,
-                restoredResult.CompletedFrame is null
-            );
+            restoredResult.Interrupts.Should().Be(sourceResult.Interrupts);
+            restoredResult.EnteredVisibleHBlank.Should().Be(sourceResult.EnteredVisibleHBlank);
+            restoredInterrupts.InterruptFlag.Should().Be(sourceInterrupts.InterruptFlag);
+            restored
+                .ReadRegister(AddressMap.LcdYCoordinateRegister)
+                .Should()
+                .Be(source.ReadRegister(AddressMap.LcdYCoordinateRegister));
+            restored
+                .ReadRegister(AddressMap.LcdStatusRegister)
+                .Should()
+                .Be(source.ReadRegister(AddressMap.LcdStatusRegister));
+            restored.IsCpuVideoRamReadBlocked.Should().Be(source.IsCpuVideoRamReadBlocked);
+            restored
+                .IsCpuObjectAttributeMemoryReadBlocked.Should()
+                .Be(source.IsCpuObjectAttributeMemoryReadBlocked);
+            (restoredResult.CompletedFrame is null)
+                .Should()
+                .Be(sourceResult.CompletedFrame is null);
 
             if (
                 sourceResult.CompletedFrame is { } sourceFrame
                 && restoredResult.CompletedFrame is { } restoredFrame
             )
             {
-                Assert.Equal(sourceFrame.PixelFormat, restoredFrame.PixelFormat);
-                Assert.Equal(sourceFrame.Pixels.ToArray(), restoredFrame.Pixels.ToArray());
+                restoredFrame.PixelFormat.Should().Be(sourceFrame.PixelFormat);
+                restoredFrame.Pixels.ToArray().Should().Equal(sourceFrame.Pixels.ToArray());
                 return restoredFrame;
             }
         }

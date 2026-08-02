@@ -18,9 +18,9 @@ public sealed class JumpInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(4, machineCycles);
-        Assert.Equal(0x5678, cpu.Registers.PC);
-        Assert.Equal(0xF0, cpu.Registers.F);
+        machineCycles.Should().Be(4);
+        cpu.Registers.PC.Should().Be(0x5678);
+        cpu.Registers.F.Should().Be(0xF0);
     }
 
     [Theory]
@@ -44,9 +44,9 @@ public sealed class JumpInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(isTaken ? 4 : 3, machineCycles);
-        Assert.Equal(isTaken ? 0x5678 : 0x0103, cpu.Registers.PC);
-        Assert.Equal(flags, cpu.Registers.F);
+        machineCycles.Should().Be(isTaken ? 4 : 3);
+        cpu.Registers.PC.Should().Be(isTaken ? (ushort)0x5678 : (ushort)0x0103);
+        cpu.Registers.F.Should().Be(flags);
     }
 
     [Fact]
@@ -58,9 +58,9 @@ public sealed class JumpInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(1, machineCycles);
-        Assert.Equal(0xC123, cpu.Registers.PC);
-        Assert.Equal(0xF0, cpu.Registers.F);
+        machineCycles.Should().Be(1);
+        cpu.Registers.PC.Should().Be(0xC123);
+        cpu.Registers.F.Should().Be(0xF0);
     }
 
     [Theory]
@@ -78,9 +78,9 @@ public sealed class JumpInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(3, machineCycles);
-        Assert.Equal(expectedPc, cpu.Registers.PC);
-        Assert.Equal(0xF0, cpu.Registers.F);
+        machineCycles.Should().Be(3);
+        cpu.Registers.PC.Should().Be(expectedPc);
+        cpu.Registers.F.Should().Be(0xF0);
     }
 
     [Theory]
@@ -109,8 +109,8 @@ public sealed class JumpInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(expectedMachineCycles, machineCycles);
-        Assert.Equal(expectedPc, cpu.Registers.PC);
-        Assert.Equal(flags, cpu.Registers.F);
+        machineCycles.Should().Be(expectedMachineCycles);
+        cpu.Registers.PC.Should().Be(expectedPc);
+        cpu.Registers.F.Should().Be(flags);
     }
 }

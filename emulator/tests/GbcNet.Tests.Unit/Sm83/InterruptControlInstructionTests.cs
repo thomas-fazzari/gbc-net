@@ -13,10 +13,10 @@ public sealed class InterruptControlInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(1, machineCycles);
-        Assert.False(cpu.Ime);
-        Assert.False(cpu.ImeEnablePending);
-        Assert.Equal(0x0101, cpu.Registers.PC);
+        machineCycles.Should().Be(1);
+        cpu.Ime.Should().BeFalse();
+        cpu.ImeEnablePending.Should().BeFalse();
+        cpu.Registers.PC.Should().Be(0x0101);
     }
 
     [Fact]
@@ -28,15 +28,15 @@ public sealed class InterruptControlInstructionTests
             bytes[0x0101] = 0x00;
         });
 
-        Assert.Equal(1, cpu.Step());
-        Assert.False(cpu.Ime);
-        Assert.True(cpu.ImeEnablePending);
-        Assert.Equal(0x0101, cpu.Registers.PC);
+        cpu.Step().Should().Be(1);
+        cpu.Ime.Should().BeFalse();
+        cpu.ImeEnablePending.Should().BeTrue();
+        cpu.Registers.PC.Should().Be(0x0101);
 
-        Assert.Equal(1, cpu.Step());
-        Assert.True(cpu.Ime);
-        Assert.False(cpu.ImeEnablePending);
-        Assert.Equal(0x0102, cpu.Registers.PC);
+        cpu.Step().Should().Be(1);
+        cpu.Ime.Should().BeTrue();
+        cpu.ImeEnablePending.Should().BeFalse();
+        cpu.Registers.PC.Should().Be(0x0102);
     }
 
     [Fact]
@@ -49,20 +49,20 @@ public sealed class InterruptControlInstructionTests
             bytes[0x0102] = 0x00;
         });
 
-        Assert.Equal(1, cpu.Step());
-        Assert.False(cpu.Ime);
-        Assert.True(cpu.ImeEnablePending);
-        Assert.Equal(0x0101, cpu.Registers.PC);
+        cpu.Step().Should().Be(1);
+        cpu.Ime.Should().BeFalse();
+        cpu.ImeEnablePending.Should().BeTrue();
+        cpu.Registers.PC.Should().Be(0x0101);
 
-        Assert.Equal(1, cpu.Step());
-        Assert.False(cpu.Ime);
-        Assert.False(cpu.ImeEnablePending);
-        Assert.Equal(0x0102, cpu.Registers.PC);
+        cpu.Step().Should().Be(1);
+        cpu.Ime.Should().BeFalse();
+        cpu.ImeEnablePending.Should().BeFalse();
+        cpu.Registers.PC.Should().Be(0x0102);
 
-        Assert.Equal(1, cpu.Step());
-        Assert.False(cpu.Ime);
-        Assert.False(cpu.ImeEnablePending);
-        Assert.Equal(0x0103, cpu.Registers.PC);
+        cpu.Step().Should().Be(1);
+        cpu.Ime.Should().BeFalse();
+        cpu.ImeEnablePending.Should().BeFalse();
+        cpu.Registers.PC.Should().Be(0x0103);
     }
 
     [Fact]
@@ -73,9 +73,9 @@ public sealed class InterruptControlInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(1, machineCycles);
-        Assert.True(cpu.Ime);
-        Assert.False(cpu.ImeEnablePending);
-        Assert.Equal(0x0101, cpu.Registers.PC);
+        machineCycles.Should().Be(1);
+        cpu.Ime.Should().BeTrue();
+        cpu.ImeEnablePending.Should().BeFalse();
+        cpu.Registers.PC.Should().Be(0x0101);
     }
 }

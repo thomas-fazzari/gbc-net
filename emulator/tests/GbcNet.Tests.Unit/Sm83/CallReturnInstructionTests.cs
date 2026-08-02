@@ -24,12 +24,12 @@ public sealed class CallReturnInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(6, machineCycles);
-        Assert.Equal(0x1234, cpu.Registers.PC);
-        Assert.Equal(0xC0FE, cpu.Registers.SP);
-        Assert.Equal(0x03, bus.ReadByte(0xC0FE));
-        Assert.Equal(0x01, bus.ReadByte(0xC0FF));
-        Assert.Equal(0xF0, cpu.Registers.F);
+        machineCycles.Should().Be(6);
+        cpu.Registers.PC.Should().Be(0x1234);
+        cpu.Registers.SP.Should().Be(0xC0FE);
+        bus.ReadByte(0xC0FE).Should().Be(0x03);
+        bus.ReadByte(0xC0FF).Should().Be(0x01);
+        cpu.Registers.F.Should().Be(0xF0);
     }
 
     [Theory]
@@ -54,18 +54,18 @@ public sealed class CallReturnInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(isTaken ? 6 : 3, machineCycles);
-        Assert.Equal(isTaken ? 0x5678 : 0x0103, cpu.Registers.PC);
-        Assert.Equal(isTaken ? 0xC0FE : 0xC100, cpu.Registers.SP);
-        Assert.Equal(flags, cpu.Registers.F);
+        machineCycles.Should().Be(isTaken ? 6 : 3);
+        cpu.Registers.PC.Should().Be(isTaken ? (ushort)0x5678 : (ushort)0x0103);
+        cpu.Registers.SP.Should().Be(isTaken ? (ushort)0xC0FE : (ushort)0xC100);
+        cpu.Registers.F.Should().Be(flags);
 
         if (!isTaken)
         {
             return;
         }
 
-        Assert.Equal(0x03, bus.ReadByte(0xC0FE));
-        Assert.Equal(0x01, bus.ReadByte(0xC0FF));
+        bus.ReadByte(0xC0FE).Should().Be(0x03);
+        bus.ReadByte(0xC0FF).Should().Be(0x01);
     }
 
     [Fact]
@@ -79,10 +79,10 @@ public sealed class CallReturnInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(4, machineCycles);
-        Assert.Equal(0x5678, cpu.Registers.PC);
-        Assert.Equal(0xC102, cpu.Registers.SP);
-        Assert.Equal(0xF0, cpu.Registers.F);
+        machineCycles.Should().Be(4);
+        cpu.Registers.PC.Should().Be(0x5678);
+        cpu.Registers.SP.Should().Be(0xC102);
+        cpu.Registers.F.Should().Be(0xF0);
     }
 
     [Fact]
@@ -98,17 +98,17 @@ public sealed class CallReturnInstructionTests
         bus.WriteByte(0xC100, 0x78);
         bus.WriteByte(0xC101, 0x56);
 
-        Assert.Equal(1, cpu.Step());
-        Assert.True(cpu.ImeEnablePending);
+        cpu.Step().Should().Be(1);
+        cpu.ImeEnablePending.Should().BeTrue();
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(4, machineCycles);
-        Assert.Equal(0x5678, cpu.Registers.PC);
-        Assert.Equal(0xC102, cpu.Registers.SP);
-        Assert.True(cpu.Ime);
-        Assert.False(cpu.ImeEnablePending);
-        Assert.Equal(0xF0, cpu.Registers.F);
+        machineCycles.Should().Be(4);
+        cpu.Registers.PC.Should().Be(0x5678);
+        cpu.Registers.SP.Should().Be(0xC102);
+        cpu.Ime.Should().BeTrue();
+        cpu.ImeEnablePending.Should().BeFalse();
+        cpu.Registers.F.Should().Be(0xF0);
     }
 
     [Fact]
@@ -125,15 +125,15 @@ public sealed class CallReturnInstructionTests
         bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
         bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
 
-        Assert.Equal(4, cpu.Step());
-        Assert.True(cpu.Ime);
-        Assert.Equal(0x5678, cpu.Registers.PC);
-        Assert.Equal(0xE1, bus.ReadByte(AddressMap.InterruptFlagRegister));
+        cpu.Step().Should().Be(4);
+        cpu.Ime.Should().BeTrue();
+        cpu.Registers.PC.Should().Be(0x5678);
+        bus.ReadByte(AddressMap.InterruptFlagRegister).Should().Be(0xE1);
 
-        Assert.Equal(5, cpu.Step());
-        Assert.False(cpu.Ime);
-        Assert.Equal(VBlankVector, cpu.Registers.PC);
-        Assert.Equal(0xE0, bus.ReadByte(AddressMap.InterruptFlagRegister));
+        cpu.Step().Should().Be(5);
+        cpu.Ime.Should().BeFalse();
+        cpu.Registers.PC.Should().Be(VBlankVector);
+        bus.ReadByte(AddressMap.InterruptFlagRegister).Should().Be(0xE0);
     }
 
     [Theory]
@@ -155,10 +155,10 @@ public sealed class CallReturnInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(isTaken ? 5 : 2, machineCycles);
-        Assert.Equal(isTaken ? 0x5678 : 0x0101, cpu.Registers.PC);
-        Assert.Equal(isTaken ? 0xC102 : 0xC100, cpu.Registers.SP);
-        Assert.Equal(flags, cpu.Registers.F);
+        machineCycles.Should().Be(isTaken ? 5 : 2);
+        cpu.Registers.PC.Should().Be(isTaken ? (ushort)0x5678 : (ushort)0x0101);
+        cpu.Registers.SP.Should().Be(isTaken ? (ushort)0xC102 : (ushort)0xC100);
+        cpu.Registers.F.Should().Be(flags);
     }
 
     [Theory]
@@ -178,11 +178,11 @@ public sealed class CallReturnInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(4, machineCycles);
-        Assert.Equal(targetAddress, cpu.Registers.PC);
-        Assert.Equal(0xC0FE, cpu.Registers.SP);
-        Assert.Equal(0x01, bus.ReadByte(0xC0FE));
-        Assert.Equal(0x01, bus.ReadByte(0xC0FF));
-        Assert.Equal(0xF0, cpu.Registers.F);
+        machineCycles.Should().Be(4);
+        cpu.Registers.PC.Should().Be(targetAddress);
+        cpu.Registers.SP.Should().Be(0xC0FE);
+        bus.ReadByte(0xC0FE).Should().Be(0x01);
+        bus.ReadByte(0xC0FF).Should().Be(0x01);
+        cpu.Registers.F.Should().Be(0xF0);
     }
 }

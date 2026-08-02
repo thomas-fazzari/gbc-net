@@ -8,7 +8,6 @@ using GbcNet.Core.Cartridges;
 using GbcNet.Core.Cheats;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Memory;
-using GbcNet.Tests.Shared;
 
 namespace GbcNet.Tests.Unit.App.Emulation;
 
@@ -40,7 +39,7 @@ public sealed class EmulationSessionTests
                 .RestoreSaveStateAsync(state)
                 .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
 
-            Assert.True(audioOutput.ClearCount > clearCount);
+            (audioOutput.ClearCount > clearCount).Should().BeTrue();
         }
         finally
         {
@@ -51,7 +50,7 @@ public sealed class EmulationSessionTests
     [Fact]
     public async Task SetCheatCodesAsync_SwapsAndClearsGameGenieRomReadsWhilePaused()
     {
-        Assert.True(CheatCode.TryParse(CheatCodeType.GameGenie, "0A1-B9F", out var code));
+        CheatCode.TryParse(CheatCodeType.GameGenie, "0A1-B9F", out var code).Should().BeTrue();
         var gameBoy = new GameBoy(TestRomFactory.LoadCartridge(), HardwareModel.Dmg);
         using var audioOutput = new TestAudioOutput();
         var session = new EmulationSession(
@@ -70,13 +69,13 @@ public sealed class EmulationSessionTests
             await session
                 .SetCheatCodesAsync([code])
                 .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
-            Assert.Equal(0x0A, gameBoy.Bus.ReadByte(code.Address));
+            gameBoy.Bus.ReadByte(code.Address).Should().Be(0x0A);
 
             await session
                 .SetCheatCodesAsync([])
                 .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
-            Assert.Equal(0x00, gameBoy.Bus.ReadByte(code.Address));
-            Assert.True(session.IsPaused);
+            gameBoy.Bus.ReadByte(code.Address).Should().Be(0x00);
+            session.IsPaused.Should().BeTrue();
         }
         finally
         {
@@ -103,7 +102,7 @@ public sealed class EmulationSessionTests
             .StopAsync()
             .AsTask()
             .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
-        Assert.Equal(3, audioOutput.ClearCount);
+        audioOutput.ClearCount.Should().Be(3);
     }
 
     [Fact]
@@ -141,13 +140,16 @@ public sealed class EmulationSessionTests
 
         try
         {
-            await Assert.ThrowsAsync<IOException>(() =>
-                session
-                    .PrepareToStopAsync()
-                    .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken)
-            );
+            await FluentActions
+                .Awaiting(() =>
+                    session
+                        .PrepareToStopAsync()
+                        .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken)
+                )
+                .Should()
+                .ThrowExactlyAsync<IOException>();
 
-            Assert.True(session.IsPaused);
+            session.IsPaused.Should().BeTrue();
             _ = await session
                 .CaptureSaveStateAsync()
                 .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);

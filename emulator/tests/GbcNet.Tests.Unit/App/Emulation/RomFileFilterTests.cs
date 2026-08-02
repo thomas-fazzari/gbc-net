@@ -17,7 +17,7 @@ public sealed class RomFileFilterTests
     [InlineData("game.SGB")]
     public void IsRomFileName_AcceptsGameBoyExtensions(string fileName)
     {
-        Assert.True(RomFileFilter.IsRomFileName(fileName));
+        RomFileFilter.IsRomFileName(fileName).Should().BeTrue();
     }
 
     [Theory]
@@ -26,24 +26,24 @@ public sealed class RomFileFilterTests
     [InlineData("")]
     public void IsRomFileName_RejectsUnsupportedExtensions(string fileName)
     {
-        Assert.False(RomFileFilter.IsRomFileName(fileName));
+        RomFileFilter.IsRomFileName(fileName).Should().BeFalse();
     }
 
     [Fact]
     public void GetDragEffects_ReturnsCopyWhenDataContainsFileFormat()
     {
-        Assert.Equal(DragDropEffects.Copy, RomFileFilter.GetDragEffects([DataFormat.File]));
+        RomFileFilter.GetDragEffects([DataFormat.File]).Should().Be(DragDropEffects.Copy);
     }
 
     [Fact]
     public void GetDragEffects_ReturnsNoneWhenDataDoesNotContainFileFormat()
     {
-        Assert.Equal(DragDropEffects.None, RomFileFilter.GetDragEffects([]));
+        RomFileFilter.GetDragEffects([]).Should().Be(DragDropEffects.None);
     }
 
     [Fact]
     public void GetFirstDroppedRom_ReturnsNullWhenNoItemsExist()
     {
-        Assert.Null(RomFileFilter.GetFirstDroppedRom(null));
+        RomFileFilter.GetFirstDroppedRom(null).Should().BeNull();
     }
 }

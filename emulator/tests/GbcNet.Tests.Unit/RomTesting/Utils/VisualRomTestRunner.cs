@@ -4,7 +4,6 @@
 using GbcNet.Core;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Ppu;
-using GbcNet.Tests.Shared;
 
 namespace GbcNet.Tests.Unit.RomTesting.Utils;
 

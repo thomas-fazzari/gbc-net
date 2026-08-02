@@ -10,18 +10,18 @@ namespace GbcNet.App;
 internal static class Program
 {
     [STAThread]
-    public static void Main(string[] args)
+    public static int Main(string[] args)
     {
         Log.Logger = CreateLogger(UserDataPaths.LogFilePath);
 
         try
         {
-            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+            return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
         catch (Exception exception)
         {
             Log.ForContext(typeof(Program)).Fatal(exception, "Application terminated unexpectedly");
-            throw new InvalidOperationException("Application terminated unexpectedly.", exception);
+            return 1;
         }
         finally
         {

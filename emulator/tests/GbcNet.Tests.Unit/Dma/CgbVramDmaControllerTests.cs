@@ -17,9 +17,9 @@ public sealed class CgbVramDmaControllerTests
 
         StartHblankDma(dma, blockCountMinusOne: 1);
         dma.TransferHBlankBlock();
-        Assert.True(dma.TryConsumeCpuStallMachineCycle());
-        Assert.True(dma.TryConsumeCpuStallMachineCycle());
-        Assert.True(dma.TryConsumeCpuStallMachineCycle());
+        dma.TryConsumeCpuStallMachineCycle().Should().BeTrue();
+        dma.TryConsumeCpuStallMachineCycle().Should().BeTrue();
+        dma.TryConsumeCpuStallMachineCycle().Should().BeTrue();
 
         var state = dma.CaptureState();
         sourceReads.Clear();
@@ -29,27 +29,24 @@ public sealed class CgbVramDmaControllerTests
         restored.RestoreState(state);
         restored.TransferHBlankBlock();
 
-        Assert.Equal(
-            Enumerable.Range(0, 0x10).Select(offset => (ushort)(0xC010 + offset)),
-            sourceReads
-        );
-        Assert.Equal(
-            Enumerable
-                .Range(0, 0x10)
-                .Select(offset => ((ushort)(0x8010 + offset), (byte)(0x10 + offset))),
-            destinationWrites
-        );
-        Assert.Equal(
-            0xFF,
-            restored.ReadHdmaRegister(AddressMap.VideoRamDmaLengthModeStartRegister)
-        );
+        sourceReads
+            .Should()
+            .Equal(Enumerable.Range(0, 0x10).Select(offset => (ushort)(0xC010 + offset)));
+        destinationWrites
+            .Should()
+            .Equal(
+                Enumerable
+                    .Range(0, 0x10)
+                    .Select(offset => ((ushort)(0x8010 + offset), (byte)(0x10 + offset)))
+            );
+        restored.ReadHdmaRegister(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0xFF);
 
         for (var cycle = 0; cycle < 13; cycle++)
         {
-            Assert.True(restored.TryConsumeCpuStallMachineCycle());
+            restored.TryConsumeCpuStallMachineCycle().Should().BeTrue();
         }
 
-        Assert.False(restored.TryConsumeCpuStallMachineCycle());
+        restored.TryConsumeCpuStallMachineCycle().Should().BeFalse();
     }
 
     [Fact]
@@ -67,22 +64,16 @@ public sealed class CgbVramDmaControllerTests
         restored.RestoreState(state);
         restored.TransferHBlankBlock();
 
-        Assert.Empty(sourceReads);
-        Assert.Empty(destinationWrites);
-        Assert.Equal(
-            0x00,
-            restored.ReadHdmaRegister(AddressMap.VideoRamDmaLengthModeStartRegister)
-        );
+        sourceReads.Should().BeEmpty();
+        destinationWrites.Should().BeEmpty();
+        restored.ReadHdmaRegister(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0x00);
 
         restored.SetCpuHalted(value: false);
         restored.TransferHBlankBlock();
 
-        Assert.Equal(0x10, sourceReads.Count);
-        Assert.Equal(0x10, destinationWrites.Count);
-        Assert.Equal(
-            0xFF,
-            restored.ReadHdmaRegister(AddressMap.VideoRamDmaLengthModeStartRegister)
-        );
+        sourceReads.Count.Should().Be(0x10);
+        destinationWrites.Count.Should().Be(0x10);
+        restored.ReadHdmaRegister(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0xFF);
     }
 
     [Fact]
@@ -103,12 +94,9 @@ public sealed class CgbVramDmaControllerTests
         restored.RestoreState(state);
         restored.TransferHBlankBlock();
 
-        Assert.Equal(
-            0x81,
-            restored.ReadHdmaRegister(AddressMap.VideoRamDmaLengthModeStartRegister)
-        );
-        Assert.Empty(sourceReads);
-        Assert.Empty(destinationWrites);
+        restored.ReadHdmaRegister(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0x81);
+        sourceReads.Should().BeEmpty();
+        destinationWrites.Should().BeEmpty();
     }
 
     [Fact]
@@ -117,7 +105,10 @@ public sealed class CgbVramDmaControllerTests
         var dma = CreateController([], []);
         var state = dma.CaptureState() with { IsHblankDmaActive = true };
 
-        Assert.Throws<ArgumentException>(() => dma.RestoreState(state));
+        FluentActions
+            .Invoking(() => dma.RestoreState(state))
+            .Should()
+            .ThrowExactly<ArgumentException>();
     }
 
     [Fact]
@@ -126,7 +117,10 @@ public sealed class CgbVramDmaControllerTests
         var dma = CreateDisabledController();
         var state = dma.CaptureState() with { SourceHigh = 0xC0 };
 
-        Assert.Throws<ArgumentException>(() => dma.RestoreState(state));
+        FluentActions
+            .Invoking(() => dma.RestoreState(state))
+            .Should()
+            .ThrowExactly<ArgumentException>();
     }
 
     [Fact]
@@ -137,7 +131,7 @@ public sealed class CgbVramDmaControllerTests
 
         dma.RestoreState(state);
 
-        Assert.Equal(state, dma.CaptureState());
+        dma.CaptureState().Should().Be(state);
     }
 
     private static CgbVramDmaController CreateDisabledController() =>

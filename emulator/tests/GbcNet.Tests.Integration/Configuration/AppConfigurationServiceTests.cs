@@ -42,10 +42,7 @@ public sealed class AppConfigurationServiceTests
             )
         );
 
-        Assert.Equal(
-            new BootRomConfig("dmg.bin", "cgb.bin", "sgb.bin"),
-            service.LoadBootRomConfig()
-        );
+        service.LoadBootRomConfig().Should().Be(new BootRomConfig("dmg.bin", "cgb.bin", "sgb.bin"));
     }
 
     [Fact]
@@ -71,12 +68,12 @@ public sealed class AppConfigurationServiceTests
 
         var settings = service.LoadSettings();
 
-        Assert.Equal(new BootRomConfig("dmg.bin", "cgb.bin"), settings.BootRoms);
-        Assert.Equal(audio, settings.Audio);
-        Assert.Equal("SpeedRun", settings.Input.Keyboard.ActiveProfile);
-        Assert.Equal(InputConfig.DefaultProfileName, settings.Input.Gamepad.ActiveProfile);
-        Assert.True(settings.Input.Keyboard.Profiles.ContainsKey("SpeedRun"));
-        Assert.True(settings.Input.Gamepad.Profiles.ContainsKey("SpeedRun"));
+        settings.BootRoms.Should().Be(new BootRomConfig("dmg.bin", "cgb.bin"));
+        settings.Audio.Should().Be(audio);
+        settings.Input.Keyboard.ActiveProfile.Should().Be("SpeedRun");
+        settings.Input.Gamepad.ActiveProfile.Should().Be(InputConfig.DefaultProfileName);
+        settings.Input.Keyboard.Profiles.ContainsKey("SpeedRun").Should().BeTrue();
+        settings.Input.Gamepad.Profiles.ContainsKey("SpeedRun").Should().BeTrue();
     }
 
     [Fact]
@@ -122,16 +119,15 @@ public sealed class AppConfigurationServiceTests
 
         var appConfig = AppConfigurationFile.Load(configPath);
 
-        Assert.Equal(
-            new BootRomConfig("new-dmg.bin", "new-cgb.bin", "new-sgb.bin"),
-            appConfig.BootRoms
-        );
-        Assert.True(appConfig.Emulation.FastForwardEnabled);
-        Assert.Equal(new AudioConfig(75, Muted: true), appConfig.Audio);
-        Assert.Equal(new AudioConfig(75, Muted: true), service.LoadSettings().Audio);
-        Assert.Equal("SpeedRun", appConfig.Input.Gamepad.ActiveProfile);
-        Assert.True(appConfig.Input.Keyboard.Profiles.ContainsKey("SpeedRun"));
-        Assert.True(appConfig.Input.Gamepad.Profiles.ContainsKey("SpeedRun"));
+        appConfig
+            .BootRoms.Should()
+            .Be(new BootRomConfig("new-dmg.bin", "new-cgb.bin", "new-sgb.bin"));
+        appConfig.Emulation.FastForwardEnabled.Should().BeTrue();
+        appConfig.Audio.Should().Be(new AudioConfig(75, Muted: true));
+        service.LoadSettings().Audio.Should().Be(new AudioConfig(75, Muted: true));
+        appConfig.Input.Gamepad.ActiveProfile.Should().Be("SpeedRun");
+        appConfig.Input.Keyboard.Profiles.ContainsKey("SpeedRun").Should().BeTrue();
+        appConfig.Input.Gamepad.Profiles.ContainsKey("SpeedRun").Should().BeTrue();
     }
 
     [Fact]
@@ -154,12 +150,18 @@ public sealed class AppConfigurationServiceTests
         };
         var service = CreateService(configPath);
 
-        var exception = Assert.Throws<ConfigurationException>(() =>
-            service.SaveSettings(new SettingsConfig(new BootRomConfig("new-dmg.bin"), invalidInput))
-        );
+        var exception = FluentActions
+            .Invoking(() =>
+                service.SaveSettings(
+                    new SettingsConfig(new BootRomConfig("new-dmg.bin"), invalidInput)
+                )
+            )
+            .Should()
+            .ThrowExactly<ConfigurationException>()
+            .Which;
 
-        Assert.Contains("exactly 4 bindings", exception.Message, StringComparison.Ordinal);
-        Assert.Equal(originalBytes, File.ReadAllBytes(configPath));
+        exception.Message.Should().Contain("exactly 4 bindings");
+        File.ReadAllBytes(configPath).Should().Equal(originalBytes);
     }
 
     [Fact]
@@ -174,20 +176,26 @@ public sealed class AppConfigurationServiceTests
         var service = CreateService(configPath);
         var invalidAudio = new AudioConfig(101, Muted: false);
 
-        Assert.Throws<ConfigurationException>(() =>
-            service.SaveSettings(
-                new SettingsConfig(
-                    new BootRomConfig("new-dmg.bin"),
-                    AppConfigurationFile.CreateDefaultInputConfig()
+        FluentActions
+            .Invoking(() =>
+                service.SaveSettings(
+                    new SettingsConfig(
+                        new BootRomConfig("new-dmg.bin"),
+                        AppConfigurationFile.CreateDefaultInputConfig()
+                    )
+                    {
+                        Audio = invalidAudio,
+                    }
                 )
-                {
-                    Audio = invalidAudio,
-                }
             )
-        );
-        Assert.Throws<ConfigurationException>(() => service.SaveAudioConfig(invalidAudio));
+            .Should()
+            .ThrowExactly<ConfigurationException>();
+        FluentActions
+            .Invoking(() => service.SaveAudioConfig(invalidAudio))
+            .Should()
+            .ThrowExactly<ConfigurationException>();
 
-        Assert.Equal(originalBytes, File.ReadAllBytes(configPath));
+        File.ReadAllBytes(configPath).Should().Equal(originalBytes);
     }
 
     [Theory]
@@ -218,13 +226,13 @@ public sealed class AppConfigurationServiceTests
         using var json = JsonDocument.Parse(File.ReadAllText(configPath));
         var input = json.RootElement.GetProperty("input");
 
-        Assert.Equal(new BootRomConfig("replacement-dmg.bin"), saved.BootRoms);
-        Assert.Empty(InputConfigValidator.Validate(saved.Input));
-        Assert.Equal(2, input.GetProperty("version").GetInt32());
-        Assert.True(input.TryGetProperty("keyboard", out _));
-        Assert.True(input.TryGetProperty("gamepad", out _));
-        Assert.False(input.TryGetProperty("activeProfile", out _));
-        Assert.False(File.Exists(configPath + ".tmp"));
+        saved.BootRoms.Should().Be(new BootRomConfig("replacement-dmg.bin"));
+        InputConfigValidator.Validate(saved.Input).Should().BeEmpty();
+        input.GetProperty("version").GetInt32().Should().Be(2);
+        input.TryGetProperty("keyboard", out _).Should().BeTrue();
+        input.TryGetProperty("gamepad", out _).Should().BeTrue();
+        input.TryGetProperty("activeProfile", out _).Should().BeFalse();
+        File.Exists(configPath + ".tmp").Should().BeFalse();
     }
 
     [Fact]
@@ -260,11 +268,11 @@ public sealed class AppConfigurationServiceTests
         );
 
         var saved = AppConfigurationFile.Load(configPath);
-        Assert.Single(errors);
-        Assert.Contains("DMG boot ROM file could not be read", errors[0], StringComparison.Ordinal);
-        Assert.Equal(new BootRomConfig("current-dmg.bin", "new-cgb.bin"), saved.BootRoms);
-        Assert.Equal("SpeedRun", saved.Input.Keyboard.ActiveProfile);
-        Assert.Equal("SpeedRun", saved.Input.Gamepad.ActiveProfile);
+        errors.Should().ContainSingle();
+        errors[0].Should().Contain("DMG boot ROM file could not be read");
+        saved.BootRoms.Should().Be(new BootRomConfig("current-dmg.bin", "new-cgb.bin"));
+        saved.Input.Keyboard.ActiveProfile.Should().Be("SpeedRun");
+        saved.Input.Gamepad.ActiveProfile.Should().Be("SpeedRun");
     }
 
     [Fact]
@@ -279,7 +287,7 @@ public sealed class AppConfigurationServiceTests
 
         var saved = AppConfigurationFile.Load(configPath);
 
-        Assert.Equal(LibraryViewMode.List, saved.Library.ViewMode);
+        saved.Library.ViewMode.Should().Be(LibraryViewMode.List);
     }
 
     [Fact]
@@ -310,12 +318,12 @@ public sealed class AppConfigurationServiceTests
 
         var options = service.LoadBootRomOptions();
 
-        Assert.Equal(BootRomOptions.DmgBootRomSize, options.DmgBootRom.Length);
-        Assert.Equal(BootRomOptions.CgbBootRomSize, options.CgbBootRom.Length);
-        Assert.Equal(BootRomOptions.SgbBootRomSize, options.SgbBootRom.Length);
-        Assert.Equal(0xD0, options.DmgBootRom.Span[0]);
-        Assert.Equal(0xC0, options.CgbBootRom.Span[0]);
-        Assert.Equal(0x50, options.SgbBootRom.Span[0]);
+        options.DmgBootRom.Length.Should().Be(BootRomOptions.DmgBootRomSize);
+        options.CgbBootRom.Length.Should().Be(BootRomOptions.CgbBootRomSize);
+        options.SgbBootRom.Length.Should().Be(BootRomOptions.SgbBootRomSize);
+        options.DmgBootRom.Span[0].Should().Be(0xD0);
+        options.CgbBootRom.Span[0].Should().Be(0xC0);
+        options.SgbBootRom.Span[0].Should().Be(0x50);
     }
 
     [Fact]
@@ -323,18 +331,20 @@ public sealed class AppConfigurationServiceTests
     {
         var config = new BootRomConfig("dmg.bin", "cgb.bin", "sgb.bin");
 
-        Assert.Equal("dmg.bin", config.GetPath(HardwareModel.Dmg));
-        Assert.Equal("cgb.bin", config.GetPath(HardwareModel.Cgb));
-        Assert.Equal("sgb.bin", config.GetPath(HardwareModel.Sgb));
-        Assert.Equal(BootRomOptions.DmgBootRomSize, BootRomConfig.Size(HardwareModel.Dmg));
-        Assert.Equal(BootRomOptions.CgbBootRomSize, BootRomConfig.Size(HardwareModel.Cgb));
-        Assert.Equal(BootRomOptions.SgbBootRomSize, BootRomConfig.Size(HardwareModel.Sgb));
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            config.GetPath((HardwareModel)int.MaxValue)
-        );
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            BootRomConfig.Size((HardwareModel)int.MaxValue)
-        );
+        config.GetPath(HardwareModel.Dmg).Should().Be("dmg.bin");
+        config.GetPath(HardwareModel.Cgb).Should().Be("cgb.bin");
+        config.GetPath(HardwareModel.Sgb).Should().Be("sgb.bin");
+        BootRomConfig.Size(HardwareModel.Dmg).Should().Be(BootRomOptions.DmgBootRomSize);
+        BootRomConfig.Size(HardwareModel.Cgb).Should().Be(BootRomOptions.CgbBootRomSize);
+        BootRomConfig.Size(HardwareModel.Sgb).Should().Be(BootRomOptions.SgbBootRomSize);
+        FluentActions
+            .Invoking(() => config.GetPath((HardwareModel)int.MaxValue))
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>();
+        FluentActions
+            .Invoking(() => BootRomConfig.Size((HardwareModel)int.MaxValue))
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>();
     }
 
     [Fact]
@@ -346,9 +356,13 @@ public sealed class AppConfigurationServiceTests
         File.WriteAllText(configPath, """{ "bootRoms": { "invalid": "boot.bin" } }""");
         var service = CreateService(configPath);
 
-        var exception = Assert.Throws<ConfigurationException>(() => service.LoadBootRomConfig());
+        var exception = FluentActions
+            .Invoking(service.LoadBootRomConfig)
+            .Should()
+            .ThrowExactly<ConfigurationException>()
+            .Which;
 
-        Assert.Contains("could not be parsed", exception.Message, StringComparison.Ordinal);
+        exception.Message.Should().Contain("could not be parsed");
     }
 
     private static AppConfigurationService CreateService(string configPath) =>

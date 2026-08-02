@@ -13,11 +13,20 @@ public sealed class LcdFramePresenterTests
     public void Dispose_ReleasesPendingFrame()
     {
         var frame = LcdFrame.FromOwnedPixels(1, 1, LcdPixelFormat.Rgb555Le, [0x00, 0x00]);
-        using var presenter = new LcdFramePresenter(new Image());
+        var presenter = new LcdFramePresenter(new Image());
 
-        presenter.Enqueue(frame);
-        presenter.Dispose();
+        try
+        {
+            presenter.Enqueue(frame);
+        }
+        finally
+        {
+            presenter.Dispose();
+        }
 
-        Assert.Throws<ObjectDisposedException>(() => _ = frame.Pixels);
+        FluentActions
+            .Invoking(() => _ = frame.Pixels)
+            .Should()
+            .ThrowExactly<ObjectDisposedException>();
     }
 }

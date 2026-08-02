@@ -6,7 +6,6 @@ using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Ppu.Engines;
-using GbcNet.Tests.Shared;
 
 namespace GbcNet.Tests.Unit;
 
@@ -21,25 +20,25 @@ public sealed class HardwareProfileFactoryTests
 
         var profile = HardwareProfileFactory.Create(HardwareModel.Dmg, header);
 
-        Assert.Same(DmgHardwareProfile.Instance, profile);
-        Assert.Equal(HardwareModel.Dmg, profile.Model);
-        Assert.Equal(1, profile.VideoRamBankCount);
-        Assert.False(profile.IsVideoRamBankRegisterEnabled);
-        Assert.False(profile.IsKey1RegisterEnabled);
-        Assert.False(profile.IsSerialHighSpeedClockEnabled);
-        Assert.False(profile.IsColorPaletteRamEnabled);
-        Assert.False(profile.IsColorPaletteIndexRegisterEnabled);
-        Assert.False(profile.IsCgbHardwareMiscRegisterEnabled);
-        Assert.False(profile.IsCgbUndocumentedFf74RegisterEnabled);
-        Assert.True(profile.TicksTimerOnTacDisableWhenInputHigh);
-        Assert.False(profile.TicksTimerOnTacEnableWhenInputHigh);
-        Assert.IsType<DmgPpuEngine>(profile.CreatePpuEngine());
+        profile.Should().BeSameAs(DmgHardwareProfile.Instance);
+        profile.Model.Should().Be(HardwareModel.Dmg);
+        profile.VideoRamBankCount.Should().Be(1);
+        profile.IsVideoRamBankRegisterEnabled.Should().BeFalse();
+        profile.IsKey1RegisterEnabled.Should().BeFalse();
+        profile.IsSerialHighSpeedClockEnabled.Should().BeFalse();
+        profile.IsColorPaletteRamEnabled.Should().BeFalse();
+        profile.IsColorPaletteIndexRegisterEnabled.Should().BeFalse();
+        profile.IsCgbHardwareMiscRegisterEnabled.Should().BeFalse();
+        profile.IsCgbUndocumentedFf74RegisterEnabled.Should().BeFalse();
+        profile.TicksTimerOnTacDisableWhenInputHigh.Should().BeTrue();
+        profile.TicksTimerOnTacEnableWhenInputHigh.Should().BeFalse();
+        profile.CreatePpuEngine().Should().BeOfType<DmgPpuEngine>();
 
         var apuSpec = profile.CreateApuModelSpec();
 
-        Assert.Equal(ApuModelSpec.Dmg, apuSpec);
-        Assert.Equal(0.999958, apuSpec.GetOutputHighPassChargeFactor(apuSpec.OutputClockHz));
-        Assert.Equal(2, profile.WorkRamBankCount);
+        apuSpec.Should().Be(ApuModelSpec.Dmg);
+        apuSpec.GetOutputHighPassChargeFactor(apuSpec.OutputClockHz).Should().Be(0.999958);
+        profile.WorkRamBankCount.Should().Be(2);
     }
 
     [Fact]
@@ -47,11 +46,13 @@ public sealed class HardwareProfileFactoryTests
     {
         var header = CreateHeader(CgbSupport.Required);
 
-        var exception = Assert.Throws<NotSupportedException>(() =>
-            HardwareProfileFactory.Create(HardwareModel.Dmg, header)
-        );
+        var exception = FluentActions
+            .Invoking(() => HardwareProfileFactory.Create(HardwareModel.Dmg, header))
+            .Should()
+            .ThrowExactly<NotSupportedException>()
+            .Which;
 
-        Assert.Contains("CGB-required", exception.Message, StringComparison.Ordinal);
+        exception.Message.Should().Contain("CGB-required");
     }
 
     [Theory]
@@ -65,24 +66,24 @@ public sealed class HardwareProfileFactoryTests
 
         var profile = HardwareProfileFactory.Create(HardwareModel.Cgb, header);
 
-        var cgbProfile = Assert.IsType<CgbHardwareProfile>(profile);
-        Assert.Equal(HardwareModel.Cgb, cgbProfile.Model);
-        Assert.Equal(CgbOperatingMode.Cgb, cgbProfile.OperatingMode);
-        Assert.Equal(2, cgbProfile.VideoRamBankCount);
-        Assert.True(cgbProfile.IsVideoRamBankRegisterEnabled);
-        Assert.True(cgbProfile.IsKey1RegisterEnabled);
-        Assert.True(profile.IsSerialHighSpeedClockEnabled);
-        Assert.True(cgbProfile.IsColorPaletteRamEnabled);
-        Assert.True(cgbProfile.IsColorPaletteIndexRegisterEnabled);
-        Assert.True(cgbProfile.IsCgbHardwareMiscRegisterEnabled);
-        Assert.True(cgbProfile.IsCgbUndocumentedFf74RegisterEnabled);
-        Assert.False(cgbProfile.TicksTimerOnTacDisableWhenInputHigh);
-        Assert.True(cgbProfile.TicksTimerOnTacEnableWhenInputHigh);
-        Assert.IsType<CgbPpuEngine>(cgbProfile.CreatePpuEngine());
+        var cgbProfile = profile.Should().BeOfType<CgbHardwareProfile>().Subject;
+        cgbProfile.Model.Should().Be(HardwareModel.Cgb);
+        cgbProfile.OperatingMode.Should().Be(CgbOperatingMode.Cgb);
+        cgbProfile.VideoRamBankCount.Should().Be(2);
+        cgbProfile.IsVideoRamBankRegisterEnabled.Should().BeTrue();
+        cgbProfile.IsKey1RegisterEnabled.Should().BeTrue();
+        profile.IsSerialHighSpeedClockEnabled.Should().BeTrue();
+        cgbProfile.IsColorPaletteRamEnabled.Should().BeTrue();
+        cgbProfile.IsColorPaletteIndexRegisterEnabled.Should().BeTrue();
+        cgbProfile.IsCgbHardwareMiscRegisterEnabled.Should().BeTrue();
+        cgbProfile.IsCgbUndocumentedFf74RegisterEnabled.Should().BeTrue();
+        cgbProfile.TicksTimerOnTacDisableWhenInputHigh.Should().BeFalse();
+        cgbProfile.TicksTimerOnTacEnableWhenInputHigh.Should().BeTrue();
+        cgbProfile.CreatePpuEngine().Should().BeOfType<CgbPpuEngine>();
         var apuSpec = cgbProfile.CreateApuModelSpec();
-        Assert.Equal(ApuModelSpec.Cgb, apuSpec);
-        Assert.Equal(0.998943, apuSpec.GetOutputHighPassChargeFactor(apuSpec.OutputClockHz));
-        Assert.Equal(8, cgbProfile.WorkRamBankCount);
+        apuSpec.Should().Be(ApuModelSpec.Cgb);
+        apuSpec.GetOutputHighPassChargeFactor(apuSpec.OutputClockHz).Should().Be(0.998943);
+        cgbProfile.WorkRamBankCount.Should().Be(8);
     }
 
     [Fact]
@@ -92,22 +93,22 @@ public sealed class HardwareProfileFactoryTests
 
         var profile = HardwareProfileFactory.Create(HardwareModel.Cgb, header);
 
-        var cgbProfile = Assert.IsType<CgbHardwareProfile>(profile);
-        Assert.Equal(HardwareModel.Cgb, cgbProfile.Model);
-        Assert.Equal(CgbOperatingMode.DmgCompatibility, cgbProfile.OperatingMode);
-        Assert.Equal(1, cgbProfile.VideoRamBankCount);
-        Assert.True(cgbProfile.IsVideoRamBankRegisterEnabled);
-        Assert.False(cgbProfile.IsKey1RegisterEnabled);
-        Assert.False(profile.IsSerialHighSpeedClockEnabled);
-        Assert.False(cgbProfile.IsColorPaletteRamEnabled);
-        Assert.True(cgbProfile.IsColorPaletteIndexRegisterEnabled);
-        Assert.True(cgbProfile.IsCgbHardwareMiscRegisterEnabled);
-        Assert.False(cgbProfile.IsCgbUndocumentedFf74RegisterEnabled);
-        Assert.False(cgbProfile.TicksTimerOnTacDisableWhenInputHigh);
-        Assert.True(cgbProfile.TicksTimerOnTacEnableWhenInputHigh);
-        Assert.IsType<CgbDmgCompatibilityPpuEngine>(cgbProfile.CreatePpuEngine());
-        Assert.Equal(ApuModelSpec.Cgb, cgbProfile.CreateApuModelSpec());
-        Assert.Equal(8, cgbProfile.WorkRamBankCount);
+        var cgbProfile = profile.Should().BeOfType<CgbHardwareProfile>().Subject;
+        cgbProfile.Model.Should().Be(HardwareModel.Cgb);
+        cgbProfile.OperatingMode.Should().Be(CgbOperatingMode.DmgCompatibility);
+        cgbProfile.VideoRamBankCount.Should().Be(1);
+        cgbProfile.IsVideoRamBankRegisterEnabled.Should().BeTrue();
+        cgbProfile.IsKey1RegisterEnabled.Should().BeFalse();
+        profile.IsSerialHighSpeedClockEnabled.Should().BeFalse();
+        cgbProfile.IsColorPaletteRamEnabled.Should().BeFalse();
+        cgbProfile.IsColorPaletteIndexRegisterEnabled.Should().BeTrue();
+        cgbProfile.IsCgbHardwareMiscRegisterEnabled.Should().BeTrue();
+        cgbProfile.IsCgbUndocumentedFf74RegisterEnabled.Should().BeFalse();
+        cgbProfile.TicksTimerOnTacDisableWhenInputHigh.Should().BeFalse();
+        cgbProfile.TicksTimerOnTacEnableWhenInputHigh.Should().BeTrue();
+        cgbProfile.CreatePpuEngine().Should().BeOfType<CgbDmgCompatibilityPpuEngine>();
+        cgbProfile.CreateApuModelSpec().Should().Be(ApuModelSpec.Cgb);
+        cgbProfile.WorkRamBankCount.Should().Be(8);
     }
 
     [Fact]
@@ -117,19 +118,19 @@ public sealed class HardwareProfileFactoryTests
 
         var profile = HardwareProfileFactory.Create(HardwareModel.Sgb, header);
 
-        Assert.Same(SgbHardwareProfile.Instance, profile);
-        Assert.Equal(HardwareModel.Sgb, profile.Model);
-        Assert.Equal(1, profile.VideoRamBankCount);
-        Assert.False(profile.IsVideoRamBankRegisterEnabled);
-        Assert.False(profile.IsKey1RegisterEnabled);
-        Assert.False(profile.IsSerialHighSpeedClockEnabled);
-        Assert.False(profile.IsColorPaletteRamEnabled);
-        Assert.False(profile.IsColorPaletteIndexRegisterEnabled);
-        Assert.True(profile.TicksTimerOnTacDisableWhenInputHigh);
-        Assert.False(profile.TicksTimerOnTacEnableWhenInputHigh);
-        Assert.IsType<DmgPpuEngine>(profile.CreatePpuEngine());
-        Assert.Equal(ApuModelSpec.Sgb, profile.CreateApuModelSpec());
-        Assert.Equal(2, profile.WorkRamBankCount);
+        profile.Should().BeSameAs(SgbHardwareProfile.Instance);
+        profile.Model.Should().Be(HardwareModel.Sgb);
+        profile.VideoRamBankCount.Should().Be(1);
+        profile.IsVideoRamBankRegisterEnabled.Should().BeFalse();
+        profile.IsKey1RegisterEnabled.Should().BeFalse();
+        profile.IsSerialHighSpeedClockEnabled.Should().BeFalse();
+        profile.IsColorPaletteRamEnabled.Should().BeFalse();
+        profile.IsColorPaletteIndexRegisterEnabled.Should().BeFalse();
+        profile.TicksTimerOnTacDisableWhenInputHigh.Should().BeTrue();
+        profile.TicksTimerOnTacEnableWhenInputHigh.Should().BeFalse();
+        profile.CreatePpuEngine().Should().BeOfType<DmgPpuEngine>();
+        profile.CreateApuModelSpec().Should().Be(ApuModelSpec.Sgb);
+        profile.WorkRamBankCount.Should().Be(2);
     }
 
     [Fact]
@@ -137,11 +138,13 @@ public sealed class HardwareProfileFactoryTests
     {
         var header = CreateHeader(CgbSupport.Required);
 
-        var exception = Assert.Throws<NotSupportedException>(() =>
-            HardwareProfileFactory.Create(HardwareModel.Sgb, header)
-        );
+        var exception = FluentActions
+            .Invoking(() => HardwareProfileFactory.Create(HardwareModel.Sgb, header))
+            .Should()
+            .ThrowExactly<NotSupportedException>()
+            .Which;
 
-        Assert.Contains("CGB-required", exception.Message, StringComparison.Ordinal);
+        exception.Message.Should().Contain("CGB-required");
     }
 
     private static CartridgeHeader CreateHeader(CgbSupport cgbSupport)
@@ -160,7 +163,7 @@ public sealed class HardwareProfileFactoryTests
 
         var cartridge = TestRomFactory.LoadCartridge(rom => rom[0x0143] = cgbFlag);
 
-        Assert.Equal(cgbSupport, cartridge.Header.CgbSupport);
+        cartridge.Header.CgbSupport.Should().Be(cgbSupport);
         return cartridge.Header;
     }
 }

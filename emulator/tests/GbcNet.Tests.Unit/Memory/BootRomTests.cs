@@ -14,20 +14,22 @@ public sealed class BootRomTests
     {
         var bytes = new byte[BootRomOptions.DmgBootRomSize];
         bytes[0] = 0x31;
-        var bootRom = Assert.IsType<BootRom>(
-            BootRom.Create(HardwareModel.Dmg, new BootRomOptions { DmgBootRom = bytes })
-        );
+        var bootRom = BootRom
+            .Create(HardwareModel.Dmg, new BootRomOptions { DmgBootRom = bytes })
+            .Should()
+            .BeOfType<BootRom>()
+            .Subject;
 
         var state = bootRom.CaptureState();
         bootRom.WriteDisableRegister(0x01);
 
-        Assert.False(bootRom.IsMapped);
-        Assert.False(bootRom.TryRead(0x0000, out _));
+        bootRom.IsMapped.Should().BeFalse();
+        bootRom.TryRead(0x0000, out _).Should().BeFalse();
 
         bootRom.RestoreState(state);
 
-        Assert.True(bootRom.IsMapped);
-        Assert.True(bootRom.TryRead(0x0000, out var value));
-        Assert.Equal(0x31, value);
+        bootRom.IsMapped.Should().BeTrue();
+        bootRom.TryRead(0x0000, out var value).Should().BeTrue();
+        value.Should().Be(0x31);
     }
 }

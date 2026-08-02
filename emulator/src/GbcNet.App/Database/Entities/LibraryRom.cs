@@ -2,11 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core.Cartridges;
+using JetBrains.Annotations;
 
 namespace GbcNet.App.Database.Entities;
 
 internal sealed class LibraryRom
 {
+    [UsedImplicitly]
     private LibraryRom() { }
 
     private LibraryRom(

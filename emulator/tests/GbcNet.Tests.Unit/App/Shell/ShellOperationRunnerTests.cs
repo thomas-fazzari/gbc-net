@@ -19,7 +19,7 @@ public sealed class ShellOperationRunnerTests
 
         await runner.RunAsync(() => throw new IOException("no access"));
 
-        Assert.Equal("no access", reportedMessage);
+        reportedMessage.Should().Be("no access");
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class ShellOperationRunnerTests
         var activeCount = 0;
         var maxActiveCount = 0;
         ShellOperationRunner runner = new(
-            exception => Assert.Fail($"Unexpected error: {exception}"),
+            exception => exception.Should().BeNull($"Unexpected error: {exception}"),
             NullLogger<ShellOperationRunner>.Instance
         );
 
@@ -59,13 +59,13 @@ public sealed class ShellOperationRunnerTests
             return Task.CompletedTask;
         });
 
-        Assert.False(secondOperationStarted.Task.IsCompleted);
+        secondOperationStarted.Task.IsCompleted.Should().BeFalse();
         releaseFirstOperation.SetResult();
 
         await Task.WhenAll(firstOperation, secondOperation);
 
-        Assert.Equal(1, maxActiveCount);
-        Assert.True(secondOperationStarted.Task.IsCompletedSuccessfully);
+        maxActiveCount.Should().Be(1);
+        secondOperationStarted.Task.IsCompletedSuccessfully.Should().BeTrue();
         return;
 
         void TrackOperationStart()
@@ -80,22 +80,28 @@ public sealed class ShellOperationRunnerTests
     {
         var nextOperationRan = false;
         ShellOperationRunner runner = new(
-            exception => Assert.Fail($"Unexpected handled error: {exception}"),
+            exception => exception.Should().BeNull($"Unexpected handled error: {exception}"),
             NullLogger<ShellOperationRunner>.Instance
         );
 
-        await Assert.ThrowsAsync<TimeoutException>(() =>
-            runner.RunAsync(() => throw new TimeoutException("boom"))
-        );
+        await FluentActions
+            .Awaiting(() => runner.RunAsync(() => throw new TimeoutException("boom")))
+            .Should()
+            .ThrowExactlyAsync<TimeoutException>();
         await runner.RunAsync(() =>
         {
             nextOperationRan = true;
             return Task.CompletedTask;
         });
 
-        Assert.True(nextOperationRan);
+        nextOperationRan.Should().BeTrue();
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "ReSharper",
+        "MethodHasAsyncOverload",
+        Justification = "Exercises the synchronous fire-and-forget wrapper."
+    )]
     [Fact]
     public async Task Run_QueuesFireAndForgetOperationsAndReportsExpectedError()
     {
@@ -144,21 +150,22 @@ public sealed class ShellOperationRunnerTests
         });
 #pragma warning restore CA1849, S6966
 
-        Assert.False(errorReported.Task.IsCompleted);
-        Assert.False(thirdOperationCompleted.Task.IsCompleted);
+        errorReported.Task.IsCompleted.Should().BeFalse();
+        thirdOperationCompleted.Task.IsCompleted.Should().BeFalse();
         releaseFirstOperation.SetResult();
 
-        Assert.Equal(
-            "no access",
+        (
             await errorReported.Task.WaitAsync(
                 TimeSpan.FromSeconds(1),
                 TestContext.Current.CancellationToken
             )
-        );
+        )
+            .Should()
+            .Be("no access");
         await thirdOperationCompleted.Task.WaitAsync(
             TimeSpan.FromSeconds(1),
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(["first-start", "first-end", "error", "third"], events);
+        events.Should().Equal("first-start", "first-end", "error", "third");
     }
 }

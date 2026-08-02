@@ -7,7 +7,6 @@ using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu;
 using GbcNet.Core.Sm83;
-using GbcNet.Tests.Shared;
 
 namespace GbcNet.Tests.Unit;
 
@@ -23,13 +22,13 @@ public sealed class PostBootStateTests
 
         DmgHardwareProfile.Instance.ApplyPostBootState(cartridge, cpu, bus);
 
-        Assert.Equal(0x01, cpu.Registers.A);
-        Assert.Equal(0xB0, cpu.Registers.F);
-        Assert.Equal(0x0013, cpu.Registers.BC);
-        Assert.Equal(0x00D8, cpu.Registers.DE);
-        Assert.Equal(0x014D, cpu.Registers.HL);
-        Assert.Equal(0x0100, cpu.Registers.PC);
-        Assert.Equal(0xFFFE, cpu.Registers.SP);
+        cpu.Registers.A.Should().Be(0x01);
+        cpu.Registers.F.Should().Be(0xB0);
+        cpu.Registers.BC.Should().Be(0x0013);
+        cpu.Registers.DE.Should().Be(0x00D8);
+        cpu.Registers.HL.Should().Be(0x014D);
+        cpu.Registers.PC.Should().Be(0x0100);
+        cpu.Registers.SP.Should().Be(0xFFFE);
     }
 
     [Fact]
@@ -40,7 +39,7 @@ public sealed class PostBootStateTests
 
         DmgHardwareProfile.Instance.ApplyPostBootState(cartridge, cpu, bus);
 
-        Assert.Equal(0x80, cpu.Registers.F);
+        cpu.Registers.F.Should().Be(0x80);
     }
 
     [Fact]
@@ -53,13 +52,13 @@ public sealed class PostBootStateTests
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
-        Assert.Equal(0x01, cpu.Registers.A);
-        Assert.Equal(0x0014, cpu.Registers.BC);
-        Assert.Equal(0x00, cpu.Registers.F);
-        Assert.Equal(0x0000, cpu.Registers.DE);
-        Assert.Equal(0xC060, cpu.Registers.HL);
-        Assert.Equal(0x0100, cpu.Registers.PC);
-        Assert.Equal(0xFFFE, cpu.Registers.SP);
+        cpu.Registers.A.Should().Be(0x01);
+        cpu.Registers.BC.Should().Be(0x0014);
+        cpu.Registers.F.Should().Be(0x00);
+        cpu.Registers.DE.Should().Be(0x0000);
+        cpu.Registers.HL.Should().Be(0xC060);
+        cpu.Registers.PC.Should().Be(0x0100);
+        cpu.Registers.SP.Should().Be(0xFFFE);
     }
 
     [Fact]
@@ -72,8 +71,8 @@ public sealed class PostBootStateTests
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.JoypadRegister));
-        Assert.Equal(0xF0, bus.ReadByte(AudioMasterControlRegister));
+        bus.ReadByte(AddressMap.JoypadRegister).Should().Be(0xFF);
+        bus.ReadByte(AudioMasterControlRegister).Should().Be(0xF0);
     }
 
     [Fact]
@@ -84,25 +83,25 @@ public sealed class PostBootStateTests
 
         DmgHardwareProfile.Instance.ApplyPostBootState(cartridge, cpu, bus);
 
-        Assert.Equal(0xCF, bus.ReadByte(AddressMap.JoypadRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.SerialTransferDataRegister));
-        Assert.Equal(0x7E, bus.ReadByte(AddressMap.SerialTransferControlRegister));
-        Assert.Equal(0xAB, bus.ReadByte(AddressMap.DividerRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.TimerCounterRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.TimerModuloRegister));
-        Assert.Equal(0xF8, bus.ReadByte(AddressMap.TimerControlRegister));
-        Assert.Equal(0xE1, bus.ReadByte(AddressMap.InterruptFlagRegister));
-        Assert.Equal(0x91, bus.ReadByte(AddressMap.LcdControlRegister));
-        Assert.Equal(0x85, bus.ReadByte(AddressMap.LcdStatusRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.ScrollYRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.ScrollXRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.LcdYCoordinateRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.LcdYCompareRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.DmaRegister));
-        Assert.Equal(0xFC, bus.ReadByte(AddressMap.BackgroundPaletteRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.WindowYRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.WindowXRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.InterruptEnableRegister));
+        bus.ReadByte(AddressMap.JoypadRegister).Should().Be(0xCF);
+        bus.ReadByte(AddressMap.SerialTransferDataRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.SerialTransferControlRegister).Should().Be(0x7E);
+        bus.ReadByte(AddressMap.DividerRegister).Should().Be(0xAB);
+        bus.ReadByte(AddressMap.TimerCounterRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.TimerModuloRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.TimerControlRegister).Should().Be(0xF8);
+        bus.ReadByte(AddressMap.InterruptFlagRegister).Should().Be(0xE1);
+        bus.ReadByte(AddressMap.LcdControlRegister).Should().Be(0x91);
+        bus.ReadByte(AddressMap.LcdStatusRegister).Should().Be(0x85);
+        bus.ReadByte(AddressMap.ScrollYRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.ScrollXRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.LcdYCoordinateRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.LcdYCompareRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.DmaRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.BackgroundPaletteRegister).Should().Be(0xFC);
+        bus.ReadByte(AddressMap.WindowYRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.WindowXRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.InterruptEnableRegister).Should().Be(0x00);
     }
 
     [Fact]
@@ -117,13 +116,13 @@ public sealed class PostBootStateTests
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
-        Assert.Equal(0x11, cpu.Registers.A);
-        Assert.Equal(0x80, cpu.Registers.F);
-        Assert.Equal(0x0000, cpu.Registers.BC);
-        Assert.Equal(0xFF56, cpu.Registers.DE);
-        Assert.Equal(0x000D, cpu.Registers.HL);
-        Assert.Equal(0x0100, cpu.Registers.PC);
-        Assert.Equal(0xFFFE, cpu.Registers.SP);
+        cpu.Registers.A.Should().Be(0x11);
+        cpu.Registers.F.Should().Be(0x80);
+        cpu.Registers.BC.Should().Be(0x0000);
+        cpu.Registers.DE.Should().Be(0xFF56);
+        cpu.Registers.HL.Should().Be(0x000D);
+        cpu.Registers.PC.Should().Be(0x0100);
+        cpu.Registers.SP.Should().Be(0xFFFE);
     }
 
     [Fact]
@@ -136,13 +135,13 @@ public sealed class PostBootStateTests
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
-        Assert.Equal(0x11, cpu.Registers.A);
-        Assert.Equal(0x80, cpu.Registers.F);
-        Assert.Equal(0x0000, cpu.Registers.BC);
-        Assert.Equal(0x0008, cpu.Registers.DE);
-        Assert.Equal(0x007C, cpu.Registers.HL);
-        Assert.Equal(0x0100, cpu.Registers.PC);
-        Assert.Equal(0xFFFE, cpu.Registers.SP);
+        cpu.Registers.A.Should().Be(0x11);
+        cpu.Registers.F.Should().Be(0x80);
+        cpu.Registers.BC.Should().Be(0x0000);
+        cpu.Registers.DE.Should().Be(0x0008);
+        cpu.Registers.HL.Should().Be(0x007C);
+        cpu.Registers.PC.Should().Be(0x0100);
+        cpu.Registers.SP.Should().Be(0xFFFE);
     }
 
     [Fact]
@@ -162,13 +161,13 @@ public sealed class PostBootStateTests
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
-        Assert.Equal(0x5800, cpu.Registers.BC);
-        Assert.Equal(0x991A, cpu.Registers.HL);
-        Assert.Equal(0x01, bus.Ppu.VideoRam.ReadBank(0, 0x9904));
-        Assert.Equal(0x0C, bus.Ppu.VideoRam.ReadBank(0, 0x990F));
-        Assert.Equal(0x19, bus.Ppu.VideoRam.ReadBank(0, 0x9910));
-        Assert.Equal(0x0D, bus.Ppu.VideoRam.ReadBank(0, 0x9924));
-        Assert.Equal(0x18, bus.Ppu.VideoRam.ReadBank(0, 0x992F));
+        cpu.Registers.BC.Should().Be(0x5800);
+        cpu.Registers.HL.Should().Be(0x991A);
+        bus.Ppu.VideoRam.ReadBank(0, 0x9904).Should().Be(0x01);
+        bus.Ppu.VideoRam.ReadBank(0, 0x990F).Should().Be(0x0C);
+        bus.Ppu.VideoRam.ReadBank(0, 0x9910).Should().Be(0x19);
+        bus.Ppu.VideoRam.ReadBank(0, 0x9924).Should().Be(0x0D);
+        bus.Ppu.VideoRam.ReadBank(0, 0x992F).Should().Be(0x18);
     }
 
     [Fact]
@@ -188,10 +187,10 @@ public sealed class PostBootStateTests
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
-        Assert.Equal(0x007C, cpu.Registers.HL);
-        Assert.Equal(0x00, bus.Ppu.VideoRam.ReadBank(0, 0x9904));
-        Assert.Equal(0x00, bus.Ppu.VideoRam.ReadBank(0, 0x9910));
-        Assert.Equal(0x00, bus.Ppu.VideoRam.ReadBank(0, 0x992F));
+        cpu.Registers.HL.Should().Be(0x007C);
+        bus.Ppu.VideoRam.ReadBank(0, 0x9904).Should().Be(0x00);
+        bus.Ppu.VideoRam.ReadBank(0, 0x9910).Should().Be(0x00);
+        bus.Ppu.VideoRam.ReadBank(0, 0x992F).Should().Be(0x00);
     }
 
     [Fact]
@@ -206,24 +205,24 @@ public sealed class PostBootStateTests
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.SerialTransferDataRegister));
-        Assert.Equal(0x7E, bus.ReadByte(AddressMap.SerialTransferControlRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.TimerCounterRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.TimerModuloRegister));
-        Assert.Equal(0xF8, bus.ReadByte(AddressMap.TimerControlRegister));
-        Assert.Equal(0xE1, bus.ReadByte(AddressMap.InterruptFlagRegister));
-        Assert.Equal(0x91, bus.ReadByte(AddressMap.LcdControlRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.ScrollYRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.ScrollXRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.LcdYCompareRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.DmaRegister));
-        Assert.Equal(0xFC, bus.ReadByte(AddressMap.BackgroundPaletteRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.WindowYRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.WindowXRegister));
-        Assert.Equal(0x7E, bus.ReadByte(AddressMap.Key1Register));
-        Assert.Equal(0xFE, bus.ReadByte(AddressMap.VideoRamBankRegister));
-        Assert.Equal(0xF8, bus.ReadByte(AddressMap.WorkRamBankRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.InterruptEnableRegister));
+        bus.ReadByte(AddressMap.SerialTransferDataRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.SerialTransferControlRegister).Should().Be(0x7E);
+        bus.ReadByte(AddressMap.TimerCounterRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.TimerModuloRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.TimerControlRegister).Should().Be(0xF8);
+        bus.ReadByte(AddressMap.InterruptFlagRegister).Should().Be(0xE1);
+        bus.ReadByte(AddressMap.LcdControlRegister).Should().Be(0x91);
+        bus.ReadByte(AddressMap.ScrollYRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.ScrollXRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.LcdYCompareRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.DmaRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.BackgroundPaletteRegister).Should().Be(0xFC);
+        bus.ReadByte(AddressMap.WindowYRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.WindowXRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.Key1Register).Should().Be(0x7E);
+        bus.ReadByte(AddressMap.VideoRamBankRegister).Should().Be(0xFE);
+        bus.ReadByte(AddressMap.WorkRamBankRegister).Should().Be(0xF8);
+        bus.ReadByte(AddressMap.InterruptEnableRegister).Should().Be(0x00);
     }
 
     [Fact]
@@ -241,10 +240,10 @@ public sealed class PostBootStateTests
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
-        Assert.Equal(0xC5, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
-        Assert.Equal(0x7F, bus.ReadByte(AddressMap.BackgroundPaletteDataRegister));
+        bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister).Should().Be(0xC5);
+        bus.ReadByte(AddressMap.BackgroundPaletteDataRegister).Should().Be(0x7F);
         bus.WriteByte(AddressMap.BackgroundPaletteIndexRegister, 0x04);
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.BackgroundPaletteDataRegister));
+        bus.ReadByte(AddressMap.BackgroundPaletteDataRegister).Should().Be(0xFF);
     }
 
     [Fact]
@@ -261,12 +260,12 @@ public sealed class PostBootStateTests
         bus.Ppu.VideoRam.Write(0x8000, 0x80);
 
         bus.Ppu.Tick(456 * 154);
-        var frame = Assert.IsType<LcdFrame>(bus.Ppu.Tick(456 * 144).CompletedFrame);
+        var frame = bus.Ppu.Tick(456 * 144).CompletedFrame.Should().BeOfType<LcdFrame>().Subject;
 
-        Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        Assert.Equal(0x80, frame.Pixels.Span[0]);
-        Assert.Equal(0x61, frame.Pixels.Span[1]);
-        Assert.Equal(0xC8, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
+        frame.PixelFormat.Should().Be(LcdPixelFormat.Rgb555Le);
+        frame.Pixels.Span[0].Should().Be(0x80);
+        frame.Pixels.Span[1].Should().Be(0x61);
+        bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister).Should().Be(0xC8);
     }
 
     [Fact]
@@ -279,15 +278,15 @@ public sealed class PostBootStateTests
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
-        Assert.Equal(0x7E, bus.ReadByte(AddressMap.SerialTransferControlRegister));
-        Assert.Equal(0xFE, bus.ReadByte(AddressMap.VideoRamBankRegister));
-        Assert.Equal(0xC8, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.BackgroundPaletteDataRegister));
-        Assert.Equal(0xD0, bus.ReadByte(AddressMap.ObjectPaletteIndexRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPaletteDataRegister));
-        Assert.Equal(0x8F, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.AudioPcm12Register));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.AudioPcm34Register));
+        bus.ReadByte(AddressMap.SerialTransferControlRegister).Should().Be(0x7E);
+        bus.ReadByte(AddressMap.VideoRamBankRegister).Should().Be(0xFE);
+        bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister).Should().Be(0xC8);
+        bus.ReadByte(AddressMap.BackgroundPaletteDataRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.ObjectPaletteIndexRegister).Should().Be(0xD0);
+        bus.ReadByte(AddressMap.ObjectPaletteDataRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75).Should().Be(0x8F);
+        bus.ReadByte(AddressMap.AudioPcm12Register).Should().Be(0x00);
+        bus.ReadByte(AddressMap.AudioPcm34Register).Should().Be(0x00);
     }
 
     private static (Cpu Cpu, MemoryBus Bus) CreateHardware(Cartridge cartridge)

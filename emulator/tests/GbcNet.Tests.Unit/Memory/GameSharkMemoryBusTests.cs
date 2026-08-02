@@ -24,7 +24,7 @@ public sealed class GameSharkMemoryBusTests
 
         AdvanceToFirstVBlank(bus, clock, AddressMap.WorkRamStart, expectedValue: 0x44);
 
-        Assert.Equal(0xBB, bus.ReadByte(AddressMap.WorkRamStart));
+        bus.ReadByte(AddressMap.WorkRamStart).Should().Be(0xBB);
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class GameSharkMemoryBusTests
 
         AdvanceToFirstVBlank(bus, clock, AddressMap.WorkRamStart, expectedValue: 0x00);
 
-        Assert.Equal(0xAA, bus.ReadByte(AddressMap.WorkRamStart));
+        bus.ReadByte(AddressMap.WorkRamStart).Should().Be(0xAA);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class GameSharkMemoryBusTests
 
         AdvanceToFirstVBlank(bus, clock, AddressMap.WorkRamStart, expectedValue: 0x00);
 
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.WorkRamStart));
+        bus.ReadByte(AddressMap.WorkRamStart).Should().Be(0x00);
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public sealed class GameSharkMemoryBusTests
         bus.ApplyGameSharkCodes();
         bus.SetCheatCodes([]);
 
-        Assert.Equal(0xAA, bus.ReadByte(AddressMap.WorkRamStart));
+        bus.ReadByte(AddressMap.WorkRamStart).Should().Be(0xAA);
     }
 
     private static MemoryBus CreateDmgBus()
@@ -87,9 +87,10 @@ public sealed class GameSharkMemoryBusTests
         byte expectedValue
     )
     {
-        const byte vBlankMask = (byte)(1 << (int)InterruptSource.VBlank);
+        const byte vBlankMask = 1 << (int)InterruptSource.VBlank;
         const int maximumMachineCycles =
-            (PpuGeometry.ScanlineDots * (PpuGeometry.LastScanline + 1))
+            PpuGeometry.ScanlineDots
+            * (PpuGeometry.LastScanline + 1)
             / HardwareTiming.MachineCycleTCycles;
 
         for (var machineCycle = 0; machineCycle < maximumMachineCycles; machineCycle++)
@@ -99,16 +100,16 @@ public sealed class GameSharkMemoryBusTests
                 return;
             }
 
-            Assert.Equal(expectedValue, bus.ReadByte(observedAddress));
+            bus.ReadByte(observedAddress).Should().Be(expectedValue);
             clock.TickMachineCycle();
         }
 
-        Assert.Fail("The PPU did not enter VBlank within one frame.");
+        false.Should().BeTrue("The PPU did not enter VBlank within one frame.");
     }
 
     private static CheatCode Parse(string text)
     {
-        Assert.True(CheatCode.TryParse(CheatCodeType.GameShark, text, out var code));
+        CheatCode.TryParse(CheatCodeType.GameShark, text, out var code).Should().BeTrue();
         return code;
     }
 }

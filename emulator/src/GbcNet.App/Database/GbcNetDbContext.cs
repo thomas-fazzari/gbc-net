@@ -4,6 +4,7 @@
 using GbcNet.App.Configuration;
 using GbcNet.App.Database.Configurations;
 using GbcNet.App.Database.Entities;
+using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -61,32 +62,29 @@ internal sealed class GbcNetDbContext : DbContext
         var timestamp = _timeProvider.GetUtcNow();
         foreach (var entry in ChangeTracker.Entries<LibraryRom>())
         {
-            if (entry.State is EntityState.Added)
+            switch (entry.State)
             {
-                entry.Entity.StampCreated(timestamp);
-                entry.Entity.StampUpdated(timestamp);
-            }
-            else if (entry.State is EntityState.Modified)
-            {
-                entry.Entity.StampUpdated(timestamp);
+                case EntityState.Added:
+                    entry.Entity.StampCreated(timestamp);
+                    entry.Entity.StampUpdated(timestamp);
+                    break;
+                case EntityState.Modified:
+                    entry.Entity.StampUpdated(timestamp);
+                    break;
             }
         }
     }
 }
 
+[UsedImplicitly]
 internal sealed class GbcNetDbContextFactory : IDesignTimeDbContextFactory<GbcNetDbContext>
 {
     public GbcNetDbContext CreateDbContext(string[] args)
     {
         var databasePath = args.Length > 0 ? args[0] : UserDataPaths.LibraryDatabasePath;
         var options = new DbContextOptionsBuilder<GbcNetDbContext>()
-            .UseSqlite($"Data Source={databasePath}")
+            .UseSqlite(SqliteDbContextOptions.CreateConnectionString(databasePath))
             .Options;
         return new GbcNetDbContext(options);
     }
-}
-
-internal static class GbcNetDbConstants
-{
-    public const string CaseInsensitiveCollation = "NOCASE";
 }

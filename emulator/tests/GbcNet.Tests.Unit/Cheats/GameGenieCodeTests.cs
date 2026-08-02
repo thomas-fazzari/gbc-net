@@ -19,11 +19,11 @@ public sealed class GameGenieCodeTests
         int compareValue
     )
     {
-        Assert.True(GameGenieCode.TryParse(text, out var code));
+        GameGenieCode.TryParse(text, out var code).Should().BeTrue();
 
-        Assert.Equal(replacementValue, code.ReplacementValue);
-        Assert.Equal(address, code.Address);
-        Assert.Equal(compareValue < 0 ? null : (byte?)compareValue, code.CompareValue);
+        code.ReplacementValue.Should().Be(replacementValue);
+        code.Address.Should().Be(address);
+        code.CompareValue.Should().Be(compareValue < 0 ? null : (byte?)compareValue);
     }
 
     [Theory]
@@ -31,10 +31,10 @@ public sealed class GameGenieCodeTests
     [InlineData("  068-55f-e66  ")]
     public void TryParse_NormalizesAcceptedForms(string text)
     {
-        Assert.True(GameGenieCode.TryParse(text, out var code));
+        GameGenieCode.TryParse(text, out var code).Should().BeTrue();
 
-        Assert.Equal("068-55F-E66", code.CanonicalCode);
-        Assert.Equal(code.CanonicalCode, code.ToString());
+        code.CanonicalCode.Should().Be("068-55F-E66");
+        code.ToString().Should().Be(code.CanonicalCode);
     }
 
     [Theory]
@@ -43,9 +43,9 @@ public sealed class GameGenieCodeTests
     [InlineData("12F-FF8", 0x7FFF)]
     public void TryParse_AcceptsEntireRomAddressRange(string text, ushort address)
     {
-        Assert.True(GameGenieCode.TryParse(text, out var code));
+        GameGenieCode.TryParse(text, out var code).Should().BeTrue();
 
-        Assert.Equal(address, code.Address);
+        code.Address.Should().Be(address);
     }
 
     [Theory]
@@ -60,22 +60,22 @@ public sealed class GameGenieCodeTests
     [InlineData("068-55F-EZ6")]
     public void TryParse_RejectsMalformedOrNonRomCodes(string text)
     {
-        Assert.False(GameGenieCode.TryParse(text, out var code));
+        GameGenieCode.TryParse(text, out var code).Should().BeFalse();
 
-        Assert.False(code.IsValid);
-        Assert.Equal(string.Empty, code.CanonicalCode);
-        Assert.Equal(string.Empty, code.ToString());
+        code.IsValid.Should().BeFalse();
+        code.CanonicalCode.Should().Be(string.Empty);
+        code.ToString().Should().Be(string.Empty);
     }
 
     [Fact]
     public void TryParse_PreservesIgnoredHNibbleWithoutChangingDecodedCode()
     {
-        Assert.True(GameGenieCode.TryParse("068-55F-E06", out var first));
-        Assert.True(GameGenieCode.TryParse("068-55F-EF6", out var second));
+        GameGenieCode.TryParse("068-55F-E06", out var first).Should().BeTrue();
+        GameGenieCode.TryParse("068-55F-EF6", out var second).Should().BeTrue();
 
-        Assert.NotEqual(first.CanonicalCode, second.CanonicalCode);
-        Assert.Equal(first.Address, second.Address);
-        Assert.Equal(first.ReplacementValue, second.ReplacementValue);
-        Assert.Equal(first.CompareValue, second.CompareValue);
+        second.CanonicalCode.Should().NotBe(first.CanonicalCode);
+        second.Address.Should().Be(first.Address);
+        second.ReplacementValue.Should().Be(first.ReplacementValue);
+        second.CompareValue.Should().Be(first.CompareValue);
     }
 }

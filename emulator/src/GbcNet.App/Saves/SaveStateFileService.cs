@@ -90,7 +90,6 @@ internal sealed class SaveStateFileService(
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            SaveStateFileServiceLog.SaveStateWriteFailed(logger, exception);
             throw new IOException(
                 message: "Save-state file could not be written: " + exception.Message,
                 innerException: exception
@@ -181,7 +180,6 @@ internal sealed class SaveStateFileService(
         catch (EndOfStreamException)
         {
             var truncatedFile = new InvalidDataException("Save-state file is truncated.");
-            SaveStateFileServiceLog.SaveStateReadFailed(logger, truncatedFile);
             throw new InvalidDataException(
                 message: "Save-state file could not be read: " + truncatedFile.Message,
                 innerException: truncatedFile
@@ -189,7 +187,6 @@ internal sealed class SaveStateFileService(
         }
         catch (Exception exception)
         {
-            SaveStateFileServiceLog.SaveStateReadFailed(logger, exception);
             throw new InvalidDataException(
                 message: "Save-state file could not be read: " + exception.Message,
                 innerException: exception
@@ -375,12 +372,6 @@ internal sealed class SaveStateFileService(
 
 internal static partial class SaveStateFileServiceLog
 {
-    [LoggerMessage(Level = LogLevel.Error, Message = "Save-state file write failed.")]
-    internal static partial void SaveStateWriteFailed(ILogger logger, Exception exception);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "Save-state file read failed.")]
-    internal static partial void SaveStateReadFailed(ILogger logger, Exception exception);
-
     [LoggerMessage(Level = LogLevel.Warning, Message = "Temporary save-state file cleanup failed.")]
     internal static partial void SaveStateCleanupFailed(ILogger logger, Exception exception);
 }

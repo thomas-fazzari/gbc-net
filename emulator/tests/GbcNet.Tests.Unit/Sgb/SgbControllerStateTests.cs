@@ -17,11 +17,15 @@ public sealed class SgbControllerStateTests
 
         sgb.RestoreState(state);
         MutateBuffers(state);
-        Assert.Equivalent(expected, sgb.CaptureState(), strict: true);
+        sgb.CaptureState()
+            .Should()
+            .BeEquivalentTo(expected, options => options.WithStrictOrdering());
 
         var captured = sgb.CaptureState();
         MutateBuffers(captured);
-        Assert.Equivalent(expected, sgb.CaptureState(), strict: true);
+        sgb.CaptureState()
+            .Should()
+            .BeEquivalentTo(expected, options => options.WithStrictOrdering());
     }
 
     [Fact]
@@ -33,17 +37,20 @@ public sealed class SgbControllerStateTests
         var invalidAttributes = (byte[])before.Renderer.AttributeMap.Clone();
         invalidAttributes[^1] = 4;
 
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            sgb.RestoreState(
-                before with
-                {
-                    Command = new byte[112],
-                    Renderer = before.Renderer with { AttributeMap = invalidAttributes },
-                }
+        FluentActions
+            .Invoking(() =>
+                sgb.RestoreState(
+                    before with
+                    {
+                        Command = new byte[112],
+                        Renderer = before.Renderer with { AttributeMap = invalidAttributes },
+                    }
+                )
             )
-        );
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>();
 
-        Assert.Equivalent(before, sgb.CaptureState(), strict: true);
+        sgb.CaptureState().Should().BeEquivalentTo(before, options => options.WithStrictOrdering());
         Rgb555Assertions.PixelEquals(
             sgb.ApplyPalettes(CreateDmgFrame(shade: 2)),
             0,
@@ -57,17 +64,20 @@ public sealed class SgbControllerStateTests
         var sgb = new SgbController(commandsEnabled: true);
         var before = sgb.CaptureState();
 
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            sgb.RestoreState(
-                before with
-                {
-                    CommandWriteBitIndex = 0,
-                    PacketPhase = SgbPacketPhase.AwaitingStop,
-                }
+        FluentActions
+            .Invoking(() =>
+                sgb.RestoreState(
+                    before with
+                    {
+                        CommandWriteBitIndex = 0,
+                        PacketPhase = SgbPacketPhase.AwaitingStop,
+                    }
+                )
             )
-        );
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>();
 
-        Assert.Equivalent(before, sgb.CaptureState(), strict: true);
+        sgb.CaptureState().Should().BeEquivalentTo(before, options => options.WithStrictOrdering());
     }
 
     [Fact]
@@ -92,10 +102,11 @@ public sealed class SgbControllerStateTests
             0,
             expected: 0x3333
         );
-        Assert.Equal(
-            original.ApplyPalettes(CreateDmgFrame(shade: 2)).Pixels.ToArray(),
-            resumed.ApplyPalettes(CreateDmgFrame(shade: 2)).Pixels.ToArray()
-        );
+        resumed
+            .ApplyPalettes(CreateDmgFrame(shade: 2))
+            .Pixels.ToArray()
+            .Should()
+            .Equal(original.ApplyPalettes(CreateDmgFrame(shade: 2)).Pixels.ToArray());
     }
 
     [Fact]
@@ -110,14 +121,14 @@ public sealed class SgbControllerStateTests
         {
             original.ApplyPendingVramTransfer(CreateDmgFrame(shade: 0));
             resumed.ApplyPendingVramTransfer(CreateDmgFrame(shade: 0));
-            Assert.True(original.HasPendingVramTransfer);
-            Assert.True(resumed.HasPendingVramTransfer);
+            original.HasPendingVramTransfer.Should().BeTrue();
+            resumed.HasPendingVramTransfer.Should().BeTrue();
         }
 
         original.ApplyPendingVramTransfer(CreateDmgFrame(shade: 0));
         resumed.ApplyPendingVramTransfer(CreateDmgFrame(shade: 0));
-        Assert.False(original.HasPendingVramTransfer);
-        Assert.False(resumed.HasPendingVramTransfer);
+        original.HasPendingVramTransfer.Should().BeFalse();
+        resumed.HasPendingVramTransfer.Should().BeFalse();
     }
 
     [Fact]
@@ -165,7 +176,10 @@ public sealed class SgbControllerStateTests
         var resumed = new SgbController(commandsEnabled: true);
 
         resumed.RestoreState(state);
-        Assert.Equivalent(state, resumed.CaptureState(), strict: true);
+        resumed
+            .CaptureState()
+            .Should()
+            .BeEquivalentTo(state, options => options.WithStrictOrdering());
         Rgb555Assertions.PixelEquals(
             resumed.ApplyPalettes(CreateDmgFrame(shade: 2)),
             0,
@@ -219,8 +233,8 @@ public sealed class SgbControllerStateTests
         original.Write(0x20, previousSelectedGroups: 0x00);
         resumed.Write(0x20, previousSelectedGroups: 0x00);
 
-        Assert.Equal(original.ReadLowNibble(0x30, 0x0F), resumed.ReadLowNibble(0x30, 0x0F));
-        Assert.Equal((byte)0x0D, resumed.ReadLowNibble(0x30, 0x0F));
+        resumed.ReadLowNibble(0x30, 0x0F).Should().Be(original.ReadLowNibble(0x30, 0x0F));
+        resumed.ReadLowNibble(0x30, 0x0F).Should().Be(0x0D);
     }
 
     private static SgbController RestoreIntoNewController(SgbController source)

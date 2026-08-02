@@ -15,15 +15,15 @@ public sealed class ClockControllerTests
     {
         var clock = CreateClock(isKey1RegisterEnabled: true);
 
-        Assert.Equal(0x7E, clock.ReadKey1());
+        clock.ReadKey1().Should().Be(0x7E);
 
         clock.WriteKey1(0xFF);
 
-        Assert.Equal(0x7F, clock.ReadKey1());
+        clock.ReadKey1().Should().Be(0x7F);
 
         clock.WriteKey1(0xFE);
 
-        Assert.Equal(0x7E, clock.ReadKey1());
+        clock.ReadKey1().Should().Be(0x7E);
     }
 
     [Fact]
@@ -33,16 +33,15 @@ public sealed class ClockControllerTests
         clock.SetDivider(0x12);
         clock.WriteKey1(0x01);
 
-        Assert.True(clock.TryStartSpeedSwitch());
+        clock.TryStartSpeedSwitch().Should().BeTrue();
 
-        Assert.True(clock.CgbDoubleSpeed);
-        Assert.Equal(0xFE, clock.ReadKey1());
-        Assert.Equal(0x00, clock.ReadDivider());
-        Assert.Equal(
-            HardwareTiming.DoubleSpeedMachineCycleTCycles,
-            clock.VideoAndAudioTCyclesPerMachineCycle
-        );
-        Assert.Equal(2050, clock.SpeedSwitchPauseCycles);
+        clock.CgbDoubleSpeed.Should().BeTrue();
+        clock.ReadKey1().Should().Be(0xFE);
+        clock.ReadDivider().Should().Be(0x00);
+        clock
+            .VideoAndAudioTCyclesPerMachineCycle.Should()
+            .Be(HardwareTiming.DoubleSpeedMachineCycleTCycles);
+        clock.SpeedSwitchPauseCycles.Should().Be(2050);
     }
 
     [Fact]
@@ -50,10 +49,10 @@ public sealed class ClockControllerTests
     {
         var clock = CreateClock(isKey1RegisterEnabled: true);
 
-        Assert.False(clock.TryStartSpeedSwitch());
+        clock.TryStartSpeedSwitch().Should().BeFalse();
 
-        Assert.False(clock.CgbDoubleSpeed);
-        Assert.Equal(0x7E, clock.ReadKey1());
+        clock.CgbDoubleSpeed.Should().BeFalse();
+        clock.ReadKey1().Should().Be(0x7E);
     }
 
     [Fact]
@@ -63,9 +62,9 @@ public sealed class ClockControllerTests
 
         clock.WriteKey1(0x01);
 
-        Assert.Equal(0xFF, clock.ReadKey1());
-        Assert.False(clock.TryStartSpeedSwitch());
-        Assert.False(clock.CgbDoubleSpeed);
+        clock.ReadKey1().Should().Be(0xFF);
+        clock.TryStartSpeedSwitch().Should().BeFalse();
+        clock.CgbDoubleSpeed.Should().BeFalse();
     }
 
     [Fact]
@@ -85,9 +84,9 @@ public sealed class ClockControllerTests
         clock.RestoreState(state);
         clock.TickMachineCycle();
 
-        Assert.Equal(0x01, clock.ReadDivider());
-        Assert.Equal(0x3B, clock.Timers.TimerCounter);
-        Assert.Equal(0x6D, clock.Timers.TimerModulo);
+        clock.ReadDivider().Should().Be(0x01);
+        clock.Timers.TimerCounter.Should().Be(0x3B);
+        clock.Timers.TimerModulo.Should().Be(0x6D);
     }
 
     [Fact]
@@ -95,11 +94,11 @@ public sealed class ClockControllerTests
     {
         var clock = CreateClock(isKey1RegisterEnabled: true);
         clock.WriteKey1(0x01);
-        Assert.True(clock.TryStartSpeedSwitch());
+        clock.TryStartSpeedSwitch().Should().BeTrue();
 
         for (var cycle = 0; cycle < 6; cycle++)
         {
-            Assert.True(clock.TryStepSpeedSwitchPause());
+            clock.TryStepSpeedSwitchPause().Should().BeTrue();
         }
 
         clock.WriteKey1(0x01);
@@ -107,17 +106,17 @@ public sealed class ClockControllerTests
 
         for (var cycle = 0; cycle < 2044; cycle++)
         {
-            Assert.True(clock.TryStepSpeedSwitchPause());
+            clock.TryStepSpeedSwitchPause().Should().BeTrue();
         }
 
         clock.SetKey1State(0);
         clock.RestoreState(state);
 
-        Assert.True(clock.CgbDoubleSpeed);
-        Assert.Equal(0xFF, clock.ReadKey1());
-        Assert.Equal(2044, clock.SpeedSwitchPauseCycles);
-        Assert.True(clock.TryStepSpeedSwitchPause());
-        Assert.Equal(2043, clock.SpeedSwitchPauseCycles);
+        clock.CgbDoubleSpeed.Should().BeTrue();
+        clock.ReadKey1().Should().Be(0xFF);
+        clock.SpeedSwitchPauseCycles.Should().Be(2044);
+        clock.TryStepSpeedSwitchPause().Should().BeTrue();
+        clock.SpeedSwitchPauseCycles.Should().Be(2043);
     }
 
     [Fact]
@@ -131,7 +130,10 @@ public sealed class ClockControllerTests
             SpeedSwitchPauseCycles = 1,
         };
 
-        Assert.Throws<ArgumentException>(() => clock.RestoreState(state));
+        FluentActions
+            .Invoking(() => clock.RestoreState(state))
+            .Should()
+            .ThrowExactly<ArgumentException>();
     }
 
     private static ClockController CreateClock(bool isKey1RegisterEnabled)

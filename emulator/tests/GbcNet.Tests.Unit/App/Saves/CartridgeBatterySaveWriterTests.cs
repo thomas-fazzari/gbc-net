@@ -4,7 +4,6 @@
 using GbcNet.App.Saves;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Memory;
-using GbcNet.Tests.Shared;
 
 namespace GbcNet.Tests.Unit.App.Saves;
 
@@ -33,7 +32,7 @@ public sealed class CartridgeBatterySaveWriterTests
                     await releaseFirstWrite.Task;
                 }
             },
-            exception => Assert.Fail($"Unexpected error: {exception}")
+            exception => exception.Should().BeNull($"Unexpected error: {exception}")
         );
 
         writer.QueueSave();
@@ -41,7 +40,7 @@ public sealed class CartridgeBatterySaveWriterTests
             TimeSpan.FromSeconds(1),
             TestContext.Current.CancellationToken
         );
-        Assert.False(cartridge.IsBatterySaveDirty);
+        cartridge.IsBatterySaveDirty.Should().BeFalse();
 
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x22);
         writer.QueueSave();
@@ -49,15 +48,16 @@ public sealed class CartridgeBatterySaveWriterTests
         writer.QueueSave();
         var flush = writer.FlushAsync();
 
-        Assert.False(flush.IsCompleted);
+        flush.IsCompleted.Should().BeFalse();
         releaseFirstWrite.SetResult();
         await flush.WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
 
-        Assert.Collection(
-            writes,
-            first => Assert.Equal(0x11, first[0]),
-            latest => Assert.Equal(0x33, latest[0])
-        );
+        writes
+            .Should()
+            .SatisfyRespectively(
+                first => first[0].Should().Be(0x11),
+                latest => latest[0].Should().Be(0x33)
+            );
     }
 
     [Fact]
@@ -73,16 +73,16 @@ public sealed class CartridgeBatterySaveWriterTests
                 persisted = save.ToArray();
                 return Task.CompletedTask;
             },
-            exception => Assert.Fail($"Unexpected error: {exception}")
+            exception => exception.Should().BeNull($"Unexpected error: {exception}")
         );
 
         await writer
             .FlushAsync()
             .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
 
-        Assert.NotNull(persisted);
-        Assert.Equal(0x42, persisted[0]);
-        Assert.False(cartridge.IsBatterySaveDirty);
+        persisted.Should().NotBeNull();
+        persisted[0].Should().Be(0x42);
+        cartridge.IsBatterySaveDirty.Should().BeFalse();
     }
 
     [Fact]
@@ -111,20 +111,21 @@ public sealed class CartridgeBatterySaveWriterTests
         );
 
         writer.QueueSave();
-        Assert.Equal(
-            "synthetic write failure",
+        (
             await failureReported.Task.WaitAsync(
                 TimeSpan.FromSeconds(1),
                 TestContext.Current.CancellationToken
             )
-        );
+        )
+            .Should()
+            .Be("synthetic write failure");
         await writer
             .FlushAsync()
             .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
 
-        Assert.Equal(2, attempts);
-        Assert.NotNull(persisted);
-        Assert.Equal(0x44, persisted[0]);
+        attempts.Should().Be(2);
+        persisted.Should().NotBeNull();
+        persisted[0].Should().Be(0x44);
     }
 
     [Fact]
@@ -147,13 +148,18 @@ public sealed class CartridgeBatterySaveWriterTests
             TestContext.Current.CancellationToken
         );
 
-        var exception = await Assert.ThrowsAsync<IOException>(() =>
-            writer
-                .FlushAsync()
-                .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken)
-        );
+        var exception = (
+            await FluentActions
+                .Awaiting(() =>
+                    writer
+                        .FlushAsync()
+                        .WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken)
+                )
+                .Should()
+                .ThrowExactlyAsync<IOException>()
+        ).Which;
 
-        Assert.Equal("synthetic final write failure", exception.Message);
+        exception.Message.Should().Be("synthetic final write failure");
     }
 
     private static Cartridge CreateBatteryBackedCartridge()

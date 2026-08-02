@@ -1,11 +1,9 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Sm83;
-using GbcNet.Tests.Shared;
 
 namespace GbcNet.Tests.Unit.Sm83;
 

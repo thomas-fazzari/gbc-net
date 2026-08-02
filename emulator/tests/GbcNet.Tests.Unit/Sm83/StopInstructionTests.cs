@@ -26,10 +26,10 @@ public sealed class StopInstructionTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(2, machineCycles);
-        Assert.True(cpu.Stopped);
-        Assert.Equal(EntryPoint + 2, cpu.Registers.PC);
-        Assert.Equal(0, cpu.Registers.B);
+        machineCycles.Should().Be(2);
+        cpu.Stopped.Should().BeTrue();
+        cpu.Registers.PC.Should().Be(EntryPoint + 2);
+        cpu.Registers.B.Should().Be(0);
     }
 
     [Fact]
@@ -46,16 +46,16 @@ public sealed class StopInstructionTests
             () => ticks++
         );
 
-        Assert.Equal(2, cpu.Step());
+        cpu.Step().Should().Be(2);
         var ticksAfterStopInstruction = ticks;
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(0, machineCycles);
-        Assert.True(cpu.Stopped);
-        Assert.Equal(ticksAfterStopInstruction, ticks);
-        Assert.Equal(EntryPoint + 2, cpu.Registers.PC);
-        Assert.Equal(0, cpu.Registers.B);
+        machineCycles.Should().Be(0);
+        cpu.Stopped.Should().BeTrue();
+        ticks.Should().Be(ticksAfterStopInstruction);
+        cpu.Registers.PC.Should().Be(EntryPoint + 2);
+        cpu.Registers.B.Should().Be(0);
     }
 
     [Fact]
@@ -78,12 +78,12 @@ public sealed class StopInstructionTests
         bus.Joypad.SetButtonState(JoypadButton.Right, pressed: true);
         var wakeMachineCycles = cpu.Step();
 
-        Assert.Equal(0, wakeMachineCycles);
-        Assert.False(cpu.Stopped);
-        Assert.Equal(ticksAfterStopInstruction, ticks);
+        wakeMachineCycles.Should().Be(0);
+        cpu.Stopped.Should().BeFalse();
+        ticks.Should().Be(ticksAfterStopInstruction);
 
-        Assert.Equal(1, cpu.Step());
-        Assert.Equal(1, cpu.Registers.B);
+        cpu.Step().Should().Be(1);
+        cpu.Registers.B.Should().Be(1);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public sealed class StopInstructionTests
 
         cpu.Step();
 
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.DividerRegister));
+        bus.ReadByte(AddressMap.DividerRegister).Should().Be(0x00);
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public sealed class StopInstructionTests
         });
         sourceBus.WriteByte(AddressMap.JoypadRegister, 0x20);
 
-        Assert.Equal(2, source.Step());
+        source.Step().Should().Be(2);
         var state = source.CaptureState();
 
         var (restored, restoredBus) = CpuTestFactory.CreateCpuWithBus(rom =>
@@ -124,15 +124,15 @@ public sealed class StopInstructionTests
         restoredBus.WriteByte(AddressMap.JoypadRegister, 0x20);
         restored.RestoreState(state);
 
-        Assert.Equal(source.Step(), restored.Step());
-        Assert.True(restored.Stopped);
+        restored.Step().Should().Be(source.Step());
+        restored.Stopped.Should().BeTrue();
 
         sourceBus.Joypad.SetButtonState(JoypadButton.Right, pressed: true);
         restoredBus.Joypad.SetButtonState(JoypadButton.Right, pressed: true);
 
-        Assert.Equal(source.Step(), restored.Step());
-        Assert.False(restored.Stopped);
-        Assert.Equal(source.Step(), restored.Step());
-        Assert.Equal(1, restored.Registers.B);
+        restored.Step().Should().Be(source.Step());
+        restored.Stopped.Should().BeFalse();
+        restored.Step().Should().Be(source.Step());
+        restored.Registers.B.Should().Be(1);
     }
 }

@@ -18,12 +18,15 @@ public sealed class EmulationSpeedTests
     [InlineData(80, "8x")]
     public void GetDisplayName_ReturnsExpectedLabel(int speed, string expected)
     {
-        Assert.Equal(expected, ((EmulationSpeed)speed).GetDisplayName());
+        ((EmulationSpeed)speed).GetDisplayName().Should().Be(expected);
     }
 
     [Fact]
     public void GetDisplayName_RejectsUnsupportedSpeed()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => ((EmulationSpeed)999).GetDisplayName());
+        FluentActions
+            .Invoking(() => ((EmulationSpeed)999).GetDisplayName())
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>();
     }
 }

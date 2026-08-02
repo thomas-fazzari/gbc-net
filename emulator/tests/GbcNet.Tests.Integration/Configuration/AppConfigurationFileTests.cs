@@ -24,16 +24,15 @@ public sealed class AppConfigurationFileTests
         config.BootRoms = bootRoms;
 
         AppConfigurationFile.Save(configPath, config, NullLogger.Instance);
-        Assert.False(File.Exists(configPath + ".tmp"));
+        File.Exists(configPath + ".tmp").Should().BeFalse();
 
         using var json = JsonDocument.Parse(File.ReadAllText(configPath));
-        Assert.Equal(
-            dmgPath,
-            json.RootElement.GetProperty("bootRoms")
-                .GetProperty(BootRomConfig.JsonName(HardwareModel.Dmg))
-                .GetString()
-        );
-        Assert.Equal(bootRoms, AppConfigurationFile.Load(configPath).BootRoms);
+        json.RootElement.GetProperty("bootRoms")
+            .GetProperty(BootRomConfig.JsonName(HardwareModel.Dmg))
+            .GetString()
+            .Should()
+            .Be(dmgPath);
+        AppConfigurationFile.Load(configPath).BootRoms.Should().Be(bootRoms);
     }
 
     [Fact]
@@ -47,11 +46,12 @@ public sealed class AppConfigurationFileTests
         AppConfigurationFile.Save(configPath, config, NullLogger.Instance);
 
         using var json = JsonDocument.Parse(File.ReadAllText(configPath));
-        Assert.Equal(
-            "list",
-            json.RootElement.GetProperty("library").GetProperty("viewMode").GetString()
-        );
-        Assert.Equal(LibraryViewMode.List, AppConfigurationFile.Load(configPath).Library.ViewMode);
+        json.RootElement.GetProperty("library")
+            .GetProperty("viewMode")
+            .GetString()
+            .Should()
+            .Be("list");
+        AppConfigurationFile.Load(configPath).Library.ViewMode.Should().Be(LibraryViewMode.List);
     }
 
     [Fact]
@@ -69,10 +69,10 @@ public sealed class AppConfigurationFileTests
         using var json = JsonDocument.Parse(File.ReadAllText(configPath));
         var input = json.RootElement.GetProperty("input");
 
-        Assert.Equal(2, input.GetProperty("version").GetInt32());
-        Assert.False(input.TryGetProperty("activeProfile", out _));
-        Assert.False(input.TryGetProperty("profiles", out _));
-        Assert.Equal(3, input.EnumerateObject().Count());
+        input.GetProperty("version").GetInt32().Should().Be(2);
+        input.TryGetProperty("activeProfile", out _).Should().BeFalse();
+        input.TryGetProperty("profiles", out _).Should().BeFalse();
+        input.EnumerateObject().Count().Should().Be(3);
         AssertSectionHasDefaultProfile(input.GetProperty("keyboard"), "bindings");
         AssertSectionHasDefaultProfile(input.GetProperty("gamepad"), "bindings");
     }
@@ -92,21 +92,24 @@ public sealed class AppConfigurationFileTests
         var replacementConfig = AppConfigurationFile.CreateDefault();
         replacementConfig.BootRoms = new BootRomConfig("new-dmg.bin", "new-cgb.bin", "new-sgb.bin");
 
-        Assert.Throws<ConfigurationException>(() =>
-            AppConfigurationFile.Save(configPath, replacementConfig, NullLogger.Instance)
-        );
+        FluentActions
+            .Invoking(() =>
+                AppConfigurationFile.Save(configPath, replacementConfig, NullLogger.Instance)
+            )
+            .Should()
+            .ThrowExactly<ConfigurationException>();
 
-        Assert.Equal(originalBytes, File.ReadAllBytes(configPath));
-        Assert.Equal(originalConfig.BootRoms, AppConfigurationFile.Load(configPath).BootRoms);
-        Assert.True(Directory.Exists(temporaryPath));
+        File.ReadAllBytes(configPath).Should().Equal(originalBytes);
+        AppConfigurationFile.Load(configPath).BootRoms.Should().Be(originalConfig.BootRoms);
+        Directory.Exists(temporaryPath).Should().BeTrue();
     }
 
     private static void AssertSectionHasDefaultProfile(JsonElement section, string bindingsProperty)
     {
-        Assert.Equal(2, section.EnumerateObject().Count());
-        Assert.Equal("default", section.GetProperty("activeProfile").GetString());
+        section.EnumerateObject().Count().Should().Be(2);
+        section.GetProperty("activeProfile").GetString().Should().Be("default");
         var profile = section.GetProperty("profiles").GetProperty("default");
-        Assert.Single(profile.EnumerateObject());
-        Assert.Equal(JsonValueKind.Array, profile.GetProperty(bindingsProperty).ValueKind);
+        profile.EnumerateObject().Should().ContainSingle();
+        profile.GetProperty(bindingsProperty).ValueKind.Should().Be(JsonValueKind.Array);
     }
 }

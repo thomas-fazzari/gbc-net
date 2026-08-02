@@ -15,9 +15,9 @@ public sealed class OamDmaControllerTests
 
         dma.StartOamTransfer(0xC0);
 
-        Assert.Equal(0xC0, dma.ReadRegister());
-        Assert.True(dma.IsActive);
-        Assert.False(dma.IsCpuOamBlocked);
+        dma.ReadRegister().Should().Be(0xC0);
+        dma.IsActive.Should().BeTrue();
+        dma.IsCpuOamBlocked.Should().BeFalse();
     }
 
     [Fact]
@@ -33,9 +33,9 @@ public sealed class OamDmaControllerTests
             (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
         );
 
-        Assert.Equal(0xFF, dma.ReadRegister());
-        Assert.False(dma.IsActive);
-        Assert.Empty(writes);
+        dma.ReadRegister().Should().Be(0xFF);
+        dma.IsActive.Should().BeFalse();
+        writes.Should().BeEmpty();
     }
 
     [Fact]
@@ -56,9 +56,9 @@ public sealed class OamDmaControllerTests
             (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
         );
 
-        Assert.True(dma.IsActive);
-        Assert.True(dma.IsCpuOamBlocked);
-        Assert.Empty(writes);
+        dma.IsActive.Should().BeTrue();
+        dma.IsCpuOamBlocked.Should().BeTrue();
+        writes.Should().BeEmpty();
     }
 
     [Fact]
@@ -72,9 +72,9 @@ public sealed class OamDmaControllerTests
         dma.Tick(1, ReadLowByte, (address, value) => writes.Add((address, value)));
         dma.Tick(1, ReadLowByte, (address, value) => writes.Add((address, value)));
 
-        var (destinationAddress, copiedValue) = Assert.Single(writes);
-        Assert.Equal(AddressMap.ObjectAttributeMemoryStart, destinationAddress);
-        Assert.Equal(0x00, copiedValue);
+        var (destinationAddress, copiedValue) = writes.Should().ContainSingle().Which;
+        destinationAddress.Should().Be(AddressMap.ObjectAttributeMemoryStart);
+        copiedValue.Should().Be(0x00);
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public sealed class OamDmaControllerTests
             (0xFE01, 0x01),
             (0xFE02, 0x02),
         ];
-        Assert.Equal(expectedWrites, writes);
+        writes.Should().Equal(expectedWrites);
     }
 
     [Fact]
@@ -132,10 +132,10 @@ public sealed class OamDmaControllerTests
             (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
         );
 
-        Assert.Equal(160, writes.Count);
-        Assert.Equal((AddressMap.ObjectAttributeMemoryStart, (byte)0x00), writes[0]);
-        Assert.Equal((AddressMap.ObjectAttributeMemoryEnd, (byte)0x9F), writes[^1]);
-        Assert.False(dma.IsActive);
+        writes.Count.Should().Be(160);
+        writes[0].Should().Be((AddressMap.ObjectAttributeMemoryStart, 0x00));
+        writes[^1].Should().Be((AddressMap.ObjectAttributeMemoryEnd, 0x9F));
+        dma.IsActive.Should().BeFalse();
     }
 
     [Fact]
@@ -180,7 +180,7 @@ public sealed class OamDmaControllerTests
             (AddressMap.ObjectAttributeMemoryStart + 2, 0xC0),
             (AddressMap.ObjectAttributeMemoryStart, 0xD0),
         ];
-        Assert.Equal(expectedWrites, writes);
+        writes.Should().Equal(expectedWrites);
     }
 
     [Fact]
@@ -207,23 +207,23 @@ public sealed class OamDmaControllerTests
             ReadSourceHighByte,
             (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
         );
-        Assert.False(dma.IsActive);
+        dma.IsActive.Should().BeFalse();
 
         dma.Tick(
             1,
             ReadSourceHighByte,
             (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
         );
-        Assert.True(dma.IsActive);
+        dma.IsActive.Should().BeTrue();
         dma.Tick(
             1,
             ReadSourceHighByte,
             (destinationAddress, copiedValue) => writes.Add((destinationAddress, copiedValue))
         );
 
-        Assert.Equal(161, writes.Count);
-        Assert.Equal((AddressMap.ObjectAttributeMemoryEnd, (byte)0xC0), writes[159]);
-        Assert.Equal((AddressMap.ObjectAttributeMemoryStart, (byte)0xD0), writes[160]);
+        writes.Count.Should().Be(161);
+        writes[159].Should().Be((AddressMap.ObjectAttributeMemoryEnd, 0xC0));
+        writes[160].Should().Be((AddressMap.ObjectAttributeMemoryStart, 0xD0));
     }
 
     [Fact]
@@ -237,16 +237,16 @@ public sealed class OamDmaControllerTests
         var writes = new List<(ushort Address, byte Value)>();
         restored.RestoreState(source.CaptureState());
 
-        Assert.Equal(0xC0, restored.ReadRegister());
-        Assert.True(restored.IsActive);
-        Assert.False(restored.IsCpuOamBlocked);
-        Assert.Empty(writes);
+        restored.ReadRegister().Should().Be(0xC0);
+        restored.IsActive.Should().BeTrue();
+        restored.IsCpuOamBlocked.Should().BeFalse();
+        writes.Should().BeEmpty();
 
         restored.Tick(1, ReadSourceHighByte, (address, value) => writes.Add((address, value)));
-        Assert.Empty(writes);
+        writes.Should().BeEmpty();
 
         restored.Tick(1, ReadSourceHighByte, (address, value) => writes.Add((address, value)));
-        Assert.Equal([(AddressMap.ObjectAttributeMemoryStart, (byte)0xC0)], writes);
+        writes.Should().Equal((AddressMap.ObjectAttributeMemoryStart, 0xC0));
     }
 
     [Fact]
@@ -263,25 +263,24 @@ public sealed class OamDmaControllerTests
         var writes = new List<(ushort Address, byte Value)>();
         restored.RestoreState(source.CaptureState());
 
-        Assert.Empty(writes);
-        Assert.Equal(0xD0, restored.ReadRegister());
-        Assert.True(restored.IsActive);
-        Assert.True(restored.IsCpuOamBlocked);
-        Assert.True(restored.TryGetCpuConflictSourceAddress(out var conflictSourceAddress));
-        Assert.Equal(0xC001, conflictSourceAddress);
+        writes.Should().BeEmpty();
+        restored.ReadRegister().Should().Be(0xD0);
+        restored.IsActive.Should().BeTrue();
+        restored.IsCpuOamBlocked.Should().BeTrue();
+        restored.TryGetCpuConflictSourceAddress(out var conflictSourceAddress).Should().BeTrue();
+        conflictSourceAddress.Should().Be(0xC001);
 
         restored.Tick(1, ReadSourceHighByte, (address, value) => writes.Add((address, value)));
-        Assert.Equal([(AddressMap.ObjectAttributeMemoryStart + 2, (byte)0xC0)], writes);
-        Assert.True(restored.IsActive);
+        writes.Should().Equal((AddressMap.ObjectAttributeMemoryStart + 2, 0xC0));
+        restored.IsActive.Should().BeTrue();
 
         restored.Tick(1, ReadSourceHighByte, (address, value) => writes.Add((address, value)));
-        Assert.Equal(
-            [
-                (AddressMap.ObjectAttributeMemoryStart + 2, (byte)0xC0),
-                (AddressMap.ObjectAttributeMemoryStart, (byte)0xD0),
-            ],
-            writes
-        );
+        writes
+            .Should()
+            .Equal(
+                (AddressMap.ObjectAttributeMemoryStart + 2, 0xC0),
+                (AddressMap.ObjectAttributeMemoryStart, 0xD0)
+            );
     }
 
     [Fact]
@@ -290,7 +289,10 @@ public sealed class OamDmaControllerTests
         var dma = new OamDmaController();
         var state = dma.CaptureState() with { NextOffset = 0xA0, IsActive = true };
 
-        Assert.Throws<ArgumentException>(() => dma.RestoreState(state));
+        FluentActions
+            .Invoking(() => dma.RestoreState(state))
+            .Should()
+            .ThrowExactly<ArgumentException>();
     }
 
     private static byte ReadLowByte(ushort address) => (byte)address;

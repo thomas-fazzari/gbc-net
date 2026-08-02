@@ -26,14 +26,12 @@ public sealed class CheatCodeServiceTests
         };
         var expected = new[] { submitted[1], submitted[3], submitted[0], submitted[2] };
 
-        Assert.Equal(
-            submitted,
-            await test.Service.ReplaceAsync(hash, submitted, TestContext.Current.CancellationToken)
-        );
-        Assert.Equal(
-            expected,
-            await test.Service.LoadAsync(hash, TestContext.Current.CancellationToken)
-        );
+        (await test.Service.ReplaceAsync(hash, submitted, TestContext.Current.CancellationToken))
+            .Should()
+            .Equal(submitted);
+        (await test.Service.LoadAsync(hash, TestContext.Current.CancellationToken))
+            .Should()
+            .Equal(expected);
     }
 
     [Fact]
@@ -47,8 +45,7 @@ public sealed class CheatCodeServiceTests
             Entry(CheatCodeType.GameShark, "010100C0"),
         };
 
-        Assert.Equal(
-            expected,
+        (
             await test.Service.ReplaceAsync(
                 hash,
                 [
@@ -57,31 +54,36 @@ public sealed class CheatCodeServiceTests
                 ],
                 TestContext.Current.CancellationToken
             )
-        );
-        Assert.Equal(
-            expected,
-            await test.Service.LoadAsync(hash, TestContext.Current.CancellationToken)
-        );
+        )
+            .Should()
+            .Equal(expected);
+        (await test.Service.LoadAsync(hash, TestContext.Current.CancellationToken))
+            .Should()
+            .Equal(expected);
     }
 
     [Fact]
     public async Task ReplaceAsync_RejectsNamesLongerThanMaximum()
     {
         using var test = new CheatCodeTestContext();
+        var service = test.Service;
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            test.Service.ReplaceAsync(
-                CreateHash(1),
-                [
-                    Entry(
-                        CheatCodeType.GameGenie,
-                        "0A1-B9F",
-                        name: new string('A', CheatCodeService.MaxNameLength + 1)
-                    ),
-                ],
-                TestContext.Current.CancellationToken
+        await FluentActions
+            .Awaiting(() =>
+                service.ReplaceAsync(
+                    CreateHash(1),
+                    [
+                        Entry(
+                            CheatCodeType.GameGenie,
+                            "0A1-B9F",
+                            name: new string('A', CheatCodeService.MaxNameLength + 1)
+                        ),
+                    ],
+                    TestContext.Current.CancellationToken
+                )
             )
-        );
+            .Should()
+            .ThrowExactlyAsync<ArgumentException>();
     }
 
     [Fact]
@@ -108,30 +110,29 @@ public sealed class CheatCodeServiceTests
 
         await test.Service.ReplaceAsync(firstHash, first, TestContext.Current.CancellationToken);
         await test.Service.ReplaceAsync(secondHash, second, TestContext.Current.CancellationToken);
-        Assert.Equal(
-            replacement,
+        (
             await test.Service.ReplaceAsync(
                 firstHash,
                 replacement,
                 TestContext.Current.CancellationToken
             )
-        );
+        )
+            .Should()
+            .Equal(replacement);
 
-        Assert.Equal(
-            replacement,
-            await test.Service.LoadAsync(firstHash, TestContext.Current.CancellationToken)
-        );
-        Assert.Equal(
-            second,
-            await test.Service.LoadAsync(secondHash, TestContext.Current.CancellationToken)
-        );
+        (await test.Service.LoadAsync(firstHash, TestContext.Current.CancellationToken))
+            .Should()
+            .Equal(replacement);
+        (await test.Service.LoadAsync(secondHash, TestContext.Current.CancellationToken))
+            .Should()
+            .Equal(second);
 
-        Assert.Empty(
-            await test.Service.ReplaceAsync(firstHash, [], TestContext.Current.CancellationToken)
-        );
-        Assert.Empty(
-            await test.Service.LoadAsync(firstHash, TestContext.Current.CancellationToken)
-        );
+        (await test.Service.ReplaceAsync(firstHash, [], TestContext.Current.CancellationToken))
+            .Should()
+            .BeEmpty();
+        (await test.Service.LoadAsync(firstHash, TestContext.Current.CancellationToken))
+            .Should()
+            .BeEmpty();
     }
 
     [Theory]
@@ -148,17 +149,20 @@ public sealed class CheatCodeServiceTests
             .Select(index => Entry(type, Code(type, index)))
             .ToArray();
 
-        Assert.Equal(
-            entries,
-            await test.Service.ReplaceAsync(hash, entries, TestContext.Current.CancellationToken)
-        );
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            test.Service.ReplaceAsync(
-                hash,
-                [.. entries, Entry(type, Code(type, CheatCodeService.MaxEntryCount))],
-                TestContext.Current.CancellationToken
+        (await test.Service.ReplaceAsync(hash, entries, TestContext.Current.CancellationToken))
+            .Should()
+            .Equal(entries);
+        var service = test.Service;
+        await FluentActions
+            .Awaiting(() =>
+                service.ReplaceAsync(
+                    hash,
+                    [.. entries, Entry(type, Code(type, CheatCodeService.MaxEntryCount))],
+                    TestContext.Current.CancellationToken
+                )
             )
-        );
+            .Should()
+            .ThrowExactlyAsync<ArgumentException>();
     }
 
     [Fact]
@@ -179,14 +183,15 @@ public sealed class CheatCodeServiceTests
                 ),
         ];
 
-        Assert.Equal(
-            entries,
+        (
             await test.Service.ReplaceAsync(
                 CreateHash(1),
                 entries,
                 TestContext.Current.CancellationToken
             )
-        );
+        )
+            .Should()
+            .Equal(entries);
     }
 
     [Fact]
@@ -194,16 +199,26 @@ public sealed class CheatCodeServiceTests
     {
         using var test = new CheatCodeTestContext();
         var entries = new[] { Entry(CheatCodeType.GameGenie, "0A1-B9F") };
+        var service = test.Service;
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() =>
-            test.Service.ReplaceAsync(null!, entries, TestContext.Current.CancellationToken)
-        );
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            test.Service.ReplaceAsync(new byte[31], entries, TestContext.Current.CancellationToken)
-        );
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            test.Service.ReplaceAsync(new byte[33], entries, TestContext.Current.CancellationToken)
-        );
+        await FluentActions
+            .Awaiting(() =>
+                service.ReplaceAsync(null!, entries, TestContext.Current.CancellationToken)
+            )
+            .Should()
+            .ThrowExactlyAsync<ArgumentNullException>();
+        await FluentActions
+            .Awaiting(() =>
+                service.ReplaceAsync(new byte[31], entries, TestContext.Current.CancellationToken)
+            )
+            .Should()
+            .ThrowExactlyAsync<ArgumentException>();
+        await FluentActions
+            .Awaiting(() =>
+                service.ReplaceAsync(new byte[33], entries, TestContext.Current.CancellationToken)
+            )
+            .Should()
+            .ThrowExactlyAsync<ArgumentException>();
     }
 
     [Theory]
@@ -217,21 +232,28 @@ public sealed class CheatCodeServiceTests
     {
         using var test = new CheatCodeTestContext();
         var hash = CreateHash(1);
+        var service = test.Service;
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            test.Service.ReplaceAsync(
-                hash,
-                [new CheatCodeEntry(default, true)],
-                TestContext.Current.CancellationToken
+        await FluentActions
+            .Awaiting(() =>
+                service.ReplaceAsync(
+                    hash,
+                    [new CheatCodeEntry(default, true)],
+                    TestContext.Current.CancellationToken
+                )
             )
-        );
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            test.Service.ReplaceAsync(
-                hash,
-                [Entry(type, firstCode), Entry(type, duplicateCode)],
-                TestContext.Current.CancellationToken
+            .Should()
+            .ThrowExactlyAsync<ArgumentException>();
+        await FluentActions
+            .Awaiting(() =>
+                service.ReplaceAsync(
+                    hash,
+                    [Entry(type, firstCode), Entry(type, duplicateCode)],
+                    TestContext.Current.CancellationToken
+                )
             )
-        );
+            .Should()
+            .ThrowExactlyAsync<ArgumentException>();
     }
 
     [Fact]
@@ -248,11 +270,10 @@ public sealed class CheatCodeServiceTests
         await test.Service.ReplaceAsync(hash, entries, TestContext.Current.CancellationToken);
 
         await using var db = test.Factory.CreateDbContext();
-        Assert.Empty(await db.Roms.ToArrayAsync(TestContext.Current.CancellationToken));
-        Assert.Equal(
-            entries,
-            await test.Service.LoadAsync(hash, TestContext.Current.CancellationToken)
-        );
+        (await db.Roms.ToArrayAsync(TestContext.Current.CancellationToken)).Should().BeEmpty();
+        (await test.Service.LoadAsync(hash, TestContext.Current.CancellationToken))
+            .Should()
+            .Equal(entries);
     }
 
     [Fact]
@@ -275,16 +296,24 @@ public sealed class CheatCodeServiceTests
             new TestDbContextFactory(test.DatabasePath, new FailingSaveChangesInterceptor())
         );
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            failingService.ReplaceAsync(hash, replacement, TestContext.Current.CancellationToken)
-        );
+        var exception = (
+            await FluentActions
+                .Awaiting(() =>
+                    failingService.ReplaceAsync(
+                        hash,
+                        replacement,
+                        TestContext.Current.CancellationToken
+                    )
+                )
+                .Should()
+                .ThrowExactlyAsync<InvalidOperationException>()
+        ).Which;
 
-        Assert.Equal("Cheat codes could not be saved.", exception.Message);
-        Assert.IsType<DbUpdateException>(exception.InnerException);
-        Assert.Equal(
-            original,
-            await test.Service.LoadAsync(hash, TestContext.Current.CancellationToken)
-        );
+        exception.Message.Should().Be("Cheat codes could not be saved.");
+        exception.InnerException.Should().BeOfType<DbUpdateException>();
+        (await test.Service.LoadAsync(hash, TestContext.Current.CancellationToken))
+            .Should()
+            .Equal(original);
     }
 
     [Theory]
@@ -300,12 +329,16 @@ public sealed class CheatCodeServiceTests
         using var test = new CheatCodeTestContext();
         var hash = CreateHash(1);
         await InsertCodeAsync(test.DatabasePath, Convert.ToHexString(hash), 0, code, type: type);
+        var service = test.Service;
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            test.Service.LoadAsync(hash, TestContext.Current.CancellationToken)
-        );
+        var exception = (
+            await FluentActions
+                .Awaiting(() => service.LoadAsync(hash, TestContext.Current.CancellationToken))
+                .Should()
+                .ThrowExactlyAsync<InvalidOperationException>()
+        ).Which;
 
-        Assert.Equal("Cheat codes could not be loaded.", exception.Message);
+        exception.Message.Should().Be("Cheat codes could not be loaded.");
     }
 
     [Fact]
@@ -321,6 +354,7 @@ public sealed class CheatCodeServiceTests
         )
         {
             using var test = new CheatCodeTestContext();
+            var service = test.Service;
             var hash = CreateHash(1);
             await InsertCodeAsync(
                 test.DatabasePath,
@@ -332,11 +366,14 @@ public sealed class CheatCodeServiceTests
                 ignoreCheckConstraints: true
             );
 
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                test.Service.LoadAsync(hash, TestContext.Current.CancellationToken)
-            );
+            var exception = (
+                await FluentActions
+                    .Awaiting(() => service.LoadAsync(hash, TestContext.Current.CancellationToken))
+                    .Should()
+                    .ThrowExactlyAsync<InvalidOperationException>()
+            ).Which;
 
-            Assert.Equal("Cheat codes could not be loaded.", exception.Message);
+            exception.Message.Should().Be("Cheat codes could not be loaded.");
         }
     }
 
@@ -348,12 +385,16 @@ public sealed class CheatCodeServiceTests
         var storedHash = Convert.ToHexString(hash);
         await InsertCodeAsync(test.DatabasePath, storedHash, 0, "068-55F-E66");
         await InsertCodeAsync(test.DatabasePath, storedHash, 1, "068-55F-E76");
+        var service = test.Service;
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            test.Service.LoadAsync(hash, TestContext.Current.CancellationToken)
-        );
+        var exception = (
+            await FluentActions
+                .Awaiting(() => service.LoadAsync(hash, TestContext.Current.CancellationToken))
+                .Should()
+                .ThrowExactlyAsync<InvalidOperationException>()
+        ).Which;
 
-        Assert.Equal("Cheat codes could not be loaded.", exception.Message);
+        exception.Message.Should().Be("Cheat codes could not be loaded.");
     }
 
     [Fact]
@@ -361,58 +402,73 @@ public sealed class CheatCodeServiceTests
     {
         using var test = new CheatCodeTestContext();
         var hash = Convert.ToHexString(CreateHash(1));
-        await InsertCodeAsync(test.DatabasePath, hash, 0, "0A1-B9F");
+        var databasePath = test.DatabasePath;
+        await InsertCodeAsync(databasePath, hash, 0, "0A1-B9F");
         await InsertCodeAsync(
-            test.DatabasePath,
+            databasePath,
             hash,
             sortOrder: 0,
             code: "010100C0",
             type: CheatCodeType.GameShark
         );
 
-        await Assert.ThrowsAsync<SqliteException>(() =>
-            InsertCodeAsync(test.DatabasePath, hash, 20, "068-55F-E66")
-        );
-        await Assert.ThrowsAsync<SqliteException>(() =>
-            InsertCodeAsync(test.DatabasePath, hash, 1, "068-55F-E66", isEnabled: 2)
-        );
-        await Assert.ThrowsAsync<SqliteException>(() =>
-            InsertCodeAsync(
-                test.DatabasePath,
-                hash,
-                sortOrder: 1,
-                code: "010200C0",
-                type: (CheatCodeType)2
+        await FluentActions
+            .Awaiting(() => InsertCodeAsync(databasePath, hash, 20, "068-55F-E66"))
+            .Should()
+            .ThrowExactlyAsync<SqliteException>();
+        await FluentActions
+            .Awaiting(() => InsertCodeAsync(databasePath, hash, 1, "068-55F-E66", isEnabled: 2))
+            .Should()
+            .ThrowExactlyAsync<SqliteException>();
+        await FluentActions
+            .Awaiting(() =>
+                InsertCodeAsync(
+                    databasePath,
+                    hash,
+                    sortOrder: 1,
+                    code: "010200C0",
+                    type: (CheatCodeType)2
+                )
             )
-        );
-        await Assert.ThrowsAsync<SqliteException>(() =>
-            InsertCodeAsync(test.DatabasePath, hash, 0, "068-55F-E66")
-        );
-        await Assert.ThrowsAsync<SqliteException>(() =>
-            InsertCodeAsync(
-                test.DatabasePath,
-                hash,
-                sortOrder: 0,
-                code: "010200C0",
-                type: CheatCodeType.GameShark
+            .Should()
+            .ThrowExactlyAsync<SqliteException>();
+        await FluentActions
+            .Awaiting(() => InsertCodeAsync(databasePath, hash, 0, "068-55F-E66"))
+            .Should()
+            .ThrowExactlyAsync<SqliteException>();
+        await FluentActions
+            .Awaiting(() =>
+                InsertCodeAsync(
+                    databasePath,
+                    hash,
+                    sortOrder: 0,
+                    code: "010200C0",
+                    type: CheatCodeType.GameShark
+                )
             )
-        );
-        await InsertCodeAsync(test.DatabasePath, hash, 1, "068-55F-E66", name: "Valid name");
-        await Assert.ThrowsAsync<SqliteException>(() =>
-            InsertCodeAsync(test.DatabasePath, hash, 2, "05D-49C-E62", name: "")
-        );
-        await Assert.ThrowsAsync<SqliteException>(() =>
-            InsertCodeAsync(test.DatabasePath, hash, 3, "073-11F", name: " Not trimmed")
-        );
-        await Assert.ThrowsAsync<SqliteException>(() =>
-            InsertCodeAsync(
-                test.DatabasePath,
-                hash,
-                4,
-                "091-22F",
-                name: new string('A', CheatCodeService.MaxNameLength + 1)
+            .Should()
+            .ThrowExactlyAsync<SqliteException>();
+        await InsertCodeAsync(databasePath, hash, 1, "068-55F-E66", name: "Valid name");
+        await FluentActions
+            .Awaiting(() => InsertCodeAsync(databasePath, hash, 2, "05D-49C-E62", name: ""))
+            .Should()
+            .ThrowExactlyAsync<SqliteException>();
+        await FluentActions
+            .Awaiting(() => InsertCodeAsync(databasePath, hash, 3, "073-11F", name: " Not trimmed"))
+            .Should()
+            .ThrowExactlyAsync<SqliteException>();
+        await FluentActions
+            .Awaiting(() =>
+                InsertCodeAsync(
+                    databasePath,
+                    hash,
+                    4,
+                    "091-22F",
+                    name: new string('A', CheatCodeService.MaxNameLength + 1)
+                )
             )
-        );
+            .Should()
+            .ThrowExactlyAsync<SqliteException>();
     }
 
     private static CheatCodeEntry Entry(
@@ -422,7 +478,7 @@ public sealed class CheatCodeServiceTests
         string? name = null
     )
     {
-        Assert.True(CheatCode.TryParse(type, code, out var parsed));
+        CheatCode.TryParse(type, code, out var parsed).Should().BeTrue();
         return new CheatCodeEntry(parsed, isEnabled, name);
     }
 
@@ -489,7 +545,7 @@ public sealed class CheatCodeServiceTests
         public TestDbContextFactory(string databasePath, IInterceptor? interceptor = null)
         {
             var builder = new DbContextOptionsBuilder<GbcNetDbContext>().UseSqlite(
-                $"Data Source={databasePath}"
+                SqliteDbContextOptions.CreateConnectionString(databasePath)
             );
             if (interceptor is not null)
             {

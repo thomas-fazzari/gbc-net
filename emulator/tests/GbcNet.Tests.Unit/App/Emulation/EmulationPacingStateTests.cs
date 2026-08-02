@@ -19,9 +19,9 @@ public sealed class EmulationPacingStateTests
             revision: 0
         );
 
-        Assert.Equal(208, state.NextThrottleMachineCycles);
-        Assert.False(state.ShouldThrottle(elapsedMachineCycles: 207));
-        Assert.True(state.ShouldThrottle(elapsedMachineCycles: 208));
+        state.NextThrottleMachineCycles.Should().Be(208);
+        state.ShouldThrottle(elapsedMachineCycles: 207).Should().BeFalse();
+        state.ShouldThrottle(elapsedMachineCycles: 208).Should().BeTrue();
     }
 
     [Fact]
@@ -35,11 +35,11 @@ public sealed class EmulationPacingStateTests
             revision: 0
         );
 
-        Assert.Equal(11, state.NextThrottleMachineCycles);
+        state.NextThrottleMachineCycles.Should().Be(11);
 
         state.ScheduleNextThrottle(elapsedMachineCycles: 20);
 
-        Assert.Equal(21, state.NextThrottleMachineCycles);
+        state.NextThrottleMachineCycles.Should().Be(21);
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public sealed class EmulationPacingStateTests
 
         var delay = state.GetDelayTimestamp(timestamp: 123, elapsedMachineCycles: 15);
 
-        Assert.Equal(expectedTimestamp - 123, delay);
+        delay.Should().Be(expectedTimestamp - 123);
     }
 
     [Fact]
@@ -82,9 +82,9 @@ public sealed class EmulationPacingStateTests
             revision: 3
         );
 
-        Assert.False(changed);
-        Assert.Equal(1.5, state.SpeedMultiplier);
-        Assert.Equal(nextThrottleMachineCycles, state.NextThrottleMachineCycles);
+        changed.Should().BeFalse();
+        state.SpeedMultiplier.Should().Be(1.5);
+        state.NextThrottleMachineCycles.Should().Be(nextThrottleMachineCycles);
     }
 
     [Fact]
@@ -106,10 +106,10 @@ public sealed class EmulationPacingStateTests
             revision: 1
         );
 
-        Assert.True(changed);
-        Assert.Equal(2, state.SpeedMultiplier);
-        Assert.Equal(116, state.NextThrottleMachineCycles);
-        Assert.Equal(0, state.GetDelayTimestamp(timestamp: 50, elapsedMachineCycles: 100));
+        changed.Should().BeTrue();
+        state.SpeedMultiplier.Should().Be(2);
+        state.NextThrottleMachineCycles.Should().Be(116);
+        state.GetDelayTimestamp(timestamp: 50, elapsedMachineCycles: 100).Should().Be(0);
     }
 
     [Fact]
@@ -123,8 +123,8 @@ public sealed class EmulationPacingStateTests
 
         var rebased = state.RebaseIfTooLate(timestamp, elapsedMachineCycles: 8);
 
-        Assert.False(rebased);
-        Assert.True(state.GetDelayTimestamp(timestamp, elapsedMachineCycles: 8) < 0);
+        rebased.Should().BeFalse();
+        (state.GetDelayTimestamp(timestamp, elapsedMachineCycles: 8) < 0).Should().BeTrue();
     }
 
     [Fact]
@@ -139,12 +139,12 @@ public sealed class EmulationPacingStateTests
         var rebased = state.RebaseIfTooLate(timestamp, elapsedMachineCycles: 8);
         state.ScheduleNextThrottle(elapsedMachineCycles: 8);
 
-        Assert.True(rebased);
-        Assert.Equal(0, state.GetDelayTimestamp(timestamp, elapsedMachineCycles: 8));
-        Assert.Equal(16, state.NextThrottleMachineCycles);
-        Assert.Equal(
-            firstWindowTimestamp,
-            state.GetDelayTimestamp(timestamp, elapsedMachineCycles: 16)
-        );
+        rebased.Should().BeTrue();
+        state.GetDelayTimestamp(timestamp, elapsedMachineCycles: 8).Should().Be(0);
+        state.NextThrottleMachineCycles.Should().Be(16);
+        state
+            .GetDelayTimestamp(timestamp, elapsedMachineCycles: 16)
+            .Should()
+            .Be(firstWindowTimestamp);
     }
 }

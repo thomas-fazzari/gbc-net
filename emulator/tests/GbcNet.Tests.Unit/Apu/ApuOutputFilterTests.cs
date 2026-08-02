@@ -22,7 +22,7 @@ public sealed class ApuOutputFilterTests
             later = filter.Filter(new ApuAnalogStereoSample(1, 1), anyDacEnabled: true).Left;
         }
 
-        Assert.True(Math.Abs(later) < Math.Abs(first));
+        (Math.Abs(later) < Math.Abs(first)).Should().BeTrue();
     }
 
     [Fact]
@@ -36,8 +36,8 @@ public sealed class ApuOutputFilterTests
         var off = filter.Filter(new ApuAnalogStereoSample(1, 1), anyDacEnabled: false);
         var afterReset = filter.Filter(new ApuAnalogStereoSample(1, 1), anyDacEnabled: true);
 
-        Assert.Equal(default, off);
-        Assert.Equal(first, afterReset);
+        off.Should().Be(default(ApuStereoSample));
+        afterReset.Should().Be(first);
     }
 
     [Fact]
@@ -50,9 +50,9 @@ public sealed class ApuOutputFilterTests
         var leftOnly = filter.Filter(new ApuAnalogStereoSample(1, 0), anyDacEnabled: true);
         var rightOnly = filter.Filter(new ApuAnalogStereoSample(0, 1), anyDacEnabled: true);
 
-        Assert.NotEqual(0, leftOnly.Left);
-        Assert.Equal(0, leftOnly.Right);
-        Assert.NotEqual(0, rightOnly.Right);
+        leftOnly.Left.Should().NotBe(0);
+        leftOnly.Right.Should().Be(0);
+        rightOnly.Right.Should().NotBe(0);
     }
 
     [Theory]
@@ -69,8 +69,8 @@ public sealed class ApuOutputFilterTests
             anyDacEnabled: true
         );
 
-        Assert.InRange(sample.Left, short.MinValue, short.MaxValue);
-        Assert.InRange(sample.Right, short.MinValue, short.MaxValue);
+        sample.Left.Should().BeInRange(short.MinValue, short.MaxValue);
+        sample.Right.Should().BeInRange(short.MinValue, short.MaxValue);
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public sealed class ApuOutputFilterTests
         var expected = source.Filter(new ApuAnalogStereoSample(6, -4), anyDacEnabled: true);
         var actual = restored.Filter(new ApuAnalogStereoSample(6, -4), anyDacEnabled: true);
 
-        Assert.Equal(expected, actual);
+        actual.Should().Be(expected);
     }
 
     [Fact]
@@ -105,22 +105,29 @@ public sealed class ApuOutputFilterTests
         filter.Filter(priorSample, anyDacEnabled: true);
         expected.Filter(priorSample, anyDacEnabled: true);
 
-        Assert.Throws<ArgumentException>(() =>
-            ApuOutputFilter.ValidateState(new ApuOutputFilterState(double.NaN, 0))
-        );
-        Assert.Throws<ArgumentException>(() =>
-            ApuOutputFilter.ValidateState(new ApuOutputFilterState(0, double.PositiveInfinity))
-        );
-        Assert.Throws<ArgumentException>(() =>
-            filter.RestoreState(
-                new ApuOutputFilterState(ApuOutputFilter.MaxAnalogMixerOutput + 1, 0)
+        FluentActions
+            .Invoking(() => ApuOutputFilter.ValidateState(new ApuOutputFilterState(double.NaN, 0)))
+            .Should()
+            .ThrowExactly<ArgumentException>();
+        FluentActions
+            .Invoking(() =>
+                ApuOutputFilter.ValidateState(new ApuOutputFilterState(0, double.PositiveInfinity))
             )
-        );
+            .Should()
+            .ThrowExactly<ArgumentException>();
+        FluentActions
+            .Invoking(() =>
+                filter.RestoreState(
+                    new ApuOutputFilterState(ApuOutputFilter.MaxAnalogMixerOutput + 1, 0)
+                )
+            )
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
         var nextSample = new ApuAnalogStereoSample(6, -4);
-        Assert.Equal(
-            expected.Filter(nextSample, anyDacEnabled: true),
-            filter.Filter(nextSample, anyDacEnabled: true)
-        );
+        filter
+            .Filter(nextSample, anyDacEnabled: true)
+            .Should()
+            .Be(expected.Filter(nextSample, anyDacEnabled: true));
     }
 }

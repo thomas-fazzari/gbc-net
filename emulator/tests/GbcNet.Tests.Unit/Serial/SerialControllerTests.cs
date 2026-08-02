@@ -18,7 +18,7 @@ public sealed class SerialControllerTests
 
         serial.WriteControl(0x81);
 
-        Assert.Equal(0xFF, serial.ReadControl());
+        serial.ReadControl().Should().Be(0xFF);
     }
 
     [Fact]
@@ -27,10 +27,10 @@ public sealed class SerialControllerTests
         var serial = new SerialController(new InterruptController(), isHighSpeedClockEnabled: true);
 
         serial.WriteControl(0x81);
-        Assert.Equal(0xFD, serial.ReadControl());
+        serial.ReadControl().Should().Be(0xFD);
 
         serial.WriteControl(0x83);
-        Assert.Equal(0xFF, serial.ReadControl());
+        serial.ReadControl().Should().Be(0xFF);
     }
 
     [Fact]
@@ -42,13 +42,13 @@ public sealed class SerialControllerTests
 
         TickMachineCycles(counter, serial, 32);
 
-        Assert.NotEqual(0, serial.ReadControl() & 0x80);
-        Assert.Equal(0x00, serial.TransferData);
+        (serial.ReadControl() & 0x80).Should().NotBe(0);
+        serial.TransferData.Should().Be(0x00);
 
         TickMachineCycles(counter, serial, 1024 - 32);
 
-        Assert.Equal(0, serial.ReadControl() & 0x80);
-        Assert.Equal(0xFF, serial.TransferData);
+        (serial.ReadControl() & 0x80).Should().Be(0);
+        serial.TransferData.Should().Be(0xFF);
     }
 
     [Theory]
@@ -74,22 +74,21 @@ public sealed class SerialControllerTests
         if (doubleSpeed)
         {
             clock.WriteKey1(0x01);
-            Assert.True(clock.TryStartSpeedSwitch());
+            clock.TryStartSpeedSwitch().Should().BeTrue();
         }
 
         serial.WriteControl((byte)(0x81 | (highSpeed ? 0x02 : 0x00)));
 
         TickMachineCycles(clock, expectedMachineCycles - 1);
-        Assert.NotEqual(0, serial.ReadControl() & 0x80);
+        (serial.ReadControl() & 0x80).Should().NotBe(0);
 
         TickMachineCycles(clock, 1);
 
-        Assert.Equal(0, serial.ReadControl() & 0x80);
-        Assert.Equal(0xFF, serial.TransferData);
-        Assert.Equal(
-            expectedMachineCycles,
-            (doubleSpeed ? GameBoyTiming.DoubleCpuHz : GameBoyTiming.NormalCpuHz) / serialHz * 8
-        );
+        (serial.ReadControl() & 0x80).Should().Be(0);
+        serial.TransferData.Should().Be(0xFF);
+        ((doubleSpeed ? GameBoyTiming.DoubleCpuHz : GameBoyTiming.NormalCpuHz) / serialHz * 8)
+            .Should()
+            .Be(expectedMachineCycles);
     }
 
     [Fact]
@@ -101,11 +100,11 @@ public sealed class SerialControllerTests
 
         serial.WriteControl(0x81);
         TickMachineCycles(counter, serial, 64);
-        Assert.Equal(0x00, serial.TransferData);
+        serial.TransferData.Should().Be(0x00);
 
         TickMachineCycles(counter, serial, 64);
 
-        Assert.Equal(0x01, serial.TransferData);
+        serial.TransferData.Should().Be(0x01);
     }
 
     [Fact]
@@ -122,10 +121,10 @@ public sealed class SerialControllerTests
 
         TickMachineCycles(counter, serial, 128 * 8);
 
-        Assert.Equal(0xFF, serial.TransferData);
-        Assert.Equal(0x7F, serial.ReadControl());
-        Assert.Equal(0b0000_1000, interrupts.InterruptFlag);
-        Assert.Equal((byte)0x41, transferredByte);
+        serial.TransferData.Should().Be(0xFF);
+        serial.ReadControl().Should().Be(0x7F);
+        interrupts.InterruptFlag.Should().Be(0b0000_1000);
+        transferredByte.Should().Be(0x41);
     }
 
     [Fact]
@@ -140,10 +139,10 @@ public sealed class SerialControllerTests
 
         TickMachineCycles(counter, serial, 128 * 8);
 
-        Assert.Equal(0x00, serial.TransferData);
-        Assert.Equal(0xFE, serial.ReadControl());
-        Assert.Equal(0x00, interrupts.InterruptFlag);
-        Assert.Null(transferredByte);
+        serial.TransferData.Should().Be(0x00);
+        serial.ReadControl().Should().Be(0xFE);
+        interrupts.InterruptFlag.Should().Be(0x00);
+        transferredByte.Should().BeNull();
     }
 
     [Fact]
@@ -158,10 +157,10 @@ public sealed class SerialControllerTests
 
         TickMachineCycles(counter, serial, 128 * 8);
 
-        Assert.Equal(0x00, serial.TransferData);
-        Assert.Equal(0xFF, serial.ReadControl());
-        Assert.Equal(0x00, interrupts.InterruptFlag);
-        Assert.Null(transferredByte);
+        serial.TransferData.Should().Be(0x00);
+        serial.ReadControl().Should().Be(0xFF);
+        interrupts.InterruptFlag.Should().Be(0x00);
+        transferredByte.Should().BeNull();
     }
 
     [Theory]
@@ -206,19 +205,19 @@ public sealed class SerialControllerTests
         restoredClock.RestoreState(clockState);
         restoredSerial.RestoreState(serialState);
 
-        Assert.Empty(transferredBytes);
-        Assert.Equal(0x00, restoredInterrupts.InterruptFlag);
+        transferredBytes.Should().BeEmpty();
+        restoredInterrupts.InterruptFlag.Should().Be(0x00);
 
         TickMachineCycles(restoredClock, remainingMachineCycles - 1);
-        Assert.NotEqual(0, restoredSerial.ReadControl() & 0x80);
-        Assert.Empty(transferredBytes);
+        (restoredSerial.ReadControl() & 0x80).Should().NotBe(0);
+        transferredBytes.Should().BeEmpty();
 
         TickMachineCycles(restoredClock, 1);
 
-        Assert.Equal(0xFF, restoredSerial.TransferData);
-        Assert.Equal(0, restoredSerial.ReadControl() & 0x80);
-        Assert.Equal(0b0000_1000, restoredInterrupts.InterruptFlag);
-        Assert.Equal(new byte[] { 0xA5 }, transferredBytes);
+        restoredSerial.TransferData.Should().Be(0xFF);
+        (restoredSerial.ReadControl() & 0x80).Should().Be(0);
+        restoredInterrupts.InterruptFlag.Should().Be(0b0000_1000);
+        transferredBytes.Should().Equal(0xA5);
     }
 
     private static void TickMachineCycles(ClockController clock, int machineCycles)

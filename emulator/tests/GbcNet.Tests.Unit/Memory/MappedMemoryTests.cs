@@ -16,10 +16,10 @@ public sealed class MappedMemoryTests
         var state = memory.CaptureState();
         memory.Write(0xA000, 0x34);
 
-        Assert.Equal(0x12, state.Bytes[0]);
+        state.Bytes[0].Should().Be(0x12);
 
         state.Bytes[0] = 0x56;
-        Assert.Equal(0x34, memory.Read(0xA000));
+        memory.Read(0xA000).Should().Be(0x34);
     }
 
     [Fact]
@@ -35,8 +35,8 @@ public sealed class MappedMemoryTests
         memory.RestoreState(state);
         state.Bytes[0] = 0x9A;
 
-        Assert.Equal(0x12, memory.Read(0xA000));
-        Assert.Equal(0x34, memory.Read(0xA001));
+        memory.Read(0xA000).Should().Be(0x12);
+        memory.Read(0xA001).Should().Be(0x34);
     }
 
     [Theory]
@@ -48,11 +48,12 @@ public sealed class MappedMemoryTests
         memory.Write(0xA000, 0x12);
         memory.Write(0xA001, 0x34);
 
-        Assert.Throws<ArgumentException>(() =>
-            memory.RestoreState(new MappedMemoryState(new byte[length]))
-        );
+        FluentActions
+            .Invoking(() => memory.RestoreState(new MappedMemoryState(new byte[length])))
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
-        Assert.Equal(0x12, memory.Read(0xA000));
-        Assert.Equal(0x34, memory.Read(0xA001));
+        memory.Read(0xA000).Should().Be(0x12);
+        memory.Read(0xA001).Should().Be(0x34);
     }
 }

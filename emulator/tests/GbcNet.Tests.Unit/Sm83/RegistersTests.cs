@@ -22,10 +22,10 @@ public sealed class RegistersTests
             L = 0xEF,
         };
 
-        Assert.Equal(0x1230, registers.AF);
-        Assert.Equal(0x4567, registers.BC);
-        Assert.Equal(0x89AB, registers.DE);
-        Assert.Equal(0xCDEF, registers.HL);
+        registers.AF.Should().Be(0x1230);
+        registers.BC.Should().Be(0x4567);
+        registers.DE.Should().Be(0x89AB);
+        registers.HL.Should().Be(0xCDEF);
     }
 
     [Fact]
@@ -39,14 +39,14 @@ public sealed class RegistersTests
             HL = 0xCDEF,
         };
 
-        Assert.Equal(0x12, registers.A);
-        Assert.Equal(0x30, registers.F);
-        Assert.Equal(0x45, registers.B);
-        Assert.Equal(0x67, registers.C);
-        Assert.Equal(0x89, registers.D);
-        Assert.Equal(0xAB, registers.E);
-        Assert.Equal(0xCD, registers.H);
-        Assert.Equal(0xEF, registers.L);
+        registers.A.Should().Be(0x12);
+        registers.F.Should().Be(0x30);
+        registers.B.Should().Be(0x45);
+        registers.C.Should().Be(0x67);
+        registers.D.Should().Be(0x89);
+        registers.E.Should().Be(0xAB);
+        registers.H.Should().Be(0xCD);
+        registers.L.Should().Be(0xEF);
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public sealed class RegistersTests
     {
         Registers registers = new() { F = 0xFF };
 
-        Assert.Equal(0xF0, registers.F);
+        registers.F.Should().Be(0xF0);
     }
 
     [Fact]
@@ -66,11 +66,11 @@ public sealed class RegistersTests
         registers.SetFlag(CpuFlag.Carry, isSet: true);
         registers.SetFlag(CpuFlag.Zero, isSet: false);
 
-        Assert.False(registers.IsFlagSet(CpuFlag.Zero));
-        Assert.False(registers.IsFlagSet(CpuFlag.Subtract));
-        Assert.False(registers.IsFlagSet(CpuFlag.HalfCarry));
-        Assert.True(registers.IsFlagSet(CpuFlag.Carry));
-        Assert.Equal(0x10, registers.F);
+        registers.IsFlagSet(CpuFlag.Zero).Should().BeFalse();
+        registers.IsFlagSet(CpuFlag.Subtract).Should().BeFalse();
+        registers.IsFlagSet(CpuFlag.HalfCarry).Should().BeFalse();
+        registers.IsFlagSet(CpuFlag.Carry).Should().BeTrue();
+        registers.F.Should().Be(0x10);
     }
 
     [Fact]
@@ -87,13 +87,13 @@ public sealed class RegistersTests
             L = 0xDE,
         };
 
-        Assert.Equal(0x34, registers.GetRegister(Register8.B));
-        Assert.Equal(0x56, registers.GetRegister(Register8.C));
-        Assert.Equal(0x78, registers.GetRegister(Register8.D));
-        Assert.Equal(0x9A, registers.GetRegister(Register8.E));
-        Assert.Equal(0xBC, registers.GetRegister(Register8.H));
-        Assert.Equal(0xDE, registers.GetRegister(Register8.L));
-        Assert.Equal(0x12, registers.GetRegister(Register8.A));
+        registers.GetRegister(Register8.B).Should().Be(0x34);
+        registers.GetRegister(Register8.C).Should().Be(0x56);
+        registers.GetRegister(Register8.D).Should().Be(0x78);
+        registers.GetRegister(Register8.E).Should().Be(0x9A);
+        registers.GetRegister(Register8.H).Should().Be(0xBC);
+        registers.GetRegister(Register8.L).Should().Be(0xDE);
+        registers.GetRegister(Register8.A).Should().Be(0x12);
 
         registers.SetRegister(Register8.B, 0x01);
         registers.SetRegister(Register8.C, 0x23);
@@ -103,13 +103,13 @@ public sealed class RegistersTests
         registers.SetRegister(Register8.L, 0xAB);
         registers.SetRegister(Register8.A, 0xCD);
 
-        Assert.Equal(0x01, registers.B);
-        Assert.Equal(0x23, registers.C);
-        Assert.Equal(0x45, registers.D);
-        Assert.Equal(0x67, registers.E);
-        Assert.Equal(0x89, registers.H);
-        Assert.Equal(0xAB, registers.L);
-        Assert.Equal(0xCD, registers.A);
+        registers.B.Should().Be(0x01);
+        registers.C.Should().Be(0x23);
+        registers.D.Should().Be(0x45);
+        registers.E.Should().Be(0x67);
+        registers.H.Should().Be(0x89);
+        registers.L.Should().Be(0xAB);
+        registers.A.Should().Be(0xCD);
     }
 
     [Fact]
@@ -123,19 +123,19 @@ public sealed class RegistersTests
             SP = 0xDEF0,
         };
 
-        Assert.Equal(0x1234, registers.GetRegisterPair(RegisterPair.BC));
-        Assert.Equal(0x5678, registers.GetRegisterPair(RegisterPair.DE));
-        Assert.Equal(0x9ABC, registers.GetRegisterPair(RegisterPair.HL));
-        Assert.Equal(0xDEF0, registers.GetRegisterPair(RegisterPair.SP));
+        registers.GetRegisterPair(RegisterPair.BC).Should().Be(0x1234);
+        registers.GetRegisterPair(RegisterPair.DE).Should().Be(0x5678);
+        registers.GetRegisterPair(RegisterPair.HL).Should().Be(0x9ABC);
+        registers.GetRegisterPair(RegisterPair.SP).Should().Be(0xDEF0);
 
         registers.SetRegisterPair(RegisterPair.BC, 0x1111);
         registers.SetRegisterPair(RegisterPair.DE, 0x2222);
         registers.SetRegisterPair(RegisterPair.HL, 0x3333);
         registers.SetRegisterPair(RegisterPair.SP, 0x4444);
 
-        Assert.Equal(0x1111, registers.BC);
-        Assert.Equal(0x2222, registers.DE);
-        Assert.Equal(0x3333, registers.HL);
-        Assert.Equal(0x4444, registers.SP);
+        registers.BC.Should().Be(0x1111);
+        registers.DE.Should().Be(0x2222);
+        registers.HL.Should().Be(0x3333);
+        registers.SP.Should().Be(0x4444);
     }
 }

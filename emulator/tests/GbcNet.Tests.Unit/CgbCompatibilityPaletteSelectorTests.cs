@@ -4,7 +4,6 @@
 using System.Text;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware.Profiles;
-using GbcNet.Tests.Shared;
 
 namespace GbcNet.Tests.Unit;
 
@@ -23,10 +22,10 @@ public sealed class CgbCompatibilityPaletteSelectorTests
             LoadCartridge("POKEMON RED", oldLicenseeCode: 0x08)
         );
 
-        Assert.Equal(0x00, selection.TitleChecksum);
-        Assert.Equal(0x00, selection.PaletteId);
-        Assert.False(selection.UsesCompatibilityLogoTilemap);
-        Assert.Equal(_defaultPalettes, selection.Palettes);
+        selection.TitleChecksum.Should().Be(0x00);
+        selection.PaletteId.Should().Be(0x00);
+        selection.UsesCompatibilityLogoTilemap.Should().BeFalse();
+        selection.Palettes.Should().Be(_defaultPalettes);
     }
 
     [Fact]
@@ -36,17 +35,18 @@ public sealed class CgbCompatibilityPaletteSelectorTests
             LoadCartridge("POKEMON RED", oldLicenseeCode: 0x33, newLicenseeCode: "01")
         );
 
-        Assert.Equal(0x14, selection.TitleChecksum);
-        Assert.Equal(0x0D, selection.PaletteId);
-        Assert.False(selection.UsesCompatibilityLogoTilemap);
-        Assert.Equal(
-            new CgbCompatibilityPalettes(
-                Background: new CgbCompatibilityPalette(0x7FFF, 0x421F, 0x1CF2, 0x0000),
-                ObjectPalette0: new CgbCompatibilityPalette(0x7FFF, 0x1BEF, 0x0200, 0x0000),
-                ObjectPalette1: new CgbCompatibilityPalette(0x7FFF, 0x421F, 0x1CF2, 0x0000)
-            ),
-            selection.Palettes
-        );
+        selection.TitleChecksum.Should().Be(0x14);
+        selection.PaletteId.Should().Be(0x0D);
+        selection.UsesCompatibilityLogoTilemap.Should().BeFalse();
+        selection
+            .Palettes.Should()
+            .Be(
+                new CgbCompatibilityPalettes(
+                    Background: new CgbCompatibilityPalette(0x7FFF, 0x421F, 0x1CF2, 0x0000),
+                    ObjectPalette0: new CgbCompatibilityPalette(0x7FFF, 0x1BEF, 0x0200, 0x0000),
+                    ObjectPalette1: new CgbCompatibilityPalette(0x7FFF, 0x421F, 0x1CF2, 0x0000)
+                )
+            );
     }
 
     [Fact]
@@ -56,17 +56,18 @@ public sealed class CgbCompatibilityPaletteSelectorTests
             LoadCartridge("POKEMON BLUE", oldLicenseeCode: 0x01)
         );
 
-        Assert.Equal(0x61, selection.TitleChecksum);
-        Assert.Equal(0x0B, selection.PaletteId);
-        Assert.False(selection.UsesCompatibilityLogoTilemap);
-        Assert.Equal(
-            new CgbCompatibilityPalettes(
-                Background: new CgbCompatibilityPalette(0x7FFF, 0x7E8C, 0x7C00, 0x0000),
-                ObjectPalette0: new CgbCompatibilityPalette(0x7FFF, 0x421F, 0x1CF2, 0x0000),
-                ObjectPalette1: new CgbCompatibilityPalette(0x7FFF, 0x7E8C, 0x7C00, 0x0000)
-            ),
-            selection.Palettes
-        );
+        selection.TitleChecksum.Should().Be(0x61);
+        selection.PaletteId.Should().Be(0x0B);
+        selection.UsesCompatibilityLogoTilemap.Should().BeFalse();
+        selection
+            .Palettes.Should()
+            .Be(
+                new CgbCompatibilityPalettes(
+                    Background: new CgbCompatibilityPalette(0x7FFF, 0x7E8C, 0x7C00, 0x0000),
+                    ObjectPalette0: new CgbCompatibilityPalette(0x7FFF, 0x421F, 0x1CF2, 0x0000),
+                    ObjectPalette1: new CgbCompatibilityPalette(0x7FFF, 0x7E8C, 0x7C00, 0x0000)
+                )
+            );
     }
 
     [Fact]
@@ -76,9 +77,9 @@ public sealed class CgbCompatibilityPaletteSelectorTests
             LoadCartridge("X", oldLicenseeCode: 0x01)
         );
 
-        Assert.Equal(0x58, selection.TitleChecksum);
-        Assert.Equal(0x07, selection.PaletteId);
-        Assert.True(selection.UsesCompatibilityLogoTilemap);
+        selection.TitleChecksum.Should().Be(0x58);
+        selection.PaletteId.Should().Be(0x07);
+        selection.UsesCompatibilityLogoTilemap.Should().BeTrue();
     }
 
     private static Cartridge LoadCartridge(

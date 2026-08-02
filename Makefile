@@ -37,6 +37,7 @@ lint:
 	$(BUNX) markdownlint-cli2@0.23.1
 	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) tool run csharpier check .
 	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) build $(SOLUTION) --configuration $(CONFIGURATION)
+	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) tool run dotnet-ef migrations has-pending-model-changes --project $(APP) --startup-project $(APP) --configuration $(CONFIGURATION) --no-build
 
 check: lint
 

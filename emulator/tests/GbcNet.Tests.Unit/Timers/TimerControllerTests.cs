@@ -17,11 +17,11 @@ public sealed class TimerControllerTests
         var (counter, timers) = CreateTimers();
 
         TickMachineCycles(counter, timers, 63);
-        Assert.Equal(0x00, counter.ReadDivider());
+        counter.ReadDivider().Should().Be(0x00);
 
         TickMachineCycles(counter, timers, 1);
 
-        Assert.Equal(0x01, counter.ReadDivider());
+        counter.ReadDivider().Should().Be(0x01);
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public sealed class TimerControllerTests
 
         ResetSystemCounter(counter, timers);
 
-        Assert.Equal(0x00, counter.ReadDivider());
+        counter.ReadDivider().Should().Be(0x00);
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public sealed class TimerControllerTests
 
         TickMachineCycles(counter, timers, 256);
 
-        Assert.Equal(0x00, timers.TimerCounter);
+        timers.TimerCounter.Should().Be(0x00);
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public sealed class TimerControllerTests
 
         TickMachineCycles(counter, timers, 128);
 
-        Assert.Equal(0x02, counter.ReadDivider());
+        counter.ReadDivider().Should().Be(0x02);
     }
 
     [Theory]
@@ -71,11 +71,11 @@ public sealed class TimerControllerTests
         timers.WriteTimerControl(timerControl);
 
         TickMachineCycles(counter, timers, machineCycles - 1);
-        Assert.Equal(0x00, timers.TimerCounter);
+        timers.TimerCounter.Should().Be(0x00);
 
         TickMachineCycles(counter, timers, 1);
 
-        Assert.Equal(0x01, timers.TimerCounter);
+        timers.TimerCounter.Should().Be(0x01);
     }
 
     [Fact]
@@ -84,16 +84,16 @@ public sealed class TimerControllerTests
         var (counter, timers) = CreateTimers();
         timers.WriteTimerControl(0b0000_0101);
         TickMachineCycles(counter, timers, 4);
-        Assert.Equal(0x01, timers.TimerCounter);
+        timers.TimerCounter.Should().Be(0x01);
         ResetSystemCounter(counter, timers);
 
         timers.WriteTimerControl(0b0000_0110);
         TickMachineCycles(counter, timers, 15);
-        Assert.Equal(0x01, timers.TimerCounter);
+        timers.TimerCounter.Should().Be(0x01);
 
         TickMachineCycles(counter, timers, 1);
 
-        Assert.Equal(0x02, timers.TimerCounter);
+        timers.TimerCounter.Should().Be(0x02);
     }
 
     [Fact]
@@ -105,7 +105,7 @@ public sealed class TimerControllerTests
 
         ResetSystemCounter(counter, timers);
 
-        Assert.Equal(0x01, timers.TimerCounter);
+        timers.TimerCounter.Should().Be(0x01);
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public sealed class TimerControllerTests
 
         timers.WriteTimerControl(0b0000_0110);
 
-        Assert.Equal(0x01, timers.TimerCounter);
+        timers.TimerCounter.Should().Be(0x01);
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public sealed class TimerControllerTests
 
         timers.WriteTimerControl(0b0000_0001);
 
-        Assert.Equal(0x01, timers.TimerCounter);
+        timers.TimerCounter.Should().Be(0x01);
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public sealed class TimerControllerTests
 
         timers.WriteTimerControl(0b0000_0001);
 
-        Assert.Equal(0x00, timers.TimerCounter);
+        timers.TimerCounter.Should().Be(0x00);
     }
 
     [Fact]
@@ -152,7 +152,7 @@ public sealed class TimerControllerTests
 
         timers.WriteTimerControl(0b0000_0100);
 
-        Assert.Equal(0x01, timers.TimerCounter);
+        timers.TimerCounter.Should().Be(0x01);
     }
 
     [Fact]
@@ -163,7 +163,7 @@ public sealed class TimerControllerTests
 
         timers.WriteTimerControl(0b0000_0100);
 
-        Assert.Equal(0x00, timers.TimerCounter);
+        timers.TimerCounter.Should().Be(0x00);
     }
 
     [Fact]
@@ -177,13 +177,13 @@ public sealed class TimerControllerTests
 
         TickMachineCycles(counter, timers, 4);
 
-        Assert.Equal(0x00, timers.TimerCounter);
-        Assert.Equal(0x00, interrupts.InterruptFlag);
+        timers.TimerCounter.Should().Be(0x00);
+        interrupts.InterruptFlag.Should().Be(0x00);
 
         TickMachineCycles(counter, timers, 1);
 
-        Assert.Equal(0x42, timers.TimerCounter);
-        Assert.Equal(TimerInterrupt, interrupts.InterruptFlag);
+        timers.TimerCounter.Should().Be(0x42);
+        interrupts.InterruptFlag.Should().Be(TimerInterrupt);
     }
 
     [Fact]
@@ -199,8 +199,8 @@ public sealed class TimerControllerTests
         timers.WriteTimerCounter(0x99);
         TickMachineCycles(counter, timers, 1);
 
-        Assert.Equal(0x99, timers.TimerCounter);
-        Assert.Equal(0x00, interrupts.InterruptFlag);
+        timers.TimerCounter.Should().Be(0x99);
+        interrupts.InterruptFlag.Should().Be(0x00);
     }
 
     [Fact]
@@ -214,7 +214,7 @@ public sealed class TimerControllerTests
 
         timers.WriteTimerCounter(0x99);
 
-        Assert.Equal(0x42, timers.TimerCounter);
+        timers.TimerCounter.Should().Be(0x42);
     }
 
     [Fact]
@@ -230,8 +230,8 @@ public sealed class TimerControllerTests
         timers.WriteTimerModulo(0x77);
         TickMachineCycles(counter, timers, 1);
 
-        Assert.Equal(0x77, timers.TimerCounter);
-        Assert.Equal(TimerInterrupt, interrupts.InterruptFlag);
+        timers.TimerCounter.Should().Be(0x77);
+        interrupts.InterruptFlag.Should().Be(TimerInterrupt);
     }
 
     [Fact]
@@ -241,7 +241,7 @@ public sealed class TimerControllerTests
 
         timers.WriteTimerControl(0b0000_0101);
 
-        Assert.Equal(0b1111_1101, timers.ReadTimerControl());
+        timers.ReadTimerControl().Should().Be(0b1111_1101);
     }
 
     [Fact]
@@ -258,8 +258,8 @@ public sealed class TimerControllerTests
         restoredTimers.RestoreState(sourceTimers.CaptureState());
         restoredTimers.TickSystemCounter(restoredCounter.AdvanceMachineCycle());
 
-        Assert.Equal(0x3B, restoredTimers.TimerCounter);
-        Assert.Equal(0x6D, restoredTimers.TimerModulo);
+        restoredTimers.TimerCounter.Should().Be(0x3B);
+        restoredTimers.TimerModulo.Should().Be(0x6D);
     }
 
     [Fact]
@@ -275,13 +275,13 @@ public sealed class TimerControllerTests
         var (_, restoredTimers) = CreateTimers(interrupts);
         restoredTimers.RestoreState(sourceTimers.CaptureState());
 
-        Assert.Equal(0x00, restoredTimers.TimerCounter);
-        Assert.Equal(0x00, interrupts.InterruptFlag);
+        restoredTimers.TimerCounter.Should().Be(0x00);
+        interrupts.InterruptFlag.Should().Be(0x00);
 
         restoredTimers.AdvanceOverflowReload();
 
-        Assert.Equal(0x42, restoredTimers.TimerCounter);
-        Assert.Equal(TimerInterrupt, interrupts.InterruptFlag);
+        restoredTimers.TimerCounter.Should().Be(0x42);
+        interrupts.InterruptFlag.Should().Be(TimerInterrupt);
     }
 
     [Fact]
@@ -297,14 +297,14 @@ public sealed class TimerControllerTests
         var (_, restoredTimers) = CreateTimers(interrupts);
         restoredTimers.RestoreState(sourceTimers.CaptureState());
 
-        Assert.Equal(0x00, interrupts.InterruptFlag);
+        interrupts.InterruptFlag.Should().Be(0x00);
         restoredTimers.WriteTimerCounter(0x99);
-        Assert.Equal(0x42, restoredTimers.TimerCounter);
+        restoredTimers.TimerCounter.Should().Be(0x42);
 
         restoredTimers.AdvanceOverflowReload();
         restoredTimers.WriteTimerCounter(0x99);
 
-        Assert.Equal(0x99, restoredTimers.TimerCounter);
+        restoredTimers.TimerCounter.Should().Be(0x99);
     }
 
     private static (SystemCounter Counter, TimerController Timers) CreateTimers(

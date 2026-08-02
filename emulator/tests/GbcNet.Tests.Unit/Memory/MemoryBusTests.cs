@@ -9,7 +9,6 @@ using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu;
 using GbcNet.Core.Sm83;
-using GbcNet.Tests.Shared;
 
 namespace GbcNet.Tests.Unit.Memory;
 
@@ -26,9 +25,9 @@ public sealed class MemoryBusTests
         rom[0x7FFF] = 0x33;
         var bus = CreateBus(rom);
 
-        Assert.Equal(0x11, bus.ReadByte(0x0000));
-        Assert.Equal(0x22, bus.ReadByte(0x4000));
-        Assert.Equal(0x33, bus.ReadByte(0x7FFF));
+        bus.ReadByte(0x0000).Should().Be(0x11);
+        bus.ReadByte(0x4000).Should().Be(0x22);
+        bus.ReadByte(0x7FFF).Should().Be(0x33);
     }
 
     [Fact]
@@ -40,7 +39,7 @@ public sealed class MemoryBusTests
 
         bus.WriteByte(0x0000, 0xAA);
 
-        Assert.Equal(0x11, bus.ReadByte(0x0000));
+        bus.ReadByte(0x0000).Should().Be(0x11);
     }
 
     [Fact]
@@ -51,8 +50,8 @@ public sealed class MemoryBusTests
         bus.WriteByte(0x8000, 0x12);
         bus.WriteByte(0x9FFF, 0x34);
 
-        Assert.Equal(0x12, bus.ReadByte(0x8000));
-        Assert.Equal(0x34, bus.ReadByte(0x9FFF));
+        bus.ReadByte(0x8000).Should().Be(0x12);
+        bus.ReadByte(0x9FFF).Should().Be(0x34);
     }
 
     [Fact]
@@ -62,21 +61,21 @@ public sealed class MemoryBusTests
 
         bus.WriteByte(AddressMap.VideoRamStart, 0x12);
 
-        Assert.Equal(0xFE, bus.ReadByte(AddressMap.VideoRamBankRegister));
+        bus.ReadByte(AddressMap.VideoRamBankRegister).Should().Be(0xFE);
 
         bus.WriteByte(AddressMap.VideoRamBankRegister, 0x01);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamBankRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamStart));
+        bus.ReadByte(AddressMap.VideoRamBankRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.VideoRamStart).Should().Be(0x00);
 
         bus.WriteByte(AddressMap.VideoRamStart, 0x34);
         bus.WriteByte(AddressMap.VideoRamBankRegister, 0xFE);
 
-        Assert.Equal(0x12, bus.ReadByte(AddressMap.VideoRamStart));
+        bus.ReadByte(AddressMap.VideoRamStart).Should().Be(0x12);
 
         bus.WriteByte(AddressMap.VideoRamBankRegister, 0x01);
 
-        Assert.Equal(0x34, bus.ReadByte(AddressMap.VideoRamStart));
+        bus.ReadByte(AddressMap.VideoRamStart).Should().Be(0x34);
     }
 
     [Fact]
@@ -87,12 +86,12 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.VideoRamStart, 0x12);
         bus.WriteByte(AddressMap.VideoRamBankRegister, 0x01);
 
-        Assert.Equal(0xFE, bus.ReadByte(AddressMap.VideoRamBankRegister));
+        bus.ReadByte(AddressMap.VideoRamBankRegister).Should().Be(0xFE);
 
         bus.WriteByte(AddressMap.VideoRamStart, 0x34);
         bus.WriteByte(AddressMap.VideoRamBankRegister, 0x00);
 
-        Assert.Equal(0x34, bus.ReadByte(AddressMap.VideoRamStart));
+        bus.ReadByte(AddressMap.VideoRamStart).Should().Be(0x34);
     }
 
     [Fact]
@@ -103,11 +102,11 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.BackgroundPaletteIndexRegister, 0x80);
         bus.WriteByte(AddressMap.BackgroundPaletteDataRegister, 0x12);
 
-        Assert.Equal(0xC1, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
+        bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister).Should().Be(0xC1);
 
         bus.WriteByte(AddressMap.BackgroundPaletteIndexRegister, 0x80);
 
-        Assert.Equal(0x12, bus.ReadByte(AddressMap.BackgroundPaletteDataRegister));
+        bus.ReadByte(AddressMap.BackgroundPaletteDataRegister).Should().Be(0x12);
     }
 
     [Fact]
@@ -120,10 +119,10 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.ObjectPaletteIndexRegister, 0x81);
         bus.WriteByte(AddressMap.ObjectPaletteDataRegister, 0x34);
 
-        Assert.Equal(0xC0, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.BackgroundPaletteDataRegister));
-        Assert.Equal(0xC1, bus.ReadByte(AddressMap.ObjectPaletteIndexRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPaletteDataRegister));
+        bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister).Should().Be(0xC0);
+        bus.ReadByte(AddressMap.BackgroundPaletteDataRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.ObjectPaletteIndexRegister).Should().Be(0xC1);
+        bus.ReadByte(AddressMap.ObjectPaletteDataRegister).Should().Be(0xFF);
     }
 
     [Fact]
@@ -136,10 +135,10 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.ObjectPaletteIndexRegister, 0x81);
         bus.WriteByte(AddressMap.ObjectPaletteDataRegister, 0x34);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.BackgroundPaletteDataRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPaletteIndexRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPaletteDataRegister));
+        bus.ReadByte(AddressMap.BackgroundPaletteIndexRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.BackgroundPaletteDataRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.ObjectPaletteIndexRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.ObjectPaletteDataRegister).Should().Be(0xFF);
     }
 
     [Fact]
@@ -147,15 +146,15 @@ public sealed class MemoryBusTests
     {
         var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
-        Assert.Equal(0xFE, bus.ReadByte(AddressMap.ObjectPriorityModeRegister));
+        bus.ReadByte(AddressMap.ObjectPriorityModeRegister).Should().Be(0xFE);
 
         bus.WriteByte(AddressMap.ObjectPriorityModeRegister, 0xFF);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPriorityModeRegister));
+        bus.ReadByte(AddressMap.ObjectPriorityModeRegister).Should().Be(0xFF);
 
         bus.WriteByte(AddressMap.ObjectPriorityModeRegister, 0xFE);
 
-        Assert.Equal(0xFE, bus.ReadByte(AddressMap.ObjectPriorityModeRegister));
+        bus.ReadByte(AddressMap.ObjectPriorityModeRegister).Should().Be(0xFE);
     }
 
     [Fact]
@@ -165,7 +164,7 @@ public sealed class MemoryBusTests
 
         bus.WriteByte(AddressMap.ObjectPriorityModeRegister, 0x01);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPriorityModeRegister));
+        bus.ReadByte(AddressMap.ObjectPriorityModeRegister).Should().Be(0xFF);
     }
 
     [Fact]
@@ -175,7 +174,7 @@ public sealed class MemoryBusTests
 
         bus.WriteByte(AddressMap.ObjectPriorityModeRegister, 0x01);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectPriorityModeRegister));
+        bus.ReadByte(AddressMap.ObjectPriorityModeRegister).Should().Be(0xFF);
     }
 
     [Fact]
@@ -183,24 +182,24 @@ public sealed class MemoryBusTests
     {
         var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74));
-        Assert.Equal(0x8F, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72).Should().Be(0x00);
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73).Should().Be(0x00);
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74).Should().Be(0x00);
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75).Should().Be(0x8F);
 
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf72, 0xFF);
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf73, 0xA5);
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf74, 0x5A);
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf75, 0x00);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72));
-        Assert.Equal(0xA5, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73));
-        Assert.Equal(0x5A, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74));
-        Assert.Equal(0x8F, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73).Should().Be(0xA5);
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74).Should().Be(0x5A);
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75).Should().Be(0x8F);
 
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf75, 0x70);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75).Should().Be(0xFF);
     }
 
     [Fact]
@@ -208,20 +207,20 @@ public sealed class MemoryBusTests
     {
         var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility));
 
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74));
-        Assert.Equal(0x8F, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72).Should().Be(0x00);
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73).Should().Be(0x00);
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75).Should().Be(0x8F);
 
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf72, 0x12);
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf73, 0x34);
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf74, 0x56);
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf75, 0x70);
 
-        Assert.Equal(0x12, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72));
-        Assert.Equal(0x34, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72).Should().Be(0x12);
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73).Should().Be(0x34);
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75).Should().Be(0xFF);
     }
 
     [Fact]
@@ -234,10 +233,10 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf74, 0x56);
         bus.WriteByte(AddressMap.CgbUndocumentedRegisterFf75, 0x70);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75));
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf72).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf73).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf74).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.CgbUndocumentedRegisterFf75).Should().Be(0xFF);
     }
 
     [Fact]
@@ -248,8 +247,8 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.AudioPcm12Register, 0xFF);
         bus.WriteByte(AddressMap.AudioPcm34Register, 0xFF);
 
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.AudioPcm12Register));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.AudioPcm34Register));
+        bus.ReadByte(AddressMap.AudioPcm12Register).Should().Be(0x00);
+        bus.ReadByte(AddressMap.AudioPcm34Register).Should().Be(0x00);
     }
 
     [Fact]
@@ -260,8 +259,8 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.AudioPcm12Register, 0x00);
         bus.WriteByte(AddressMap.AudioPcm34Register, 0x00);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.AudioPcm12Register));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.AudioPcm34Register));
+        bus.ReadByte(AddressMap.AudioPcm12Register).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.AudioPcm34Register).Should().Be(0xFF);
     }
 
     [Fact]
@@ -280,13 +279,13 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x2F);
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaSourceHighRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaSourceLowRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaDestinationHighRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaDestinationLowRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
-        Assert.Equal(0xA1, bus.ReadByte(0x8120));
-        Assert.Equal(0xAF, bus.ReadByte(0x812F));
+        bus.ReadByte(AddressMap.VideoRamDmaSourceHighRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.VideoRamDmaSourceLowRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.VideoRamDmaDestinationHighRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.VideoRamDmaDestinationLowRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0xFF);
+        bus.ReadByte(0x8120).Should().Be(0xA1);
+        bus.ReadByte(0x812F).Should().Be(0xAF);
     }
 
     [Fact]
@@ -305,8 +304,8 @@ public sealed class MemoryBusTests
 
         TickMachineCycles(clock, 62);
 
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
-        Assert.Equal(0x00, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
+        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0x00);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0x00);
     }
 
     [Fact]
@@ -329,9 +328,9 @@ public sealed class MemoryBusTests
 
         TickMachineCycles(clock, 63);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
-        Assert.Equal(0xA1, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
-        Assert.Equal(0xAF, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F));
+        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0xFF);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0xA1);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F).Should().Be(0xAF);
     }
 
     [Fact]
@@ -356,16 +355,16 @@ public sealed class MemoryBusTests
 
         TickMachineCycles(clock, 63);
 
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
-        Assert.Equal(0x40, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
-        Assert.Equal(0x4F, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F));
-        Assert.Equal(0x00, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x10));
+        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0x00);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0x40);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F).Should().Be(0x4F);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x10).Should().Be(0x00);
 
         TickMachineCycles(clock, 114);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
-        Assert.Equal(0x50, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x10));
-        Assert.Equal(0x5F, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x1F));
+        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0xFF);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x10).Should().Be(0x50);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x1F).Should().Be(0x5F);
     }
 
     [Fact]
@@ -392,8 +391,8 @@ public sealed class MemoryBusTests
             PpuGeometry.ScanlineDots * 10 / HardwareTiming.MachineCycleTCycles
         );
 
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
-        Assert.Equal(0x00, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
+        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0x00);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0x00);
     }
 
     [Fact]
@@ -410,8 +409,8 @@ public sealed class MemoryBusTests
 
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
 
-        Assert.Equal(0x83, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
-        Assert.Equal(0x00, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
+        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0x83);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0x00);
     }
 
     [Fact]
@@ -438,10 +437,10 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
         TickMachineCycles(clock, 114);
 
-        Assert.Equal(0x80, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
-        Assert.Equal(0x40, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
-        Assert.Equal(0x4F, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F));
-        Assert.Equal(0x00, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x10));
+        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0x80);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0x40);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F).Should().Be(0x4F);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x10).Should().Be(0x00);
     }
 
     [Fact]
@@ -463,18 +462,18 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x01);
 
-        Assert.Equal(0x40, bus.ReadByte(AddressMap.VideoRamStart));
-        Assert.Equal(0x5F, bus.ReadByte(AddressMap.VideoRamStart + 0x1F));
+        bus.ReadByte(AddressMap.VideoRamStart).Should().Be(0x40);
+        bus.ReadByte(AddressMap.VideoRamStart + 0x1F).Should().Be(0x5F);
 
         bus.WriteByte(AddressMap.VideoRamBankRegister, 0x00);
 
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamStart));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamStart + 0x1F));
+        bus.ReadByte(AddressMap.VideoRamStart).Should().Be(0x00);
+        bus.ReadByte(AddressMap.VideoRamStart + 0x1F).Should().Be(0x00);
 
         bus.WriteByte(AddressMap.VideoRamBankRegister, 0x01);
 
-        Assert.Equal(0x40, bus.ReadByte(AddressMap.VideoRamStart));
-        Assert.Equal(0x5F, bus.ReadByte(AddressMap.VideoRamStart + 0x1F));
+        bus.ReadByte(AddressMap.VideoRamStart).Should().Be(0x40);
+        bus.ReadByte(AddressMap.VideoRamStart + 0x1F).Should().Be(0x5F);
     }
 
     [Fact]
@@ -497,10 +496,10 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
 
-        Assert.Equal(0x40, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
-        Assert.Equal(0x4F, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F));
-        Assert.Equal(0x50, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x10));
-        Assert.Equal(0x5F, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x1F));
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0x40);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F).Should().Be(0x4F);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x10).Should().Be(0x50);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x1F).Should().Be(0x5F);
     }
 
     [Fact]
@@ -516,8 +515,8 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
 
-        Assert.Equal(0x55, bus.ReadByte(0x9000));
-        Assert.Equal(0x66, bus.ReadByte(0x900F));
+        bus.ReadByte(0x9000).Should().Be(0x55);
+        bus.ReadByte(0x900F).Should().Be(0x66);
     }
 
     [Fact]
@@ -540,13 +539,13 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x00);
         bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
 
-        Assert.Equal(2, cpu.Step());
+        cpu.Step().Should().Be(2);
         var machineCycles = cpu.Step();
 
-        Assert.Equal(11, machineCycles);
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
-        Assert.Equal(0xA1, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
-        Assert.Equal(0xAF, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F));
+        machineCycles.Should().Be(11);
+        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0xFF);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0xA1);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F).Should().Be(0xAF);
     }
 
     [Fact]
@@ -572,8 +571,8 @@ public sealed class MemoryBusTests
         cpu.Step();
         var machineCycles = cpu.Step();
 
-        Assert.Equal(19, machineCycles);
-        Assert.Equal(0xA1, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
+        machineCycles.Should().Be(19);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0xA1);
     }
 
     [Fact]
@@ -597,10 +596,10 @@ public sealed class MemoryBusTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(9, machineCycles);
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
-        Assert.Equal(0xA1, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
-        Assert.Equal(0xAF, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F));
+        machineCycles.Should().Be(9);
+        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0xFF);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0xA1);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F).Should().Be(0xAF);
     }
 
     [Fact]
@@ -621,9 +620,9 @@ public sealed class MemoryBusTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(17, machineCycles);
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
-        Assert.Equal(0xA1, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
+        machineCycles.Should().Be(17);
+        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0xFF);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0xA1);
     }
 
     [Fact]
@@ -644,9 +643,9 @@ public sealed class MemoryBusTests
 
         var machineCycles = cpu.Step();
 
-        Assert.Equal(1, machineCycles);
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
-        Assert.Equal(0x00, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
+        machineCycles.Should().Be(1);
+        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0x00);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0x00);
     }
 
     [Fact]
@@ -670,9 +669,9 @@ public sealed class MemoryBusTests
         TickMachineCycles(clock, 63);
         TickMachineCycles(clock, 114);
 
-        Assert.Equal(0xA1, bus.Ppu.VideoRam.Read(0x9FF0));
-        Assert.Equal(0xAF, bus.Ppu.VideoRam.Read(AddressMap.VideoRamEnd));
-        Assert.Equal(0x00, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart));
+        bus.Ppu.VideoRam.Read(0x9FF0).Should().Be(0xA1);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamEnd).Should().Be(0xAF);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0x00);
     }
 
     [Fact]
@@ -687,9 +686,9 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaSourceHighRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamStart));
+        bus.ReadByte(AddressMap.VideoRamDmaSourceHighRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.VideoRamStart).Should().Be(0x00);
     }
 
     [Fact]
@@ -704,9 +703,9 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaSourceHighRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.VideoRamStart));
+        bus.ReadByte(AddressMap.VideoRamDmaSourceHighRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.VideoRamStart).Should().Be(0x00);
     }
 
     [Fact]
@@ -718,9 +717,9 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.ObjectPalette0Register, 0xA5);
         bus.WriteByte(AddressMap.ObjectPalette1Register, 0x5A);
 
-        Assert.Equal(0xFC, bus.ReadByte(AddressMap.BackgroundPaletteRegister));
-        Assert.Equal(0xA5, bus.ReadByte(AddressMap.ObjectPalette0Register));
-        Assert.Equal(0x5A, bus.ReadByte(AddressMap.ObjectPalette1Register));
+        bus.ReadByte(AddressMap.BackgroundPaletteRegister).Should().Be(0xFC);
+        bus.ReadByte(AddressMap.ObjectPalette0Register).Should().Be(0xA5);
+        bus.ReadByte(AddressMap.ObjectPalette1Register).Should().Be(0x5A);
     }
 
     [Fact]
@@ -731,8 +730,8 @@ public sealed class MemoryBusTests
         bus.WriteByte(0xC000, 0x56);
         bus.WriteByte(0xDFFF, 0x78);
 
-        Assert.Equal(0x56, bus.ReadByte(0xC000));
-        Assert.Equal(0x78, bus.ReadByte(0xDFFF));
+        bus.ReadByte(0xC000).Should().Be(0x56);
+        bus.ReadByte(0xDFFF).Should().Be(0x78);
     }
 
     [Fact]
@@ -743,8 +742,8 @@ public sealed class MemoryBusTests
         bus.WriteByte(0xC000, 0x9A);
         bus.WriteByte(0xFDFF, 0xBC);
 
-        Assert.Equal(0x9A, bus.ReadByte(0xE000));
-        Assert.Equal(0xBC, bus.ReadByte(0xDDFF));
+        bus.ReadByte(0xE000).Should().Be(0x9A);
+        bus.ReadByte(0xDDFF).Should().Be(0xBC);
     }
 
     [Fact]
@@ -755,17 +754,17 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x11);
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x02);
 
-        Assert.Equal(0xFA, bus.ReadByte(AddressMap.WorkRamBankRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+        bus.ReadByte(AddressMap.WorkRamBankRegister).Should().Be(0xFA);
+        bus.ReadByte(AddressMap.WorkRamSwitchableBankStart).Should().Be(0x00);
 
         bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x22);
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x01);
 
-        Assert.Equal(0x11, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+        bus.ReadByte(AddressMap.WorkRamSwitchableBankStart).Should().Be(0x11);
 
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x02);
 
-        Assert.Equal(0x22, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+        bus.ReadByte(AddressMap.WorkRamSwitchableBankStart).Should().Be(0x22);
     }
 
     [Fact]
@@ -776,12 +775,12 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.WorkRamStart, 0x44);
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x07);
 
-        Assert.Equal(0x44, bus.ReadByte(AddressMap.WorkRamStart));
+        bus.ReadByte(AddressMap.WorkRamStart).Should().Be(0x44);
 
         bus.WriteByte(AddressMap.WorkRamStart, 0x55);
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x01);
 
-        Assert.Equal(0x55, bus.ReadByte(AddressMap.WorkRamStart));
+        bus.ReadByte(AddressMap.WorkRamStart).Should().Be(0x55);
     }
 
     [Fact]
@@ -794,8 +793,8 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x22);
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x00);
 
-        Assert.Equal(0xF8, bus.ReadByte(AddressMap.WorkRamBankRegister));
-        Assert.Equal(0x11, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+        bus.ReadByte(AddressMap.WorkRamBankRegister).Should().Be(0xF8);
+        bus.ReadByte(AddressMap.WorkRamSwitchableBankStart).Should().Be(0x11);
     }
 
     [Fact]
@@ -807,13 +806,13 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x77);
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x01);
 
-        Assert.Equal(0xF9, bus.ReadByte(AddressMap.WorkRamBankRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+        bus.ReadByte(AddressMap.WorkRamBankRegister).Should().Be(0xF9);
+        bus.ReadByte(AddressMap.WorkRamSwitchableBankStart).Should().Be(0x00);
 
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x07);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.WorkRamBankRegister));
-        Assert.Equal(0x77, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+        bus.ReadByte(AddressMap.WorkRamBankRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.WorkRamSwitchableBankStart).Should().Be(0x77);
     }
 
     [Fact]
@@ -825,12 +824,12 @@ public sealed class MemoryBusTests
         bus.WriteByte(0xF000, 0x33);
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x01);
 
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+        bus.ReadByte(AddressMap.WorkRamSwitchableBankStart).Should().Be(0x00);
 
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x03);
 
-        Assert.Equal(0x33, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
-        Assert.Equal(0x33, bus.ReadByte(0xF000));
+        bus.ReadByte(AddressMap.WorkRamSwitchableBankStart).Should().Be(0x33);
+        bus.ReadByte(0xF000).Should().Be(0x33);
     }
 
     [Fact]
@@ -841,12 +840,12 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x12);
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x07);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.WorkRamBankRegister));
+        bus.ReadByte(AddressMap.WorkRamBankRegister).Should().Be(0xFF);
 
         bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x34);
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x01);
 
-        Assert.Equal(0x34, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+        bus.ReadByte(AddressMap.WorkRamSwitchableBankStart).Should().Be(0x34);
     }
 
     [Fact]
@@ -857,12 +856,12 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x12);
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x07);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.WorkRamBankRegister));
+        bus.ReadByte(AddressMap.WorkRamBankRegister).Should().Be(0xFF);
 
         bus.WriteByte(AddressMap.WorkRamSwitchableBankStart, 0x34);
         bus.WriteByte(AddressMap.WorkRamBankRegister, 0x01);
 
-        Assert.Equal(0x34, bus.ReadByte(AddressMap.WorkRamSwitchableBankStart));
+        bus.ReadByte(AddressMap.WorkRamSwitchableBankStart).Should().Be(0x34);
     }
 
     [Fact]
@@ -873,8 +872,8 @@ public sealed class MemoryBusTests
         bus.WriteByte(0xFE00, 0xDE);
         bus.WriteByte(0xFE9F, 0xF0);
 
-        Assert.Equal(0xDE, bus.ReadByte(0xFE00));
-        Assert.Equal(0xF0, bus.ReadByte(0xFE9F));
+        bus.ReadByte(0xFE00).Should().Be(0xDE);
+        bus.ReadByte(0xFE9F).Should().Be(0xF0);
     }
 
     [Fact]
@@ -885,12 +884,12 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
         bus.Ppu.Tick(80);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.VideoRamStart));
+        bus.ReadByte(AddressMap.VideoRamStart).Should().Be(0xFF);
 
         bus.WriteByte(AddressMap.VideoRamStart, 0x34);
         bus.Ppu.Tick(172);
 
-        Assert.Equal(0x12, bus.ReadByte(AddressMap.VideoRamStart));
+        bus.ReadByte(AddressMap.VideoRamStart).Should().Be(0x12);
     }
 
     [Fact]
@@ -900,25 +899,25 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0x12);
         bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
 
-        Assert.Equal(0x12, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0x12);
         bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0x34);
 
         bus.Ppu.Tick(80);
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0xFF);
         bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0x56);
 
         bus.Ppu.Tick(172);
 
-        Assert.Equal(0x34, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0x34);
 
         bus.Ppu.Tick(204);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0xFF);
         bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0x78);
 
         bus.Ppu.Tick(252);
 
-        Assert.Equal(0x34, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0x34);
     }
 
     [Fact]
@@ -929,8 +928,8 @@ public sealed class MemoryBusTests
         bus.WriteByte(0xFEA0, 0x12);
         bus.WriteByte(0xFEFF, 0x34);
 
-        Assert.Equal(0x00, bus.ReadByte(0xFEA0));
-        Assert.Equal(0x00, bus.ReadByte(0xFEFF));
+        bus.ReadByte(0xFEA0).Should().Be(0x00);
+        bus.ReadByte(0xFEFF).Should().Be(0x00);
     }
 
     [Fact]
@@ -941,7 +940,7 @@ public sealed class MemoryBusTests
 
         bus.WriteByte(AddressMap.NotUsableStart, 0x42);
 
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.NotUsableStart));
+        bus.ReadByte(AddressMap.NotUsableStart).Should().Be(0x00);
     }
 
     [Fact]
@@ -952,8 +951,8 @@ public sealed class MemoryBusTests
         bus.WriteByte(0xFF03, 0x12);
         bus.WriteByte(0xFF7F, 0x34);
 
-        Assert.Equal(0xFF, bus.ReadByte(0xFF03));
-        Assert.Equal(0xFF, bus.ReadByte(0xFF7F));
+        bus.ReadByte(0xFF03).Should().Be(0xFF);
+        bus.ReadByte(0xFF7F).Should().Be(0xFF);
     }
 
     [Fact]
@@ -964,8 +963,8 @@ public sealed class MemoryBusTests
 
         bus.Joypad.SetButtonState(JoypadButton.Right, pressed: true);
 
-        Assert.Equal(0xEE, bus.ReadByte(AddressMap.JoypadRegister));
-        Assert.Equal(0b0001_0000, bus.Interrupts.InterruptFlag);
+        bus.ReadByte(AddressMap.JoypadRegister).Should().Be(0xEE);
+        bus.Interrupts.InterruptFlag.Should().Be(0b0001_0000);
     }
 
     [Fact]
@@ -976,14 +975,14 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.SerialTransferDataRegister, 0x12);
         bus.WriteByte(AddressMap.SerialTransferControlRegister, 0x81);
 
-        Assert.Equal(0x12, bus.ReadByte(AddressMap.SerialTransferDataRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.SerialTransferControlRegister));
+        bus.ReadByte(AddressMap.SerialTransferDataRegister).Should().Be(0x12);
+        bus.ReadByte(AddressMap.SerialTransferControlRegister).Should().Be(0xFF);
 
         TickMachineCycles(bus, 128 * 8);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.SerialTransferDataRegister));
-        Assert.Equal(0x7F, bus.ReadByte(AddressMap.SerialTransferControlRegister));
-        Assert.Equal(0b0000_1000, bus.Interrupts.InterruptFlag);
+        bus.ReadByte(AddressMap.SerialTransferDataRegister).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.SerialTransferControlRegister).Should().Be(0x7F);
+        bus.Interrupts.InterruptFlag.Should().Be(0b0000_1000);
     }
 
     [Fact]
@@ -994,8 +993,8 @@ public sealed class MemoryBusTests
         bus.WriteByte(0xFF80, 0x56);
         bus.WriteByte(0xFFFE, 0x78);
 
-        Assert.Equal(0x56, bus.ReadByte(0xFF80));
-        Assert.Equal(0x78, bus.ReadByte(0xFFFE));
+        bus.ReadByte(0xFF80).Should().Be(0x56);
+        bus.ReadByte(0xFFFE).Should().Be(0x78);
     }
 
     [Fact]
@@ -1005,8 +1004,8 @@ public sealed class MemoryBusTests
 
         bus.WriteByte(0xFFFF, 0xF1);
 
-        Assert.Equal(0xF1, bus.ReadByte(0xFFFF));
-        Assert.Equal(0xF1, bus.Interrupts.InterruptEnable);
+        bus.ReadByte(0xFFFF).Should().Be(0xF1);
+        bus.Interrupts.InterruptEnable.Should().Be(0xF1);
     }
 
     [Fact]
@@ -1016,8 +1015,8 @@ public sealed class MemoryBusTests
 
         bus.WriteByte(0xFF0F, 0xFF);
 
-        Assert.Equal(0xFF, bus.ReadByte(0xFF0F));
-        Assert.Equal(0x1F, bus.Interrupts.InterruptFlag);
+        bus.ReadByte(0xFF0F).Should().Be(0xFF);
+        bus.Interrupts.InterruptFlag.Should().Be(0x1F);
     }
 
     [Fact]
@@ -1026,17 +1025,17 @@ public sealed class MemoryBusTests
         var bus = CreateBus();
         TickMachineCycles(bus, 64);
 
-        Assert.Equal(0x01, bus.ReadByte(AddressMap.DividerRegister));
+        bus.ReadByte(AddressMap.DividerRegister).Should().Be(0x01);
 
         bus.WriteByte(AddressMap.DividerRegister, 0xFF);
         bus.WriteByte(AddressMap.TimerCounterRegister, 0x12);
         bus.WriteByte(AddressMap.TimerModuloRegister, 0x34);
         bus.WriteByte(AddressMap.TimerControlRegister, 0b0000_0101);
 
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.DividerRegister));
-        Assert.Equal(0x12, bus.ReadByte(AddressMap.TimerCounterRegister));
-        Assert.Equal(0x34, bus.ReadByte(AddressMap.TimerModuloRegister));
-        Assert.Equal(0b1111_1101, bus.ReadByte(AddressMap.TimerControlRegister));
+        bus.ReadByte(AddressMap.DividerRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.TimerCounterRegister).Should().Be(0x12);
+        bus.ReadByte(AddressMap.TimerModuloRegister).Should().Be(0x34);
+        bus.ReadByte(AddressMap.TimerControlRegister).Should().Be(0b1111_1101);
     }
 
     [Fact]
@@ -1044,15 +1043,15 @@ public sealed class MemoryBusTests
     {
         var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
 
-        Assert.Equal(0x7E, bus.ReadByte(AddressMap.Key1Register));
+        bus.ReadByte(AddressMap.Key1Register).Should().Be(0x7E);
 
         bus.WriteByte(AddressMap.Key1Register, 0xFF);
 
-        Assert.Equal(0x7F, bus.ReadByte(AddressMap.Key1Register));
+        bus.ReadByte(AddressMap.Key1Register).Should().Be(0x7F);
 
         bus.WriteByte(AddressMap.Key1Register, 0xFE);
 
-        Assert.Equal(0x7E, bus.ReadByte(AddressMap.Key1Register));
+        bus.ReadByte(AddressMap.Key1Register).Should().Be(0x7E);
     }
 
     [Fact]
@@ -1062,8 +1061,8 @@ public sealed class MemoryBusTests
 
         bus.WriteByte(AddressMap.Key1Register, 0x01);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.Key1Register));
-        Assert.False(bus.Clock.CgbDoubleSpeed);
+        bus.ReadByte(AddressMap.Key1Register).Should().Be(0xFF);
+        bus.Clock.CgbDoubleSpeed.Should().BeFalse();
     }
 
     [Fact]
@@ -1073,8 +1072,8 @@ public sealed class MemoryBusTests
 
         bus.WriteByte(AddressMap.Key1Register, 0x01);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.Key1Register));
-        Assert.False(bus.Clock.CgbDoubleSpeed);
+        bus.ReadByte(AddressMap.Key1Register).Should().Be(0xFF);
+        bus.Clock.CgbDoubleSpeed.Should().BeFalse();
     }
 
     [Fact]
@@ -1085,15 +1084,15 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.LcdControlRegister, 0x80);
         bus.WriteByte(AddressMap.Key1Register, 0x01);
 
-        Assert.True(bus.Clock.TryStartSpeedSwitch());
+        bus.Clock.TryStartSpeedSwitch().Should().BeTrue();
 
         TickMachineCycles(clock, 114);
 
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.LcdYCoordinateRegister));
+        bus.ReadByte(AddressMap.LcdYCoordinateRegister).Should().Be(0x00);
 
         TickMachineCycles(clock, 114);
 
-        Assert.Equal(0x01, bus.ReadByte(AddressMap.LcdYCoordinateRegister));
+        bus.ReadByte(AddressMap.LcdYCoordinateRegister).Should().Be(0x01);
     }
 
     [Fact]
@@ -1104,7 +1103,7 @@ public sealed class MemoryBusTests
 
         bus.WriteByte(AddressMap.DividerRegister, 0x00);
 
-        Assert.Equal(1, bus.Apu.DivApuStep);
+        bus.Apu.DivApuStep.Should().Be(1);
     }
 
     [Fact]
@@ -1121,12 +1120,12 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.ObjectPalette0Register, 0xA5);
         bus.WriteByte(AddressMap.ObjectPalette1Register, 0x5A);
 
-        Assert.Equal(0x91, bus.ReadByte(AddressMap.LcdControlRegister));
-        Assert.Equal(0xF8, bus.ReadByte(AddressMap.LcdStatusRegister));
-        Assert.Equal(0x42, bus.ReadByte(AddressMap.LcdYCoordinateRegister));
-        Assert.Equal(0xFC, bus.ReadByte(AddressMap.BackgroundPaletteRegister));
-        Assert.Equal(0xA5, bus.ReadByte(AddressMap.ObjectPalette0Register));
-        Assert.Equal(0x5A, bus.ReadByte(AddressMap.ObjectPalette1Register));
+        bus.ReadByte(AddressMap.LcdControlRegister).Should().Be(0x91);
+        bus.ReadByte(AddressMap.LcdStatusRegister).Should().Be(0xF8);
+        bus.ReadByte(AddressMap.LcdYCoordinateRegister).Should().Be(0x42);
+        bus.ReadByte(AddressMap.BackgroundPaletteRegister).Should().Be(0xFC);
+        bus.ReadByte(AddressMap.ObjectPalette0Register).Should().Be(0xA5);
+        bus.ReadByte(AddressMap.ObjectPalette1Register).Should().Be(0x5A);
     }
 
     [Fact]
@@ -1139,7 +1138,7 @@ public sealed class MemoryBusTests
         bus.TickDma(2);
         bus.TickDma(160);
 
-        Assert.Equal(0x42, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0x42);
     }
 
     [Fact]
@@ -1152,7 +1151,7 @@ public sealed class MemoryBusTests
         bus.TickDma(2);
         bus.TickDma(160);
 
-        Assert.Equal(0x66, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0x66);
     }
 
     [Fact]
@@ -1165,7 +1164,7 @@ public sealed class MemoryBusTests
         bus.TickDma(2);
         bus.TickDma(160);
 
-        Assert.Equal(0x99, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0x99);
     }
 
     [Fact]
@@ -1184,7 +1183,7 @@ public sealed class MemoryBusTests
         bus.TickDma(2);
         bus.TickDma(160);
 
-        Assert.Equal(0x42, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0x42);
     }
 
     [Fact]
@@ -1197,7 +1196,7 @@ public sealed class MemoryBusTests
         bus.TickDma(2);
         bus.TickDma(160);
 
-        Assert.Equal(0x42, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0x42);
     }
 
     [Fact]
@@ -1212,7 +1211,7 @@ public sealed class MemoryBusTests
         bus.TickDma(2);
         bus.TickDma(160);
 
-        Assert.Equal(0x42, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0x42);
     }
 
     [Fact]
@@ -1227,11 +1226,11 @@ public sealed class MemoryBusTests
         bus.TickDma(2);
         bus.TickDma(160);
 
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0xFF);
 
         bus.Ppu.Tick(172);
 
-        Assert.Equal(0x42, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0x42);
     }
 
     [Fact]
@@ -1242,13 +1241,13 @@ public sealed class MemoryBusTests
 
         bus.WriteByte(AddressMap.DmaRegister, 0x80);
 
-        Assert.Equal(0x44, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0x44);
 
         bus.TickDma(1);
-        Assert.Equal(0x44, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0x44);
 
         bus.TickDma(1);
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0xFF);
     }
 
     [Fact]
@@ -1265,10 +1264,10 @@ public sealed class MemoryBusTests
         bus.TickDma(2);
         bus.TickDma(1);
 
-        Assert.Equal(0x11, bus.ReadByte(AddressMap.RomStart));
-        Assert.Equal(0x22, bus.ReadByte(AddressMap.VideoRamStart + 1));
-        Assert.Equal(0x33, bus.ReadByte(AddressMap.WorkRamStart));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.RomStart).Should().Be(0x11);
+        bus.ReadByte(AddressMap.VideoRamStart + 1).Should().Be(0x22);
+        bus.ReadByte(AddressMap.WorkRamStart).Should().Be(0x33);
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0xFF);
     }
 
     [Fact]
@@ -1291,10 +1290,10 @@ public sealed class MemoryBusTests
         bus.TickDma(2);
         bus.TickDma(1);
 
-        Assert.Equal(0x11, bus.ReadByte(AddressMap.RomStart));
-        Assert.Equal(0x55, bus.ReadByte(AddressMap.ExternalRamStart));
-        Assert.Equal(0x22, bus.ReadByte(AddressMap.WorkRamStart + 1));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.RomStart).Should().Be(0x11);
+        bus.ReadByte(AddressMap.ExternalRamStart).Should().Be(0x55);
+        bus.ReadByte(AddressMap.WorkRamStart + 1).Should().Be(0x22);
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0xFF);
     }
 
     [Fact]
@@ -1316,10 +1315,10 @@ public sealed class MemoryBusTests
         bus.TickDma(2);
         bus.TickDma(1);
 
-        Assert.Equal(0x66, bus.ReadByte(AddressMap.RomStart));
-        Assert.Equal(0x66, bus.ReadByte(AddressMap.ExternalRamStart));
-        Assert.Equal(0x33, bus.ReadByte(AddressMap.WorkRamStart));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.RomStart).Should().Be(0x66);
+        bus.ReadByte(AddressMap.ExternalRamStart).Should().Be(0x66);
+        bus.ReadByte(AddressMap.WorkRamStart).Should().Be(0x33);
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0xFF);
     }
 
     [Fact]
@@ -1341,10 +1340,10 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.ObjectAttributeMemoryStart, 0xDD);
         bus.TickDma(160);
 
-        Assert.Equal(0xAA, bus.ReadByte(AddressMap.VideoRamStart));
-        Assert.Equal(0x33, bus.ReadByte(AddressMap.WorkRamStart + 1));
-        Assert.Equal(0x44, bus.ReadByte(AddressMap.WorkRamStart + 2));
-        Assert.Equal(0x42, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.VideoRamStart).Should().Be(0xAA);
+        bus.ReadByte(AddressMap.WorkRamStart + 1).Should().Be(0x33);
+        bus.ReadByte(AddressMap.WorkRamStart + 2).Should().Be(0x44);
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0x42);
     }
 
     [Fact]
@@ -1355,7 +1354,7 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.DmaRegister, 0xC0);
         bus.WriteByte(AddressMap.NotUsableStart, 0x42);
 
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.NotUsableStart));
+        bus.ReadByte(AddressMap.NotUsableStart).Should().Be(0x00);
     }
 
     [Fact]
@@ -1368,10 +1367,10 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.HighRamStart, 0x34);
         bus.WriteByte(AddressMap.InterruptEnableRegister, 0x56);
 
-        Assert.Equal(0xC0, bus.ReadByte(AddressMap.DmaRegister));
-        Assert.Equal(0xFF, bus.ReadByte(0xFF03));
-        Assert.Equal(0x34, bus.ReadByte(AddressMap.HighRamStart));
-        Assert.Equal(0x56, bus.ReadByte(AddressMap.InterruptEnableRegister));
+        bus.ReadByte(AddressMap.DmaRegister).Should().Be(0xC0);
+        bus.ReadByte(0xFF03).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.HighRamStart).Should().Be(0x34);
+        bus.ReadByte(AddressMap.InterruptEnableRegister).Should().Be(0x56);
     }
 
     [Fact]
@@ -1388,8 +1387,8 @@ public sealed class MemoryBusTests
         bus.TickDma(2);
         bus.TickDma(160);
 
-        Assert.Equal(0x90, bus.ReadByte(AddressMap.DmaRegister));
-        Assert.Equal(0xD0, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.DmaRegister).Should().Be(0x90);
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0xD0);
     }
 
     [Fact]
@@ -1401,8 +1400,8 @@ public sealed class MemoryBusTests
         bus.SetHardwareRegisterState(AddressMap.DmaRegister, 0x80);
         bus.TickDma(160);
 
-        Assert.Equal(0x80, bus.ReadByte(AddressMap.DmaRegister));
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.ObjectAttributeMemoryStart));
+        bus.ReadByte(AddressMap.DmaRegister).Should().Be(0x80);
+        bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0x00);
     }
 
     [Fact]
@@ -1414,9 +1413,9 @@ public sealed class MemoryBusTests
         bus.SetHardwareRegisterState(AddressMap.SerialTransferControlRegister, 0x81);
         TickMachineCycles(bus, 128 * 8);
 
-        Assert.Equal(0x00, bus.ReadByte(AddressMap.SerialTransferDataRegister));
-        Assert.Equal(0xFF, bus.ReadByte(AddressMap.SerialTransferControlRegister));
-        Assert.Equal(0x00, bus.Interrupts.InterruptFlag);
+        bus.ReadByte(AddressMap.SerialTransferDataRegister).Should().Be(0x00);
+        bus.ReadByte(AddressMap.SerialTransferControlRegister).Should().Be(0xFF);
+        bus.Interrupts.InterruptFlag.Should().Be(0x00);
     }
 
     [Fact]
@@ -1426,8 +1425,8 @@ public sealed class MemoryBusTests
 
         bus.WriteByte(0xA000, 0x42);
 
-        Assert.Equal(0xFF, bus.ReadByte(0xA000));
-        Assert.Equal(0xFF, bus.ReadByte(0xBFFF));
+        bus.ReadByte(0xA000).Should().Be(0xFF);
+        bus.ReadByte(0xBFFF).Should().Be(0xFF);
     }
 
     [Fact]
@@ -1443,7 +1442,7 @@ public sealed class MemoryBusTests
         bus.WriteByte(0x0000, 0x0A);
         bus.WriteByte(AddressMap.ExternalRamStart, 0x42);
 
-        Assert.Equal(0x42, bus.ReadByte(AddressMap.ExternalRamStart));
+        bus.ReadByte(AddressMap.ExternalRamStart).Should().Be(0x42);
     }
 
     [Fact]
@@ -1454,16 +1453,19 @@ public sealed class MemoryBusTests
         var state = bus.CaptureState();
         bus.WriteByte(AddressMap.HighRamStart, 0x22);
 
-        Assert.Throws<ArgumentException>(() =>
-            bus.RestoreState(
-                state with
-                {
-                    CgbMiscRegisters = new CgbMiscRegistersState(0, 0, 0, 0x01),
-                }
+        FluentActions
+            .Invoking(() =>
+                bus.RestoreState(
+                    state with
+                    {
+                        CgbMiscRegisters = new CgbMiscRegistersState(0, 0, 0, 0x01),
+                    }
+                )
             )
-        );
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
-        Assert.Equal(0x22, bus.ReadByte(AddressMap.HighRamStart));
+        bus.ReadByte(AddressMap.HighRamStart).Should().Be(0x22);
     }
 
     private static MemoryBus CreateBus() => CreateBus(TestRomFactory.Create());

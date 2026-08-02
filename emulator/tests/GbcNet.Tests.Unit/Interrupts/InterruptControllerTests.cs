@@ -14,8 +14,8 @@ public sealed class InterruptControllerTests
 
         interrupts.SetInterruptFlag(0xFF);
 
-        Assert.Equal(0x1F, interrupts.InterruptFlag);
-        Assert.Equal(0xFF, interrupts.ReadInterruptFlag());
+        interrupts.InterruptFlag.Should().Be(0x1F);
+        interrupts.ReadInterruptFlag().Should().Be(0xFF);
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public sealed class InterruptControllerTests
 
         interrupts.SetInterruptFlag(0x04);
 
-        Assert.Equal(0xE4, interrupts.ReadInterruptFlag());
+        interrupts.ReadInterruptFlag().Should().Be(0xE4);
     }
 
     [Fact]
@@ -34,8 +34,8 @@ public sealed class InterruptControllerTests
         var interrupts = new InterruptController { InterruptEnable = 0b0001_0101 };
         interrupts.SetInterruptFlag(0b0000_0111);
 
-        Assert.Equal(0b0000_0101, interrupts.RequestedAndEnabledMask);
-        Assert.True(interrupts.HasRequestedAndEnabledInterrupt);
+        interrupts.RequestedAndEnabledMask.Should().Be(0b0000_0101);
+        interrupts.HasRequestedAndEnabledInterrupt.Should().BeTrue();
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public sealed class InterruptControllerTests
         interrupts.Request(InterruptSource.Joypad);
         interrupts.Clear(InterruptSource.Timer);
 
-        Assert.Equal(0b0001_0000, interrupts.InterruptFlag);
+        interrupts.InterruptFlag.Should().Be(0b0001_0000);
     }
 
     [Fact]
@@ -61,28 +61,27 @@ public sealed class InterruptControllerTests
 
         interrupts.RestoreState(state);
 
-        Assert.Equal(0xFF, interrupts.InterruptEnable);
-        Assert.True(
-            InterruptController.TryGetHighestPriority(
+        interrupts.InterruptEnable.Should().Be(0xFF);
+
+        InterruptController
+            .TryGetHighestPriority(
                 interrupts.RequestedAndEnabledMask,
                 out var source,
                 out var vector
             )
-        );
-        Assert.Equal(InterruptSource.VBlank, source);
-        Assert.Equal(0x0040, vector);
+            .Should()
+            .BeTrue();
+        source.Should().Be(InterruptSource.VBlank);
+        vector.Should().Be(0x0040);
 
         interrupts.Clear(source);
 
-        Assert.True(
-            InterruptController.TryGetHighestPriority(
-                interrupts.RequestedAndEnabledMask,
-                out source,
-                out vector
-            )
-        );
-        Assert.Equal(InterruptSource.LcdStat, source);
-        Assert.Equal(0x0048, vector);
+        InterruptController
+            .TryGetHighestPriority(interrupts.RequestedAndEnabledMask, out source, out vector)
+            .Should()
+            .BeTrue();
+        source.Should().Be(InterruptSource.LcdStat);
+        vector.Should().Be(0x0048);
     }
 
     [Fact]
@@ -92,8 +91,8 @@ public sealed class InterruptControllerTests
 
         interrupts.RestoreState(new InterruptControllerState(0xFF, 0xFF));
 
-        Assert.Equal(0x1F, interrupts.InterruptFlag);
-        Assert.Equal(0xFF, interrupts.ReadInterruptFlag());
+        interrupts.InterruptFlag.Should().Be(0x1F);
+        interrupts.ReadInterruptFlag().Should().Be(0xFF);
     }
 
     [Fact]
@@ -105,9 +104,9 @@ public sealed class InterruptControllerTests
             out var vector
         );
 
-        Assert.True(found);
-        Assert.Equal(InterruptSource.VBlank, source);
-        Assert.Equal(0x0040, vector);
+        found.Should().BeTrue();
+        source.Should().Be(InterruptSource.VBlank);
+        vector.Should().Be(0x0040);
     }
 
     [Fact]
@@ -115,9 +114,9 @@ public sealed class InterruptControllerTests
     {
         var found = InterruptController.TryGetHighestPriority(0, out var source, out var vector);
 
-        Assert.False(found);
-        Assert.Equal(default, source);
-        Assert.Equal(0, vector);
+        found.Should().BeFalse();
+        source.Should().Be(default(InterruptSource));
+        vector.Should().Be(0);
     }
 
     [Theory]
@@ -139,8 +138,8 @@ public sealed class InterruptControllerTests
             out var vector
         );
 
-        Assert.True(found);
-        Assert.Equal(interruptSource, source);
-        Assert.Equal(expectedVector, vector);
+        found.Should().BeTrue();
+        source.Should().Be(interruptSource);
+        vector.Should().Be(expectedVector);
     }
 }

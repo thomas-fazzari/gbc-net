@@ -16,8 +16,9 @@ public sealed class LcdFrameBitmapRendererTests
 
         LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 8);
 
-        Assert.Equal(
-            [
+        destination
+            .Should()
+            .Equal(
                 0xD0,
                 0xF8,
                 0xE0,
@@ -33,10 +34,8 @@ public sealed class LcdFrameBitmapRendererTests
                 0x18,
                 0x18,
                 0x08,
-                0xFF,
-            ],
-            destination
-        );
+                0xFF
+            );
     }
 
     [Fact]
@@ -47,8 +46,9 @@ public sealed class LcdFrameBitmapRendererTests
 
         LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 8);
 
-        Assert.Equal(
-            [
+        destination
+            .Should()
+            .Equal(
                 0xD0,
                 0xF8,
                 0xE0,
@@ -64,10 +64,8 @@ public sealed class LcdFrameBitmapRendererTests
                 0xCC,
                 0xCC,
                 0xCC,
-                0xCC,
-            ],
-            destination
-        );
+                0xCC
+            );
     }
 
     [Fact]
@@ -83,10 +81,9 @@ public sealed class LcdFrameBitmapRendererTests
 
         LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 12);
 
-        Assert.Equal(
-            [0x00, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF],
-            destination
-        );
+        destination
+            .Should()
+            .Equal(0x00, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF);
     }
 
     [Fact]
@@ -97,7 +94,7 @@ public sealed class LcdFrameBitmapRendererTests
 
         LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 4);
 
-        Assert.Equal([0x10, 0x42, 0x84, 0xFF], destination);
+        destination.Should().Equal(0x10, 0x42, 0x84, 0xFF);
     }
 
     [Fact]
@@ -106,9 +103,10 @@ public sealed class LcdFrameBitmapRendererTests
         var frame = CreateFrame(width: 2, height: 1, 0, 1);
         var destination = new byte[8];
 
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 7)
-        );
+        FluentActions
+            .Invoking(() => LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 7))
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>();
     }
 
     [Fact]
@@ -117,11 +115,13 @@ public sealed class LcdFrameBitmapRendererTests
         var frame = CreateFrame(width: 2, height: 2, 0, 1, 2, 3);
         var destination = new byte[15];
 
-        var exception = Assert.Throws<ArgumentException>(() =>
-            LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 8)
-        );
+        var exception = FluentActions
+            .Invoking(() => LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 8))
+            .Should()
+            .ThrowExactly<ArgumentException>()
+            .Which;
 
-        Assert.Equal("destination", exception.ParamName);
+        exception.ParamName.Should().Be("destination");
     }
 
     [Fact]
@@ -130,15 +130,13 @@ public sealed class LcdFrameBitmapRendererTests
         LcdFrame frame = new(width: 1, height: 1, (LcdPixelFormat)255, [0]);
         var destination = new byte[4];
 
-        var exception = Assert.Throws<NotSupportedException>(() =>
-            LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 4)
-        );
+        var exception = FluentActions
+            .Invoking(() => LcdFrameBitmapRenderer.WritePixels(frame, destination, rowBytes: 4))
+            .Should()
+            .ThrowExactly<NotSupportedException>()
+            .Which;
 
-        Assert.Contains(
-            "Unsupported LCD pixel format",
-            exception.Message,
-            StringComparison.Ordinal
-        );
+        exception.Message.Should().Contain("Unsupported LCD pixel format");
     }
 
     private static LcdFrame CreateFrame(int width, int height, params byte[] pixels) =>

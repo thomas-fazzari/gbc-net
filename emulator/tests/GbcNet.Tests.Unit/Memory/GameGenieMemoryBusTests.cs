@@ -7,7 +7,6 @@ using GbcNet.Core.Cheats;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Memory;
-using GbcNet.Tests.Shared;
 
 namespace GbcNet.Tests.Unit.Memory;
 
@@ -21,18 +20,18 @@ public sealed class GameGenieMemoryBusTests
 
         bus.SetCheatCodes([Parse("0A1-B9F")]);
 
-        Assert.Equal(0x0A, bus.ReadByte(0x01B9));
-        Assert.Equal(0x44, cartridge.ReadRom(0x01B9));
+        bus.ReadByte(0x01B9).Should().Be(0x0A);
+        cartridge.ReadRom(0x01B9).Should().Be(0x44);
 
         bus.SetCheatCodes([Parse("0C1-B9F")]);
 
-        Assert.Equal(0x0C, bus.ReadByte(0x01B9));
-        Assert.Equal(0x44, cartridge.ReadRom(0x01B9));
+        bus.ReadByte(0x01B9).Should().Be(0x0C);
+        cartridge.ReadRom(0x01B9).Should().Be(0x44);
 
         bus.SetCheatCodes([]);
 
-        Assert.Equal(0x44, bus.ReadByte(0x01B9));
-        Assert.Equal(0x44, cartridge.ReadRom(0x01B9));
+        bus.ReadByte(0x01B9).Should().Be(0x44);
+        cartridge.ReadRom(0x01B9).Should().Be(0x44);
     }
 
     [Fact]
@@ -43,13 +42,13 @@ public sealed class GameGenieMemoryBusTests
 
         bus.SetCheatCodes([Parse("068-55F-E66")]);
 
-        Assert.Equal(0x04, bus.ReadByte(0x0855));
+        bus.ReadByte(0x0855).Should().Be(0x04);
 
         rom[0x0855] = 0x03;
         bus = new MemoryBus(TestRomFactory.LoadCartridge(rom), DmgHardwareProfile.Instance);
         bus.SetCheatCodes([Parse("068-55F-E66")]);
 
-        Assert.Equal(0x06, bus.ReadByte(0x0855));
+        bus.ReadByte(0x0855).Should().Be(0x06);
     }
 
     [Fact]
@@ -62,7 +61,7 @@ public sealed class GameGenieMemoryBusTests
 
         bus.SetCheatCodes([Parse("110-00B"), Parse("220-00B")]);
 
-        Assert.Equal(0x11, bus.ReadByte(0x4000));
+        bus.ReadByte(0x4000).Should().Be(0x11);
     }
 
     [Fact]
@@ -83,12 +82,12 @@ public sealed class GameGenieMemoryBusTests
 
         bus.SetCheatCodes([Parse("CC0-00B-602")]);
 
-        Assert.Equal(0x11, bus.ReadByte(0x4000));
+        bus.ReadByte(0x4000).Should().Be(0x11);
 
         bus.WriteByte(0x2000, 0x02);
 
-        Assert.Equal(0xCC, bus.ReadByte(0x4000));
-        Assert.Equal(0x22, cartridge.ReadRom(0x4000));
+        bus.ReadByte(0x4000).Should().Be(0xCC);
+        cartridge.ReadRom(0x4000).Should().Be(0x22);
     }
 
     [Fact]
@@ -100,10 +99,14 @@ public sealed class GameGenieMemoryBusTests
         );
         bus.SetCheatCodes([Parse("0A1-B9F")]);
 
-        var exception = Assert.Throws<ArgumentException>(() => bus.SetCheatCodes([default]));
+        var exception = FluentActions
+            .Invoking(() => bus.SetCheatCodes([default]))
+            .Should()
+            .ThrowExactly<ArgumentException>()
+            .Which;
 
-        Assert.Equal("codes", exception.ParamName);
-        Assert.Equal(0x0A, bus.ReadByte(0x01B9));
+        exception.ParamName.Should().Be("codes");
+        bus.ReadByte(0x01B9).Should().Be(0x0A);
     }
 
     [Fact]
@@ -117,11 +120,11 @@ public sealed class GameGenieMemoryBusTests
         var bus = new MemoryBus(cartridge, new CgbHardwareProfile(CgbOperatingMode.Cgb), bootRom);
         bus.SetCheatCodes([Parse("AA1-00F")]);
 
-        Assert.Equal(0x55, bus.ReadByte(0x0100));
+        bus.ReadByte(0x0100).Should().Be(0x55);
 
         bus.WriteByte(AddressMap.BootRomDisableRegister, 0x01);
 
-        Assert.Equal(0xAA, bus.ReadByte(0x0100));
+        bus.ReadByte(0x0100).Should().Be(0xAA);
     }
 
     [Fact]
@@ -143,16 +146,15 @@ public sealed class GameGenieMemoryBusTests
         bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
 
-        Assert.Equal(
-            0x06,
-            bus.Ppu.ObjectAttributeMemory.Read(AddressMap.ObjectAttributeMemoryStart + 0x55)
-        );
-        Assert.Equal(0x06, bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x05));
+        bus.Ppu.ObjectAttributeMemory.Read(AddressMap.ObjectAttributeMemoryStart + 0x55)
+            .Should()
+            .Be(0x06);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x05).Should().Be(0x06);
     }
 
     private static CheatCode Parse(string text)
     {
-        Assert.True(CheatCode.TryParse(CheatCodeType.GameGenie, text, out var code));
+        CheatCode.TryParse(CheatCodeType.GameGenie, text, out var code).Should().BeTrue();
         return code;
     }
 }

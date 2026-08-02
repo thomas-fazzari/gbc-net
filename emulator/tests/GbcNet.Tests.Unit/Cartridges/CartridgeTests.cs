@@ -14,13 +14,13 @@ public sealed class CartridgeTests
 
         var cartridge = TestRomFactory.LoadCartridge(rom);
 
-        Assert.Equal("TEST ROM", cartridge.Header.Title);
-        Assert.Equal(CgbSupport.None, cartridge.Header.CgbSupport);
-        Assert.Equal(CartridgeType.RomOnly, cartridge.Header.CartridgeType);
-        Assert.Equal(32 * 1024, cartridge.Header.RomSizeBytes);
-        Assert.Equal(2, cartridge.Header.RomBankCount);
-        Assert.Equal(0, cartridge.Header.RamSizeBytes);
-        Assert.Equal(0, cartridge.Header.RamBankCount);
+        cartridge.Header.Title.Should().Be("TEST ROM");
+        cartridge.Header.CgbSupport.Should().Be(CgbSupport.None);
+        cartridge.Header.CartridgeType.Should().Be(CartridgeType.RomOnly);
+        cartridge.Header.RomSizeBytes.Should().Be(32 * 1024);
+        cartridge.Header.RomBankCount.Should().Be(2);
+        cartridge.Header.RamSizeBytes.Should().Be(0);
+        cartridge.Header.RamBankCount.Should().Be(0);
     }
 
     [Fact]
@@ -28,19 +28,27 @@ public sealed class CartridgeTests
     {
         var success = Cartridge.Load(TestRomFactory.Create());
 
-        Assert.True(success.IsSuccess);
-        Assert.False(success.IsFailure);
-        Assert.Equal("TEST ROM", success.Cartridge.Header.Title);
-        var successException = Assert.Throws<InvalidOperationException>(() => success.Error);
-        Assert.Equal("Cartridge load did not fail.", successException.Message);
+        success.IsSuccess.Should().BeTrue();
+        success.IsFailure.Should().BeFalse();
+        success.Cartridge.Header.Title.Should().Be("TEST ROM");
+        var successException = FluentActions
+            .Invoking(() => success.Error)
+            .Should()
+            .ThrowExactly<InvalidOperationException>()
+            .Which;
+        successException.Message.Should().Be("Cartridge load did not fail.");
 
         var failure = Cartridge.Load(new byte[0x014F]);
 
-        Assert.False(failure.IsSuccess);
-        Assert.True(failure.IsFailure);
-        Assert.Equal(CartridgeLoadErrorCode.RomTooSmall, failure.Error.Code);
-        var failureException = Assert.Throws<InvalidOperationException>(() => failure.Cartridge);
-        Assert.Equal("Cartridge load did not succeed.", failureException.Message);
+        failure.IsSuccess.Should().BeFalse();
+        failure.IsFailure.Should().BeTrue();
+        failure.Error.Code.Should().Be(CartridgeLoadErrorCode.RomTooSmall);
+        var failureException = FluentActions
+            .Invoking(() => failure.Cartridge)
+            .Should()
+            .ThrowExactly<InvalidOperationException>()
+            .Which;
+        failureException.Message.Should().Be("Cartridge load did not succeed.");
     }
 
     [Fact]
@@ -50,7 +58,7 @@ public sealed class CartridgeTests
 
         var cartridge = TestRomFactory.LoadCartridge(rom);
 
-        Assert.Equal(CgbSupport.Enhanced, cartridge.Header.CgbSupport);
+        cartridge.Header.CgbSupport.Should().Be(CgbSupport.Enhanced);
     }
 
     [Fact]
@@ -64,7 +72,7 @@ public sealed class CartridgeTests
 
         var cartridge = TestRomFactory.LoadCartridge(rom);
 
-        Assert.Equal("FIFTEENCHARROM!", cartridge.Header.Title);
+        cartridge.Header.Title.Should().Be("FIFTEENCHARROM!");
     }
 
     [Fact]
@@ -79,7 +87,7 @@ public sealed class CartridgeTests
 
         var cartridge = TestRomFactory.LoadCartridge(rom);
 
-        Assert.Equal("ELEVENCHARS", cartridge.Header.Title);
+        cartridge.Header.Title.Should().Be("ELEVENCHARS");
     }
 
     [Fact]
@@ -89,7 +97,7 @@ public sealed class CartridgeTests
 
         var cartridge = TestRomFactory.LoadCartridge(rom);
 
-        Assert.Equal(CgbSupport.Required, cartridge.Header.CgbSupport);
+        cartridge.Header.CgbSupport.Should().Be(CgbSupport.Required);
     }
 
     [Fact]
@@ -103,7 +111,7 @@ public sealed class CartridgeTests
 
         var cartridge = TestRomFactory.LoadCartridge(rom);
 
-        Assert.Equal(CartridgeHardwareKind.SGB, cartridge.Header.HardwareKind);
+        cartridge.Header.HardwareKind.Should().Be(CartridgeHardwareKind.SGB);
     }
 
     [Fact]
@@ -118,8 +126,8 @@ public sealed class CartridgeTests
 
         var cartridge = TestRomFactory.LoadCartridge(rom);
 
-        Assert.Equal(CgbSupport.Enhanced, cartridge.Header.CgbSupport);
-        Assert.Equal(CartridgeHardwareKind.GBC, cartridge.Header.HardwareKind);
+        cartridge.Header.CgbSupport.Should().Be(CgbSupport.Enhanced);
+        cartridge.Header.HardwareKind.Should().Be(CartridgeHardwareKind.GBC);
     }
 
     [Fact]
@@ -129,7 +137,7 @@ public sealed class CartridgeTests
 
         var cartridge = TestRomFactory.LoadCartridge(rom);
 
-        Assert.Equal(CartridgeHardwareKind.GB, cartridge.Header.HardwareKind);
+        cartridge.Header.HardwareKind.Should().Be(CartridgeHardwareKind.GB);
     }
 
     [Fact]
@@ -139,8 +147,8 @@ public sealed class CartridgeTests
 
         var result = Cartridge.Load(rom);
 
-        Assert.True(result.IsFailure);
-        Assert.Equal(CartridgeLoadErrorCode.RomTooSmall, result.Error.Code);
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be(CartridgeLoadErrorCode.RomTooSmall);
     }
 
     [Fact]
@@ -151,8 +159,8 @@ public sealed class CartridgeTests
 
         var result = Cartridge.Load(rom);
 
-        Assert.True(result.IsFailure);
-        Assert.Equal(CartridgeLoadErrorCode.InvalidHeaderChecksum, result.Error.Code);
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be(CartridgeLoadErrorCode.InvalidHeaderChecksum);
     }
 
     [Fact]
@@ -162,8 +170,8 @@ public sealed class CartridgeTests
 
         var result = Cartridge.Load(rom);
 
-        Assert.True(result.IsFailure);
-        Assert.Equal(CartridgeLoadErrorCode.UnsupportedCartridgeType, result.Error.Code);
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be(CartridgeLoadErrorCode.UnsupportedCartridgeType);
     }
 
     [Fact]
@@ -173,8 +181,8 @@ public sealed class CartridgeTests
 
         var result = Cartridge.Load(rom);
 
-        Assert.True(result.IsFailure);
-        Assert.Equal(CartridgeLoadErrorCode.RomLengthMismatch, result.Error.Code);
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be(CartridgeLoadErrorCode.RomLengthMismatch);
     }
 
     [Fact]
@@ -182,7 +190,10 @@ public sealed class CartridgeTests
     {
         var rom = new byte[0x014D];
 
-        Assert.Throws<ArgumentException>(() => CartridgeHeader.CalculateHeaderChecksum(rom));
+        FluentActions
+            .Invoking(() => CartridgeHeader.CalculateHeaderChecksum(rom))
+            .Should()
+            .ThrowExactly<ArgumentException>();
     }
 
     [Fact]
@@ -193,9 +204,9 @@ public sealed class CartridgeTests
         rom[0x4000] = 0xC3;
         var cartridge = TestRomFactory.LoadCartridge(rom);
 
-        Assert.Equal(0x31, cartridge.ReadRom(0x0000));
-        Assert.Equal(0xC3, cartridge.ReadRom(0x4000));
-        Assert.Equal(rom[0x7FFF], cartridge.ReadRom(0x7FFF));
+        cartridge.ReadRom(0x0000).Should().Be(0x31);
+        cartridge.ReadRom(0x4000).Should().Be(0xC3);
+        cartridge.ReadRom(0x7FFF).Should().Be(rom[0x7FFF]);
     }
 
     [Fact]
@@ -214,8 +225,8 @@ public sealed class CartridgeTests
 
         cartridge.RestoreState(state);
 
-        Assert.Equal(0x23, cartridge.ReadRam(0xA000));
-        Assert.False(cartridge.IsBatterySaveDirty);
+        cartridge.ReadRam(0xA000).Should().Be(0x23);
+        cartridge.IsBatterySaveDirty.Should().BeFalse();
     }
 
     [Fact]
@@ -229,16 +240,18 @@ public sealed class CartridgeTests
         cartridge.WriteRam(0xA000, 0x3C);
         cartridge.ClearBatterySaveDirty();
 
-        Assert.Throws<ArgumentException>(() =>
-            cartridge.ValidateState(new CartridgeState(default!))
-        );
+        FluentActions
+            .Invoking(() => cartridge.ValidateState(new CartridgeState(null!)))
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
-        Assert.Throws<ArgumentException>(() =>
-            cartridge.RestoreState(new CartridgeState(default!))
-        );
+        FluentActions
+            .Invoking(() => cartridge.RestoreState(new CartridgeState(null!)))
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
-        Assert.Equal(0x3C, cartridge.ReadRam(0xA000));
-        Assert.False(cartridge.IsBatterySaveDirty);
+        cartridge.ReadRam(0xA000).Should().Be(0x3C);
+        cartridge.IsBatterySaveDirty.Should().BeFalse();
     }
 
     [Fact]
@@ -255,15 +268,17 @@ public sealed class CartridgeTests
             bytes[0x0147] = (byte)CartridgeType.Mbc1
         );
 
-        Assert.Throws<ArgumentException>(() =>
-            cartridge.ValidateState(differentMapper.CaptureState())
-        );
+        FluentActions
+            .Invoking(() => cartridge.ValidateState(differentMapper.CaptureState()))
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
-        Assert.Throws<ArgumentException>(() =>
-            cartridge.RestoreState(differentMapper.CaptureState())
-        );
+        FluentActions
+            .Invoking(() => cartridge.RestoreState(differentMapper.CaptureState()))
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
-        Assert.Equal(0x3C, cartridge.ReadRam(0xA000));
-        Assert.False(cartridge.IsBatterySaveDirty);
+        cartridge.ReadRam(0xA000).Should().Be(0x3C);
+        cartridge.IsBatterySaveDirty.Should().BeFalse();
     }
 }

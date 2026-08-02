@@ -28,21 +28,23 @@ public sealed class AppConfigurationIntegrationTests
 
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
-        Assert.Null(startupConfiguration.StartupErrorMessage);
+        startupConfiguration.StartupErrorMessage.Should().BeNull();
         using var configJson = JsonDocument.Parse(File.ReadAllText(configPath));
         var input = configJson.RootElement.GetProperty("input");
-        Assert.Equal(2, input.GetProperty("version").GetInt32());
-        Assert.True(input.TryGetProperty("keyboard", out var keyboard));
-        Assert.True(input.TryGetProperty("gamepad", out var gamepad));
-        Assert.False(input.TryGetProperty("activeProfile", out _));
-        Assert.False(input.TryGetProperty("profiles", out _));
-        Assert.Equal("default", keyboard.GetProperty("activeProfile").GetString());
-        Assert.Equal("default", gamepad.GetProperty("activeProfile").GetString());
-        Assert.Equal(
-            "grid",
-            configJson.RootElement.GetProperty("library").GetProperty("viewMode").GetString()
-        );
-        Assert.Equal(LibraryViewMode.Grid, startupConfiguration.LibraryConfig.ViewMode);
+        input.GetProperty("version").GetInt32().Should().Be(2);
+        input.TryGetProperty("keyboard", out var keyboard).Should().BeTrue();
+        input.TryGetProperty("gamepad", out var gamepad).Should().BeTrue();
+        input.TryGetProperty("activeProfile", out _).Should().BeFalse();
+        input.TryGetProperty("profiles", out _).Should().BeFalse();
+        keyboard.GetProperty("activeProfile").GetString().Should().Be("default");
+        gamepad.GetProperty("activeProfile").GetString().Should().Be("default");
+        configJson
+            .RootElement.GetProperty("library")
+            .GetProperty("viewMode")
+            .GetString()
+            .Should()
+            .Be("grid");
+        startupConfiguration.LibraryConfig.ViewMode.Should().Be(LibraryViewMode.Grid);
     }
 
     [Fact]
@@ -55,10 +57,10 @@ public sealed class AppConfigurationIntegrationTests
 
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
-        Assert.Null(startupConfiguration.StartupErrorMessage);
-        Assert.Equal(new AudioConfig(), startupConfiguration.AudioConfig);
-        Assert.True(startupConfiguration.EmulationConfig.FastForwardEnabled);
-        Assert.Equal(LibraryViewMode.Grid, startupConfiguration.LibraryConfig.ViewMode);
+        startupConfiguration.StartupErrorMessage.Should().BeNull();
+        startupConfiguration.AudioConfig.Should().Be(new AudioConfig());
+        startupConfiguration.EmulationConfig.FastForwardEnabled.Should().BeTrue();
+        startupConfiguration.LibraryConfig.ViewMode.Should().Be(LibraryViewMode.Grid);
     }
 
     [Fact]
@@ -71,12 +73,10 @@ public sealed class AppConfigurationIntegrationTests
 
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
-        Assert.Contains(
-            "Configuration file could not be parsed",
-            startupConfiguration.StartupErrorMessage,
-            StringComparison.Ordinal
-        );
-        Assert.Equal(LibraryViewMode.Grid, startupConfiguration.LibraryConfig.ViewMode);
+        startupConfiguration
+            .StartupErrorMessage.Should()
+            .Contain("Configuration file could not be parsed");
+        startupConfiguration.LibraryConfig.ViewMode.Should().Be(LibraryViewMode.Grid);
     }
 
     [Fact]
@@ -89,12 +89,10 @@ public sealed class AppConfigurationIntegrationTests
 
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
-        Assert.Contains(
-            "Configuration file could not be parsed",
-            startupConfiguration.StartupErrorMessage,
-            StringComparison.Ordinal
-        );
-        Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
+        startupConfiguration
+            .StartupErrorMessage.Should()
+            .Contain("Configuration file could not be parsed");
+        startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty.Should().BeTrue();
         AssertInputConfigIsValid(startupConfiguration.InputConfig);
     }
 
@@ -107,7 +105,7 @@ public sealed class AppConfigurationIntegrationTests
         Directory.CreateDirectory(tempDirectory.Path);
         File.WriteAllText(configPath, "{");
 
-        using (var fileLogger = GbcNet.App.Program.CreateLogger(logFilePath))
+        using (var fileLogger = App.Program.CreateLogger(logFilePath))
         using (var loggerFactory = new SerilogLoggerFactory(fileLogger, dispose: false))
         {
             _ = StartupConfigurationLoader.Load(
@@ -116,12 +114,14 @@ public sealed class AppConfigurationIntegrationTests
             );
         }
 
-        var rollingLogPath = Assert.Single(Directory.GetFiles(tempDirectory.Path, "gbcnet-*.log"));
-        Assert.Contains(
-            "Startup configuration required 1 fallback(s).",
-            File.ReadAllText(rollingLogPath),
-            StringComparison.Ordinal
-        );
+        var rollingLogPath = Directory
+            .GetFiles(tempDirectory.Path, "gbcnet-*.log")
+            .Should()
+            .ContainSingle()
+            .Which;
+        File.ReadAllText(rollingLogPath)
+            .Should()
+            .Contain("Startup configuration required 1 fallback(s).");
     }
 
     [Fact]
@@ -150,22 +150,19 @@ public sealed class AppConfigurationIntegrationTests
 
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
-        Assert.Null(startupConfiguration.StartupErrorMessage);
-        Assert.Equal(
-            BootRomOptions.DmgBootRomSize,
-            startupConfiguration.BootRomOptions.DmgBootRom.Length
-        );
-        Assert.Equal(
-            BootRomOptions.CgbBootRomSize,
-            startupConfiguration.BootRomOptions.CgbBootRom.Length
-        );
-        Assert.Equal(
-            BootRomOptions.SgbBootRomSize,
-            startupConfiguration.BootRomOptions.SgbBootRom.Length
-        );
-        Assert.Equal(0xD0, startupConfiguration.BootRomOptions.DmgBootRom.Span[0]);
-        Assert.Equal(0xC0, startupConfiguration.BootRomOptions.CgbBootRom.Span[0]);
-        Assert.Equal(0x50, startupConfiguration.BootRomOptions.SgbBootRom.Span[0]);
+        startupConfiguration.StartupErrorMessage.Should().BeNull();
+        startupConfiguration
+            .BootRomOptions.DmgBootRom.Length.Should()
+            .Be(BootRomOptions.DmgBootRomSize);
+        startupConfiguration
+            .BootRomOptions.CgbBootRom.Length.Should()
+            .Be(BootRomOptions.CgbBootRomSize);
+        startupConfiguration
+            .BootRomOptions.SgbBootRom.Length.Should()
+            .Be(BootRomOptions.SgbBootRomSize);
+        startupConfiguration.BootRomOptions.DmgBootRom.Span[0].Should().Be(0xD0);
+        startupConfiguration.BootRomOptions.CgbBootRom.Span[0].Should().Be(0xC0);
+        startupConfiguration.BootRomOptions.SgbBootRom.Span[0].Should().Be(0x50);
     }
 
     [Fact]
@@ -179,18 +176,16 @@ public sealed class AppConfigurationIntegrationTests
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
         var inputMap = InputMap.FromConfig(startupConfiguration.InputConfig);
 
-        Assert.Null(startupConfiguration.StartupErrorMessage);
-        Assert.Equal("alternate", startupConfiguration.InputConfig.Keyboard.ActiveProfile);
-        Assert.Equal(
-            InputConfig.DefaultProfileName,
-            startupConfiguration.InputConfig.Gamepad.ActiveProfile
-        );
-        Assert.Equal(8, inputMap.KeyboardBindings.Count);
-        Assert.Equal(4, inputMap.GamepadBindings.Count);
-        Assert.Contains(
-            inputMap.KeyboardBindings,
-            binding => binding.Button is JoypadButton.B && binding.Key is Key.K
-        );
+        startupConfiguration.StartupErrorMessage.Should().BeNull();
+        startupConfiguration.InputConfig.Keyboard.ActiveProfile.Should().Be("alternate");
+        startupConfiguration
+            .InputConfig.Gamepad.ActiveProfile.Should()
+            .Be(InputConfig.DefaultProfileName);
+        inputMap.KeyboardBindings.Count.Should().Be(8);
+        inputMap.GamepadBindings.Count.Should().Be(4);
+        inputMap
+            .KeyboardBindings.Should()
+            .Contain(binding => binding.Button == JoypadButton.B && binding.Key == Key.K);
     }
 
     [Fact]
@@ -213,9 +208,9 @@ public sealed class AppConfigurationIntegrationTests
 
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
-        Assert.Null(startupConfiguration.StartupErrorMessage);
-        Assert.True(startupConfiguration.EmulationConfig.FastForwardEnabled);
-        Assert.Equal(EmulationSpeed.Eight, startupConfiguration.EmulationConfig.FastForwardSpeed);
+        startupConfiguration.StartupErrorMessage.Should().BeNull();
+        startupConfiguration.EmulationConfig.FastForwardEnabled.Should().BeTrue();
+        startupConfiguration.EmulationConfig.FastForwardSpeed.Should().Be(EmulationSpeed.Eight);
     }
 
     [Fact]
@@ -250,17 +245,17 @@ public sealed class AppConfigurationIntegrationTests
         using var configJson = JsonDocument.Parse(File.ReadAllText(configPath));
         var input = configJson.RootElement.GetProperty("input");
 
-        Assert.True(appConfig.Emulation.FastForwardEnabled);
-        Assert.Equal(EmulationSpeed.Eight, appConfig.Emulation.FastForwardSpeed);
-        Assert.Equal("alternate", appConfig.Input.Keyboard.ActiveProfile);
-        Assert.Equal(InputConfig.DefaultProfileName, appConfig.Input.Gamepad.ActiveProfile);
-        Assert.Equal("old-dmg.bin", appConfig.BootRoms.DmgPath);
-        Assert.Equal(new AudioConfig(27, Muted: true), appConfig.Audio);
+        appConfig.Emulation.FastForwardEnabled.Should().BeTrue();
+        appConfig.Emulation.FastForwardSpeed.Should().Be(EmulationSpeed.Eight);
+        appConfig.Input.Keyboard.ActiveProfile.Should().Be("alternate");
+        appConfig.Input.Gamepad.ActiveProfile.Should().Be(InputConfig.DefaultProfileName);
+        appConfig.BootRoms.DmgPath.Should().Be("old-dmg.bin");
+        appConfig.Audio.Should().Be(new AudioConfig(27, Muted: true));
 
-        Assert.Equal(2, input.GetProperty("version").GetInt32());
-        Assert.True(input.TryGetProperty("keyboard", out _));
-        Assert.True(input.TryGetProperty("gamepad", out _));
-        Assert.False(input.TryGetProperty("activeProfile", out _));
+        input.GetProperty("version").GetInt32().Should().Be(2);
+        input.TryGetProperty("keyboard", out _).Should().BeTrue();
+        input.TryGetProperty("gamepad", out _).Should().BeTrue();
+        input.TryGetProperty("activeProfile", out _).Should().BeFalse();
     }
 
     [Fact]
@@ -288,10 +283,10 @@ public sealed class AppConfigurationIntegrationTests
         service.SaveAudioConfig(new AudioConfig(63, true));
 
         var saved = AppConfigurationFile.Load(configPath);
-        Assert.Equal(new AudioConfig(63, Muted: true), saved.Audio);
-        Assert.Equal("alternate", saved.Input.Keyboard.ActiveProfile);
-        Assert.Equal("dmg.bin", saved.BootRoms.DmgPath);
-        Assert.True(saved.Emulation.FastForwardEnabled);
+        saved.Audio.Should().Be(new AudioConfig(63, Muted: true));
+        saved.Input.Keyboard.ActiveProfile.Should().Be("alternate");
+        saved.BootRoms.DmgPath.Should().Be("dmg.bin");
+        saved.Emulation.FastForwardEnabled.Should().BeTrue();
     }
 
     [Fact]
@@ -313,13 +308,12 @@ public sealed class AppConfigurationIntegrationTests
 
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
-        Assert.Equal(
-            "Audio volume must be between 0 and 100 percent.",
-            startupConfiguration.StartupErrorMessage
-        );
-        Assert.Equal(new AudioConfig(), startupConfiguration.AudioConfig);
-        Assert.True(startupConfiguration.EmulationConfig.FastForwardEnabled);
-        Assert.Equal("alternate", startupConfiguration.InputConfig.Keyboard.ActiveProfile);
+        startupConfiguration
+            .StartupErrorMessage.Should()
+            .Be("Audio volume must be between 0 and 100 percent.");
+        startupConfiguration.AudioConfig.Should().Be(new AudioConfig());
+        startupConfiguration.EmulationConfig.FastForwardEnabled.Should().BeTrue();
+        startupConfiguration.InputConfig.Keyboard.ActiveProfile.Should().Be("alternate");
     }
 
     [Fact]
@@ -341,18 +335,13 @@ public sealed class AppConfigurationIntegrationTests
 
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
-        Assert.Contains(
-            "DMG boot ROM must be 256 bytes",
-            startupConfiguration.StartupErrorMessage,
-            StringComparison.Ordinal
-        );
-        Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
-        Assert.Equal(
-            BootRomOptions.CgbBootRomSize,
-            startupConfiguration.BootRomOptions.CgbBootRom.Length
-        );
-        Assert.Equal(0xC0, startupConfiguration.BootRomOptions.CgbBootRom.Span[0]);
-        Assert.True(startupConfiguration.BootRomOptions.SgbBootRom.IsEmpty);
+        startupConfiguration.StartupErrorMessage.Should().Contain("DMG boot ROM must be 256 bytes");
+        startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty.Should().BeTrue();
+        startupConfiguration
+            .BootRomOptions.CgbBootRom.Length.Should()
+            .Be(BootRomOptions.CgbBootRomSize);
+        startupConfiguration.BootRomOptions.CgbBootRom.Span[0].Should().Be(0xC0);
+        startupConfiguration.BootRomOptions.SgbBootRom.IsEmpty.Should().BeTrue();
     }
 
     [Fact]
@@ -368,14 +357,12 @@ public sealed class AppConfigurationIntegrationTests
 
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
-        Assert.Contains(
-            "DMG boot ROM file could not be read",
-            startupConfiguration.StartupErrorMessage,
-            StringComparison.Ordinal
-        );
-        Assert.True(startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty);
-        Assert.True(startupConfiguration.BootRomOptions.CgbBootRom.IsEmpty);
-        Assert.True(startupConfiguration.BootRomOptions.SgbBootRom.IsEmpty);
+        startupConfiguration
+            .StartupErrorMessage.Should()
+            .Contain("DMG boot ROM file could not be read");
+        startupConfiguration.BootRomOptions.DmgBootRom.IsEmpty.Should().BeTrue();
+        startupConfiguration.BootRomOptions.CgbBootRom.IsEmpty.Should().BeTrue();
+        startupConfiguration.BootRomOptions.SgbBootRom.IsEmpty.Should().BeTrue();
     }
 
     [Fact]
@@ -390,14 +377,16 @@ public sealed class AppConfigurationIntegrationTests
 
         var validation = InputConfigValidator.Validate(config);
 
-        Assert.Contains(
-            validation,
-            error => error.Contains("Keyboard input config is malformed", StringComparison.Ordinal)
-        );
-        Assert.Contains(
-            validation,
-            error => error.Contains("Gamepad input config is malformed", StringComparison.Ordinal)
-        );
+        validation
+            .Should()
+            .Contain(error =>
+                error.Contains("Keyboard input config is malformed", StringComparison.Ordinal)
+            );
+        validation
+            .Should()
+            .Contain(error =>
+                error.Contains("Gamepad input config is malformed", StringComparison.Ordinal)
+            );
     }
 
     private static AppConfig CreateConfig(
@@ -439,6 +428,6 @@ public sealed class AppConfigurationIntegrationTests
     {
         var validation = InputConfigValidator.Validate(config);
 
-        Assert.Empty(validation);
+        validation.Should().BeEmpty();
     }
 }

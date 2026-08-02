@@ -19,9 +19,9 @@ public sealed class SgbControllerTests
         var frame = CreateDmgFrame(shade: 2);
         var colorized = sgb.ApplyPalettes(frame);
 
-        Assert.Equal(LcdPixelFormat.Rgb555Le, colorized.PixelFormat);
-        Assert.Equal(160, colorized.Width);
-        Assert.Equal(144, colorized.Height);
+        colorized.PixelFormat.Should().Be(LcdPixelFormat.Rgb555Le);
+        colorized.Width.Should().Be(160);
+        colorized.Height.Should().Be(144);
         Rgb555Assertions.PixelEquals(colorized, GameBoyPixelIndex(x: 0, y: 0), expected: 0x6666);
         Rgb555Assertions.PixelEquals(colorized, GameBoyPixelIndex(x: 0, y: 8), expected: 0x3333);
     }
@@ -85,13 +85,13 @@ public sealed class SgbControllerTests
         WriteSystemPalette(transferData, paletteId: 5, 0x1111, 0x2222, 0x3333, 0x4444);
 
         WriteSgbPacket(sgb, command: 0x0B, []);
-        Assert.True(sgb.HasPendingVramTransfer);
+        sgb.HasPendingVramTransfer.Should().BeTrue();
         sgb.ApplyPendingVramTransfer(transferData);
         WriteSgbPacket(sgb, command: 0x0A, CreatePalSetPayload(5, 5, 5, 5));
 
         var colorized = sgb.ApplyPalettes(CreateDmgFrame(shade: 2));
 
-        Assert.False(sgb.HasPendingVramTransfer);
+        sgb.HasPendingVramTransfer.Should().BeFalse();
         Rgb555Assertions.PixelEquals(colorized, GameBoyPixelIndex(x: 0, y: 0), expected: 0x3333);
     }
 
@@ -119,7 +119,7 @@ public sealed class SgbControllerTests
 
         WriteSgbPacket(sgb, command: 0x0F, [0x00, 0x18, 0x00, 0x01, 0x42]);
 
-        Assert.False(sgb.HasPendingVramTransfer);
+        sgb.HasPendingVramTransfer.Should().BeFalse();
     }
 
     [Fact]
@@ -131,13 +131,13 @@ public sealed class SgbControllerTests
 
         WriteSgbPacket(sgb, command: 0x00, Pal01Payload);
         WriteSgbPacket(sgb, command: 0x15, []);
-        Assert.True(sgb.HasPendingVramTransfer);
+        sgb.HasPendingVramTransfer.Should().BeTrue();
         sgb.ApplyPendingVramTransfer(transferData);
         WriteSgbPacket(sgb, command: 0x16, [0x03]);
 
         var colorized = sgb.ApplyPalettes(CreateDmgFrame(shade: 2));
 
-        Assert.False(sgb.HasPendingVramTransfer);
+        sgb.HasPendingVramTransfer.Should().BeFalse();
         Rgb555Assertions.PixelEquals(colorized, GameBoyPixelIndex(x: 0, y: 0), expected: 0x6666);
         Rgb555Assertions.PixelEquals(colorized, GameBoyPixelIndex(x: 8, y: 0), expected: 0x3333);
     }
@@ -176,15 +176,15 @@ public sealed class SgbControllerTests
         WriteUInt16(mapTransfer, offset: (7 + (5 * 32)) * 2, (4 << 10) | 1);
 
         WriteSgbPacket(sgb, command: 0x13, [0x00]);
-        Assert.True(sgb.HasPendingVramTransfer);
+        sgb.HasPendingVramTransfer.Should().BeTrue();
         sgb.ApplyPendingVramTransfer(tileTransfer);
         WriteSgbPacket(sgb, command: 0x14, []);
-        Assert.True(sgb.HasPendingVramTransfer);
+        sgb.HasPendingVramTransfer.Should().BeTrue();
         sgb.ApplyPendingVramTransfer(mapTransfer);
 
         var colorized = sgb.ApplyPalettes(CreateDmgFrame(shade: 0));
 
-        Assert.False(sgb.HasPendingVramTransfer);
+        sgb.HasPendingVramTransfer.Should().BeFalse();
         Rgb555Assertions.PixelEquals(colorized, pixelIndex: 0, expected: 0x1234);
         Rgb555Assertions.PixelEquals(colorized, SgbGameBoyPixelIndex(x: 0, y: 0), expected: 0x7FFF);
         Rgb555Assertions.PixelEquals(colorized, SgbGameBoyPixelIndex(x: 8, y: 0), expected: 0x1234);

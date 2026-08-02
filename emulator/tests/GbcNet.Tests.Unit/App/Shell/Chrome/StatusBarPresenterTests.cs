@@ -14,13 +14,13 @@ public sealed class StatusBarPresenterTests
     {
         var fileName = new string('A', 80) + ".gb";
 
-        Assert.Equal(new string('A', 80), StatusBarPresenter.FormatRomFileName(fileName));
+        StatusBarPresenter.FormatRomFileName(fileName).Should().Be(new string('A', 80));
     }
 
     [Fact]
     public void FormatHardwareModel_UsesUppercaseModelName()
     {
-        Assert.Equal("SGB", StatusBarPresenter.FormatHardwareModel(HardwareModel.Sgb));
+        StatusBarPresenter.FormatHardwareModel(HardwareModel.Sgb).Should().Be("SGB");
     }
 
     [Fact]
@@ -28,17 +28,23 @@ public sealed class StatusBarPresenterTests
     {
         var speedBadge = new Border();
         var speedText = new TextBlock();
-        using var presenter = CreatePresenter(speedBadge, speedText);
+        var presenter = CreatePresenter(speedBadge, speedText);
+        try
+        {
+            presenter.ShowSpeed("2x");
 
-        presenter.ShowSpeed("2x");
+            speedText.Text.Should().Be("2x");
+            speedBadge.IsVisible.Should().BeTrue();
 
-        Assert.Equal("2x", speedText.Text);
-        Assert.True(speedBadge.IsVisible);
+            presenter.ShowSpeed(string.Empty);
 
-        presenter.ShowSpeed(string.Empty);
-
-        Assert.Equal(string.Empty, speedText.Text);
-        Assert.False(speedBadge.IsVisible);
+            speedText.Text.Should().Be(string.Empty);
+            speedBadge.IsVisible.Should().BeFalse();
+        }
+        finally
+        {
+            presenter.Dispose();
+        }
     }
 
     private static StatusBarPresenter CreatePresenter(Border speedBadge, TextBlock speed) =>

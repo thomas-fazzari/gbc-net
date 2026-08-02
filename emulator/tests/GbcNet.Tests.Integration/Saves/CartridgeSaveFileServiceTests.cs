@@ -5,7 +5,6 @@ using System.Globalization;
 using GbcNet.App.Saves;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Memory;
-using GbcNet.Tests.Shared;
 
 namespace GbcNet.Tests.Integration.Saves;
 
@@ -23,18 +22,18 @@ public sealed class CartridgeBatterySaveFileServiceTests
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
         var savePath = saveFiles.Load(cartridge, rom);
 
-        Assert.NotNull(savePath);
+        savePath.Should().NotBeNull();
         await saveFiles.SaveAsync(savePath, cartridge.ExportBatterySave());
-        Assert.True(File.Exists(savePath));
-        Assert.StartsWith("TEST_ROM-", Path.GetFileName(savePath), StringComparison.Ordinal);
+        File.Exists(savePath).Should().BeTrue();
+        Path.GetFileName(savePath).Should().StartWith("TEST_ROM-");
 
         var reloaded = TestRomFactory.LoadCartridge(rom);
         var reloadedSavePath = saveFiles.Load(reloaded, rom);
 
-        Assert.Equal(savePath, reloadedSavePath);
-        Assert.False(reloaded.IsBatterySaveDirty);
+        reloadedSavePath.Should().Be(savePath);
+        reloaded.IsBatterySaveDirty.Should().BeFalse();
         reloaded.WriteRom(0x0000, 0x0A);
-        Assert.Equal(0x42, reloaded.ReadRam(AddressMap.ExternalRamStart));
+        reloaded.ReadRam(AddressMap.ExternalRamStart).Should().Be(0x42);
     }
 
     [Fact]
@@ -48,13 +47,15 @@ public sealed class CartridgeBatterySaveFileServiceTests
         var cartridge = TestRomFactory.LoadCartridge(rom);
         File.WriteAllBytes(saveFiles.GetBatterySavePath(cartridge, rom), [0x42]);
 
-        Assert.Equal(
-            string.Create(
-                CultureInfo.InvariantCulture,
-                $"Save file is 1 bytes, but cartridge expects {cartridge.BatterySaveSize} bytes."
-            ),
-            Assert.Throws<InvalidOperationException>(() => saveFiles.Load(cartridge, rom)).Message
-        );
+        Assert
+            .Throws<InvalidOperationException>(() => saveFiles.Load(cartridge, rom))
+            .Message.Should()
+            .Be(
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Save file is 1 bytes, but cartridge expects {cartridge.BatterySaveSize} bytes."
+                )
+            );
     }
 
     private static byte[] CreateBatteryBackedMbc1Rom() =>

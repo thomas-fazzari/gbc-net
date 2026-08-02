@@ -10,14 +10,14 @@ public sealed class GameSharkCodeTests
     [Fact]
     public void TryParse_NormalizesAndDecodesLittleEndianMemoryWrite()
     {
-        Assert.True(CheatCode.TryParse(CheatCodeType.GameShark, "01ab34c0", out var code));
+        CheatCode.TryParse(CheatCodeType.GameShark, "01ab34c0", out var code).Should().BeTrue();
 
-        Assert.Equal(CheatCodeType.GameShark, code.Type);
-        Assert.Equal("01AB34C0", code.CanonicalCode);
-        Assert.Equal(code.CanonicalCode, code.ToString());
-        Assert.Equal(0xAB, code.Value);
-        Assert.Equal(0xC034, code.Address);
-        Assert.Null(code.CompareValue);
+        code.Type.Should().Be(CheatCodeType.GameShark);
+        code.CanonicalCode.Should().Be("01AB34C0");
+        code.ToString().Should().Be(code.CanonicalCode);
+        code.Value.Should().Be(0xAB);
+        code.Address.Should().Be(0xC034);
+        code.CompareValue.Should().BeNull();
     }
 
     [Theory]
@@ -29,9 +29,9 @@ public sealed class GameSharkCodeTests
     [InlineData("01AAFFFF", 0xFFFF)]
     public void TryParse_AcceptsWritableAddressRanges(string text, ushort address)
     {
-        Assert.True(CheatCode.TryParse(CheatCodeType.GameShark, text, out var code));
+        CheatCode.TryParse(CheatCodeType.GameShark, text, out var code).Should().BeTrue();
 
-        Assert.Equal(address, code.Address);
+        code.Address.Should().Be(address);
     }
 
     [Theory]
@@ -48,6 +48,6 @@ public sealed class GameSharkCodeTests
     [InlineData("01AAA0FE")]
     public void TryParse_RejectsMalformedUnsupportedOrUnwritableCodes(string text)
     {
-        Assert.False(CheatCode.TryParse(CheatCodeType.GameShark, text, out _));
+        CheatCode.TryParse(CheatCodeType.GameShark, text, out _).Should().BeFalse();
     }
 }

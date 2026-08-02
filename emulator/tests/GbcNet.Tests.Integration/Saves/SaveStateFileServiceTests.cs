@@ -20,7 +20,7 @@ public sealed class SaveStateFileServiceTests
         );
         var rom = RomStorageIdentity.Create("Test Rom", [0x01, 0x02]);
 
-        Assert.Null(saveStates.GetSaveStateDate(rom, 3));
+        saveStates.GetSaveStateDate(rom, 3).Should().BeNull();
 
         await saveStates.SaveAsync(
             rom,
@@ -36,9 +36,9 @@ public sealed class SaveStateFileServiceTests
             TestContext.Current.CancellationToken
         );
 
-        Assert.Equal([0x10, 0x20, 0x30], payload);
-        Assert.Equal("TEST_ROM-", Path.GetFileName(saveStates.GetSaveStatePath(rom, 3))[..9]);
-        Assert.NotNull(saveStates.GetSaveStateDate(rom, 3));
+        payload.Should().Equal(0x10, 0x20, 0x30);
+        Path.GetFileName(saveStates.GetSaveStatePath(rom, 3))[..9].Should().Be("TEST_ROM-");
+        saveStates.GetSaveStateDate(rom, 3).Should().NotBeNull();
     }
 
     [Fact]
@@ -62,9 +62,17 @@ public sealed class SaveStateFileServiceTests
         bytes[^1] ^= 0x01;
         await File.WriteAllBytesAsync(path, bytes, TestContext.Current.CancellationToken);
 
-        await Assert.ThrowsAsync<InvalidDataException>(() =>
-            saveStates.LoadAsync(rom, 0, HardwareModel.Dmg, TestContext.Current.CancellationToken)
-        );
+        await FluentActions
+            .Awaiting(() =>
+                saveStates.LoadAsync(
+                    rom,
+                    0,
+                    HardwareModel.Dmg,
+                    TestContext.Current.CancellationToken
+                )
+            )
+            .Should()
+            .ThrowExactlyAsync<InvalidDataException>();
     }
 
     [Fact]
@@ -87,15 +95,24 @@ public sealed class SaveStateFileServiceTests
         var bytes = await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken);
         await File.WriteAllBytesAsync(path, bytes[..^1], TestContext.Current.CancellationToken);
 
-        var exception = await Assert.ThrowsAsync<InvalidDataException>(() =>
-            saveStates.LoadAsync(rom, 0, HardwareModel.Dmg, TestContext.Current.CancellationToken)
-        );
+        var exception = (
+            await FluentActions
+                .Awaiting(() =>
+                    saveStates.LoadAsync(
+                        rom,
+                        0,
+                        HardwareModel.Dmg,
+                        TestContext.Current.CancellationToken
+                    )
+                )
+                .Should()
+                .ThrowExactlyAsync<InvalidDataException>()
+        ).Which;
 
-        Assert.Equal(
-            "Save-state file could not be read: Save-state file is truncated.",
-            exception.Message
-        );
-        Assert.IsType<InvalidDataException>(exception.InnerException);
+        exception
+            .Message.Should()
+            .Be("Save-state file could not be read: Save-state file is truncated.");
+        exception.InnerException.Should().BeOfType<InvalidDataException>();
     }
 
     [Fact]
@@ -108,9 +125,17 @@ public sealed class SaveStateFileServiceTests
         );
         var rom = RomStorageIdentity.Create("Test Rom", [0x01, 0x02]);
 
-        await Assert.ThrowsAsync<FileNotFoundException>(() =>
-            saveStates.LoadAsync(rom, 0, HardwareModel.Dmg, TestContext.Current.CancellationToken)
-        );
+        await FluentActions
+            .Awaiting(() =>
+                saveStates.LoadAsync(
+                    rom,
+                    0,
+                    HardwareModel.Dmg,
+                    TestContext.Current.CancellationToken
+                )
+            )
+            .Should()
+            .ThrowExactlyAsync<FileNotFoundException>();
     }
 
     [Fact]
@@ -126,6 +151,7 @@ public sealed class SaveStateFileServiceTests
             [0x10],
             TestContext.Current.CancellationToken
         );
+        var olderPayloadMemory = olderPayload.Payload;
 
         var olderSave = Task.Run(
             () =>
@@ -133,7 +159,7 @@ public sealed class SaveStateFileServiceTests
                     rom,
                     0,
                     HardwareModel.Dmg,
-                    olderPayload.Payload,
+                    olderPayloadMemory,
                     TestContext.Current.CancellationToken
                 ),
             TestContext.Current.CancellationToken
@@ -157,7 +183,7 @@ public sealed class SaveStateFileServiceTests
             HardwareModel.Dmg,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal([0x20], payload);
+        payload.Should().Equal(0x20);
     }
 
     [Fact]
@@ -171,15 +197,18 @@ public sealed class SaveStateFileServiceTests
         var rom = RomStorageIdentity.Create("Test Rom", [0x01, 0x02]);
         using var payload = new ObservingMemoryManager([0x10]);
         using var cancellation = new CancellationTokenSource();
+        var payloadMemory = payload.Payload;
+        var token = cancellation.Token;
 
         await cancellation.CancelAsync();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            saveStates.SaveAsync(rom, 0, HardwareModel.Dmg, payload.Payload, cancellation.Token)
-        );
+        await FluentActions
+            .Awaiting(() => saveStates.SaveAsync(rom, 0, HardwareModel.Dmg, payloadMemory, token))
+            .Should()
+            .ThrowExactlyAsync<OperationCanceledException>();
 
-        Assert.Equal(0, payload.SpanAccessCount);
-        Assert.False(File.Exists(saveStates.GetSaveStatePath(rom, 0)));
+        payload.SpanAccessCount.Should().Be(0);
+        File.Exists(saveStates.GetSaveStatePath(rom, 0)).Should().BeFalse();
     }
 
     [Fact]
@@ -192,6 +221,7 @@ public sealed class SaveStateFileServiceTests
         );
         var rom = RomStorageIdentity.Create("Test Rom", [0x01, 0x02]);
         using var payload = new ObservingMemoryManager([0x10, 0x20, 0x30]);
+        var payloadMemory = payload.Payload;
         var callerThreadId = 0;
 
         var save = Task
@@ -203,7 +233,7 @@ public sealed class SaveStateFileServiceTests
                         rom,
                         0,
                         HardwareModel.Dmg,
-                        payload.Payload,
+                        payloadMemory,
                         CancellationToken.None
                     );
                 },
@@ -215,8 +245,8 @@ public sealed class SaveStateFileServiceTests
 
         await save;
 
-        Assert.NotEqual(0, payload.FirstSpanAccessThreadId);
-        Assert.NotEqual(callerThreadId, payload.FirstSpanAccessThreadId);
+        payload.FirstSpanAccessThreadId.Should().NotBe(0);
+        payload.FirstSpanAccessThreadId.Should().NotBe(callerThreadId);
     }
 
     private class ObservingMemoryManager(byte[] buffer) : MemoryManager<byte>
@@ -255,8 +285,8 @@ public sealed class SaveStateFileServiceTests
         private readonly ManualResetEventSlim _release = new(initialState: false);
         private int _waitForFirstAccess = 1;
 
-        public void WaitUntilAccess(CancellationToken cancellationToken) =>
-            _accessed.Wait(cancellationToken);
+        public void WaitUntilAccess(CancellationToken waitCancellationToken) =>
+            _accessed.Wait(waitCancellationToken);
 
         public void Release() => _release.Set();
 

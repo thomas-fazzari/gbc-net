@@ -10,10 +10,10 @@ internal static class Rgb555Assertions
 {
     public static void PixelEquals(LcdFrame frame, int pixelIndex, ushort expected)
     {
-        Assert.Equal(LcdPixelFormat.Rgb555Le, frame.PixelFormat);
-        Assert.Equal(
-            expected,
-            BinaryPrimitives.ReadUInt16LittleEndian(frame.Pixels.Span.Slice(pixelIndex * 2, 2))
-        );
+        frame.PixelFormat.Should().Be(LcdPixelFormat.Rgb555Le);
+        BinaryPrimitives
+            .ReadUInt16LittleEndian(frame.Pixels.Span.Slice(pixelIndex * 2, 2))
+            .Should()
+            .Be(expected);
     }
 }
