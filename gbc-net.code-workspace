@@ -10,14 +10,15 @@
     },
     {
       "name": "Source",
-      "path": "src"
+      "path": "emulator/src"
     },
     {
       "name": "Tests",
-      "path": "tests"
+      "path": "emulator/tests"
     }
   ],
   "settings": {
+    "dotnet.defaultSolution": "emulator/GbcNet.slnx",
     "editor.formatOnSave": true,
     "editor.formatOnSaveMode": "file",
     "files.associations": {
@@ -29,23 +30,22 @@
     },
     "files.exclude": {
       "**/.omp": true,
-      "**/src": true,
-      "**/tests": true,
-      "**/.csharpierignore": true,
+      "**/emulator": true,
       "**/.editorconfig": true,
       "**/.github": true,
       "**/.githooks": true,
       "**/.gitignore": true,
       "**/.gitattributes": true,
-      "**/global.json": true,
       "**/.idea": true,
       "**/LICENSE": true,
-      "**/.slopwatch": true,
+      "**/.markdownlint-cli2.jsonc": true,
+      "**/.csharpierignore": true,
       "**/.vscode": true,
       "**/.config": true,
       "**/nuget.config": true,
       "**/*.DotSettings.*": true,
-      "**/TestResults": true
+      "**/TestResults": true,
+      "**/artifacts": true
     },
     "[csharp][xml]": {
       "editor.defaultFormatter": "csharpier.csharpier-vscode",
@@ -93,7 +93,7 @@
           "Debug"
         ],
         "options": {
-          "cwd": "${workspaceFolder:Root}"
+          "cwd": "${workspaceFolder:Root}/emulator"
         },
         "group": {
           "kind": "build",
@@ -112,7 +112,7 @@
           "Release"
         ],
         "options": {
-          "cwd": "${workspaceFolder:Root}"
+          "cwd": "${workspaceFolder:Root}/emulator"
         },
         "problemMatcher": "$msCompile"
       },
@@ -133,7 +133,7 @@
         "type": "process",
         "command": "make",
         "args": [
-          "test"
+          "tests"
         ],
         "options": {
           "cwd": "${workspaceFolder:Root}"

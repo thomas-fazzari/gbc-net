@@ -482,8 +482,3 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 
-# Slopwatch
-.slopwatch/config.json.example
-
-# Local Codebase Memory graph
-.codebase-memory/

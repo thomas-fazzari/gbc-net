@@ -27,9 +27,9 @@ GBC.Net will not add a SNES execution core solely for SGB support. SNES-side sou
 
 The supported boundary is guarded by:
 
-* `tests/GbcNet.Tests.Unit/Sgb/SgbControllerTests.cs`;
-* `tests/GbcNet.Tests.Unit/GameBoyTests.cs`;
-* `tests/GbcNet.Tests.Unit/RomTesting/Mooneye/MooneyeSgbRomTests.cs`.
+* `emulator/tests/GbcNet.Tests.Unit/Sgb/SgbControllerTests.cs`;
+* `emulator/tests/GbcNet.Tests.Unit/GameBoyTests.cs`;
+* `emulator/tests/GbcNet.Tests.Unit/RomTesting/Mooneye/MooneyeSgbRomTests.cs`.
 
 ## Consequences
 

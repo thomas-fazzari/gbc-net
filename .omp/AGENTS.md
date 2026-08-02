@@ -6,14 +6,14 @@ Building an accurate Game Boy, Game Boy Color, and Super Game Boy emulator in C#
 
 ## Repository
 
-* `src/GbcNet.Core`: emulator core with no dependencies. Owns SM83 execution, memory and cartridges, clocks, interrupts, DMA, PPU, APU, joypad, serial, cheats, and SGB behavior.
-* `src/GbcNet.App`: Avalonia desktop app and composition root. Owns UI, emulation sessions and pacing, SQLite persistence, configuration, files, input, audio and rendering adapters, and logging.
-* `tests/GbcNet.Tests.Unit`: hardware behavior, emulator state, and ROM compatibility tests.
-* `tests/GbcNet.Tests.Integration`: filesystem, database, and application integration tests.
+* `emulator/src/GbcNet.Core`: emulator core with no dependencies. Owns SM83 execution, memory and cartridges, clocks, interrupts, DMA, PPU, APU, joypad, serial, cheats, and SGB behavior.
+* `emulator/src/GbcNet.App`: Avalonia desktop app and composition root. Owns UI, emulation sessions and pacing, SQLite persistence, configuration, files, input, audio and rendering adapters, and logging.
+* `emulator/tests/GbcNet.Tests.Unit`: hardware behavior, emulator state, and ROM compatibility tests.
+* `emulator/tests/GbcNet.Tests.Integration`: filesystem, database, and application integration tests.
 
 ## Architecture
 
-* Dependency direction is `GbcNet.App` to `GbcNet.Core`; Core does not depend on application or infrastructure packages.
+* The only production project dependency is `GbcNet.App` → `GbcNet.Core`. Core has no project or package dependencies.
 * Keep hardware state, timing, and emulation behavior in Core. Keep UI, operating-system I/O, persistence, and external adapters in App.
 * Keep Core and hardware hot paths allocation-conscious and free of logging.
 * Guard hardware fixes at the closest behavior or compatibility boundary, using existing unit and ROM-test patterns.

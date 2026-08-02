@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/Agents/">
+    <File Path="../.omp/AGENTS.md" />
+    <File Path="../.omp/RULES.md" />
+  </Folder>
+  <Folder Name="/Agents/Skills/Game Boy Development/">
+    <File Path="../.omp/skills/gameboy-development/SKILL.md" />
+  </Folder>
+  <Folder Name="/Agents/Skills/Importing Icons/">
+    <File Path="../.omp/skills/importing-icons/SKILL.md" />
+  </Folder>
+  <Folder Name="/Source/">
+    <Project Path="src/GbcNet.App/GbcNet.App.csproj" />
+    <Project Path="src/GbcNet.Core/GbcNet.Core.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/GbcNet.Tests.Integration/GbcNet.Tests.Integration.csproj" />
+    <Project Path="tests/GbcNet.Tests.Unit/GbcNet.Tests.Unit.csproj" />
+  </Folder>
+  <Folder Name="/Tests/GbcNet.Tests.Shared/">
+    <File Path="tests/GbcNet.Tests.Shared/BootRomTestFactory.cs" />
+    <File Path="tests/GbcNet.Tests.Shared/GlobalUsings.cs" />
+    <File Path="tests/GbcNet.Tests.Shared/TestAudioOutput.cs" />
+    <File Path="tests/GbcNet.Tests.Shared/TestRomFactory.cs" />
+  </Folder>
+</Solution>

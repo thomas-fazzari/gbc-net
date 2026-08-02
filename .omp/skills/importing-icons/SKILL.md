@@ -19,7 +19,7 @@ Copy its SVG `<path d="…">` exactly. Do not simplify, reformat, or hand-edit i
 
 ## Project Convention
 
-* Shared resources live in `src/GbcNet.App/Shell/Chrome/Icons.axaml`.
+* Shared resources live in `emulator/src/GbcNet.App/Shell/Chrome/Icons.axaml`.
 * Resource keys use `Icon` plus the MDI icon name in PascalCase:
   * `plus` → `IconPlus`
 * Add a `<StreamGeometry>` resource before `</ResourceDictionary>`.

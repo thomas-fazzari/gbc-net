@@ -1,74 +1,54 @@
 name: CI
+
 on:
   push:
     branches:
       - master
-      - "fix/**"
-      - "release/**"
       - "chore/**"
       - "feature/**"
+      - "fix/**"
       - "hotfix/**"
-    paths:
-      - "**.md"
-      - ".markdownlint-cli2.jsonc"
-      - "**.cs"
-      - "**.csproj"
-      - "**.props"
-      - "**.slnx"
-      - "**.targets"
-      - "**/.editorconfig"
-      - ".config/dotnet-tools.json"
-      - ".editorconfig"
-      - ".github/workflows/ci.yml"
-      - "global.json"
-      - "Makefile"
-      - "nuget.config"
-      - "tests/coverage.settings.xml"
+      - "release/**"
   pull_request:
-    branches: [master]
-    paths:
-      - "**.md"
-      - ".markdownlint-cli2.jsonc"
-      - "**.cs"
-      - "**.csproj"
-      - "**.props"
-      - "**.slnx"
-      - "**.targets"
-      - "**/.editorconfig"
-      - ".config/dotnet-tools.json"
-      - ".editorconfig"
-      - ".github/workflows/ci.yml"
-      - "global.json"
-      - "Makefile"
-      - "nuget.config"
-      - "tests/coverage.settings.xml"
+    branches:
+      - master
+
+permissions:
+  contents: read
+
 jobs:
-  build:
+  verify:
+    name: Verify (${{ matrix.configuration }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - configuration: Debug
+            target: tests
+          - configuration: Release
+            target: coverage
+
     steps:
       - uses: actions/checkout@v7
+
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: "24"
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
+
       - name: Install dependencies
         run: make install
-      - name: Lint and build
-        run: make lint CONFIGURATION=Release
-      - name: Test with coverage
-        run: make coverage CONFIGURATION=Release
+
+      - name: Lint, build, and test
+        run: make lint ${{ matrix.target }} CONFIGURATION=${{ matrix.configuration }}
+
       - name: Upload coverage to Codecov
+        if: matrix.configuration == 'Release'
         uses: codecov/codecov-action@v7
         with:
           files: ./artifacts/unit.cobertura.xml,./artifacts/integration.cobertura.xml
