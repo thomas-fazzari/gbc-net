@@ -53,6 +53,9 @@ internal sealed class GbcNetApplication : Application
     private static void MigrateDatabase(IServiceProvider services) =>
         DatabaseMigrator.Migrate(
             services.GetRequiredService<IDbContextFactory<GbcNetDbContext>>(),
-            UserDataPaths.LibraryDatabasePath
+            UserDataPaths.LibraryDatabasePath,
+            services
+                .GetRequiredService<ILoggerFactory>()
+                .CreateLogger("GbcNet.App.Database.DatabaseMigrator")
         );
 }

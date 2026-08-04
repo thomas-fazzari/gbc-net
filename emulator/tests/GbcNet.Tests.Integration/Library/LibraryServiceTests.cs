@@ -259,6 +259,28 @@ public sealed class LibraryServiceTests
     }
 
     [Fact]
+    public void GetRoms_DbOnlyQueryUsesOrdinalIgnoreCaseFileNameTieBreakerBeforeLimit()
+    {
+        using var test = new LibraryTestContext();
+        InsertLibraryEntry(
+            test.DatabasePath,
+            "upper-b",
+            "B.gb",
+            "2026-06-27T12:00:00.0000000+00:00"
+        );
+        InsertLibraryEntry(
+            test.DatabasePath,
+            "lower-a",
+            "a.gb",
+            "2026-06-27T12:00:00.0000000+00:00"
+        );
+
+        var entry = test.Library.GetRoms(limit: 1).Should().ContainSingle().Which;
+
+        entry.FileName.Should().Be("a.gb");
+    }
+
+    [Fact]
     public void GetRoms_SearchTextMatchesCartridgeTitleOrFileName()
     {
         using var test = new LibraryTestContext();
@@ -400,7 +422,7 @@ public sealed class LibraryServiceTests
         InsertSortEntries(test.DatabasePath);
 
         var entries = test.Library.GetRoms(
-            new LibraryQuery(Sort: LibrarySortField.Title, SortDirection: SortDirection.Descending),
+            new LibraryQuery(Sort: LibrarySortField.Title, Direction: SortDirection.Descending),
             limit: 10
         );
 
@@ -759,6 +781,10 @@ public sealed class LibraryServiceTests
             )
             .Message.Should()
             .Be("ROM not found: missing");
+        Directory
+            .GetFiles(test.CoverDirectoryPath, "*", SearchOption.TopDirectoryOnly)
+            .Should()
+            .BeEmpty();
         Assert
             .Throws<InvalidOperationException>(() => test.Library.ClearCover("missing"))
             .Message.Should()
@@ -908,10 +934,9 @@ public sealed class LibraryServiceTests
         TimeProvider? timeProvider = null
     ) : IDbContextFactory<GbcNetDbContext>
     {
-        private readonly DbContextOptions<GbcNetDbContext> _options =
-            new DbContextOptionsBuilder<GbcNetDbContext>()
-                .UseSqlite(SqliteDbContextOptions.CreateConnectionString(databasePath))
-                .Options;
+        private readonly DbContextOptions<GbcNetDbContext> _options = SqliteDbContextOptions
+            .Configure(new DbContextOptionsBuilder<GbcNetDbContext>(), databasePath)
+            .Options;
 
         public GbcNetDbContext CreateDbContext() => new(_options, timeProvider);
     }
@@ -921,11 +946,10 @@ public sealed class LibraryServiceTests
         TimeProvider? timeProvider = null
     ) : IDbContextFactory<GbcNetDbContext>
     {
-        private readonly DbContextOptions<GbcNetDbContext> _options =
-            new DbContextOptionsBuilder<GbcNetDbContext>()
-                .UseSqlite(SqliteDbContextOptions.CreateConnectionString(databasePath))
-                .AddInterceptors(FailingSaveChangesInterceptor.Instance)
-                .Options;
+        private readonly DbContextOptions<GbcNetDbContext> _options = SqliteDbContextOptions
+            .Configure(new DbContextOptionsBuilder<GbcNetDbContext>(), databasePath)
+            .AddInterceptors(FailingSaveChangesInterceptor.Instance)
+            .Options;
 
         public GbcNetDbContext CreateDbContext() => new(_options, timeProvider);
     }

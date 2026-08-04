@@ -544,8 +544,9 @@ public sealed class CheatCodeServiceTests
 
         public TestDbContextFactory(string databasePath, IInterceptor? interceptor = null)
         {
-            var builder = new DbContextOptionsBuilder<GbcNetDbContext>().UseSqlite(
-                SqliteDbContextOptions.CreateConnectionString(databasePath)
+            var builder = SqliteDbContextOptions.Configure(
+                new DbContextOptionsBuilder<GbcNetDbContext>(),
+                databasePath
             );
             if (interceptor is not null)
             {

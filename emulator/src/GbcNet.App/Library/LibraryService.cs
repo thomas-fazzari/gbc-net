@@ -16,8 +16,20 @@ internal readonly record struct LibraryQuery(
     LibraryHardwareFilter Hardware = LibraryHardwareFilter.All,
     LibrarySortField Sort = LibrarySortField.LastOpened,
     LibraryRegionFilter Region = LibraryRegionFilter.All,
-    SortDirection? SortDirection = null
-);
+    SortDirection? Direction = null
+)
+{
+    public bool IsAscending =>
+        (
+            Direction
+            ?? (Sort is LibrarySortField.Title ? SortDirection.Ascending : SortDirection.Descending)
+        ).IsAscending();
+
+    public bool RequiresNoIntro =>
+        !string.IsNullOrWhiteSpace(SearchText)
+        || Region is not LibraryRegionFilter.All
+        || Sort is LibrarySortField.Title;
+}
 
 internal enum LibraryHardwareFilter
 {
@@ -119,22 +131,21 @@ internal sealed class LibraryService(
                 roms = roms.Where(rom => rom.HardwareKind == hardwareKind);
             }
 
-            var entries = roms.AsEnumerable()
-                .Select(rom => new LibraryEntry(
-                    rom.RomHash,
-                    rom.LastKnownPath,
-                    rom.FileName,
-                    rom.CartridgeTitle,
-                    rom.HardwareKind,
-                    NoIntroCatalog.Get(rom.NoIntroHash),
-                    rom.AddedAt,
-                    rom.LastOpenedAt,
-                    rom.LaunchCount,
-                    TimeSpan.FromTicks(rom.PlayTimeTicks),
-                    rom.CoverPath
-                ));
-
             var searchText = NormalizeSearchText(query.SearchText);
+            if (!query.RequiresNoIntro)
+            {
+                return
+                [
+                    .. roms.ApplySort(query)
+                        .Take(limit)
+                        .SelectData()
+                        .AsEnumerable()
+                        .Select(CreateLibraryEntry),
+                ];
+            }
+
+            var entries = roms.SelectData().AsEnumerable().Select(CreateLibraryEntry);
+
             if (searchText is not null)
             {
                 entries = entries.Where(entry =>
@@ -154,11 +165,9 @@ internal sealed class LibraryService(
 
             entries = entries.Where(entry => MatchesRegion(entry.NoIntroMetadata, query.Region));
 
-            var orderedEntries = OrderEntries(entries, query);
-
             return
             [
-                .. orderedEntries
+                .. OrderEntries(entries, query)
                     .ThenBy(entry => entry.FileName, StringComparer.OrdinalIgnoreCase)
                     .Take(limit),
             ];
@@ -169,22 +178,27 @@ internal sealed class LibraryService(
         }
     }
 
+    private static LibraryEntry CreateLibraryEntry(LibraryRomData rom) =>
+        new(
+            rom.RomHash,
+            rom.LastKnownPath,
+            rom.FileName,
+            rom.CartridgeTitle,
+            rom.HardwareKind,
+            NoIntroCatalog.Get(rom.NoIntroHash),
+            rom.AddedAt,
+            rom.LastOpenedAt,
+            rom.LaunchCount,
+            TimeSpan.FromTicks(rom.PlayTimeTicks),
+            rom.CoverPath
+        );
+
     private static IOrderedEnumerable<LibraryEntry> OrderEntries(
         IEnumerable<LibraryEntry> entries,
         LibraryQuery query
     )
     {
-        var isAscending = query.SortDirection switch
-        {
-            SortDirection.Ascending => true,
-            SortDirection.Descending => false,
-            null => query.Sort == LibrarySortField.Title,
-            _ => throw new ArgumentOutOfRangeException(
-                paramName: nameof(query),
-                actualValue: query.SortDirection,
-                message: null
-            ),
-        };
+        var isAscending = query.IsAscending;
 
         return query.Sort switch
         {
@@ -251,14 +265,7 @@ internal sealed class LibraryService(
 
         try
         {
-            using var db = dbContextFactory.CreateDbContext();
-            using var transaction = db.Database.BeginTransaction();
-            var rom =
-                db.Roms.AsTracking().SingleOrDefault(rom => rom.RomHash == romHash)
-                ?? throw new InvalidOperationException("ROM not found: " + romHash);
-            var previousCoverPath = rom.CoverPath;
             var imageExtension = GetSafeImageExtension(sourceImagePath);
-
             Directory.CreateDirectory(_coverDirectoryPath);
             var fileName = $"{romHash}-{Guid.NewGuid():N}{imageExtension}";
             temporaryPath = Path.Combine(path1: _coverDirectoryPath, path2: $".{fileName}.tmp");
@@ -270,6 +277,13 @@ internal sealed class LibraryService(
             );
             File.Move(sourceFileName: temporaryPath, destFileName: destinationPath);
             temporaryPath = null;
+
+            using var db = dbContextFactory.CreateDbContext();
+            using var transaction = db.Database.BeginTransaction();
+            var rom =
+                db.Roms.AsTracking().SingleOrDefault(rom => rom.RomHash == romHash)
+                ?? throw new InvalidOperationException("ROM not found: " + romHash);
+            var previousCoverPath = rom.CoverPath;
 
             rom.SetCoverPath(destinationPath);
             db.SaveChanges();

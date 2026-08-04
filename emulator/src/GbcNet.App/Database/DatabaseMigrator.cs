@@ -1,8 +1,11 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App.Database;
 
@@ -10,31 +13,64 @@ internal static class DatabaseMigrator
 {
     internal static void Migrate(
         IDbContextFactory<GbcNetDbContext> contextFactory,
-        string databaseFilePath
+        string databaseFilePath,
+        ILogger logger
     )
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(databaseFilePath) ?? ".");
-        var databaseExisted = File.Exists(databaseFilePath);
+        using var migrationMutex = new Mutex(
+            initiallyOwned: false,
+            name: GetMigrationMutexName(databaseFilePath)
+        );
+        var lockAcquired = false;
 
-        using var context = contextFactory.CreateDbContext();
-        if (!context.Database.GetPendingMigrations().Any())
+        try
         {
-            return;
-        }
+            try
+            {
+                migrationMutex.WaitOne();
+            }
+            catch (AbandonedMutexException)
+            {
+                DatabaseLog.MigrationLockAbandoned(logger);
+            }
 
-        if (databaseExisted)
+            lockAcquired = true;
+            Directory.CreateDirectory(Path.GetDirectoryName(databaseFilePath) ?? ".");
+            var databaseExisted = File.Exists(databaseFilePath);
+
+            using var context = contextFactory.CreateDbContext();
+            if (!context.Database.GetPendingMigrations().Any())
+            {
+                return;
+            }
+
+            if (databaseExisted)
+            {
+                BackupDatabase(
+                    context.Database.GetConnectionString()
+                        ?? throw new InvalidOperationException(
+                            "Database connection string is not configured."
+                        ),
+                    databaseFilePath
+                );
+            }
+
+            context.Database.Migrate();
+        }
+        finally
         {
-            BackupDatabase(
-                context.Database.GetConnectionString()
-                    ?? throw new InvalidOperationException(
-                        "Database connection string is not configured."
-                    ),
-                databaseFilePath
-            );
+            if (lockAcquired)
+            {
+                migrationMutex.ReleaseMutex();
+            }
         }
-
-        context.Database.Migrate();
     }
+
+    private static string GetMigrationMutexName(string databaseFilePath) =>
+        "GbcNet.DatabaseMigration."
+        + Convert.ToHexString(
+            SHA256.HashData(Encoding.UTF8.GetBytes(Path.GetFullPath(databaseFilePath)))
+        );
 
     private static void BackupDatabase(string sourceConnectionString, string databaseFilePath)
     {
@@ -47,7 +83,12 @@ internal static class DatabaseMigrator
             using (var source = new SqliteConnection(sourceConnectionString))
             using (
                 var destination = new SqliteConnection(
-                    SqliteDbContextOptions.CreateConnectionString(temporaryBackupPath)
+                    new SqliteConnectionStringBuilder(
+                        SqliteDbContextOptions.CreateConnectionString(temporaryBackupPath)
+                    )
+                    {
+                        Pooling = false,
+                    }.ToString()
                 )
             )
             {
@@ -63,4 +104,13 @@ internal static class DatabaseMigrator
             File.Delete(temporaryBackupPath);
         }
     }
+}
+
+internal static partial class DatabaseLog
+{
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "The database migration lock was abandoned by another process."
+    )]
+    internal static partial void MigrationLockAbandoned(ILogger logger);
 }

@@ -82,8 +82,8 @@ internal sealed class GbcNetDbContextFactory : IDesignTimeDbContextFactory<GbcNe
     public GbcNetDbContext CreateDbContext(string[] args)
     {
         var databasePath = args.Length > 0 ? args[0] : UserDataPaths.LibraryDatabasePath;
-        var options = new DbContextOptionsBuilder<GbcNetDbContext>()
-            .UseSqlite(SqliteDbContextOptions.CreateConnectionString(databasePath))
+        var options = SqliteDbContextOptions
+            .Configure(new DbContextOptionsBuilder<GbcNetDbContext>(), databasePath)
             .Options;
         return new GbcNetDbContext(options);
     }

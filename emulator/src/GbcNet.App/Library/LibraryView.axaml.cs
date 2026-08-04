@@ -10,6 +10,7 @@ using Avalonia.Media.Imaging;
 using GbcNet.App.Configuration.Sections.Library;
 using GbcNet.App.Shell.Chrome;
 using GbcNet.App.Sorting;
+using JetBrains.Annotations;
 
 namespace GbcNet.App.Library;
 
@@ -72,7 +73,7 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
             Hardware: _hardwareFilter,
             Sort: _tableSortMode ?? LibrarySortField.LastOpened,
             Region: _regionFilter,
-            SortDirection: _tableSortDirection
+            Direction: _tableSortDirection
         );
 
     public void SetViewMode(LibraryViewMode viewMode)
@@ -396,6 +397,7 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
         _coverBitmaps.Clear();
     }
 
+    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     private sealed class LibraryTile(LibraryEntry entry, Bitmap? coverBitmap)
     {
         public LibraryEntry Entry { get; } = entry;

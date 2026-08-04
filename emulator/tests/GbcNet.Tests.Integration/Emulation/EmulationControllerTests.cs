@@ -264,10 +264,9 @@ public sealed class EmulationControllerTests
     private sealed class TestDbContextFactory(string databasePath)
         : IDbContextFactory<GbcNetDbContext>
     {
-        private readonly DbContextOptions<GbcNetDbContext> _options =
-            new DbContextOptionsBuilder<GbcNetDbContext>()
-                .UseSqlite(SqliteDbContextOptions.CreateConnectionString(databasePath))
-                .Options;
+        private readonly DbContextOptions<GbcNetDbContext> _options = SqliteDbContextOptions
+            .Configure(new DbContextOptionsBuilder<GbcNetDbContext>(), databasePath)
+            .Options;
 
         public GbcNetDbContext CreateDbContext() => new(_options);
     }
@@ -275,11 +274,10 @@ public sealed class EmulationControllerTests
     private sealed class FailingDbContextFactory(string databasePath)
         : IDbContextFactory<GbcNetDbContext>
     {
-        private readonly DbContextOptions<GbcNetDbContext> _options =
-            new DbContextOptionsBuilder<GbcNetDbContext>()
-                .UseSqlite(SqliteDbContextOptions.CreateConnectionString(databasePath))
-                .AddInterceptors(FailingSaveChangesInterceptor.Instance)
-                .Options;
+        private readonly DbContextOptions<GbcNetDbContext> _options = SqliteDbContextOptions
+            .Configure(new DbContextOptionsBuilder<GbcNetDbContext>(), databasePath)
+            .AddInterceptors(FailingSaveChangesInterceptor.Instance)
+            .Options;
 
         public GbcNetDbContext CreateDbContext() => new(_options);
     }
