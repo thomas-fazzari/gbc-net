@@ -21,13 +21,8 @@ internal sealed class NoMbcMemoryController(
 
     public void ValidateState(ICartridgeMemoryControllerState state)
     {
-        if (state is not NoMbcMemoryControllerState noMbcState)
-        {
-            throw new ArgumentException(
-                "Cartridge memory controller state is invalid.",
-                nameof(state)
-            );
-        }
+        var noMbcState =
+            CartridgeStateValidator.ValidateControllerState<NoMbcMemoryControllerState>(state);
 
         _cartridgeRam.ValidateState(noMbcState.Ram);
     }

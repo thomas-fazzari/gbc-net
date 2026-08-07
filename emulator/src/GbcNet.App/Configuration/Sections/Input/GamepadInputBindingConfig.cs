@@ -11,4 +11,7 @@ namespace GbcNet.App.Configuration.Sections.Input;
 internal sealed record GamepadInputBindingConfig(
     [property: JsonPropertyName("button")] string ButtonName,
     [property: JsonPropertyName("control")] string ControlName
-);
+) : IInputBindingConfig
+{
+    string IInputBindingConfig.TargetName => ControlName;
+}

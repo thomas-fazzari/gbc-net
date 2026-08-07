@@ -8,6 +8,7 @@ using GbcNet.App.Database;
 using GbcNet.App.Input;
 using GbcNet.App.Library;
 using GbcNet.App.Saves;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -27,15 +28,46 @@ internal static class DependencyInjection
             provider.GetRequiredService<ILogger<AppConfigurationService>>()
         ));
 
-        services.AddAudio();
-        services.AddDatabase();
-        services.AddInput();
-        services.AddLibrary();
-        services.AddSaves();
-        services.AddCheats();
+        AddAppServices(services);
 
         services.AddTransient<MainWindow>();
         return services.BuildServiceProvider();
+    }
+
+    private static void AddAppServices(IServiceCollection services)
+    {
+        // Audio
+        services.AddSingleton<IAudioOutput, SoundFlowAudioOutput>();
+
+        // Database
+        services.AddSingleton(TimeProvider.System);
+        services.AddDbContextFactory<GbcNetDbContext>(
+            (_, options) =>
+                SqliteDbContextOptions.Configure(options, UserDataPaths.LibraryDatabasePath)
+        );
+
+        // Input
+        services.AddSingleton(provider =>
+            InputMap.FromConfig(provider.GetRequiredService<StartupConfiguration>().InputConfig)
+        );
+
+        // Library
+        services.AddSingleton(provider => new LibraryService(
+            provider.GetRequiredService<IDbContextFactory<GbcNetDbContext>>(),
+            UserDataPaths.CoverDirectoryPath,
+            provider.GetRequiredService<ILogger<LibraryService>>(),
+            provider.GetRequiredService<TimeProvider>()
+        ));
+
+        // Saves
+        services.AddSingleton(new CartridgeBatterySaveFileService(UserDataPaths.SaveDirectoryPath));
+        services.AddSingleton(provider => new SaveStateFileService(
+            UserDataPaths.SaveStateDirectoryPath,
+            provider.GetRequiredService<ILogger<SaveStateFileService>>()
+        ));
+
+        // Cheats
+        services.AddSingleton<CheatCodeService>();
     }
 
     internal static void ConfigureLogging(ILoggingBuilder builder)

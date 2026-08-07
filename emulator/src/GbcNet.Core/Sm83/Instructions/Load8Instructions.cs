@@ -100,11 +100,7 @@ internal static class Load8Instructions
         }
     }
 
-    private static void LoadRegisterOperand(
-        Cpu cpu,
-        Register8Operand destination,
-        Register8Operand source
-    )
+    private static void LoadRegisterOperand(Cpu cpu, Register8 destination, Register8 source)
     {
         var value = Register8Operands.Read(cpu, source);
         Register8Operands.Write(cpu, destination, value);

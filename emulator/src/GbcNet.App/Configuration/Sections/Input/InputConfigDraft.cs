@@ -9,8 +9,8 @@ namespace GbcNet.App.Configuration.Sections.Input;
 
 internal sealed class InputConfigDraft
 {
-    private readonly Dictionary<string, Dictionary<JoypadButton, Key>> _keyboardProfiles;
-    private readonly Dictionary<string, Dictionary<JoypadButton, GamepadButton>> _gamepadProfiles;
+    private readonly ProfileSection<Key> _keyboard;
+    private readonly ProfileSection<GamepadButton> _gamepad;
 
     public InputConfigDraft(InputConfig config)
     {
@@ -25,278 +25,98 @@ internal sealed class InputConfigDraft
             );
         }
 
-        _keyboardProfiles = new Dictionary<string, Dictionary<JoypadButton, Key>>(
-            StringComparer.OrdinalIgnoreCase
+        _keyboard = new ProfileSection<Key>(
+            config.Keyboard.Profiles.Select(static p => new KeyValuePair<
+                string,
+                IReadOnlyList<IInputBindingConfig>
+            >(p.Key, p.Value.Bindings)),
+            config.Keyboard.ActiveProfile,
+            static p => new Dictionary<JoypadButton, Key>(p),
+            "Keyboard",
+            "keyboard"
         );
-        _gamepadProfiles = new Dictionary<string, Dictionary<JoypadButton, GamepadButton>>(
-            StringComparer.OrdinalIgnoreCase
+        _gamepad = new ProfileSection<GamepadButton>(
+            config.Gamepad.Profiles.Select(static p => new KeyValuePair<
+                string,
+                IReadOnlyList<IInputBindingConfig>
+            >(p.Key, p.Value.Bindings)),
+            config.Gamepad.ActiveProfile,
+            static p => new Dictionary<JoypadButton, GamepadButton>(p),
+            "Gamepad",
+            "gamepad"
         );
-
-        foreach (var (name, profile) in config.Keyboard.Profiles)
-        {
-            _keyboardProfiles.Add(name, ToKeyboardMap(profile));
-        }
-
-        foreach (var (name, profile) in config.Gamepad.Profiles)
-        {
-            _gamepadProfiles.Add(name, ToGamepadMap(profile));
-        }
-
-        ActiveKeyboardProfileName = FindProfileName(
-            _keyboardProfiles,
-            name: config.Keyboard.ActiveProfile,
-            sectionName: "Keyboard"
-        );
-        SelectedKeyboardProfileName = ActiveKeyboardProfileName;
-        ActiveGamepadProfileName = FindProfileName(
-            _gamepadProfiles,
-            name: config.Gamepad.ActiveProfile,
-            sectionName: "Gamepad"
-        );
-        SelectedGamepadProfileName = ActiveGamepadProfileName;
     }
 
-    public string ActiveKeyboardProfileName { get; private set; }
+    public string ActiveKeyboardProfileName => _keyboard.ActiveName;
+    public string SelectedKeyboardProfileName => _keyboard.SelectedName;
+    public string ActiveGamepadProfileName => _gamepad.ActiveName;
+    public string SelectedGamepadProfileName => _gamepad.SelectedName;
 
-    public string SelectedKeyboardProfileName { get; private set; }
-
-    public string ActiveGamepadProfileName { get; private set; }
-
-    public string SelectedGamepadProfileName { get; private set; }
-
-    public IReadOnlyList<InputProfileSummary> KeyboardProfiles =>
-        GetProfileSummaries(
-            _keyboardProfiles,
-            activeProfileName: ActiveKeyboardProfileName,
-            selectedProfileName: SelectedKeyboardProfileName
-        );
-
-    public IReadOnlyList<InputProfileSummary> GamepadProfiles =>
-        GetProfileSummaries(
-            _gamepadProfiles,
-            activeProfileName: ActiveGamepadProfileName,
-            selectedProfileName: SelectedGamepadProfileName
-        );
+    public IReadOnlyList<InputProfileSummary> KeyboardProfiles => _keyboard.Summaries;
+    public IReadOnlyList<InputProfileSummary> GamepadProfiles => _gamepad.Summaries;
 
     public IReadOnlyList<JoypadButton> KeyboardBindingConflicts =>
-        GetKeyboardBindingConflicts(SelectedKeyboardProfileName);
-
+        _keyboard.GetBindingConflicts(SelectedKeyboardProfileName);
     public IReadOnlyList<JoypadButton> GamepadBindingConflicts =>
-        GetGamepadBindingConflicts(SelectedGamepadProfileName);
+        _gamepad.GetBindingConflicts(SelectedGamepadProfileName);
 
-    public InputEditResult SelectKeyboardProfile(string? name) =>
-        SelectProfile(
-            _keyboardProfiles,
-            name: name,
-            setSelectedName: selectedName => SelectedKeyboardProfileName = selectedName,
-            sectionName: "Keyboard"
-        );
+    public InputEditResult SelectKeyboardProfile(string? name) => _keyboard.Select(name);
 
-    public InputEditResult CreateKeyboardProfile(string? name) =>
-        CreateProfile(
-            _keyboardProfiles,
-            name: name,
-            selectedName: SelectedKeyboardProfileName,
-            setSelectedName: selectedName => SelectedKeyboardProfileName = selectedName,
-            bindings => new Dictionary<JoypadButton, Key>(bindings),
-            sectionName: "Keyboard"
-        );
+    public InputEditResult CreateKeyboardProfile(string? name) => _keyboard.Create(name);
 
     public InputEditResult RenameKeyboardProfile(string? currentName, string? newName) =>
-        RenameProfile(
-            _keyboardProfiles,
-            currentName: currentName,
-            newName: newName,
-            activeProfileName: ActiveKeyboardProfileName,
-            selectedProfileName: SelectedKeyboardProfileName,
-            setActiveName: activeName => ActiveKeyboardProfileName = activeName,
-            setSelectedName: selectedName => SelectedKeyboardProfileName = selectedName,
-            sectionName: "Keyboard",
-            sectionLabel: "keyboard"
-        );
+        _keyboard.Rename(currentName, newName);
 
-    public InputEditResult DeleteKeyboardProfile(string? name) =>
-        DeleteProfile(
-            _keyboardProfiles,
-            name: name,
-            activeProfileName: ActiveKeyboardProfileName,
-            selectedProfileName: SelectedKeyboardProfileName,
-            setSelectedName: selectedName => SelectedKeyboardProfileName = selectedName,
-            sectionName: "Keyboard",
-            sectionLabel: "keyboard"
-        );
+    public InputEditResult DeleteKeyboardProfile(string? name) => _keyboard.Delete(name);
 
-    public InputEditResult SetActiveKeyboardProfile(string? name) =>
-        SetActiveProfile(
-            _keyboardProfiles,
-            name: name,
-            setActiveName: activeName => ActiveKeyboardProfileName = activeName,
-            sectionName: "Keyboard"
-        );
+    public InputEditResult SetActiveKeyboardProfile(string? name) => _keyboard.SetActive(name);
 
-    public InputEditResult SelectGamepadProfile(string? name) =>
-        SelectProfile(
-            _gamepadProfiles,
-            name: name,
-            setSelectedName: selectedName => SelectedGamepadProfileName = selectedName,
-            sectionName: "Gamepad"
-        );
+    public InputEditResult SelectGamepadProfile(string? name) => _gamepad.Select(name);
 
-    public InputEditResult CreateGamepadProfile(string? name) =>
-        CreateProfile(
-            _gamepadProfiles,
-            name: name,
-            selectedName: SelectedGamepadProfileName,
-            setSelectedName: selectedName => SelectedGamepadProfileName = selectedName,
-            bindings => new Dictionary<JoypadButton, GamepadButton>(bindings),
-            sectionName: "Gamepad"
-        );
+    public InputEditResult CreateGamepadProfile(string? name) => _gamepad.Create(name);
 
     public InputEditResult RenameGamepadProfile(string? currentName, string? newName) =>
-        RenameProfile(
-            _gamepadProfiles,
-            currentName: currentName,
-            newName: newName,
-            activeProfileName: ActiveGamepadProfileName,
-            selectedProfileName: SelectedGamepadProfileName,
-            setActiveName: activeName => ActiveGamepadProfileName = activeName,
-            setSelectedName: selectedName => SelectedGamepadProfileName = selectedName,
-            sectionName: "Gamepad",
-            sectionLabel: "gamepad"
-        );
+        _gamepad.Rename(currentName, newName);
 
-    public InputEditResult DeleteGamepadProfile(string? name) =>
-        DeleteProfile(
-            _gamepadProfiles,
-            name: name,
-            activeProfileName: ActiveGamepadProfileName,
-            selectedProfileName: SelectedGamepadProfileName,
-            setSelectedName: selectedName => SelectedGamepadProfileName = selectedName,
-            sectionName: "Gamepad",
-            sectionLabel: "gamepad"
-        );
+    public InputEditResult DeleteGamepadProfile(string? name) => _gamepad.Delete(name);
 
-    public InputEditResult SetActiveGamepadProfile(string? name) =>
-        SetActiveProfile(
-            _gamepadProfiles,
-            name: name,
-            setActiveName: activeName => ActiveGamepadProfileName = activeName,
-            sectionName: "Gamepad"
-        );
+    public InputEditResult SetActiveGamepadProfile(string? name) => _gamepad.SetActive(name);
 
-    public Key GetKeyboardBinding(string profileName, JoypadButton button)
-    {
-        if (!InputConfigMetadata.KeyboardButtons.Contains(button))
-        {
-            throw new ArgumentOutOfRangeException(
-                paramName: nameof(button),
-                actualValue: button,
-                message: "Unknown joypad button."
-            );
-        }
+    public Key GetKeyboardBinding(string profileName, JoypadButton button) =>
+        _keyboard.GetBinding(profileName, button);
 
-        return GetProfile(_keyboardProfiles, profileName: profileName, sectionName: "Keyboard")[
-            button
-        ];
-    }
+    public InputEditResult SetKeyboardBinding(string? profileName, JoypadButton button, Key key) =>
+        _keyboard.SetBinding(profileName, button, key, ValidateKey);
 
-    public InputEditResult SetKeyboardBinding(string? profileName, JoypadButton button, Key key)
-    {
-        if (
-            !TryFindProfileName(
-                profiles: _keyboardProfiles,
-                name: profileName,
-                existingName: out var existingName
-            )
-        )
-        {
-            return InputEditResult.Fail($"Keyboard profile '{profileName}' does not exist.");
-        }
-
-        if (!InputConfigMetadata.KeyboardButtons.Contains(button))
-        {
-            return InputEditResult.Fail("Unknown keyboard joypad button.");
-        }
-
-        if (!Enum.IsDefined(key) || key is Key.None)
-        {
-            return InputEditResult.Fail("Unknown keyboard key.");
-        }
-
-        if (InputConfigValidator.IsReservedKey(key))
-        {
-            return InputEditResult.Fail($"Keyboard key '{Enum.GetName(value: key)}' is reserved.");
-        }
-
-        _keyboardProfiles[existingName][button] = key;
-        return InputEditResult.Success();
-    }
-
-    public GamepadButton GetGamepadBinding(string profileName, JoypadButton button)
-    {
-        if (!InputConfigMetadata.GamepadButtons.Contains(button))
-        {
-            throw new ArgumentOutOfRangeException(
-                paramName: nameof(button),
-                actualValue: button,
-                message: "Unknown gamepad joypad button."
-            );
-        }
-
-        return GetProfile(_gamepadProfiles, profileName: profileName, sectionName: "Gamepad")[
-            button
-        ];
-    }
+    public GamepadButton GetGamepadBinding(string profileName, JoypadButton button) =>
+        _gamepad.GetBinding(profileName, button);
 
     public InputEditResult SetGamepadBinding(
         string? profileName,
         JoypadButton button,
         GamepadButton control
-    )
-    {
-        if (
-            !TryFindProfileName(
-                profiles: _gamepadProfiles,
-                name: profileName,
-                existingName: out var existingName
-            )
-        )
-        {
-            return InputEditResult.Fail($"Gamepad profile '{profileName}' does not exist.");
-        }
-
-        if (!InputConfigMetadata.GamepadButtons.Contains(button))
-        {
-            return InputEditResult.Fail("Unknown gamepad joypad button.");
-        }
-
-        if (
-            !Enum.IsDefined(control)
-            || !InputConfigMetadata.AllowedGamepadControls.Contains(control)
-        )
-        {
-            return InputEditResult.Fail("Unknown or unsupported gamepad control.");
-        }
-
-        _gamepadProfiles[existingName][button] = control;
-        return InputEditResult.Success();
-    }
-
-    public IReadOnlyList<JoypadButton> GetKeyboardBindingConflicts(string profileName) =>
-        GetBindingConflicts(
-            GetProfile(_keyboardProfiles, profileName: profileName, sectionName: "Keyboard"),
-            InputConfigMetadata.KeyboardButtons
-        );
-
-    public IReadOnlyList<JoypadButton> GetGamepadBindingConflicts(string profileName) =>
-        GetBindingConflicts(
-            GetProfile(_gamepadProfiles, profileName: profileName, sectionName: "Gamepad"),
-            InputConfigMetadata.GamepadButtons
-        );
+    ) => _gamepad.SetBinding(profileName, button, control, ValidateControl);
 
     public IReadOnlyList<string> Validate() => InputConfigValidator.Validate(CreateConfig());
 
     public InputConfig Build() => CreateConfig();
+
+    private static InputEditResult ValidateKey(Key key)
+    {
+        if (!Enum.IsDefined(key) || key is Key.None)
+        {
+            return InputEditResult.Fail("Unknown keyboard key.");
+        }
+
+        return InputConfigValidator.IsReservedKey(key)
+            ? InputEditResult.Fail($"Keyboard key '{Enum.GetName(value: key)}' is reserved.")
+            : InputEditResult.Success();
+    }
+
+    private static InputEditResult ValidateControl(GamepadButton control) =>
+        !Enum.IsDefined(control) || !InputConfigMetadata.AllowedGamepadControls.Contains(control)
+            ? InputEditResult.Fail("Unknown or unsupported gamepad control.")
+            : InputEditResult.Success();
 
     private InputConfig CreateConfig() =>
         new()
@@ -305,344 +125,313 @@ internal sealed class InputConfigDraft
             Keyboard = new KeyboardInputConfig
             {
                 ActiveProfile = ActiveKeyboardProfileName,
-                Profiles = new Dictionary<string, KeyboardProfileConfig>(
-                    _keyboardProfiles.Select(profile => new KeyValuePair<
-                        string,
-                        KeyboardProfileConfig
-                    >(
-                        profile.Key,
-                        new KeyboardProfileConfig
-                        {
-                            Bindings =
-                            [
-                                .. InputConfigMetadata.KeyboardButtons.Select(
-                                    button => new KeyboardInputBindingConfig(
-                                        ButtonName: button.ToString(),
-                                        KeyName: profile.Value[button].ToString()
-                                    )
-                                ),
-                            ],
-                        }
-                    )),
-                    StringComparer.OrdinalIgnoreCase
-                ),
+                Profiles = _keyboard.BuildProfiles(static b => new KeyboardProfileConfig
+                {
+                    Bindings =
+                    [
+                        .. b.Select(static kv => new KeyboardInputBindingConfig(
+                            kv.Key.ToString(),
+                            kv.Value.ToString()
+                        )),
+                    ],
+                }),
             },
             Gamepad = new GamepadInputConfig
             {
                 ActiveProfile = ActiveGamepadProfileName,
-                Profiles = new Dictionary<string, GamepadProfileConfig>(
-                    _gamepadProfiles.Select(profile => new KeyValuePair<
-                        string,
-                        GamepadProfileConfig
-                    >(
-                        profile.Key,
-                        new GamepadProfileConfig
-                        {
-                            Bindings =
-                            [
-                                .. InputConfigMetadata.GamepadButtons.Select(
-                                    button => new GamepadInputBindingConfig(
-                                        ButtonName: button.ToString(),
-                                        ControlName: profile.Value[button].ToString()
-                                    )
-                                ),
-                            ],
-                        }
-                    )),
-                    StringComparer.OrdinalIgnoreCase
-                ),
+                Profiles = _gamepad.BuildProfiles(static b => new GamepadProfileConfig
+                {
+                    Bindings =
+                    [
+                        .. b.Select(static kv => new GamepadInputBindingConfig(
+                            kv.Key.ToString(),
+                            kv.Value.ToString()
+                        )),
+                    ],
+                }),
             },
         };
 
-    private static IReadOnlyList<InputProfileSummary> GetProfileSummaries<TBinding>(
-        IReadOnlyDictionary<string, Dictionary<JoypadButton, TBinding>> profiles,
-        string activeProfileName,
-        string selectedProfileName
-    ) =>
-        [
-            .. profiles.Keys.Select(name => new InputProfileSummary(
-                name,
-                IsActive: string.Equals(
+    private sealed class ProfileSection<TBinding>
+        where TBinding : struct, Enum
+    {
+        private readonly Dictionary<string, Dictionary<JoypadButton, TBinding>> _profiles;
+        private readonly Func<
+            IReadOnlyDictionary<JoypadButton, TBinding>,
+            Dictionary<JoypadButton, TBinding>
+        > _clone;
+        private readonly string _sectionName;
+        private readonly string _sectionLabel;
+
+        public string ActiveName { get; private set; }
+        public string SelectedName { get; private set; }
+
+        public IReadOnlyList<InputProfileSummary> Summaries =>
+            [
+                .. _profiles.Keys.Select(name => new InputProfileSummary(
                     name,
-                    activeProfileName,
-                    comparisonType: StringComparison.OrdinalIgnoreCase
-                ),
-                IsSelected: string.Equals(
-                    name,
-                    selectedProfileName,
-                    comparisonType: StringComparison.OrdinalIgnoreCase
-                )
-            )),
-        ];
+                    IsActive: Eq(name, ActiveName),
+                    IsSelected: Eq(name, SelectedName)
+                )),
+            ];
 
-    private static InputEditResult SelectProfile<TBinding>(
-        IReadOnlyDictionary<string, Dictionary<JoypadButton, TBinding>> profiles,
-        string? name,
-        Action<string> setSelectedName,
-        string sectionName
-    )
-    {
-        if (!TryFindProfileName(profiles, name: name, existingName: out var existingName))
-        {
-            return InputEditResult.Fail($"{sectionName} profile '{name}' does not exist.");
-        }
-
-        setSelectedName(existingName);
-        return InputEditResult.Success();
-    }
-
-    private static InputEditResult CreateProfile<TBinding>(
-        Dictionary<string, Dictionary<JoypadButton, TBinding>> profiles,
-        string? name,
-        string selectedName,
-        Action<string> setSelectedName,
-        Func<Dictionary<JoypadButton, TBinding>, Dictionary<JoypadButton, TBinding>> clone,
-        string sectionName
-    )
-    {
-        var trimmedName = TrimProfileName(name);
-        if (string.IsNullOrWhiteSpace(trimmedName))
-        {
-            return InputEditResult.Fail($"{sectionName} profile name must not be blank.");
-        }
-
-        if (profiles.ContainsKey(trimmedName))
-        {
-            return InputEditResult.Fail($"{sectionName} profile '{trimmedName}' already exists.");
-        }
-
-        profiles.Add(trimmedName, clone(profiles[selectedName]));
-        setSelectedName(trimmedName);
-        return InputEditResult.Success();
-    }
-
-    private static InputEditResult RenameProfile<TBinding>(
-        Dictionary<string, Dictionary<JoypadButton, TBinding>> profiles,
-        string? currentName,
-        string? newName,
-        string activeProfileName,
-        string selectedProfileName,
-        Action<string> setActiveName,
-        Action<string> setSelectedName,
-        string sectionName,
-        string sectionLabel
-    )
-    {
-        if (!TryFindProfileName(profiles, name: currentName, existingName: out var existingName))
-        {
-            return InputEditResult.Fail($"{sectionName} profile '{currentName}' does not exist.");
-        }
-
-        if (
-            string.Equals(
-                existingName,
-                InputConfig.DefaultProfileName,
-                comparisonType: StringComparison.OrdinalIgnoreCase
-            )
+        public ProfileSection(
+            IEnumerable<KeyValuePair<string, IReadOnlyList<IInputBindingConfig>>> rawProfiles,
+            string activeProfileName,
+            Func<
+                IReadOnlyDictionary<JoypadButton, TBinding>,
+                Dictionary<JoypadButton, TBinding>
+            > clone,
+            string sectionName,
+            string sectionLabel
         )
         {
-            return InputEditResult.Fail($"Default {sectionLabel} profile cannot be renamed.");
+            _profiles = new Dictionary<string, Dictionary<JoypadButton, TBinding>>(
+                StringComparer.OrdinalIgnoreCase
+            );
+            _clone = clone;
+            _sectionName = sectionName;
+            _sectionLabel = sectionLabel;
+
+            foreach (var (name, bindings) in rawProfiles)
+            {
+                _profiles.Add(name, ParseBindings(bindings));
+            }
+
+            ActiveName = FindProfileName(activeProfileName);
+            SelectedName = ActiveName;
         }
 
-        var trimmedName = TrimProfileName(newName);
-        if (string.IsNullOrWhiteSpace(trimmedName))
+        public InputEditResult Select(string? name)
         {
-            return InputEditResult.Fail($"{sectionName} profile name must not be blank.");
+            if (!TryFindProfileName(name, out var existingName))
+            {
+                return FailNotFound(name);
+            }
+
+            SelectedName = existingName;
+            return InputEditResult.Success();
         }
 
-        if (
-            !string.Equals(
-                existingName,
-                trimmedName,
-                comparisonType: StringComparison.OrdinalIgnoreCase
-            ) && profiles.ContainsKey(trimmedName)
+        public InputEditResult Create(string? name)
+        {
+            var trimmedName = TrimName(name);
+            if (string.IsNullOrWhiteSpace(trimmedName))
+            {
+                return InputEditResult.Fail($"{_sectionName} profile name must not be blank.");
+            }
+
+            if (_profiles.ContainsKey(trimmedName))
+            {
+                return InputEditResult.Fail(
+                    $"{_sectionName} profile '{trimmedName}' already exists."
+                );
+            }
+
+            _profiles.Add(trimmedName, _clone(_profiles[SelectedName]));
+            SelectedName = trimmedName;
+            return InputEditResult.Success();
+        }
+
+        public InputEditResult Rename(string? currentName, string? newName)
+        {
+            if (!TryFindProfileName(currentName, out var existingName))
+            {
+                return FailNotFound(currentName);
+            }
+
+            if (Eq(existingName, InputConfig.DefaultProfileName))
+            {
+                return InputEditResult.Fail($"Default {_sectionLabel} profile cannot be renamed.");
+            }
+
+            var trimmedName = TrimName(newName);
+            if (string.IsNullOrWhiteSpace(trimmedName))
+            {
+                return InputEditResult.Fail($"{_sectionName} profile name must not be blank.");
+            }
+
+            if (!Eq(existingName, trimmedName) && _profiles.ContainsKey(trimmedName))
+            {
+                return InputEditResult.Fail(
+                    $"{_sectionName} profile '{trimmedName}' already exists."
+                );
+            }
+
+            var bindings = _profiles[existingName];
+            _profiles.Remove(existingName);
+            _profiles.Add(trimmedName, bindings);
+
+            if (Eq(ActiveName, existingName))
+            {
+                ActiveName = trimmedName;
+            }
+
+            if (Eq(SelectedName, existingName))
+            {
+                SelectedName = trimmedName;
+            }
+
+            return InputEditResult.Success();
+        }
+
+        public InputEditResult Delete(string? name)
+        {
+            if (!TryFindProfileName(name, out var existingName))
+            {
+                return FailNotFound(name);
+            }
+
+            if (Eq(existingName, InputConfig.DefaultProfileName))
+            {
+                return InputEditResult.Fail($"Default {_sectionLabel} profile cannot be deleted.");
+            }
+
+            if (Eq(existingName, ActiveName))
+            {
+                return InputEditResult.Fail($"Active {_sectionLabel} profile cannot be deleted.");
+            }
+
+            _profiles.Remove(existingName);
+            if (Eq(SelectedName, existingName))
+            {
+                SelectedName = ActiveName;
+            }
+
+            return InputEditResult.Success();
+        }
+
+        public InputEditResult SetActive(string? name)
+        {
+            if (!TryFindProfileName(name, out var existingName))
+            {
+                return FailNotFound(name);
+            }
+
+            ActiveName = existingName;
+            return InputEditResult.Success();
+        }
+
+        public TBinding GetBinding(string profileName, JoypadButton button)
+        {
+            if (!InputConfigMetadata.ButtonsFor<TBinding>().Contains(button))
+            {
+                throw new ArgumentOutOfRangeException(
+                    paramName: nameof(button),
+                    actualValue: button,
+                    message: $"Unknown {_sectionLabel} joypad button."
+                );
+            }
+
+            return GetProfile(profileName)[button];
+        }
+
+        public InputEditResult SetBinding(
+            string? profileName,
+            JoypadButton button,
+            TBinding binding,
+            Func<TBinding, InputEditResult> validateBinding
         )
         {
-            return InputEditResult.Fail($"{sectionName} profile '{trimmedName}' already exists.");
+            if (!TryFindProfileName(profileName, out var existingName))
+            {
+                return FailNotFound(profileName);
+            }
+
+            if (!InputConfigMetadata.ButtonsFor<TBinding>().Contains(button))
+            {
+                return InputEditResult.Fail($"Unknown {_sectionLabel} joypad button.");
+            }
+
+            var result = validateBinding(binding);
+            if (!result.Succeeded)
+            {
+                return result;
+            }
+
+            _profiles[existingName][button] = binding;
+            return InputEditResult.Success();
         }
 
-        var bindings = profiles[existingName];
-        profiles.Remove(existingName);
-        profiles.Add(trimmedName, bindings);
+        public IReadOnlyList<JoypadButton> GetBindingConflicts(string profileName) =>
+            GetBindingConflicts(
+                GetProfile(profileName),
+                InputConfigMetadata.ButtonsFor<TBinding>()
+            );
 
-        if (
-            string.Equals(
-                activeProfileName,
-                existingName,
-                comparisonType: StringComparison.OrdinalIgnoreCase
-            )
-        )
-        {
-            setActiveName(trimmedName);
-        }
+        public Dictionary<string, TProfile> BuildProfiles<TProfile>(
+            Func<IReadOnlyDictionary<JoypadButton, TBinding>, TProfile> buildProfile
+        ) =>
+            new(
+                _profiles.Select(profile => new KeyValuePair<string, TProfile>(
+                    profile.Key,
+                    buildProfile(profile.Value)
+                )),
+                StringComparer.OrdinalIgnoreCase
+            );
 
-        if (
-            string.Equals(
-                selectedProfileName,
-                existingName,
-                comparisonType: StringComparison.OrdinalIgnoreCase
-            )
-        )
-        {
-            setSelectedName(trimmedName);
-        }
+        private InputEditResult FailNotFound(string? name) =>
+            InputEditResult.Fail($"{_sectionName} profile '{name}' does not exist.");
 
-        return InputEditResult.Success();
-    }
-
-    private static InputEditResult DeleteProfile<TBinding>(
-        Dictionary<string, Dictionary<JoypadButton, TBinding>> profiles,
-        string? name,
-        string activeProfileName,
-        string selectedProfileName,
-        Action<string> setSelectedName,
-        string sectionName,
-        string sectionLabel
-    )
-    {
-        if (!TryFindProfileName(profiles, name: name, existingName: out var existingName))
-        {
-            return InputEditResult.Fail($"{sectionName} profile '{name}' does not exist.");
-        }
-
-        if (
-            string.Equals(
-                existingName,
-                InputConfig.DefaultProfileName,
-                comparisonType: StringComparison.OrdinalIgnoreCase
-            )
-        )
-        {
-            return InputEditResult.Fail($"Default {sectionLabel} profile cannot be deleted.");
-        }
-
-        if (
-            string.Equals(
-                existingName,
-                activeProfileName,
-                comparisonType: StringComparison.OrdinalIgnoreCase
-            )
-        )
-        {
-            return InputEditResult.Fail($"Active {sectionLabel} profile cannot be deleted.");
-        }
-
-        profiles.Remove(existingName);
-        if (
-            string.Equals(
-                selectedProfileName,
-                existingName,
-                comparisonType: StringComparison.OrdinalIgnoreCase
-            )
-        )
-        {
-            setSelectedName(activeProfileName);
-        }
-
-        return InputEditResult.Success();
-    }
-
-    private static InputEditResult SetActiveProfile<TBinding>(
-        IReadOnlyDictionary<string, Dictionary<JoypadButton, TBinding>> profiles,
-        string? name,
-        Action<string> setActiveName,
-        string sectionName
-    )
-    {
-        if (!TryFindProfileName(profiles, name: name, existingName: out var existingName))
-        {
-            return InputEditResult.Fail($"{sectionName} profile '{name}' does not exist.");
-        }
-
-        setActiveName(existingName);
-        return InputEditResult.Success();
-    }
-
-    private static IReadOnlyList<JoypadButton> GetBindingConflicts<TBinding>(
-        IReadOnlyDictionary<JoypadButton, TBinding> bindings,
-        IReadOnlyList<JoypadButton> buttons
-    )
-        where TBinding : notnull =>
-        [
-            .. buttons.Where(button =>
-                bindings.Any(binding =>
-                    binding.Key != button
-                    && EqualityComparer<TBinding>.Default.Equals(
-                        x: binding.Value,
-                        y: bindings[button]
+        private static IReadOnlyList<JoypadButton> GetBindingConflicts(
+            Dictionary<JoypadButton, TBinding> bindings,
+            IReadOnlyList<JoypadButton> buttons
+        ) =>
+            [
+                .. buttons.Where(button =>
+                    bindings.Any(b =>
+                        b.Key != button
+                        && EqualityComparer<TBinding>.Default.Equals(b.Value, bindings[button])
                     )
-                )
-            ),
-        ];
+                ),
+            ];
 
-    private static Dictionary<JoypadButton, TBinding> GetProfile<TBinding>(
-        IReadOnlyDictionary<string, Dictionary<JoypadButton, TBinding>> profiles,
-        string? profileName,
-        string sectionName
-    )
-    {
-        if (!TryFindProfileName(profiles, name: profileName, existingName: out var existingName))
+        private Dictionary<JoypadButton, TBinding> GetProfile(string? profileName)
         {
-            throw new ArgumentException(
-                message: $"{sectionName} profile '{profileName}' does not exist.",
-                paramName: nameof(profileName)
-            );
+            if (!TryFindProfileName(profileName, out var existingName))
+            {
+                throw new ArgumentException(
+                    message: $"{_sectionName} profile '{profileName}' does not exist.",
+                    paramName: nameof(profileName)
+                );
+            }
+
+            return _profiles[existingName];
         }
 
-        return profiles[existingName];
-    }
+        private bool TryFindProfileName(string? name, out string existingName)
+        {
+            var trimmedName = name?.Trim();
+            var match = string.IsNullOrWhiteSpace(trimmedName)
+                ? null
+                : _profiles.Keys.FirstOrDefault(p => Eq(p, trimmedName));
 
-    private static bool TryFindProfileName<TBinding>(
-        IReadOnlyDictionary<string, Dictionary<JoypadButton, TBinding>> profiles,
-        string? name,
-        out string existingName
-    )
-    {
-        var trimmedName = name?.Trim();
-        var match = string.IsNullOrWhiteSpace(trimmedName)
-            ? null
-            : profiles.Keys.FirstOrDefault(profileName =>
-                string.Equals(
-                    profileName,
-                    trimmedName,
-                    comparisonType: StringComparison.OrdinalIgnoreCase
-                )
+            existingName = match ?? string.Empty;
+            return match is not null;
+        }
+
+        private string FindProfileName(string name) =>
+            TryFindProfileName(name, out var existingName)
+                ? existingName
+                : throw new InvalidOperationException(
+                    $"{_sectionName} profile '{name}' does not exist."
+                );
+
+        private static string TrimName(string? name) => name?.Trim() ?? string.Empty;
+
+        private static bool Eq(string a, string b) =>
+            string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
+        private static Dictionary<JoypadButton, TBinding> ParseBindings(
+            IReadOnlyList<IInputBindingConfig> bindings
+        ) =>
+            new(
+                bindings.Select(b => new KeyValuePair<JoypadButton, TBinding>(
+                    Enum.Parse<JoypadButton>(b.ButtonName, ignoreCase: true),
+                    Enum.Parse<TBinding>(b.TargetName, ignoreCase: true)
+                ))
             );
-
-        existingName = match ?? string.Empty;
-        return match is not null;
     }
-
-    private static string FindProfileName<TBinding>(
-        IReadOnlyDictionary<string, Dictionary<JoypadButton, TBinding>> profiles,
-        string name,
-        string sectionName
-    ) =>
-        TryFindProfileName(profiles, name: name, existingName: out var existingName)
-            ? existingName
-            : throw new InvalidOperationException(
-                $"{sectionName} profile '{name}' does not exist."
-            );
-
-    private static string TrimProfileName(string? name) => name?.Trim() ?? string.Empty;
-
-    private static Dictionary<JoypadButton, Key> ToKeyboardMap(KeyboardProfileConfig profile) =>
-        new(
-            profile.Bindings.Select(binding => new KeyValuePair<JoypadButton, Key>(
-                Enum.Parse<JoypadButton>(binding.ButtonName, ignoreCase: true),
-                Enum.Parse<Key>(binding.KeyName, ignoreCase: true)
-            ))
-        );
-
-    private static Dictionary<JoypadButton, GamepadButton> ToGamepadMap(
-        GamepadProfileConfig profile
-    ) =>
-        new(
-            profile.Bindings.Select(binding => new KeyValuePair<JoypadButton, GamepadButton>(
-                Enum.Parse<JoypadButton>(binding.ButtonName, ignoreCase: true),
-                Enum.Parse<GamepadButton>(binding.ControlName, ignoreCase: true)
-            ))
-        );
 }
 
 internal sealed record InputEditResult(bool Succeeded, string? ErrorMessage)

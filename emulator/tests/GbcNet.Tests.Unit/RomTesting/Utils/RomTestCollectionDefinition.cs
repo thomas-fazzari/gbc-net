@@ -4,7 +4,7 @@
 namespace GbcNet.Tests.Unit.RomTesting.Utils;
 
 [CollectionDefinition]
-public sealed class RomTestSuite
+public sealed class RomTestCollectionDefinition
 {
-    private RomTestSuite() { }
+    private RomTestCollectionDefinition() { }
 }

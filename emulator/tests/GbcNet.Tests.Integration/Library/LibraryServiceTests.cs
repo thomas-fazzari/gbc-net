@@ -2,13 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Globalization;
-using GbcNet.App.Database;
 using GbcNet.App.Database.Entities;
 using GbcNet.App.Library;
 using GbcNet.App.Sorting;
 using GbcNet.Core.Cartridges;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GbcNet.Tests.Integration.Library;
@@ -161,7 +159,7 @@ public sealed class LibraryServiceTests
 
         var createDb = new TestDbContextFactory(
             test.DatabasePath,
-            test.TimeProvider
+            timeProvider: test.TimeProvider
         ).CreateDbContext();
         await using (createDb)
         {
@@ -176,7 +174,7 @@ public sealed class LibraryServiceTests
         var modifiedAt = test.TimeProvider.GetUtcNow();
         var updateDb = new TestDbContextFactory(
             test.DatabasePath,
-            test.TimeProvider
+            timeProvider: test.TimeProvider
         ).CreateDbContext();
         await using (updateDb)
         {
@@ -630,7 +628,13 @@ public sealed class LibraryServiceTests
             ?? throw new InvalidOperationException("Cover path was not stored.");
         var newSourcePath = await test.WriteImageAsync("new.png", [.. " !\""u8]);
         var failingLibrary = new LibraryService(
-            new FailingDbContextFactory(test.DatabasePath, test.TimeProvider),
+            new TestDbContextFactory(
+                test.DatabasePath,
+                new FailingSaveChangesInterceptor(
+                    new InvalidOperationException("Test database failure.")
+                ),
+                timeProvider: test.TimeProvider
+            ),
             test.CoverDirectoryPath,
             NullLogger<LibraryService>.Instance,
             test.TimeProvider
@@ -705,7 +709,13 @@ public sealed class LibraryServiceTests
             test.Library.GetRoms(limit: 10).Should().ContainSingle().Which.CoverPath
             ?? throw new InvalidOperationException("Cover path was not stored.");
         var failingLibrary = new LibraryService(
-            new FailingDbContextFactory(test.DatabasePath, test.TimeProvider),
+            new TestDbContextFactory(
+                test.DatabasePath,
+                new FailingSaveChangesInterceptor(
+                    new InvalidOperationException("Test database failure.")
+                ),
+                timeProvider: test.TimeProvider
+            ),
             test.CoverDirectoryPath,
             NullLogger<LibraryService>.Instance,
             test.TimeProvider
@@ -880,7 +890,10 @@ public sealed class LibraryServiceTests
         public LibraryTestContext()
         {
             Directory.CreateDirectory(DirectoryPath);
-            var dbContextFactory = new TestDbContextFactory(DatabasePath, TimeProvider);
+            var dbContextFactory = new TestDbContextFactory(
+                DatabasePath,
+                timeProvider: TimeProvider
+            );
             using var db = dbContextFactory.CreateDbContext();
             db.Database.Migrate();
             Library = new LibraryService(
@@ -927,41 +940,6 @@ public sealed class LibraryServiceTests
         }
 
         public void Dispose() => TemporaryDirectory.Dispose();
-    }
-
-    private sealed class TestDbContextFactory(
-        string databasePath,
-        TimeProvider? timeProvider = null
-    ) : IDbContextFactory<GbcNetDbContext>
-    {
-        private readonly DbContextOptions<GbcNetDbContext> _options = SqliteDbContextOptions
-            .Configure(new DbContextOptionsBuilder<GbcNetDbContext>(), databasePath)
-            .Options;
-
-        public GbcNetDbContext CreateDbContext() => new(_options, timeProvider);
-    }
-
-    private sealed class FailingDbContextFactory(
-        string databasePath,
-        TimeProvider? timeProvider = null
-    ) : IDbContextFactory<GbcNetDbContext>
-    {
-        private readonly DbContextOptions<GbcNetDbContext> _options = SqliteDbContextOptions
-            .Configure(new DbContextOptionsBuilder<GbcNetDbContext>(), databasePath)
-            .AddInterceptors(FailingSaveChangesInterceptor.Instance)
-            .Options;
-
-        public GbcNetDbContext CreateDbContext() => new(_options, timeProvider);
-    }
-
-    private sealed class FailingSaveChangesInterceptor : SaveChangesInterceptor
-    {
-        public static FailingSaveChangesInterceptor Instance { get; } = new();
-
-        public override InterceptionResult<int> SavingChanges(
-            DbContextEventData eventData,
-            InterceptionResult<int> result
-        ) => throw new InvalidOperationException("Test database failure.");
     }
 
     private sealed class TestTimeProvider(DateTimeOffset utcNow) : TimeProvider

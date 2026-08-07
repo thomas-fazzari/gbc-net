@@ -7,15 +7,13 @@ using GbcNet.Core.Hardware;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu;
+using static GbcNet.Tests.Shared.Opcodes;
 using static GbcNet.Tests.Unit.Sgb.SgbTestHelpers;
 
 namespace GbcNet.Tests.Unit;
 
 public sealed class GameBoyTests
 {
-    private const byte HaltOpcode = 0x76;
-    private const byte StopOpcode = 0x10;
-    private const byte IncBOpcode = 0x04;
     private const byte JumpImmediate16Opcode = 0xC3;
     private const byte LoadAImmediate8Opcode = 0x3E;
     private const byte LoadHighMemoryAImmediate8Opcode = 0xE0;
@@ -360,7 +358,6 @@ public sealed class GameBoyTests
             .BeOfType<LcdFrame>()
             .Subject;
 
-        frame.PixelFormat.Should().Be(LcdPixelFormat.Rgb555Le);
         frame.Width.Should().Be(160);
         frame.Height.Should().Be(144);
         frame.Pixels.Length.Should().Be(160 * 144 * 2);
@@ -386,7 +383,6 @@ public sealed class GameBoyTests
             .BeOfType<LcdFrame>()
             .Subject;
 
-        frame.PixelFormat.Should().Be(LcdPixelFormat.Rgb555Le);
         Rgb555Assertions.PixelEquals(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x1234);
     }
 
@@ -411,7 +407,6 @@ public sealed class GameBoyTests
             .BeOfType<LcdFrame>()
             .Subject;
 
-        frame.PixelFormat.Should().Be(LcdPixelFormat.Rgb555Le);
         Rgb555Assertions.PixelEquals(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x6666);
         Rgb555Assertions.PixelEquals(frame, GameBoyPixelIndex(x: 8, y: 0), expected: 0x3333);
     }

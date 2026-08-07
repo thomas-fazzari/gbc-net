@@ -13,18 +13,6 @@ internal sealed record RomTestResult(
     string Diagnostic = ""
 )
 {
-    public static RomTestResult TimedOut(
-        int machineCycles,
-        IReadOnlyList<RomTestObservation> observations
-    ) => new(RomTestStatus.TimedOut, machineCycles, observations);
-
-    public static RomTestResult FromObservations(
-        RomTestStatus status,
-        int machineCycles,
-        IReadOnlyList<RomTestObservation> observations,
-        string diagnostic = ""
-    ) => new(status, machineCycles, observations, diagnostic);
-
     public string ToFailureMessage()
     {
         var message = new StringBuilder();

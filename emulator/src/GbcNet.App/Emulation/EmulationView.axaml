@@ -4,15 +4,13 @@
   x:Class="GbcNet.App.Emulation.EmulationView"
   Focusable="True"
 >
-  <Border x:Name="ViewportBackground" Background="{DynamicResource ChromeBackgroundBrush}">
-    <Viewbox Stretch="Uniform">
-      <Border
-        x:Name="ScreenBackground"
-        Background="{DynamicResource ChromeBackgroundBrush}"
-        RenderOptions.BitmapInterpolationMode="None"
-      >
-        <Image x:Name="ScreenImage" Width="160" Height="144" Stretch="Fill" />
-      </Border>
-    </Viewbox>
-  </Border>
+  <Viewbox Stretch="Uniform">
+    <Border
+      x:Name="ScreenBackground"
+      Background="{DynamicResource ChromeBackgroundBrush}"
+      RenderOptions.BitmapInterpolationMode="None"
+    >
+      <Image x:Name="ScreenImage" Width="160" Height="144" Stretch="Fill" />
+    </Border>
+  </Viewbox>
 </UserControl>

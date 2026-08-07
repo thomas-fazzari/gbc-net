@@ -14,10 +14,10 @@ internal readonly record struct BootRomConfig(
     [property: JsonPropertyName("sgb")] string? SgbPath = null
 )
 {
+    public static string DisplayName(HardwareModel model) => model.ToString().ToUpperInvariant();
+
     public static string JsonName(HardwareModel model) =>
         JsonNamingPolicy.CamelCase.ConvertName(model.ToString());
-
-    public static string DisplayName(HardwareModel model) => model.ToString().ToUpperInvariant();
 
     public static int Size(HardwareModel model) =>
         model switch

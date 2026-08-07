@@ -1,6 +1,7 @@
 <Window
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:chrome="clr-namespace:GbcNet.App.Shell.Chrome"
   x:Class="GbcNet.App.Cheats.CheatsWindow"
   Title="Cheats"
   Width="960"
@@ -9,7 +10,6 @@
   MinHeight="520"
   CanResize="True"
   WindowStartupLocation="CenterOwner"
-  RequestedThemeVariant="Dark"
   Background="{DynamicResource ChromeBackgroundBrush}"
 >
   <Window.Styles>
@@ -66,40 +66,28 @@
   </Window.Styles>
 
   <Grid RowDefinitions="*,Auto" ColumnDefinitions="176,*">
-    <Border
-      Grid.RowSpan="2"
-      Background="{DynamicResource ChromePanelBrush}"
-      BorderBrush="{DynamicResource ChromeHairBrush}"
-      BorderThickness="0,0,1,0"
-      Padding="8"
-    >
+    <Border Grid.RowSpan="2" Classes="sidebar-panel">
       <StackPanel HorizontalAlignment="Stretch" Spacing="6">
-        <Button
+        <chrome:SidebarNavButton
           x:Name="GameGenieNavButton"
           Classes="sidebar-item selected"
+          IconData="{StaticResource IconMagicStaff}"
+          Label="Game Genie"
           Click="ShowGameGeniePage"
           AutomationProperties.Name="Game Genie cheats"
           AutomationProperties.AutomationId="CheatsNavGameGenie"
           AutomationProperties.HelpText="Show Game Genie ROM patch codes"
-        >
-          <Grid ColumnDefinitions="16,*" ColumnSpacing="9">
-            <PathIcon Width="15" Height="15" Data="{StaticResource IconMagicStaff}" />
-            <TextBlock Grid.Column="1" Classes="chrome-label sidebar-label" Text="Game Genie" />
-          </Grid>
-        </Button>
-        <Button
+        />
+        <chrome:SidebarNavButton
           x:Name="GameSharkNavButton"
           Classes="sidebar-item"
+          IconData="{StaticResource IconShark}"
+          Label="GameShark"
           Click="ShowGameSharkPage"
           AutomationProperties.Name="GameShark cheats"
           AutomationProperties.AutomationId="CheatsNavGameShark"
           AutomationProperties.HelpText="Show GameShark memory write codes"
-        >
-          <Grid ColumnDefinitions="16,*" ColumnSpacing="9">
-            <PathIcon Width="15" Height="15" Data="{StaticResource IconShark}" />
-            <TextBlock Grid.Column="1" Classes="chrome-label sidebar-label" Text="GameShark" />
-          </Grid>
-        </Button>
+        />
       </StackPanel>
     </Border>
     <Grid

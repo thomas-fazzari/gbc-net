@@ -11,4 +11,7 @@ namespace GbcNet.App.Configuration.Sections.Input;
 internal sealed record KeyboardInputBindingConfig(
     [property: JsonPropertyName("button")] string ButtonName,
     [property: JsonPropertyName("key")] string KeyName
-);
+) : IInputBindingConfig
+{
+    string IInputBindingConfig.TargetName => KeyName;
+}

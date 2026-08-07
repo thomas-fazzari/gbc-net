@@ -47,7 +47,7 @@ internal static class RomTestRunner
             }
         }
 
-        return RomTestResult.TimedOut(machineCycles, GetSnapshots(observers));
+        return new RomTestResult(RomTestStatus.TimedOut, machineCycles, GetSnapshots(observers));
     }
 
     public static IReadOnlyDictionary<string, RomTestResult> RunAll(
@@ -75,8 +75,14 @@ internal static class RomTestRunner
         ArgumentNullException.ThrowIfNull(relativePaths);
         ArgumentNullException.ThrowIfNull(romDirectory);
 
+        var rows = new TheoryData<string>();
+        foreach (var relativePath in relativePaths)
+        {
+            rows.Add(relativePath);
+        }
+
         return new(
-            CreateTheoryData(relativePaths),
+            rows,
             new Lazy<IReadOnlyDictionary<string, RomTestResult>>(() =>
                 RunAll(
                     relativePaths,
@@ -90,40 +96,6 @@ internal static class RomTestRunner
                 )
             )
         );
-    }
-
-    public static TheoryData<string> CreateTheoryData(IReadOnlyList<string> relativePaths)
-    {
-        ArgumentNullException.ThrowIfNull(relativePaths);
-
-        var rows = new TheoryData<string>();
-        foreach (var relativePath in relativePaths)
-        {
-            rows.Add(relativePath);
-        }
-
-        return rows;
-    }
-
-    internal sealed class RomSuite
-    {
-        private readonly Lazy<IReadOnlyDictionary<string, RomTestResult>> _results;
-
-        internal RomSuite(
-            TheoryData<string> rows,
-            Lazy<IReadOnlyDictionary<string, RomTestResult>> results
-        )
-        {
-            ArgumentNullException.ThrowIfNull(rows);
-            ArgumentNullException.ThrowIfNull(results);
-
-            Rows = rows;
-            _results = results;
-        }
-
-        public TheoryData<string> Rows { get; }
-
-        public IReadOnlyDictionary<string, RomTestResult> Results => _results.Value;
     }
 
     private static RomTestResult? CreateTerminalResult(
@@ -143,7 +115,7 @@ internal static class RomTestRunner
 
         if (terminalObservations.Select(result => result.Status).Distinct().Skip(1).Any())
         {
-            return RomTestResult.FromObservations(
+            return new RomTestResult(
                 RomTestStatus.Failed,
                 machineCycles,
                 GetSnapshots(observers),
@@ -151,7 +123,7 @@ internal static class RomTestRunner
             );
         }
 
-        return RomTestResult.FromObservations(
+        return new RomTestResult(
             terminalObservations[0].Status.GetValueOrDefault(),
             machineCycles,
             GetSnapshots(observers)

@@ -34,8 +34,6 @@ public readonly record struct GameSharkCode
     /// </summary>
     public byte Value { get; }
 
-    internal bool IsValid => _canonicalCode is not null;
-
     /// <summary>
     /// Parses an eight-digit 01VVLLHH GameShark memory write code.
     /// </summary>
@@ -58,10 +56,10 @@ public readonly record struct GameSharkCode
         }
 
         var address = (ushort)(
-            (GetHexValue(text[6]) << 12)
-            | (GetHexValue(text[7]) << 8)
-            | (GetHexValue(text[4]) << 4)
-            | GetHexValue(text[5])
+            (CheatCodeParsingUtils.GetHexValue(text[6]) << 12)
+            | (CheatCodeParsingUtils.GetHexValue(text[7]) << 8)
+            | (CheatCodeParsingUtils.GetHexValue(text[4]) << 4)
+            | CheatCodeParsingUtils.GetHexValue(text[5])
         );
         if (!IsSupportedWritableAddress(address))
         {
@@ -72,13 +70,16 @@ public readonly record struct GameSharkCode
         Span<char> canonical = stackalloc char[8];
         for (var index = 0; index < canonical.Length; index++)
         {
-            canonical[index] = ToUpperAscii(text[index]);
+            canonical[index] = CheatCodeParsingUtils.ToUpperAscii(text[index]);
         }
 
         code = new GameSharkCode(
             new string(canonical),
             address,
-            (byte)((GetHexValue(text[2]) << 4) | GetHexValue(text[3]))
+            (byte)(
+                (CheatCodeParsingUtils.GetHexValue(text[2]) << 4)
+                | CheatCodeParsingUtils.GetHexValue(text[3])
+            )
         );
         return true;
     }
@@ -86,18 +87,9 @@ public readonly record struct GameSharkCode
     /// <inheritdoc />
     public override string ToString() => CanonicalCode;
 
-    private static char ToUpperAscii(char value) =>
-        value is >= 'a' and <= 'f' ? (char)(value - 32) : value;
-
     private static bool IsSupportedWritableAddress(ushort address) =>
         address
             is (>= AddressMap.VideoRamStart and <= AddressMap.VideoRamEnd)
                 or (>= AddressMap.WorkRamStart and <= AddressMap.ObjectAttributeMemoryEnd)
                 or >= AddressMap.IoRegistersStart;
-
-    private static int GetHexValue(char value)
-    {
-        value = ToUpperAscii(value);
-        return value <= '9' ? value - '0' : value - 'A' + 10;
-    }
 }

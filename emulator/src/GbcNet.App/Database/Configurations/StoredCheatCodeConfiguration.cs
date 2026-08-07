@@ -49,11 +49,7 @@ internal sealed class StoredCheatCodeConfiguration : IEntityTypeConfiguration<St
         builder.Property(entry => entry.Type).HasColumnName("type");
         builder.Property(entry => entry.SortOrder).HasColumnName("sort_order");
         builder.Property(entry => entry.Code).HasColumnName("code").HasColumnType("varchar(11)");
-        builder
-            .Property(entry => entry.Name)
-            .HasColumnName("name")
-            .HasColumnType("varchar(80)")
-            .IsRequired(false);
+        builder.Property(entry => entry.Name).HasColumnName("name").HasColumnType("varchar(80)");
         builder.Property(entry => entry.IsEnabled).HasColumnName("is_enabled");
     }
 }

@@ -19,7 +19,6 @@ internal static class DmgPostBootState
     private const ushort RegisterBc = 0x0013;
     private const ushort RegisterDe = 0x00D8;
     private const ushort RegisterHl = 0x014D;
-    private const ushort AudioRegistersStart = 0xFF10;
 
     private static readonly PostBootHardwareRegisterState[] _registerStatesBeforeAudio =
     [
@@ -47,47 +46,27 @@ internal static class DmgPostBootState
         new(AddressMap.InterruptEnableRegister, 0x00),
     ];
 
-    /// <summary>
-    /// DMG post-boot APU register values indexed from FF10 through FF26.
-    /// </summary>
-    private static ReadOnlySpan<byte> AudioRegisterStates =>
-        [
-            0x80,
-            0xBF,
-            0xF3,
-            0xFF,
-            0xBF,
-            0xFF,
-            0x3F,
-            0x00,
-            0xFF,
-            0xBF,
-            0x7F,
-            0xFF,
-            0x9F,
-            0xFF,
-            0xBF,
-            0xFF,
-            0xFF,
-            0x00,
-            0x00,
-            0xBF,
-            0x77,
-            0xF3,
-            0xF1,
-        ];
-
     public static void Apply(Cartridge cartridge, Cpu cpu, MemoryBus bus)
     {
-        Apply(cartridge, cpu, bus, RegisterBc);
+        Apply(cpu, bus, CreateCpuRegisterState(cartridge, RegisterBc), DividerCounter);
     }
 
-    internal static void Apply(Cartridge cartridge, Cpu cpu, MemoryBus bus, ushort registerBc)
+    /// <summary>
+    /// Applies the shared DMG/SGB hardware register state: CPU registers, divider, pre-audio, audio, and post-audio registers.
+    /// SGB passes its own CPU register state and divider so the
+    /// init runs once, then applies its two SGB-specific overrides afterward.
+    /// </summary>
+    internal static void Apply(
+        Cpu cpu,
+        MemoryBus bus,
+        PostBootCpuRegisterState cpuRegisterState,
+        ushort dividerCounter
+    )
     {
-        PostBootState.SetCpuRegisters(cpu.Registers, CreateCpuRegisterState(cartridge, registerBc));
-        bus.Clock.SetCounter(DividerCounter);
+        PostBootState.SetCpuRegisters(cpu.Registers, cpuRegisterState);
+        bus.Clock.SetCounter(dividerCounter);
         PostBootState.SetHardwareRegisterStates(bus, _registerStatesBeforeAudio);
-        ApplyAudioRegisters(bus);
+        PostBootState.ApplyAudioRegisters(bus);
         PostBootState.SetHardwareRegisterStates(bus, _registerStatesAfterAudio);
     }
 
@@ -106,13 +85,4 @@ internal static class DmgPostBootState
             AddressMap.CartridgeEntryPointAddress,
             AddressMap.HighRamEnd
         );
-
-    private static void ApplyAudioRegisters(MemoryBus bus)
-    {
-        var values = AudioRegisterStates;
-        for (var offset = 0; offset < values.Length; offset++)
-        {
-            bus.SetHardwareRegisterState((ushort)(AudioRegistersStart + offset), values[offset]);
-        }
-    }
 }

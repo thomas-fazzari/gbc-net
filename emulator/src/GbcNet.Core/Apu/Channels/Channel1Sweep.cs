@@ -88,8 +88,17 @@ internal sealed class Channel1Sweep
 
     internal Channel1SweepState CaptureState() => new(_register, _timer, _shadowPeriod, _enabled);
 
+    internal static void ValidateState(Channel1SweepState state)
+    {
+        if (state.ShadowPeriod > MaxPeriod)
+        {
+            throw new ArgumentOutOfRangeException(nameof(state));
+        }
+    }
+
     internal void RestoreState(Channel1SweepState state)
     {
+        ValidateState(state);
         _register = state.Register;
         _timer = state.Timer;
         _shadowPeriod = state.ShadowPeriod;

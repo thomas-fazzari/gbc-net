@@ -32,7 +32,7 @@ public sealed class HardwareProfileFactoryTests
         profile.IsCgbUndocumentedFf74RegisterEnabled.Should().BeFalse();
         profile.TicksTimerOnTacDisableWhenInputHigh.Should().BeTrue();
         profile.TicksTimerOnTacEnableWhenInputHigh.Should().BeFalse();
-        profile.CreatePpuEngine().Should().BeOfType<DmgPpuEngine>();
+        profile.CreatePpuEngine().Should().BeOfType<DmgPixelRulesPpuEngine<DmgShadePixelOutput>>();
 
         var apuSpec = profile.CreateApuModelSpec();
 
@@ -106,7 +106,10 @@ public sealed class HardwareProfileFactoryTests
         cgbProfile.IsCgbUndocumentedFf74RegisterEnabled.Should().BeFalse();
         cgbProfile.TicksTimerOnTacDisableWhenInputHigh.Should().BeFalse();
         cgbProfile.TicksTimerOnTacEnableWhenInputHigh.Should().BeTrue();
-        cgbProfile.CreatePpuEngine().Should().BeOfType<CgbDmgCompatibilityPpuEngine>();
+        cgbProfile
+            .CreatePpuEngine()
+            .Should()
+            .BeOfType<DmgPixelRulesPpuEngine<CgbDmgCompatibilityPixelOutput>>();
         cgbProfile.CreateApuModelSpec().Should().Be(ApuModelSpec.Cgb);
         cgbProfile.WorkRamBankCount.Should().Be(8);
     }
@@ -125,10 +128,9 @@ public sealed class HardwareProfileFactoryTests
         profile.IsKey1RegisterEnabled.Should().BeFalse();
         profile.IsSerialHighSpeedClockEnabled.Should().BeFalse();
         profile.IsColorPaletteRamEnabled.Should().BeFalse();
-        profile.IsColorPaletteIndexRegisterEnabled.Should().BeFalse();
         profile.TicksTimerOnTacDisableWhenInputHigh.Should().BeTrue();
         profile.TicksTimerOnTacEnableWhenInputHigh.Should().BeFalse();
-        profile.CreatePpuEngine().Should().BeOfType<DmgPpuEngine>();
+        profile.CreatePpuEngine().Should().BeOfType<DmgPixelRulesPpuEngine<DmgShadePixelOutput>>();
         profile.CreateApuModelSpec().Should().Be(ApuModelSpec.Sgb);
         profile.WorkRamBankCount.Should().Be(2);
     }

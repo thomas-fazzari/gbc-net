@@ -208,10 +208,10 @@ public sealed class GameBoyStateTests
             HardwareModel.Cgb,
             new BootRomOptions { CgbBootRom = BootRomTestFactory.CreateCgb() }
         );
-        gameBoy.Cheats.SetCodes([Parse("AA1-00F")]);
+        gameBoy.Cheats.SetCodes([CheatCodeParser.Parse(CheatCodeType.GameGenie, "AA1-00F")]);
         var state = gameBoy.CaptureSaveState();
 
-        gameBoy.Cheats.SetCodes([Parse("BB1-00F")]);
+        gameBoy.Cheats.SetCodes([CheatCodeParser.Parse(CheatCodeType.GameGenie, "BB1-00F")]);
         gameBoy.Bus.WriteByte(AddressMap.BootRomDisableRegister, 0x01);
         gameBoy.Bus.ReadByte(0x0100).Should().Be(0xBB);
 
@@ -222,12 +222,6 @@ public sealed class GameBoyStateTests
         gameBoy.Bus.WriteByte(AddressMap.BootRomDisableRegister, 0x01);
 
         gameBoy.Bus.ReadByte(0x0100).Should().Be(0xBB);
-    }
-
-    private static CheatCode Parse(string text)
-    {
-        CheatCode.TryParse(CheatCodeType.GameGenie, text, out var code).Should().BeTrue();
-        return code;
     }
 
     [Fact]
@@ -242,8 +236,8 @@ public sealed class GameBoyStateTests
             HardwareModel.Dmg
         );
         var state = gameBoy.CaptureState();
-        var originalCode = Parse("0A1-B9F");
-        var replacementCode = Parse("0C1-B9F");
+        var originalCode = CheatCodeParser.Parse(CheatCodeType.GameGenie, "0A1-B9F");
+        var replacementCode = CheatCodeParser.Parse(CheatCodeType.GameGenie, "0C1-B9F");
         gameBoy.Cheats.SetCodes([originalCode]);
         Exception? captureException = null;
         Exception? restoreException = null;

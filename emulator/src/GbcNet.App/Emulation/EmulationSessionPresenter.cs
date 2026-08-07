@@ -320,7 +320,7 @@ internal sealed class EmulationSessionPresenter(
     {
         try
         {
-            menu.SetRecentRoms(libraryService.GetRoms(RecentRomLimit));
+            menu.SetRecentRoms(libraryService.GetRoms(limit: RecentRomLimit));
         }
         catch (InvalidOperationException exception)
         {

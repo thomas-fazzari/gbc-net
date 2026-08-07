@@ -3,6 +3,7 @@
 
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
+using static GbcNet.Tests.Shared.Opcodes;
 
 namespace GbcNet.Tests.Unit.Sm83;
 
@@ -10,9 +11,6 @@ namespace GbcNet.Tests.Unit.Sm83;
 public sealed class StopInstructionTests
 {
     private const ushort EntryPoint = AddressMap.CartridgeEntryPointAddress;
-    private const byte StopOpcode = 0x10;
-    private const byte NopOpcode = 0x00;
-    private const byte IncBOpcode = 0x04;
 
     [Fact]
     public void Step_StopConsumesIgnoredSecondByteAndEntersStoppedState()

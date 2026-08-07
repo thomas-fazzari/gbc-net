@@ -7,6 +7,7 @@ using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Ppu;
 using GbcNet.Core.Sm83;
+using GbcNet.Tests.Unit.Sm83;
 
 namespace GbcNet.Tests.Unit;
 
@@ -17,8 +18,8 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SetsDmgCpuRegistersAfterBootHandoff()
     {
-        var cartridge = LoadCartridge(TestRomFactory.Create());
-        var (cpu, bus) = CreateHardware(cartridge);
+        var cartridge = TestRomFactory.LoadCartridge(TestRomFactory.Create());
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(cartridge);
 
         DmgHardwareProfile.Instance.ApplyPostBootState(cartridge, cpu, bus);
 
@@ -34,8 +35,8 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_ClearsDmgHalfCarryAndCarryWhenHeaderChecksumIsZero()
     {
-        var cartridge = LoadCartridge(CreateRomWithZeroHeaderChecksum());
-        var (cpu, bus) = CreateHardware(cartridge);
+        var cartridge = TestRomFactory.LoadCartridge(CreateRomWithZeroHeaderChecksum());
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(cartridge);
 
         DmgHardwareProfile.Instance.ApplyPostBootState(cartridge, cpu, bus);
 
@@ -45,10 +46,9 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SetsSgbCpuRegistersAfterBootHandoff()
     {
-        var cartridge = LoadCartridge(CreateSgbRom());
+        var cartridge = TestRomFactory.LoadCartridge(CreateSgbRom());
         var profile = SgbHardwareProfile.Instance;
-        var bus = new MemoryBus(cartridge, profile);
-        var cpu = new Cpu(bus);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(cartridge, profile);
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
@@ -64,10 +64,9 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SetsSgbIoRegistersAfterBootHandoff()
     {
-        var cartridge = LoadCartridge(CreateSgbRom());
+        var cartridge = TestRomFactory.LoadCartridge(CreateSgbRom());
         var profile = SgbHardwareProfile.Instance;
-        var bus = new MemoryBus(cartridge, profile);
-        var cpu = new Cpu(bus);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(cartridge, profile);
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
@@ -78,8 +77,8 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SetsDmgIoRegistersAfterBootHandoff()
     {
-        var cartridge = LoadCartridge(TestRomFactory.Create());
-        var (cpu, bus) = CreateHardware(cartridge);
+        var cartridge = TestRomFactory.LoadCartridge(TestRomFactory.Create());
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(cartridge);
 
         DmgHardwareProfile.Instance.ApplyPostBootState(cartridge, cpu, bus);
 
@@ -107,12 +106,11 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SetsCgbModeCpuRegistersAfterBootHandoff()
     {
-        var cartridge = LoadCartridge(
+        var cartridge = TestRomFactory.LoadCartridge(
             TestRomFactory.Create(rom => rom[0x0143] = (byte)CgbSupport.Required)
         );
         var profile = new CgbHardwareProfile(CgbOperatingMode.Cgb);
-        var bus = new MemoryBus(cartridge, profile);
-        var cpu = new Cpu(bus);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(cartridge, profile);
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
@@ -128,10 +126,9 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SetsCgbDmgCompatibilityCpuRegistersAfterBootHandoff()
     {
-        var cartridge = LoadCartridge(TestRomFactory.Create());
+        var cartridge = TestRomFactory.LoadCartridge(TestRomFactory.Create());
         var profile = new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility);
-        var bus = new MemoryBus(cartridge, profile);
-        var cpu = new Cpu(bus);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(cartridge, profile);
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
@@ -147,7 +144,7 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SeedsCgbDmgCompatibilityLogoTilemapForMatchingPaletteTitle()
     {
-        var cartridge = LoadCartridge(
+        var cartridge = TestRomFactory.LoadCartridge(
             TestRomFactory.Create(bytes =>
             {
                 bytes.AsSpan(0x0134, 16).Clear();
@@ -156,8 +153,7 @@ public sealed class PostBootStateTests
             })
         );
         var profile = new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility);
-        var bus = new MemoryBus(cartridge, profile);
-        var cpu = new Cpu(bus);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(cartridge, profile);
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
@@ -173,7 +169,7 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_DoesNotSeedCgbDmgCompatibilityLogoTilemapForRegularPaletteTitle()
     {
-        var cartridge = LoadCartridge(
+        var cartridge = TestRomFactory.LoadCartridge(
             TestRomFactory.Create(bytes =>
             {
                 bytes.AsSpan(0x0134, 16).Clear();
@@ -182,8 +178,7 @@ public sealed class PostBootStateTests
             })
         );
         var profile = new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility);
-        var bus = new MemoryBus(cartridge, profile);
-        var cpu = new Cpu(bus);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(cartridge, profile);
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
@@ -196,12 +191,11 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SetsCgbModeIoRegistersAfterBootHandoff()
     {
-        var cartridge = LoadCartridge(
+        var cartridge = TestRomFactory.LoadCartridge(
             TestRomFactory.Create(rom => rom[0x0143] = (byte)CgbSupport.Required)
         );
         var profile = new CgbHardwareProfile(CgbOperatingMode.Cgb);
-        var bus = new MemoryBus(cartridge, profile);
-        var cpu = new Cpu(bus);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(cartridge, profile);
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
@@ -228,12 +222,11 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SeedsCgbBackgroundPaletteRamToWhiteWithoutChangingIndex()
     {
-        var cartridge = LoadCartridge(
+        var cartridge = TestRomFactory.LoadCartridge(
             TestRomFactory.Create(rom => rom[0x0143] = (byte)CgbSupport.Required)
         );
         var profile = new CgbHardwareProfile(CgbOperatingMode.Cgb);
-        var bus = new MemoryBus(cartridge, profile);
-        var cpu = new Cpu(bus);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(cartridge, profile);
         bus.WriteByte(AddressMap.BackgroundPaletteIndexRegister, 0x85);
         bus.WriteByte(AddressMap.BackgroundPaletteDataRegister, 0x12);
         bus.WriteByte(AddressMap.BackgroundPaletteIndexRegister, 0x85);
@@ -249,10 +242,9 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SeedsCgbDmgCompatibilityPaletteRamForRgbRendering()
     {
-        var cartridge = LoadCartridge(TestRomFactory.Create());
+        var cartridge = TestRomFactory.LoadCartridge(TestRomFactory.Create());
         var profile = new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility);
-        var bus = new MemoryBus(cartridge, profile);
-        var cpu = new Cpu(bus);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(cartridge, profile);
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
@@ -271,10 +263,9 @@ public sealed class PostBootStateTests
     [Fact]
     public void Apply_SetsCgbDmgCompatibilityHardwareRegistersObservedByBootHwioC()
     {
-        var cartridge = LoadCartridge(TestRomFactory.Create());
+        var cartridge = TestRomFactory.LoadCartridge(TestRomFactory.Create());
         var profile = new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility);
-        var bus = new MemoryBus(cartridge, profile);
-        var cpu = new Cpu(bus);
+        var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(cartridge, profile);
 
         profile.ApplyPostBootState(cartridge, cpu, bus);
 
@@ -288,14 +279,6 @@ public sealed class PostBootStateTests
         bus.ReadByte(AddressMap.AudioPcm12Register).Should().Be(0x00);
         bus.ReadByte(AddressMap.AudioPcm34Register).Should().Be(0x00);
     }
-
-    private static (Cpu Cpu, MemoryBus Bus) CreateHardware(Cartridge cartridge)
-    {
-        var bus = new MemoryBus(cartridge, DmgHardwareProfile.Instance);
-        return (new Cpu(bus), bus);
-    }
-
-    private static Cartridge LoadCartridge(byte[] rom) => TestRomFactory.LoadCartridge(rom);
 
     private static byte[] CreateSgbRom() =>
         TestRomFactory.Create(bytes =>

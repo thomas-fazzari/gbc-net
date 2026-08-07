@@ -3,6 +3,7 @@
 
 using GbcNet.Core.Apu;
 using GbcNet.Core.Apu.Components;
+using GbcNet.Core.Hardware;
 
 namespace GbcNet.Tests.Unit.Apu;
 
@@ -10,15 +11,9 @@ public sealed class ApuStateTests
 {
     [Theory]
     [MemberData(nameof(ModelSpecs))]
-    public void CaptureRestore_PostBootRoundTripsEveryModel(string model)
+    public void CaptureRestore_PostBootRoundTripsEveryModel(HardwareModel model)
     {
-        var spec = model switch
-        {
-            "DMG" => ApuModelSpec.Dmg,
-            "CGB" => ApuModelSpec.Cgb,
-            "SGB" => ApuModelSpec.Sgb,
-            _ => throw new ArgumentOutOfRangeException(nameof(model)),
-        };
+        var spec = ModelSpecFor(model);
         ApuController apu = new(spec);
         apu.SetRegisterState(0xFF10, 0x80);
         apu.SetRegisterState(0xFF24, 0x77);
@@ -184,7 +179,17 @@ public sealed class ApuStateTests
         restored.ReadRegister(0xFF24).Should().Be(0);
     }
 
-    public static TheoryData<string> ModelSpecs => ["DMG", "CGB", "SGB"];
+    public static TheoryData<HardwareModel> ModelSpecs =>
+        [HardwareModel.Dmg, HardwareModel.Cgb, HardwareModel.Sgb];
+
+    private static ApuModelSpec ModelSpecFor(HardwareModel model) =>
+        model switch
+        {
+            HardwareModel.Dmg => ApuModelSpec.Dmg,
+            HardwareModel.Cgb => ApuModelSpec.Cgb,
+            HardwareModel.Sgb => ApuModelSpec.Sgb,
+            _ => throw new ArgumentOutOfRangeException(nameof(model)),
+        };
 
     private static ApuController CreatePulse(ApuModelSpec spec)
     {

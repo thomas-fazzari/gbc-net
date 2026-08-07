@@ -36,9 +36,6 @@
     <Style Selector="ComboBox.library-filter.region-filter">
       <Setter Property="MinWidth" Value="104" />
     </Style>
-    <Style Selector="ComboBox.library-filter.sort-filter">
-      <Setter Property="MinWidth" Value="120" />
-    </Style>
     <Style Selector="ComboBox.library-filter:pointerover">
       <Setter Property="BorderBrush" Value="{DynamicResource ChromeMutedBrush}" />
     </Style>

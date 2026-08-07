@@ -63,7 +63,7 @@ internal static class CbRotateShiftInstructions
     /// <summary>
     /// Executes a CB rotate or shift operation on one r8 operand.
     /// </summary>
-    private static void Execute(Cpu cpu, Register8Operand operand, RotateShiftExecutor execute)
+    private static void Execute(Cpu cpu, Register8 operand, RotateShiftExecutor execute)
     {
         var value = Register8Operands.Read(cpu, operand);
         var incomingCarry = cpu.Registers.IsFlagSet(CpuFlag.Carry);

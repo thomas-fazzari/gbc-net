@@ -84,27 +84,15 @@ internal static class AppConfigurationFile
         }
         catch (Exception exception) when (IsExpectedFileException(exception))
         {
-            TryDeleteRegularFile(temporaryPath, logger);
+            FileUtils.TryDeleteRegularFile(
+                temporaryPath,
+                ex => AppConfigurationFileLog.TemporaryConfigurationFileCleanupFailed(logger, ex)
+            );
 
             throw new ConfigurationException(
                 message: "Configuration file could not be saved: " + exception.Message,
                 innerException: exception
             );
-        }
-    }
-
-    private static void TryDeleteRegularFile(string path, ILogger logger)
-    {
-        try
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            AppConfigurationFileLog.TemporaryConfigurationFileCleanupFailed(logger, exception);
         }
     }
 

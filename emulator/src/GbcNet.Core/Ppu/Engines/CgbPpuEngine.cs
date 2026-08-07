@@ -15,6 +15,11 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
     private const byte AttributeBackgroundPriorityMask = 0x80;
     private const int Rgb555BytesPerPixel = 2;
 
+    /// <summary>
+    /// CGB raises the LY=144 Mode 2 STAT interrupt one M-cycle (4 dots) before VBlank.
+    /// </summary>
+    internal const int Mode2InterruptLeadDotsValue = 4;
+
     private readonly byte[] _backgroundColorFifo = new byte[BackgroundFifoCapacity];
     private readonly byte[] _backgroundAttributeFifo = new byte[BackgroundFifoCapacity];
     private readonly CgbObjectLayer _objects = new();
@@ -85,6 +90,8 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
     protected override int ObjectPenaltyDots => _objects.PenaltyDots;
 
     protected override bool RequestsMode2InterruptBeforeVBlank => true;
+
+    protected override int Mode2InterruptLeadDots => Mode2InterruptLeadDotsValue;
 
     protected override void EnsureObjectsSelected(PpuEngineInputs inputs)
     {

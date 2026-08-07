@@ -42,7 +42,7 @@ public sealed class DatabaseMigratorTests
         var cancellationToken = TestContext.Current.CancellationToken;
         var contextFactory = new TestDbContextFactory(
             databasePath,
-            () =>
+            beforeCreate: () =>
             {
                 if (Interlocked.Increment(ref contextCreationCount) == 1)
                 {
@@ -97,7 +97,7 @@ public sealed class DatabaseMigratorTests
         var cancellationToken = TestContext.Current.CancellationToken;
         var firstContextFactory = new TestDbContextFactory(
             firstDatabasePath,
-            () =>
+            beforeCreate: () =>
             {
                 firstContextCreated.Set();
                 releaseContexts.Wait(cancellationToken);
@@ -105,7 +105,7 @@ public sealed class DatabaseMigratorTests
         );
         var secondContextFactory = new TestDbContextFactory(
             secondDatabasePath,
-            () =>
+            beforeCreate: () =>
             {
                 secondContextCreated.Set();
                 releaseContexts.Wait(cancellationToken);
@@ -187,19 +187,5 @@ public sealed class DatabaseMigratorTests
         command.CommandText =
             "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = '__EFMigrationsHistory';";
         return (long)(command.ExecuteScalar() ?? 0L);
-    }
-
-    private sealed class TestDbContextFactory(string databasePath, Action? beforeCreate = null)
-        : IDbContextFactory<GbcNetDbContext>
-    {
-        private readonly DbContextOptions<GbcNetDbContext> _options = SqliteDbContextOptions
-            .Configure(new DbContextOptionsBuilder<GbcNetDbContext>(), databasePath)
-            .Options;
-
-        public GbcNetDbContext CreateDbContext()
-        {
-            beforeCreate?.Invoke();
-            return new(_options);
-        }
     }
 }

@@ -20,7 +20,6 @@ internal static class CgbPostBootState
     private const ushort DmgCompatibilityRegisterDe = 0x0008;
     private const ushort DmgCompatibilityDefaultRegisterHl = 0x007C;
     private const ushort DmgCompatibilityLogoRegisterHl = 0x991A;
-    private const ushort AudioRegistersStart = 0xFF10;
 
     /// <summary>
     /// Retail CGB ABC/DE divider phase at PC=$0100 after boot ROM execution, validated against Mooneye boot_div-cgbABCDE.
@@ -65,36 +64,6 @@ internal static class CgbPostBootState
         new(AddressMap.ObjectPaletteIndexRegister, 0xD0),
     ];
 
-    /// <summary>
-    /// CGB post-boot APU register values indexed from FF10 through FF26.
-    /// </summary>
-    private static ReadOnlySpan<byte> AudioRegisterStates =>
-        [
-            0x80,
-            0xBF,
-            0xF3,
-            0xFF,
-            0xBF,
-            0xFF,
-            0x3F,
-            0x00,
-            0xFF,
-            0xBF,
-            0x7F,
-            0xFF,
-            0x9F,
-            0xFF,
-            0xBF,
-            0xFF,
-            0xFF,
-            0x00,
-            0x00,
-            0xBF,
-            0x77,
-            0xF3,
-            0xF1,
-        ];
-
     public static void Apply(
         CgbOperatingMode operatingMode,
         Cartridge cartridge,
@@ -127,7 +96,7 @@ internal static class CgbPostBootState
         }
 
         PostBootState.SetHardwareRegisterStates(bus, _preAudioRegisters);
-        ApplyAudioRegisters(bus);
+        PostBootState.ApplyAudioRegisters(bus);
         PostBootState.SetHardwareRegisterStates(bus, _commonPostAudioRegisters);
         bus.Clock.SetCounter(RetailCgbAbcdeDividerCounter);
 
@@ -175,14 +144,5 @@ internal static class CgbPostBootState
             AddressMap.CartridgeEntryPointAddress,
             AddressMap.HighRamEnd
         );
-    }
-
-    private static void ApplyAudioRegisters(MemoryBus bus)
-    {
-        var values = AudioRegisterStates;
-        for (var offset = 0; offset < values.Length; offset++)
-        {
-            bus.SetHardwareRegisterState((ushort)(AudioRegistersStart + offset), values[offset]);
-        }
     }
 }

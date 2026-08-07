@@ -89,6 +89,8 @@ internal static class RotateInstructions
     /// </summary>
     private static void SetAccumulatorRotateFlags(Cpu cpu, bool carry)
     {
+        // Direct F write bypasses SetFlag to set all four flags in one store. Behavior is identical
+        // to SetFlag calls but avoids four separate read-modify-write cycles on the hot rotate path.
         cpu.Registers.F = carry ? (byte)CpuFlag.Carry : (byte)0;
     }
 }

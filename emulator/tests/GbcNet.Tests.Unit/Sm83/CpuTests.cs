@@ -6,6 +6,7 @@ using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Sm83;
+using static GbcNet.Tests.Shared.Opcodes;
 
 namespace GbcNet.Tests.Unit.Sm83;
 
@@ -22,7 +23,6 @@ public sealed class CpuTests
     private const byte DeRegisterPair = (byte)RegisterPair.DE;
     private const byte HlRegisterPair = (byte)RegisterPair.HL;
     private const byte SpRegisterPair = (byte)RegisterPair.SP;
-    private const byte StopOpcode = 0x10;
 
     [Fact]
     public void Constructor_InitializesDmgPostBootProgramCounterAndStackPointer()

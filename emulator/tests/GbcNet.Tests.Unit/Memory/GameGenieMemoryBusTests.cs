@@ -18,12 +18,12 @@ public sealed class GameGenieMemoryBusTests
         var cartridge = TestRomFactory.LoadCartridge(bytes => bytes[0x01B9] = 0x44);
         var bus = new MemoryBus(cartridge, DmgHardwareProfile.Instance);
 
-        bus.SetCheatCodes([Parse("0A1-B9F")]);
+        bus.SetCheatCodes([CheatCodeParser.Parse(CheatCodeType.GameGenie, "0A1-B9F")]);
 
         bus.ReadByte(0x01B9).Should().Be(0x0A);
         cartridge.ReadRom(0x01B9).Should().Be(0x44);
 
-        bus.SetCheatCodes([Parse("0C1-B9F")]);
+        bus.SetCheatCodes([CheatCodeParser.Parse(CheatCodeType.GameGenie, "0C1-B9F")]);
 
         bus.ReadByte(0x01B9).Should().Be(0x0C);
         cartridge.ReadRom(0x01B9).Should().Be(0x44);
@@ -40,13 +40,13 @@ public sealed class GameGenieMemoryBusTests
         var rom = TestRomFactory.Create(bytes => bytes[0x0855] = 0x04);
         var bus = new MemoryBus(TestRomFactory.LoadCartridge(rom), DmgHardwareProfile.Instance);
 
-        bus.SetCheatCodes([Parse("068-55F-E66")]);
+        bus.SetCheatCodes([CheatCodeParser.Parse(CheatCodeType.GameGenie, "068-55F-E66")]);
 
         bus.ReadByte(0x0855).Should().Be(0x04);
 
         rom[0x0855] = 0x03;
         bus = new MemoryBus(TestRomFactory.LoadCartridge(rom), DmgHardwareProfile.Instance);
-        bus.SetCheatCodes([Parse("068-55F-E66")]);
+        bus.SetCheatCodes([CheatCodeParser.Parse(CheatCodeType.GameGenie, "068-55F-E66")]);
 
         bus.ReadByte(0x0855).Should().Be(0x06);
     }
@@ -59,7 +59,10 @@ public sealed class GameGenieMemoryBusTests
             DmgHardwareProfile.Instance
         );
 
-        bus.SetCheatCodes([Parse("110-00B"), Parse("220-00B")]);
+        bus.SetCheatCodes([
+            CheatCodeParser.Parse(CheatCodeType.GameGenie, "110-00B"),
+            CheatCodeParser.Parse(CheatCodeType.GameGenie, "220-00B"),
+        ]);
 
         bus.ReadByte(0x4000).Should().Be(0x11);
     }
@@ -80,7 +83,7 @@ public sealed class GameGenieMemoryBusTests
         );
         var bus = new MemoryBus(cartridge, DmgHardwareProfile.Instance);
 
-        bus.SetCheatCodes([Parse("CC0-00B-602")]);
+        bus.SetCheatCodes([CheatCodeParser.Parse(CheatCodeType.GameGenie, "CC0-00B-602")]);
 
         bus.ReadByte(0x4000).Should().Be(0x11);
 
@@ -97,7 +100,7 @@ public sealed class GameGenieMemoryBusTests
             TestRomFactory.LoadCartridge(bytes => bytes[0x01B9] = 0x44),
             DmgHardwareProfile.Instance
         );
-        bus.SetCheatCodes([Parse("0A1-B9F")]);
+        bus.SetCheatCodes([CheatCodeParser.Parse(CheatCodeType.GameGenie, "0A1-B9F")]);
 
         var exception = FluentActions
             .Invoking(() => bus.SetCheatCodes([default]))
@@ -118,7 +121,7 @@ public sealed class GameGenieMemoryBusTests
             new BootRomOptions { CgbBootRom = BootRomTestFactory.CreateCgb() }
         );
         var bus = new MemoryBus(cartridge, new CgbHardwareProfile(CgbOperatingMode.Cgb), bootRom);
-        bus.SetCheatCodes([Parse("AA1-00F")]);
+        bus.SetCheatCodes([CheatCodeParser.Parse(CheatCodeType.GameGenie, "AA1-00F")]);
 
         bus.ReadByte(0x0100).Should().Be(0x55);
 
@@ -134,7 +137,7 @@ public sealed class GameGenieMemoryBusTests
             TestRomFactory.LoadCartridge(bytes => bytes[0x0855] = 0x44),
             new CgbHardwareProfile(CgbOperatingMode.Cgb)
         );
-        bus.SetCheatCodes([Parse("068-55F")]);
+        bus.SetCheatCodes([CheatCodeParser.Parse(CheatCodeType.GameGenie, "068-55F")]);
 
         bus.WriteByte(AddressMap.DmaRegister, 0x08);
         bus.TickDma(2);
@@ -150,11 +153,5 @@ public sealed class GameGenieMemoryBusTests
             .Should()
             .Be(0x06);
         bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x05).Should().Be(0x06);
-    }
-
-    private static CheatCode Parse(string text)
-    {
-        CheatCode.TryParse(CheatCodeType.GameGenie, text, out var code).Should().BeTrue();
-        return code;
     }
 }

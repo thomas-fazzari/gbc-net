@@ -1,7 +1,6 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using GbcNet.Core.Ppu;
 using GbcNet.Core.Snes;
 using static GbcNet.Tests.Unit.Sgb.SgbTestHelpers;
 
@@ -19,7 +18,6 @@ public sealed class SgbControllerTests
         var frame = CreateDmgFrame(shade: 2);
         var colorized = sgb.ApplyPalettes(frame);
 
-        colorized.PixelFormat.Should().Be(LcdPixelFormat.Rgb555Le);
         colorized.Width.Should().Be(160);
         colorized.Height.Should().Be(144);
         Rgb555Assertions.PixelEquals(colorized, GameBoyPixelIndex(x: 0, y: 0), expected: 0x6666);
@@ -171,9 +169,9 @@ public sealed class SgbControllerTests
         var tileTransfer = new byte[4096];
         var mapTransfer = new byte[4096];
         WriteBorderTilePixel(tileTransfer, tileIndex: 1, color: 5);
-        WriteUInt16(mapTransfer, offset: 0, (4 << 10) | 1);
-        WriteUInt16(mapTransfer, offset: 0x800 + (5 * 2), 0x1234);
-        WriteUInt16(mapTransfer, offset: (7 + (5 * 32)) * 2, (4 << 10) | 1);
+        WriteBorderMapEntry(mapTransfer, tileX: 0, tileY: 0, tileIndex: 1, palette: 4);
+        WriteBorderPaletteColor(mapTransfer, paletteColor: 5, 0x1234);
+        WriteBorderMapEntry(mapTransfer, tileX: 7, tileY: 5, tileIndex: 1, palette: 4);
 
         WriteSgbPacket(sgb, command: 0x13, [0x00]);
         sgb.HasPendingVramTransfer.Should().BeTrue();
@@ -199,9 +197,9 @@ public sealed class SgbControllerTests
         var map = new byte[4096];
         WriteBorderTilePixel(firstTiles, tileIndex: 1, color: 5);
         WriteBorderTilePixel(updatedTiles, tileIndex: 1, color: 6);
-        WriteUInt16(map, offset: 0, (4 << 10) | 1);
-        WriteUInt16(map, offset: 0x800 + (5 * 2), 0x1234);
-        WriteUInt16(map, offset: 0x800 + (6 * 2), 0x5678);
+        WriteBorderMapEntry(map, tileX: 0, tileY: 0, tileIndex: 1, palette: 4);
+        WriteBorderPaletteColor(map, paletteColor: 5, 0x1234);
+        WriteBorderPaletteColor(map, paletteColor: 6, 0x5678);
         ApplyBorderTransfers(sgb, firstTiles, map);
         var firstFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 0));
 
@@ -221,10 +219,10 @@ public sealed class SgbControllerTests
         var firstMap = new byte[4096];
         var updatedMap = new byte[4096];
         WriteBorderTilePixel(tiles, tileIndex: 1, color: 5);
-        WriteUInt16(firstMap, offset: 0, (4 << 10) | 1);
-        WriteUInt16(firstMap, offset: 0x800 + (5 * 2), 0x1234);
-        WriteUInt16(updatedMap, offset: 0, (4 << 10) | 1);
-        WriteUInt16(updatedMap, offset: 0x800 + (5 * 2), 0x5678);
+        WriteBorderMapEntry(firstMap, tileX: 0, tileY: 0, tileIndex: 1, palette: 4);
+        WriteBorderPaletteColor(firstMap, paletteColor: 5, 0x1234);
+        WriteBorderMapEntry(updatedMap, tileX: 0, tileY: 0, tileIndex: 1, palette: 4);
+        WriteBorderPaletteColor(updatedMap, paletteColor: 5, 0x5678);
         ApplyBorderTransfers(sgb, tiles, firstMap);
         var firstFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 0));
 

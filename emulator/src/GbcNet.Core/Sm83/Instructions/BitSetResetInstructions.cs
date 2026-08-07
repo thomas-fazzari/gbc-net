@@ -69,7 +69,7 @@ internal static class BitSetResetInstructions
     /// <summary>
     /// Executes BIT b3, r8 by testing one bit while preserving C and leaving the operand unchanged.
     /// </summary>
-    private static void ExecuteBitTest(Cpu cpu, byte mask, Register8Operand operand)
+    private static void ExecuteBitTest(Cpu cpu, byte mask, Register8 operand)
     {
         var value = Register8Operands.Read(cpu, operand);
 
@@ -81,12 +81,7 @@ internal static class BitSetResetInstructions
     /// <summary>
     /// Executes RES or SET b3, r8 by mutating one bit and preserving all flags.
     /// </summary>
-    private static void ExecuteBitMutation(
-        Cpu cpu,
-        byte mask,
-        Register8Operand operand,
-        bool setBit
-    )
+    private static void ExecuteBitMutation(Cpu cpu, byte mask, Register8 operand, bool setBit)
     {
         var value = Register8Operands.Read(cpu, operand);
         var result = setBit ? (byte)(value | mask) : (byte)(value & ~mask);

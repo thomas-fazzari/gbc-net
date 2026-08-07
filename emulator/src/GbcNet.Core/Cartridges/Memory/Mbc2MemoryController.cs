@@ -72,13 +72,9 @@ internal sealed class Mbc2MemoryController(
 
     public void ValidateState(ICartridgeMemoryControllerState state)
     {
-        if (state is not Mbc2MemoryControllerState mbc2State)
-        {
-            throw new ArgumentException(
-                "Cartridge memory controller state is invalid.",
-                nameof(state)
-            );
-        }
+        var mbc2State = CartridgeStateValidator.ValidateControllerState<Mbc2MemoryControllerState>(
+            state
+        );
 
         _ram.ValidateState(mbc2State.Ram);
 

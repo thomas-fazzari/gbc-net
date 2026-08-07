@@ -21,33 +21,29 @@ internal static class Register8Operands
     /// <summary>
     /// Decodes the destination r8 operand from opcode bits 5-3.
     /// </summary>
-    public static Register8Operand DecodeDestination(byte opcode) =>
-        (Register8Operand)((opcode >> DestinationOperandShift) & OperandMask);
+    public static Register8 DecodeDestination(byte opcode) =>
+        (Register8)((opcode >> DestinationOperandShift) & OperandMask);
 
     /// <summary>
     /// Decodes the source r8 operand from opcode bits 2-0.
     /// </summary>
-    public static Register8Operand DecodeSource(byte opcode) =>
-        (Register8Operand)(opcode & OperandMask);
+    public static Register8 DecodeSource(byte opcode) => (Register8)(opcode & OperandMask);
 
     /// <summary>
     /// Returns whether the operand reads or writes the byte at HL.
     /// </summary>
-    public static bool UsesMemory(Register8Operand operand) =>
-        operand is Register8Operand.AddressHl;
+    public static bool UsesMemory(Register8 operand) => operand is Register8.AddressHl;
 
     /// <summary>
     /// Reads either a CPU register or the byte at HL.
     /// </summary>
-    public static byte Read(Cpu cpu, Register8Operand operand) =>
-        UsesMemory(operand)
-            ? cpu.ReadBus(cpu.Registers.HL)
-            : cpu.Registers.GetRegister((Register8)operand);
+    public static byte Read(Cpu cpu, Register8 operand) =>
+        UsesMemory(operand) ? cpu.ReadBus(cpu.Registers.HL) : cpu.Registers.GetRegister(operand);
 
     /// <summary>
     /// Writes either a CPU register or the byte at HL.
     /// </summary>
-    public static void Write(Cpu cpu, Register8Operand operand, byte value)
+    public static void Write(Cpu cpu, Register8 operand, byte value)
     {
         if (UsesMemory(operand))
         {
@@ -55,6 +51,6 @@ internal static class Register8Operands
             return;
         }
 
-        cpu.Registers.SetRegister((Register8)operand, value);
+        cpu.Registers.SetRegister(operand, value);
     }
 }

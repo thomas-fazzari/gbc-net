@@ -48,9 +48,7 @@ internal sealed class CartridgeBatterySaveFileService
 
             if (!cartridge.TryImportBatterySave(File.ReadAllBytes(path), out var errorMessage))
             {
-                throw new InvalidOperationException(
-                    errorMessage ?? "Save file could not be imported."
-                );
+                throw new InvalidOperationException(errorMessage);
             }
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -83,13 +81,10 @@ internal sealed class CartridgeBatterySaveFileService
         }
     }
 
-    internal string GetBatterySavePath(Cartridge cartridge, ReadOnlySpan<byte> rom)
-    {
-        var identity = RomStorageIdentity.Create(cartridge.Header.Title, rom);
-
-        return Path.Combine(
+    internal string GetBatterySavePath(Cartridge cartridge, ReadOnlySpan<byte> rom) =>
+        Path.Combine(
             path1: _saveDirectoryPath,
-            path2: identity.FileStem + SaveFileExtension
+            path2: RomStorageIdentity.CreateFileStem(cartridge.Header.Title, rom)
+                + SaveFileExtension
         );
-    }
 }

@@ -39,13 +39,9 @@ internal sealed class Mbc5MemoryController(
 
     public void ValidateState(ICartridgeMemoryControllerState state)
     {
-        if (state is not Mbc5MemoryControllerState mbc5State)
-        {
-            throw new ArgumentException(
-                "Cartridge memory controller state is invalid.",
-                nameof(state)
-            );
-        }
+        var mbc5State = CartridgeStateValidator.ValidateControllerState<Mbc5MemoryControllerState>(
+            state
+        );
 
         _externalRam.ValidateState(mbc5State.ExternalRam);
 

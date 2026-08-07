@@ -5,7 +5,7 @@ using GbcNet.Tests.Unit.RomTesting.Utils;
 
 namespace GbcNet.Tests.Unit.RomTesting.Blargg;
 
-[Collection<RomTestSuite>]
+[Collection<RomTestCollectionDefinition>]
 public sealed class BlarggMemoryTimingRomTests
 {
     private const string RomDirectory = "RomTesting/Resources/Blargg/mem_timing";
@@ -19,7 +19,7 @@ public sealed class BlarggMemoryTimingRomTests
         "individual/03-modify_timing.gb",
     ];
 
-    private static readonly RomTestRunner.RomSuite _roms = RomTestRunner.CreateSuite(
+    private static readonly RomSuite _roms = RomTestRunner.CreateSuite(
         _romFileNames,
         RomDirectory,
         MaxMachineCycles

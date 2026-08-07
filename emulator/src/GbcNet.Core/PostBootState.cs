@@ -32,6 +32,47 @@ internal static class PostBootState
             bus.SetHardwareRegisterState(registerState.Address, registerState.RegisterValue);
         }
     }
+
+    /// <summary>
+    /// Post-boot APU register values indexed from FF10 through FF26, shared by DMG, CGB, and SGB.
+    /// </summary>
+    private const ushort AudioRegistersStart = 0xFF10;
+
+    private static ReadOnlySpan<byte> AudioRegisterStates =>
+        [
+            0x80,
+            0xBF,
+            0xF3,
+            0xFF,
+            0xBF,
+            0xFF,
+            0x3F,
+            0x00,
+            0xFF,
+            0xBF,
+            0x7F,
+            0xFF,
+            0x9F,
+            0xFF,
+            0xBF,
+            0xFF,
+            0xFF,
+            0x00,
+            0x00,
+            0xBF,
+            0x77,
+            0xF3,
+            0xF1,
+        ];
+
+    internal static void ApplyAudioRegisters(MemoryBus bus)
+    {
+        var values = AudioRegisterStates;
+        for (var offset = 0; offset < values.Length; offset++)
+        {
+            bus.SetHardwareRegisterState((ushort)(AudioRegistersStart + offset), values[offset]);
+        }
+    }
 }
 
 internal readonly record struct PostBootCpuRegisterState(

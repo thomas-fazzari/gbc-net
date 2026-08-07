@@ -1,14 +1,13 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using System.Security.Cryptography;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Ppu;
 using GbcNet.Tests.Unit.RomTesting.Utils;
 
 namespace GbcNet.Tests.Unit.RomTesting.Visual;
 
-[Collection<RomTestSuite>]
+[Collection<RomTestCollectionDefinition>]
 public sealed class CgbAcid2VisualRomTests
 {
     private const string RomPath = "RomTesting/Resources/Visual/cgb-acid2/cgb-acid2.gbc";
@@ -30,8 +29,8 @@ public sealed class CgbAcid2VisualRomTests
     {
         var rom = File.ReadAllBytes(RomPath);
         var expectedPixels = File.ReadAllBytes(GoldenPath);
-        ComputeSha256(rom).Should().Be(ExpectedRomSha256);
-        ComputeSha256(expectedPixels).Should().Be(ExpectedGoldenSha256);
+        RomTestHashing.ComputeSha256(rom).Should().Be(ExpectedRomSha256);
+        RomTestHashing.ComputeSha256(expectedPixels).Should().Be(ExpectedGoldenSha256);
         expectedPixels.Length.Should().Be(ExpectedPixelByteCount);
 
         using var result = VisualRomTestRunner.RunToFrame(
@@ -43,13 +42,16 @@ public sealed class CgbAcid2VisualRomTests
 
         result.Frame.Should().NotBeNull();
         result.Frame.PixelFormat.Should().Be(LcdPixelFormat.Rgb555Le);
-        (expectedPixels.AsSpan().SequenceEqual(result.Frame.Pixels.Span))
+        expectedPixels
+            .AsSpan()
+            .SequenceEqual(result.Frame.Pixels.Span)
             .Should()
             .BeTrue(
-                Rgb555FrameDifference.CreateMessage(result, expectedPixels, MaxReportedDiffOffsets)
+                FrameDifferenceReporter.CreateMessage(
+                    result,
+                    expectedPixels,
+                    MaxReportedDiffOffsets
+                )
             );
     }
-
-    private static string ComputeSha256(ReadOnlySpan<byte> bytes) =>
-        Convert.ToHexString(SHA256.HashData(bytes));
 }

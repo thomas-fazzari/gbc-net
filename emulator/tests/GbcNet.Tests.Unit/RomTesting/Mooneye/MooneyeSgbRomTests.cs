@@ -6,7 +6,7 @@ using GbcNet.Tests.Unit.RomTesting.Utils;
 
 namespace GbcNet.Tests.Unit.RomTesting.Mooneye;
 
-[Collection<RomTestSuite>]
+[Collection<RomTestCollectionDefinition>]
 public sealed class MooneyeSgbRomTests
 {
     private const string RomDirectory = "RomTesting/Resources/Mooneye/acceptance";
@@ -20,7 +20,7 @@ public sealed class MooneyeSgbRomTests
         "boot_regs-sgb.gb",
     ];
 
-    private static readonly RomTestRunner.RomSuite _roms = RomTestRunner.CreateSuite(
+    private static readonly RomSuite _roms = RomTestRunner.CreateSuite(
         _romRelativePaths,
         RomDirectory,
         MaxMachineCycles,

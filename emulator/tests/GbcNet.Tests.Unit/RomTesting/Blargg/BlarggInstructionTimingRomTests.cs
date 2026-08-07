@@ -5,7 +5,7 @@ using GbcNet.Tests.Unit.RomTesting.Utils;
 
 namespace GbcNet.Tests.Unit.RomTesting.Blargg;
 
-[Collection<RomTestSuite>]
+[Collection<RomTestCollectionDefinition>]
 public sealed class BlarggInstructionTimingRomTests
 {
     private const string RomPath = "RomTesting/Resources/Blargg/instr_timing/instr_timing.gb";

@@ -21,15 +21,57 @@ internal interface IDmgPixelOutput
 /// <summary>
 /// Shared DMG pixel-rule renderer used by DMG hardware and CGB DMG compatibility output.
 /// </summary>
-internal abstract class DmgPixelRulesPpuEngine<TPixelOutput>()
-    : PpuEngineBase(TPixelOutput.BytesPerPixel, TPixelOutput.PixelFormat)
+/// <remarks>
+/// The <paramref name="requestsMode2InterruptBeforeVBlank"/> flag selects the CGB-compat
+/// early Mode 2 STAT interrupt, and <paramref name="stateWrapper"/> wraps the captured
+/// state in the profile-specific <see cref="IPpuEngineState"/> subtype for JSON discrimination.
+/// </remarks>
+internal sealed class DmgPixelRulesPpuEngine<TPixelOutput>(
+    bool requestsMode2InterruptBeforeVBlank,
+    Func<DmgPixelRulesPpuEngineState, IPpuEngineState> stateWrapper
+) : PpuEngineBase(TPixelOutput.BytesPerPixel, TPixelOutput.PixelFormat)
     where TPixelOutput : struct, IDmgPixelOutput
 {
+    public override IPpuEngineState CaptureState() =>
+        stateWrapper(CaptureDmgPixelRulesPpuEngineState());
+
+    public override void ValidateState(IPpuEngineState state)
+    {
+        if (state is not IDmgPixelRulesState dmgState)
+        {
+            throw new ArgumentException(
+                "PPU engine state must be for a DMG pixel-rules engine.",
+                nameof(state)
+            );
+        }
+
+        ValidateDmgPixelRulesPpuEngineState(dmgState.PixelRules);
+    }
+
+    public override void RestoreState(IPpuEngineState state)
+    {
+        if (state is not IDmgPixelRulesState dmgState)
+        {
+            throw new ArgumentException(
+                "PPU engine state must be for a DMG pixel-rules engine.",
+                nameof(state)
+            );
+        }
+
+        RestoreDmgPixelRulesPpuEngineState(dmgState.PixelRules);
+    }
+
+    protected override bool RequestsMode2InterruptBeforeVBlank =>
+        requestsMode2InterruptBeforeVBlank;
+
+    protected override int Mode2InterruptLeadDots =>
+        requestsMode2InterruptBeforeVBlank ? CgbPpuEngine.Mode2InterruptLeadDotsValue : 0;
+
     private readonly byte[] _backgroundFifo = new byte[BackgroundFifoCapacity];
     private readonly DmgObjectLayer _objects = new();
     private byte _fetcherTileId;
 
-    protected DmgPixelRulesPpuEngineState CaptureDmgPixelRulesPpuEngineState() =>
+    private DmgPixelRulesPpuEngineState CaptureDmgPixelRulesPpuEngineState() =>
         new(
             CapturePpuEngineBaseState(),
             [.. _backgroundFifo],
@@ -37,7 +79,7 @@ internal abstract class DmgPixelRulesPpuEngine<TPixelOutput>()
             _fetcherTileId
         );
 
-    protected void ValidateDmgPixelRulesPpuEngineState(DmgPixelRulesPpuEngineState state)
+    private void ValidateDmgPixelRulesPpuEngineState(DmgPixelRulesPpuEngineState state)
     {
         ValidatePpuEngineBaseState(state.Common);
         _objects.ValidateState(state.Objects);
@@ -51,7 +93,7 @@ internal abstract class DmgPixelRulesPpuEngine<TPixelOutput>()
         }
     }
 
-    protected void RestoreDmgPixelRulesPpuEngineState(DmgPixelRulesPpuEngineState state)
+    private void RestoreDmgPixelRulesPpuEngineState(DmgPixelRulesPpuEngineState state)
     {
         ValidateDmgPixelRulesPpuEngineState(state);
         RestorePpuEngineBaseState(state.Common);
@@ -291,3 +333,19 @@ internal readonly record struct DmgPixelRulesPpuEngineState(
     DmgObjectLayerState Objects,
     byte FetchedTileId
 );
+
+/// <summary>
+/// Marker for DMG pixel-rules engine state wrappers, exposing the inner <see cref="DmgPixelRulesPpuEngineState"/>.
+/// </summary>
+internal interface IDmgPixelRulesState
+{
+    DmgPixelRulesPpuEngineState PixelRules { get; }
+}
+
+internal sealed record DmgPpuEngineState(DmgPixelRulesPpuEngineState PixelRules)
+    : IDmgPixelRulesState,
+        IPpuEngineState;
+
+internal sealed record CgbDmgCompatibilityPpuEngineState(DmgPixelRulesPpuEngineState PixelRules)
+    : IDmgPixelRulesState,
+        IPpuEngineState;

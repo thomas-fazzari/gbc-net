@@ -1,6 +1,7 @@
 <Window
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:chrome="clr-namespace:GbcNet.App.Shell.Chrome"
   x:Class="GbcNet.App.Configuration.SettingsWindow"
   Title="Configuration"
   Width="960"
@@ -9,7 +10,6 @@
   MinHeight="520"
   CanResize="True"
   WindowStartupLocation="CenterOwner"
-  RequestedThemeVariant="Dark"
   Background="{DynamicResource ChromeBackgroundBrush}"
 >
   <Window.Styles>
@@ -72,53 +72,38 @@
   </Window.Styles>
 
   <Grid RowDefinitions="*,Auto" ColumnDefinitions="176,*">
-    <Border
-      Grid.RowSpan="2"
-      Background="{DynamicResource ChromePanelBrush}"
-      BorderBrush="{DynamicResource ChromeHairBrush}"
-      BorderThickness="0,0,1,0"
-      Padding="8"
-    >
+    <Border Grid.RowSpan="2" Classes="sidebar-panel">
       <StackPanel HorizontalAlignment="Stretch" Spacing="6">
-        <Button
+        <chrome:SidebarNavButton
           x:Name="BootRomNavButton"
           Classes="sidebar-item selected"
+          IconData="{StaticResource IconGameBoy}"
+          Label="Boot ROMs"
           Click="ShowBootRomPage"
           AutomationProperties.Name="Boot ROM settings"
           AutomationProperties.AutomationId="SettingsNavBootRoms"
           AutomationProperties.HelpText="Show boot ROM path settings"
-        >
-          <Grid ColumnDefinitions="16,*" ColumnSpacing="9">
-            <PathIcon Width="15" Height="15" Data="{StaticResource IconGameBoy}" />
-            <TextBlock Grid.Column="1" Classes="chrome-label sidebar-label" Text="Boot ROMs" />
-          </Grid>
-        </Button>
-        <Button
+        />
+        <chrome:SidebarNavButton
           x:Name="InputsNavButton"
           Classes="sidebar-item"
+          IconData="{StaticResource IconGames}"
+          Label="Inputs"
           Click="ShowInputsPage"
           AutomationProperties.Name="Input settings"
           AutomationProperties.AutomationId="SettingsNavInputs"
           AutomationProperties.HelpText="Show keyboard input profile settings"
-        >
-          <Grid ColumnDefinitions="16,*" ColumnSpacing="9">
-            <PathIcon Width="15" Height="15" Data="{StaticResource IconGames}" />
-            <TextBlock Grid.Column="1" Classes="chrome-label sidebar-label" Text="Inputs" />
-          </Grid>
-        </Button>
-        <Button
+        />
+        <chrome:SidebarNavButton
           x:Name="AudioNavButton"
           Classes="sidebar-item"
+          IconData="{StaticResource IconAudio}"
+          Label="Audio"
           Click="ShowAudioPage"
           AutomationProperties.Name="Audio settings"
           AutomationProperties.AutomationId="SettingsNavAudio"
           AutomationProperties.HelpText="Show volume and mute settings"
-        >
-          <Grid ColumnDefinitions="16,*" ColumnSpacing="9">
-            <PathIcon Width="15" Height="15" Data="{StaticResource IconAudio}" />
-            <TextBlock Grid.Column="1" Classes="chrome-label sidebar-label" Text="Audio" />
-          </Grid>
-        </Button>
+        />
       </StackPanel>
     </Border>
 

@@ -61,3 +61,23 @@ internal interface ICartridgeMemoryController
 [JsonDerivedType(typeof(Mbc3MemoryControllerState), "mbc3")]
 [JsonDerivedType(typeof(Mbc5MemoryControllerState), "mbc5")]
 internal interface ICartridgeMemoryControllerState;
+
+/// <summary>
+/// Validates that a captured controller state is of the expected concrete type.
+/// </summary>
+internal static class CartridgeStateValidator
+{
+    /// <summary>
+    /// Casts the polymorphic state to the concrete type or throws if it does not match.
+    /// </summary>
+    public static T ValidateControllerState<T>(ICartridgeMemoryControllerState state)
+        where T : ICartridgeMemoryControllerState
+    {
+        if (state is T typedState)
+        {
+            return typedState;
+        }
+
+        throw new ArgumentException("Cartridge memory controller state is invalid.", nameof(state));
+    }
+}

@@ -5,52 +5,49 @@ namespace GbcNet.Core.Sm83.Instructions;
 
 internal static partial class Arithmetic8Instructions
 {
-    private static void AddAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    private static void AddAccumulatorRegisterOperand(Cpu cpu, Register8 source)
     {
         var value = Register8Operands.Read(cpu, source);
         AddAccumulator(cpu, value, carry: 0);
     }
 
-    private static void AddWithCarryAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    private static void AddWithCarryAccumulatorRegisterOperand(Cpu cpu, Register8 source)
     {
         var value = Register8Operands.Read(cpu, source);
         AddWithCarryAccumulator(cpu, value);
     }
 
-    private static void SubtractAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    private static void SubtractAccumulatorRegisterOperand(Cpu cpu, Register8 source)
     {
         var value = Register8Operands.Read(cpu, source);
         SubtractAccumulator(cpu, value, borrow: 0);
     }
 
-    private static void SubtractWithCarryAccumulatorRegisterOperand(
-        Cpu cpu,
-        Register8Operand source
-    )
+    private static void SubtractWithCarryAccumulatorRegisterOperand(Cpu cpu, Register8 source)
     {
         var value = Register8Operands.Read(cpu, source);
         SubtractWithCarryAccumulator(cpu, value);
     }
 
-    private static void AndAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    private static void AndAccumulatorRegisterOperand(Cpu cpu, Register8 source)
     {
         var value = Register8Operands.Read(cpu, source);
         AndAccumulator(cpu, value);
     }
 
-    private static void XorAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    private static void XorAccumulatorRegisterOperand(Cpu cpu, Register8 source)
     {
         var value = Register8Operands.Read(cpu, source);
         XorAccumulator(cpu, value);
     }
 
-    private static void OrAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    private static void OrAccumulatorRegisterOperand(Cpu cpu, Register8 source)
     {
         var value = Register8Operands.Read(cpu, source);
         OrAccumulator(cpu, value);
     }
 
-    private static void CompareAccumulatorRegisterOperand(Cpu cpu, Register8Operand source)
+    private static void CompareAccumulatorRegisterOperand(Cpu cpu, Register8 source)
     {
         var value = Register8Operands.Read(cpu, source);
         CompareAccumulator(cpu, value);
@@ -150,7 +147,7 @@ internal static partial class Arithmetic8Instructions
         OpcodeTableBuilder builder,
         byte startOpcode,
         byte endOpcode,
-        Action<Cpu, Register8Operand> execute
+        Action<Cpu, Register8> execute
     )
     {
         for (int opcode = startOpcode; opcode <= endOpcode; opcode++)

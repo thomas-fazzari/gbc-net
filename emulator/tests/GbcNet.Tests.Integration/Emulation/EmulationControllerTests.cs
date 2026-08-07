@@ -5,14 +5,12 @@ using System.Reflection;
 using System.Security.Cryptography;
 using Avalonia.Platform.Storage;
 using GbcNet.App.Cheats;
-using GbcNet.App.Database;
 using GbcNet.App.Database.Entities;
 using GbcNet.App.Emulation;
 using GbcNet.App.Saves;
 using GbcNet.Core;
 using GbcNet.Core.Cheats;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GbcNet.Tests.Integration.Emulation;
@@ -28,7 +26,7 @@ public sealed class EmulationControllerTests
         var expectedCodes = new[]
         {
             new CheatCodeEntry(
-                ParseCode(CheatCodeType.GameGenie, "0A1-B9F"),
+                CheatCodeParser.Parse(CheatCodeType.GameGenie, "0A1-B9F"),
                 IsEnabled: true,
                 "Active Genie"
             ),
@@ -77,7 +75,7 @@ public sealed class EmulationControllerTests
             var updatedCodes = new[]
             {
                 new CheatCodeEntry(
-                    ParseCode(CheatCodeType.GameShark, "0134CDC0"),
+                    CheatCodeParser.Parse(CheatCodeType.GameShark, "0134CDC0"),
                     IsEnabled: true,
                     "Live Shark"
                 ),
@@ -111,12 +109,12 @@ public sealed class EmulationControllerTests
         var existingCodes = new[]
         {
             new CheatCodeEntry(
-                ParseCode(CheatCodeType.GameGenie, "0A1-B9F"),
+                CheatCodeParser.Parse(CheatCodeType.GameGenie, "0A1-B9F"),
                 IsEnabled: true,
                 "Existing Genie"
             ),
             new CheatCodeEntry(
-                ParseCode(CheatCodeType.GameShark, "0155CDC0"),
+                CheatCodeParser.Parse(CheatCodeType.GameShark, "0155CDC0"),
                 IsEnabled: false,
                 "Disabled Shark"
             ),
@@ -138,7 +136,7 @@ public sealed class EmulationControllerTests
                         controller.SetCheatCodesAsync(
                             [
                                 new CheatCodeEntry(
-                                    ParseCode(CheatCodeType.GameShark, "01AACDC0"),
+                                    CheatCodeParser.Parse(CheatCodeType.GameShark, "01AACDC0"),
                                     IsEnabled: true,
                                     "Replacement Shark"
                                 ),
@@ -167,7 +165,7 @@ public sealed class EmulationControllerTests
         var initialCodes = new[]
         {
             new CheatCodeEntry(
-                ParseCode(CheatCodeType.GameShark, "0123CDC0"),
+                CheatCodeParser.Parse(CheatCodeType.GameShark, "0123CDC0"),
                 IsEnabled: true,
                 "Initial Shark"
             ),
@@ -186,7 +184,7 @@ public sealed class EmulationControllerTests
             var changedCodes = new[]
             {
                 new CheatCodeEntry(
-                    ParseCode(CheatCodeType.GameShark, "0145CDC0"),
+                    CheatCodeParser.Parse(CheatCodeType.GameShark, "0145CDC0"),
                     IsEnabled: true,
                     "Changed Shark"
                 ),
@@ -205,12 +203,6 @@ public sealed class EmulationControllerTests
         {
             await controller.StopAsync();
         }
-    }
-
-    private static CheatCode ParseCode(CheatCodeType type, string text)
-    {
-        CheatCode.TryParse(type, text, out var code).Should().BeTrue();
-        return code;
     }
 
     private sealed class ControllerTestContext : IDisposable
@@ -238,7 +230,7 @@ public sealed class EmulationControllerTests
         private TestAudioOutput AudioOutput { get; } = new();
 
         public CheatCodeService CreateFailingCheatCodeService() =>
-            new(new FailingDbContextFactory(DatabasePath));
+            new(new TestDbContextFactory(DatabasePath, FailingSaveChangesInterceptor.Instance));
 
         public EmulationController CreateController(CheatCodeService? cheatCodes = null) =>
             new(
@@ -259,38 +251,6 @@ public sealed class EmulationControllerTests
             AudioOutput.Dispose();
             _temporaryDirectory.Dispose();
         }
-    }
-
-    private sealed class TestDbContextFactory(string databasePath)
-        : IDbContextFactory<GbcNetDbContext>
-    {
-        private readonly DbContextOptions<GbcNetDbContext> _options = SqliteDbContextOptions
-            .Configure(new DbContextOptionsBuilder<GbcNetDbContext>(), databasePath)
-            .Options;
-
-        public GbcNetDbContext CreateDbContext() => new(_options);
-    }
-
-    private sealed class FailingDbContextFactory(string databasePath)
-        : IDbContextFactory<GbcNetDbContext>
-    {
-        private readonly DbContextOptions<GbcNetDbContext> _options = SqliteDbContextOptions
-            .Configure(new DbContextOptionsBuilder<GbcNetDbContext>(), databasePath)
-            .AddInterceptors(FailingSaveChangesInterceptor.Instance)
-            .Options;
-
-        public GbcNetDbContext CreateDbContext() => new(_options);
-    }
-
-    private sealed class FailingSaveChangesInterceptor : SaveChangesInterceptor
-    {
-        public static FailingSaveChangesInterceptor Instance { get; } = new();
-
-        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
-            DbContextEventData eventData,
-            InterceptionResult<int> result,
-            CancellationToken cancellationToken = default
-        ) => throw new DbUpdateException("Synthetic save failure.");
     }
 }
 

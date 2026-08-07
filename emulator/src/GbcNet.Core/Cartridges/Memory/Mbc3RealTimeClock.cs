@@ -15,6 +15,17 @@ internal sealed class Mbc3RealTimeClock(Func<long> getUnixTimeSeconds)
     public const byte HoursRegister = 0x0A;
     public const byte DayLowRegister = 0x0B;
     public const byte DayHighRegister = 0x0C;
+
+    /// <summary>
+    /// On-disk RTC save size in bytes: 20 (live) + 20 (latched) + 8 (unix timestamp).
+    /// </summary>
+    /// <remarks>
+    /// Matches the BGB/community MBC3 RTC save format. Each 20-byte block stores
+    /// seconds, minutes, hours, day-low, and day-high at 4-byte-spaced offsets
+    /// (0, 4, 8, 12, 16).
+    /// The interleaving bytes are zero padding, not unused state.
+    /// The trailing 8 bytes are the little-endian unix timestamp anchor for catch-up.
+    /// </remarks>
     public const int SaveStateSize = 48;
 
     private const int RtcTimeStateSize = 20;

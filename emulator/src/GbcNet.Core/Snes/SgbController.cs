@@ -25,6 +25,11 @@ internal sealed class SgbController(bool commandsEnabled)
     private const byte AttrChrCommand = 0x07;
     private const byte PalSetCommand = 0x0A;
     private const byte PalTrnCommand = 0x0B;
+
+    /// <summary>
+    /// DATA_SND writes SNES WRAM for SGB firmware hot patches.
+    /// This HLE path does not execute SNES code.
+    /// </summary>
     private const byte DataSndCommand = 0x0F;
     private const byte MltReqCommand = 0x11;
     private const byte ChrTrnCommand = 0x13;
@@ -224,16 +229,17 @@ internal sealed class SgbController(bool commandsEnabled)
         ApplyPendingVramTransfer(transferData);
     }
 
-    private int GetCommandSizeBits()
+    private (int SizeBits, bool IsSupported) GetCommandSizeBits()
     {
-        var packetCount = IsSupportedCommand(_command[0] >> 3) ? _command[0] & 0x07 : 1;
+        var isSupported = IsSupportedCommand(_command[0] >> 3);
+        var packetCount = isSupported ? _command[0] & 0x07 : 1;
 
         if (packetCount == 0)
         {
             packetCount = 1;
         }
 
-        return packetCount * PacketSizeBytes * 8;
+        return (packetCount * PacketSizeBytes * 8, isSupported);
     }
 
     private static bool IsSupportedCommand(int command) =>
@@ -272,7 +278,7 @@ internal sealed class SgbController(bool commandsEnabled)
         _packetPhase = SgbPacketPhase.AwaitingPulse;
     }
 
-    private void ReceiveBit(byte value, int commandSizeBits)
+    private void ReceiveBit(byte value, (int SizeBits, bool IsSupported) commandInfo)
     {
         if (_packetPhase is not SgbPacketPhase.AwaitingBit)
         {
@@ -284,9 +290,9 @@ internal sealed class SgbController(bool commandsEnabled)
             && _commandWriteBitIndex != 0
         )
         {
-            if (value == 0 && _commandWriteBitIndex == commandSizeBits)
+            if (value == 0 && _commandWriteBitIndex == commandInfo.SizeBits)
             {
-                ExecuteCommand();
+                ExecuteCommand(commandInfo.IsSupported);
                 ClearCommand();
             }
 
@@ -311,20 +317,14 @@ internal sealed class SgbController(bool commandsEnabled)
                 : SgbPacketPhase.AwaitingPulse;
     }
 
-    private void ExecuteCommand()
+    private void ExecuteCommand(bool isSupported)
     {
-        if ((_command[0] & 0x07) == 0)
+        if (!isSupported || (_command[0] & 0x07) == 0)
         {
             return;
         }
 
-        var command = _command[0] >> 3;
-        if (!IsSupportedCommand(command))
-        {
-            return;
-        }
-
-        switch (command)
+        switch (_command[0] >> 3)
         {
             case Pal01Command:
                 _renderer.SetPalettes(_command, firstPalette: 0, secondPalette: 1);
@@ -361,8 +361,6 @@ internal sealed class SgbController(bool commandsEnabled)
                 RequestVramTransfer(PendingPaletteTransfer);
                 return;
             case DataSndCommand:
-                // DATA_SND writes SNES WRAM for SGB firmware hot patches.
-                // This HLE path does not execute SNES code.
                 return;
             case MltReqCommand:
                 SetPlayerCount(_command[1] & 0x03);

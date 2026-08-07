@@ -6,7 +6,7 @@ using GbcNet.Tests.Unit.RomTesting.Utils;
 
 namespace GbcNet.Tests.Unit.RomTesting.Mooneye;
 
-[Collection<RomTestSuite>]
+[Collection<RomTestCollectionDefinition>]
 public sealed class MooneyeCgbRomTests
 {
     private const string RomDirectory = "RomTesting/Resources/Mooneye";
@@ -41,7 +41,7 @@ public sealed class MooneyeCgbRomTests
         "acceptance/timer/tma_write_reloading.gb",
     ];
 
-    private static readonly RomTestRunner.RomSuite _roms = RomTestRunner.CreateSuite(
+    private static readonly RomSuite _roms = RomTestRunner.CreateSuite(
         _romRelativePaths,
         RomDirectory,
         MaxMachineCycles,

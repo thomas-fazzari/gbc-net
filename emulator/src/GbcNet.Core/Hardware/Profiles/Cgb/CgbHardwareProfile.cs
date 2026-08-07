@@ -14,18 +14,7 @@ namespace GbcNet.Core.Hardware.Profiles;
 /// </summary>
 internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHardwareProfile
 {
-    public CgbOperatingMode OperatingMode { get; } =
-        operatingMode switch
-        {
-            CgbOperatingMode.Cgb or CgbOperatingMode.DmgCompatibility => operatingMode,
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(operatingMode),
-                operatingMode,
-                "Unsupported CGB operating mode."
-            ),
-        };
-
-    private const ushort HighSourceMirrorMask = 0xDFFF;
+    public CgbOperatingMode OperatingMode { get; } = operatingMode;
 
     private enum OamDmaBus
     {
@@ -68,10 +57,13 @@ internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHard
     public IPpuEngine CreatePpuEngine() =>
         OperatingMode is CgbOperatingMode.Cgb
             ? new CgbPpuEngine()
-            : new CgbDmgCompatibilityPpuEngine();
+            : new DmgPixelRulesPpuEngine<CgbDmgCompatibilityPixelOutput>(
+                requestsMode2InterruptBeforeVBlank: true,
+                stateWrapper: static s => new CgbDmgCompatibilityPpuEngineState(s)
+            );
 
     public ushort MapOamDmaSourceAddress(ushort sourceAddress) =>
-        MapHighOamDmaSourceAddress(sourceAddress);
+        OamDmaMapping.MapSourceAddress(sourceAddress);
 
     public bool IsCpuAddressBlockedByOamDma(ushort address, ushort sourceAddress)
     {
@@ -80,14 +72,9 @@ internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHard
             return address <= AddressMap.ObjectAttributeMemoryEnd;
         }
 
-        var sourceBus = GetOamDmaBus(MapHighOamDmaSourceAddress(sourceAddress));
+        var sourceBus = GetOamDmaBus(OamDmaMapping.MapSourceAddress(sourceAddress));
         return sourceBus is not OamDmaBus.None && GetOamDmaBus(address) == sourceBus;
     }
-
-    private static ushort MapHighOamDmaSourceAddress(ushort sourceAddress) =>
-        sourceAddress >= AddressMap.EchoRamStart
-            ? (ushort)(sourceAddress & HighSourceMirrorMask)
-            : sourceAddress;
 
     private static OamDmaBus GetOamDmaBus(ushort address) =>
         address switch

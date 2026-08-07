@@ -78,7 +78,7 @@ public readonly record struct GameGenieCode
                 return false;
             }
 
-            canonical[canonicalIndex] = ToUpperAscii(digit);
+            canonical[canonicalIndex] = CheatCodeParsingUtils.ToUpperAscii(digit);
         }
 
         canonical[3] = '-';
@@ -89,10 +89,10 @@ public readonly record struct GameGenieCode
 
         var address = (ushort)(
             (
-                (GetHexValue(canonical[6]) << 12)
-                | (GetHexValue(canonical[2]) << 8)
-                | (GetHexValue(canonical[4]) << 4)
-                | GetHexValue(canonical[5])
+                (CheatCodeParsingUtils.GetHexValue(canonical[6]) << 12)
+                | (CheatCodeParsingUtils.GetHexValue(canonical[2]) << 8)
+                | (CheatCodeParsingUtils.GetHexValue(canonical[4]) << 4)
+                | CheatCodeParsingUtils.GetHexValue(canonical[5])
             ) ^ 0xF000
         );
 
@@ -103,13 +103,17 @@ public readonly record struct GameGenieCode
         }
 
         var canonicalCode = new string(canonical[..(hasCompareValue ? 11 : 7)]);
-        var replacementValue = (byte)((GetHexValue(canonical[0]) << 4) | GetHexValue(canonical[1]));
+        var replacementValue = (byte)(
+            (CheatCodeParsingUtils.GetHexValue(canonical[0]) << 4)
+            | CheatCodeParsingUtils.GetHexValue(canonical[1])
+        );
         byte? compareValue = null;
 
         if (hasCompareValue)
         {
             var encodedCompareValue = (byte)(
-                (GetHexValue(canonical[8]) << 4) | GetHexValue(canonical[10])
+                (CheatCodeParsingUtils.GetHexValue(canonical[8]) << 4)
+                | CheatCodeParsingUtils.GetHexValue(canonical[10])
             );
             compareValue = (byte)(((encodedCompareValue >> 2) | (encodedCompareValue << 6)) ^ 0xBA);
         }
@@ -120,9 +124,4 @@ public readonly record struct GameGenieCode
 
     /// <inheritdoc />
     public override string ToString() => CanonicalCode;
-
-    private static char ToUpperAscii(char value) =>
-        value is >= 'a' and <= 'f' ? (char)(value - 32) : value;
-
-    private static int GetHexValue(char value) => value <= '9' ? value - '0' : value - 'A' + 10;
 }

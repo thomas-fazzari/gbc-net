@@ -24,6 +24,9 @@ internal sealed class WaveChannel
     private const int WavePeriodClockTCycles = 2;
     private const int PeriodReloadBase = 2048;
     private const int SampleIndexMask = 0x1F;
+    private const byte OutputLevelFull = 1;
+    private const byte OutputLevelHalf = 2;
+    private const byte OutputLevelQuarter = 3;
 
     private readonly byte[] _waveRam = new byte[16];
     private readonly LengthCounter _length = new(256);
@@ -55,9 +58,9 @@ internal sealed class WaveChannel
         IsActive
             ? _outputLevel switch
             {
-                1 => _sampleBuffer,
-                2 => (byte)(_sampleBuffer >> 1),
-                3 => (byte)(_sampleBuffer >> 2),
+                OutputLevelFull => _sampleBuffer,
+                OutputLevelHalf => (byte)(_sampleBuffer >> 1),
+                OutputLevelQuarter => (byte)(_sampleBuffer >> 2),
                 _ => (byte)0,
             }
             : (byte)0;

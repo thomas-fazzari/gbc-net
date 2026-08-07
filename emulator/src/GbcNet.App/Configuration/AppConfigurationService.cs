@@ -176,7 +176,7 @@ internal sealed class AppConfigurationService(
     )
     {
         var label = BootRomConfig.DisplayName(model);
-        var expectedLength = BootRomOptions.SizeDescription(model);
+        var expectedLength = GetExpectedSizeDescription(model);
         if (path is null)
         {
             return default;
@@ -208,6 +208,16 @@ internal sealed class AppConfigurationService(
                 $"{label} boot ROM must be {expectedLength} bytes, but was {bytes.Length} bytes."
             );
     }
+
+    private static string GetExpectedSizeDescription(HardwareModel model) =>
+        model switch
+        {
+            HardwareModel.Dmg => $"{BootRomOptions.DmgBootRomSize}",
+            HardwareModel.Cgb =>
+                $"{BootRomOptions.CgbBootRomSize} or {BootRomOptions.CgbBootRomMappedSize}",
+            HardwareModel.Sgb => $"{BootRomOptions.SgbBootRomSize}",
+            _ => throw new ArgumentOutOfRangeException(nameof(model), model, message: null),
+        };
 
     private static string? ResolveBootRomPath(
         string? proposedPath,

@@ -15,9 +15,10 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
     protected const int BackgroundFifoCapacity = PpuTileData.TileSizePixels * 2;
 
     /// <summary>
-    /// CGB raises the LY=144 Mode 2 STAT interrupt one M-cycle before VBlank.
+    /// CGB raises the LY=144 Mode 2 STAT interrupt one M-cycle (4 dots) before VBlank.
+    /// DMG/SGB engines return 0 because they do not request the early interrupt.
     /// </summary>
-    private const int CgbMode2VBlankInterruptLeadDots = 4;
+    protected virtual int Mode2InterruptLeadDots => 0;
 
     protected BackgroundWindowFetcher BgWindowFetcher { get; } = new();
     private readonly PpuStatInterruptState _statInterruptState = new();
@@ -134,7 +135,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
             var drawingStartDots = Timing.GetCurrentDrawingStartDots();
             var drawingEndDots = GetCurrentDrawingEndDots();
             var nextBoundary = Timing.GetNextTimingBoundary(drawingEndDots);
-            var cgbMode2VBlankInterruptDots = scanlineDots - CgbMode2VBlankInterruptLeadDots;
+            var cgbMode2VBlankInterruptDots = scanlineDots - Mode2InterruptLeadDots;
             if (
                 RequestsMode2InterruptBeforeVBlank
                 && LcdYCoordinate == PpuGeometry.VBlankStartLine - 1
@@ -315,17 +316,21 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
 
     protected abstract void ClearObjects();
 
-    internal abstract bool IsWindowEnabled(PpuEngineInputs inputs);
-
-    internal abstract void FetchTileMapEntry(PpuEngineInputs inputs, ushort tileMapAddress);
-
-    internal abstract byte ReadTileDataByte(PpuEngineInputs inputs, bool highByte);
-
-    internal abstract bool TryPushFetchedTileRow();
-
     protected abstract void TryRenderPixel(PpuEngineInputs inputs);
 
+    #region BackgroundWindowFetcher callbacks
+
+    // These five methods form the callback contract between PpuEngineBase & BackgroundWindowFetcher.
+    // The fetcher calls them during BG/window tile fetch to read VRAM, push decoded pixels,
+    // check window eligibility, and clear state.
+    // Each concrete engine implements them with model-specific VRAM banking and pixel rules.
+    internal abstract bool IsWindowEnabled(PpuEngineInputs inputs);
+    internal abstract void FetchTileMapEntry(PpuEngineInputs inputs, ushort tileMapAddress);
+    internal abstract byte ReadTileDataByte(PpuEngineInputs inputs, bool highByte);
+    internal abstract bool TryPushFetchedTileRow();
     internal abstract void ClearFetchedTileMapEntry();
+
+    #endregion BackgroundWindowFetcher callbacks
 
     private LcdFrame CreateCompletedFrame()
     {

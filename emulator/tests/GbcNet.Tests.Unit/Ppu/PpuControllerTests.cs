@@ -1206,7 +1206,10 @@ public sealed class PpuControllerTests
     ) =>
         new(
             interrupts ?? new InterruptController(),
-            new DmgPpuEngine(),
+            new DmgPixelRulesPpuEngine<DmgShadePixelOutput>(
+                requestsMode2InterruptBeforeVBlank: false,
+                stateWrapper: static s => new DmgPpuEngineState(s)
+            ),
             videoRamBankCount,
             isVideoRamBankRegisterEnabled,
             isColorPaletteIndexRegisterEnabled || isColorPaletteRamEnabled,

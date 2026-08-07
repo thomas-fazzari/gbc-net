@@ -1,8 +1,6 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using System.Globalization;
-
 namespace GbcNet.Core.Sm83.Instructions;
 
 /// <summary>
@@ -41,11 +39,7 @@ internal static class ControlInstructions
         var instruction =
             CbInstructionSet.Find(prefixedOpcode)
             ?? throw new NotSupportedException(
-                string.Format(
-                    CultureInfo.InvariantCulture,
-                    "CB opcode 0x{0:X2} is not supported yet.",
-                    prefixedOpcode
-                )
+                $"CB opcode 0x{prefixedOpcode:X2} is not supported yet."
             );
 
         instruction.Execute(cpu, 0, 0);

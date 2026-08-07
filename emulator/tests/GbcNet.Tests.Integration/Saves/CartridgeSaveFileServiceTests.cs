@@ -47,9 +47,11 @@ public sealed class CartridgeBatterySaveFileServiceTests
         var cartridge = TestRomFactory.LoadCartridge(rom);
         File.WriteAllBytes(saveFiles.GetBatterySavePath(cartridge, rom), [0x42]);
 
-        Assert
-            .Throws<InvalidOperationException>(() => saveFiles.Load(cartridge, rom))
-            .Message.Should()
+        FluentActions
+            .Invoking(() => saveFiles.Load(cartridge, rom))
+            .Should()
+            .ThrowExactly<InvalidOperationException>()
+            .Which.Message.Should()
             .Be(
                 string.Create(
                     CultureInfo.InvariantCulture,

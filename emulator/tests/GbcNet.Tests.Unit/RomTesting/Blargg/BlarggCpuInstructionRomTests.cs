@@ -5,7 +5,7 @@ using GbcNet.Tests.Unit.RomTesting.Utils;
 
 namespace GbcNet.Tests.Unit.RomTesting.Blargg;
 
-[Collection<RomTestSuite>]
+[Collection<RomTestCollectionDefinition>]
 public sealed class BlarggCpuInstructionRomTests
 {
     private const string RomDirectory = "RomTesting/Resources/Blargg/cpu_instrs/individual";
@@ -26,7 +26,7 @@ public sealed class BlarggCpuInstructionRomTests
         "11-op a,(hl).gb",
     ];
 
-    private static readonly RomTestRunner.RomSuite _roms = RomTestRunner.CreateSuite(
+    private static readonly RomSuite _roms = RomTestRunner.CreateSuite(
         _romFileNames,
         RomDirectory,
         MaxMachineCycles

@@ -1,14 +1,13 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using System.Security.Cryptography;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Ppu;
 using GbcNet.Tests.Unit.RomTesting.Utils;
 
 namespace GbcNet.Tests.Unit.RomTesting.Visual;
 
-[Collection<RomTestSuite>]
+[Collection<RomTestCollectionDefinition>]
 public sealed class DmgAcid2VisualRomTests
 {
     private const string RomPath = "RomTesting/Resources/Visual/dmg-acid2/dmg-acid2.gb";
@@ -36,18 +35,20 @@ public sealed class DmgAcid2VisualRomTests
     {
         var rom = File.ReadAllBytes(RomPath);
         var expectedPixels = File.ReadAllBytes(DmgGoldenPath);
-        ComputeSha256(rom).Should().Be(ExpectedRomSha256);
-        ComputeSha256(expectedPixels).Should().Be(ExpectedDmgGoldenSha256);
+        RomTestHashing.ComputeSha256(rom).Should().Be(ExpectedRomSha256);
+        RomTestHashing.ComputeSha256(expectedPixels).Should().Be(ExpectedDmgGoldenSha256);
         expectedPixels.Length.Should().Be(ExpectedDmgPixelCount);
 
         using var result = VisualRomTestRunner.RunToFrame(rom, TargetFrame, MaxMachineCycles);
 
         result.Frame.Should().NotBeNull();
         result.Frame.PixelFormat.Should().Be(LcdPixelFormat.DmgShadeIndex8);
-        (expectedPixels.AsSpan().SequenceEqual(result.Frame.Pixels.Span))
+        expectedPixels
+            .AsSpan()
+            .SequenceEqual(result.Frame.Pixels.Span)
             .Should()
             .BeTrue(
-                Rgb555FrameDifference.CreateDmgShadeIndex8Message(
+                FrameDifferenceReporter.CreateDmgShadeIndex8Message(
                     result,
                     expectedPixels,
                     MaxReportedDiffOffsets
@@ -60,8 +61,8 @@ public sealed class DmgAcid2VisualRomTests
     {
         var rom = File.ReadAllBytes(RomPath);
         var expectedPixels = File.ReadAllBytes(CgbGoldenPath);
-        ComputeSha256(rom).Should().Be(ExpectedRomSha256);
-        ComputeSha256(expectedPixels).Should().Be(ExpectedCgbGoldenSha256);
+        RomTestHashing.ComputeSha256(rom).Should().Be(ExpectedRomSha256);
+        RomTestHashing.ComputeSha256(expectedPixels).Should().Be(ExpectedCgbGoldenSha256);
         expectedPixels.Length.Should().Be(ExpectedCgbPixelByteCount);
 
         using var result = VisualRomTestRunner.RunToFrame(
@@ -73,13 +74,16 @@ public sealed class DmgAcid2VisualRomTests
 
         result.Frame.Should().NotBeNull();
         result.Frame.PixelFormat.Should().Be(LcdPixelFormat.Rgb555Le);
-        (expectedPixels.AsSpan().SequenceEqual(result.Frame.Pixels.Span))
+        expectedPixels
+            .AsSpan()
+            .SequenceEqual(result.Frame.Pixels.Span)
             .Should()
             .BeTrue(
-                Rgb555FrameDifference.CreateMessage(result, expectedPixels, MaxReportedDiffOffsets)
+                FrameDifferenceReporter.CreateMessage(
+                    result,
+                    expectedPixels,
+                    MaxReportedDiffOffsets
+                )
             );
     }
-
-    private static string ComputeSha256(ReadOnlySpan<byte> bytes) =>
-        Convert.ToHexString(SHA256.HashData(bytes));
 }

@@ -18,14 +18,6 @@ internal sealed class DmgHardwareProfile : IHardwareProfile
 
     private DmgHardwareProfile() { }
 
-    private const ushort HighSourceMirrorMask = 0xDFFF;
-
-    private enum OamDmaBus
-    {
-        Main = 0,
-        Video = 1,
-    }
-
     public HardwareModel Model => HardwareModel.Dmg;
 
     public int VideoRamBankCount => 1;
@@ -56,33 +48,17 @@ internal sealed class DmgHardwareProfile : IHardwareProfile
 
     public bool IsCgbUndocumentedFf74RegisterEnabled => false;
 
-    public IPpuEngine CreatePpuEngine() => new DmgPpuEngine();
+    public IPpuEngine CreatePpuEngine() =>
+        new DmgPixelRulesPpuEngine<DmgShadePixelOutput>(
+            requestsMode2InterruptBeforeVBlank: false,
+            stateWrapper: static s => new DmgPpuEngineState(s)
+        );
 
     public ushort MapOamDmaSourceAddress(ushort sourceAddress) =>
-        MapOamDmaSourceAddressCore(sourceAddress);
+        OamDmaMapping.MapSourceAddress(sourceAddress);
 
     public bool IsCpuAddressBlockedByOamDma(ushort address, ushort sourceAddress) =>
-        IsCpuAddressBlockedByOamDmaCore(address, sourceAddress);
-
-    internal static ushort MapOamDmaSourceAddressCore(ushort sourceAddress) =>
-        sourceAddress >= AddressMap.EchoRamStart
-            ? (ushort)(sourceAddress & HighSourceMirrorMask)
-            : sourceAddress;
-
-    internal static bool IsCpuAddressBlockedByOamDmaCore(ushort address, ushort sourceAddress)
-    {
-        if (address >= AddressMap.ObjectAttributeMemoryStart)
-        {
-            return address <= AddressMap.ObjectAttributeMemoryEnd;
-        }
-
-        return GetOamDmaBus(address) == GetOamDmaBus(sourceAddress);
-    }
-
-    private static OamDmaBus GetOamDmaBus(ushort address) =>
-        address is >= AddressMap.VideoRamStart and <= AddressMap.VideoRamEnd
-            ? OamDmaBus.Video
-            : OamDmaBus.Main;
+        OamDmaMapping.IsCpuAddressBlockedDmg(address, sourceAddress);
 
     public ApuModelSpec CreateApuModelSpec() => ApuModelSpec.Dmg;
 

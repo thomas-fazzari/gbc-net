@@ -94,6 +94,12 @@
     <Style Selector="Button.sidebar-item.selected PathIcon">
       <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
     </Style>
+    <Style Selector="Border.sidebar-panel">
+      <Setter Property="Background" Value="{DynamicResource ChromePanelBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="BorderThickness" Value="0,0,1,0" />
+      <Setter Property="Padding" Value="8" />
+    </Style>
     <Style Selector="TextBlock.muted">
       <Setter Property="FontSize" Value="12" />
       <Setter Property="Foreground" Value="{DynamicResource ChromeMutedBrush}" />

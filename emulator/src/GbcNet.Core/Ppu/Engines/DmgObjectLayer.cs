@@ -6,15 +6,8 @@ namespace GbcNet.Core.Ppu.Engines;
 /// <summary>
 /// DMG object layer state for one selected scanline.
 /// </summary>
-internal sealed class DmgObjectLayer
+internal sealed class DmgObjectLayer : ObjectLayerBase<DmgObjectPixel>
 {
-    private readonly ScanlineObjectSelector _selector = new();
-
-    /// <summary>
-    /// Additional Mode 3 dots caused by OBJ fetches on the selected scanline.
-    /// </summary>
-    public int PenaltyDots { get; private set; }
-
     internal DmgObjectLayerState CaptureState() => new(_selector.CaptureState(), PenaltyDots);
 
     internal void ValidateState(DmgObjectLayerState state)
@@ -34,106 +27,22 @@ internal sealed class DmgObjectLayer
         PenaltyDots = state.PenaltyDots;
     }
 
-    /// <summary>
-    /// Clears scanline-local OBJ selection and fetch penalty state.
-    /// </summary>
-    public void Clear()
-    {
-        _selector.Clear();
-        PenaltyDots = 0;
-    }
+    protected override ObjectPriorityMode ResolvePriorityMode(PpuEngineInputs inputs) =>
+        ObjectPriorityMode.LowerXWins;
 
-    /// <summary>
-    /// Performs the once-per-scanline OAM selection pass after OAM scan has completed.
-    /// </summary>
-    public void EnsureSelected(
-        PpuEngineInputs inputs,
-        byte lcdYCoordinate,
-        bool oamScanComplete,
-        byte scrollXLowBits
-    )
-    {
-        if (
-            _selector.TrySelect(
-                inputs,
-                lcdYCoordinate,
-                oamScanComplete,
-                ObjectPriorityMode.LowerXWins
-            )
-        )
-        {
-            PenaltyDots = _selector.CalculatePenaltyDots(scrollXLowBits);
-        }
-    }
-
-    /// <summary>
-    /// Selects the frontmost non-transparent DMG OBJ pixel for a screen X position.
-    /// </summary>
-    public DmgObjectPixel? SelectPixel(int screenX, byte lcdYCoordinate, PpuEngineInputs inputs)
-    {
-        if ((inputs.LcdControl & PpuLcdControlRegister.ObjectEnableMask) == 0)
-        {
-            return null;
-        }
-
-        foreach (var scanlineObject in _selector.Objects)
-        {
-            var objectLeft = scanlineObject.X - PpuObjectAttributes.XScreenOffset;
-            if (screenX < objectLeft || screenX >= objectLeft + PpuTileData.TileSizePixels)
-            {
-                continue;
-            }
-
-            var colorId = ReadColorId(scanlineObject, screenX, lcdYCoordinate, inputs);
-            if (colorId == 0)
-            {
-                continue;
-            }
-
-            return CreateObjectPixel(scanlineObject, colorId);
-        }
-
-        return null;
-    }
-
-    private byte ReadColorId(
+    protected override DmgObjectPixel CreateObjectPixel(
         ScanlineObject scanlineObject,
-        int screenX,
-        byte lcdYCoordinate,
-        PpuEngineInputs inputs
-    )
-    {
-        var objectLine = PpuObjectTile.ResolveTileLine(
-            scanlineObject.Y,
-            scanlineObject.Flags,
-            _selector.ObjectHeight,
-            lcdYCoordinate
-        );
-        var tileId = PpuObjectTile.ResolveTileId(
-            scanlineObject.Tile,
-            objectLine,
-            _selector.ObjectHeight
-        );
-        var tileRowAddress = PpuObjectTile.GetTileRowAddress(tileId, objectLine);
-
-        ReadObjectTileRow(inputs, tileRowAddress, out var lowByte, out var highByte);
-
-        return PpuTileData.DecodeColorId(
-            lowByte,
-            highByte,
-            PpuObjectTile.ResolvePixelBit(scanlineObject.X, scanlineObject.Flags, screenX)
-        );
-    }
-
-    private static DmgObjectPixel CreateObjectPixel(ScanlineObject scanlineObject, byte colorId) =>
+        byte colorId
+    ) =>
         new(
             colorId,
             (scanlineObject.Flags & PpuObjectAttributes.DmgPalette1Mask) != 0,
             (scanlineObject.Flags & PpuObjectAttributes.BackgroundPriorityMask) != 0
         );
 
-    private static void ReadObjectTileRow(
+    protected override void ReadObjectTileRow(
         PpuEngineInputs inputs,
+        ScanlineObject scanlineObject,
         ushort tileRowAddress,
         out byte lowByte,
         out byte highByte

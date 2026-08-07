@@ -37,6 +37,18 @@ internal sealed class RomStorageIdentity
         );
     }
 
+    public static string CreateFileStem(string title, ReadOnlySpan<byte> rom)
+    {
+        // Only the 4-byte short hash for the filename stem is needed here
+        // No need to allocate the full 32-byte hash array + RomStorageIdentity object
+        var hash = SHA256.HashData(rom);
+        return string.Concat(
+            SanitizeName(title),
+            "-",
+            Convert.ToHexString(hash.AsSpan(0, ShortHashBytes))
+        );
+    }
+
     private static string SanitizeName(string name)
     {
         StringBuilder builder = new(name.Length);

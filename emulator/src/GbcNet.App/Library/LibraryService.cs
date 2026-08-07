@@ -111,8 +111,6 @@ internal sealed class LibraryService(
         }
     }
 
-    public IReadOnlyList<LibraryEntry> GetRoms(int limit) => GetRoms(query: default, limit);
-
     public IReadOnlyList<LibraryEntry> GetRoms(
         LibraryQuery query = default,
         int limit = int.MaxValue
@@ -297,7 +295,7 @@ internal sealed class LibraryService(
             if (!committed)
             {
                 TryDeleteManagedCoverFileIfUnreferenced(destinationPath);
-                TryDeleteFile(temporaryPath);
+                DeleteFile(temporaryPath);
             }
 
             throw CreateLibraryException(exception);
@@ -423,7 +421,7 @@ internal sealed class LibraryService(
             using var db = dbContextFactory.CreateDbContext();
             if (!db.Roms.Any(rom => rom.CoverPath == coverPath))
             {
-                TryDeleteFile(coverPath);
+                DeleteFile(coverPath);
             }
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
@@ -432,24 +430,17 @@ internal sealed class LibraryService(
         }
     }
 
-    private void TryDeleteFile(string? path)
+    private void DeleteFile(string? path)
     {
         if (path is null)
         {
             return;
         }
 
-        try
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            LibraryServiceLog.CoverFileCleanupFailed(logger, exception);
-        }
+        FileUtils.TryDeleteRegularFile(
+            path,
+            ex => LibraryServiceLog.CoverFileCleanupFailed(logger, ex)
+        );
     }
 
     private bool IsManagedCoverPath(string coverPath) =>

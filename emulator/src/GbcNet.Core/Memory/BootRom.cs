@@ -53,7 +53,7 @@ internal sealed class BootRom
                     CultureInfo.InvariantCulture,
                     "{0} boot ROM must be {1} bytes, but was {2} bytes.",
                     hardwareModel,
-                    BootRomOptions.SizeDescription(hardwareModel),
+                    GetExpectedSizeDescription(hardwareModel),
                     bytes.Length
                 ),
                 nameof(options)
@@ -62,6 +62,20 @@ internal sealed class BootRom
 
         return new BootRom(hardwareModel, bytes);
     }
+
+    private static string GetExpectedSizeDescription(HardwareModel model) =>
+        model switch
+        {
+            HardwareModel.Dmg => BootRomOptions.DmgBootRomSize.ToString(
+                CultureInfo.InvariantCulture
+            ),
+            HardwareModel.Cgb =>
+                $"{BootRomOptions.CgbBootRomSize.ToString(CultureInfo.InvariantCulture)} or {BootRomOptions.CgbBootRomMappedSize.ToString(CultureInfo.InvariantCulture)}",
+            HardwareModel.Sgb => BootRomOptions.SgbBootRomSize.ToString(
+                CultureInfo.InvariantCulture
+            ),
+            _ => throw new ArgumentOutOfRangeException(nameof(model), model, message: null),
+        };
 
     internal bool TryRead(ushort address, out byte value)
     {

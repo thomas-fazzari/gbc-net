@@ -48,13 +48,17 @@ internal sealed class SgbHardwareProfile : IHardwareProfile
 
     public bool IsCgbUndocumentedFf74RegisterEnabled => false;
 
-    public IPpuEngine CreatePpuEngine() => new DmgPpuEngine();
+    public IPpuEngine CreatePpuEngine() =>
+        new DmgPixelRulesPpuEngine<DmgShadePixelOutput>(
+            requestsMode2InterruptBeforeVBlank: false,
+            stateWrapper: static s => new DmgPpuEngineState(s)
+        );
 
     public ushort MapOamDmaSourceAddress(ushort sourceAddress) =>
-        DmgHardwareProfile.MapOamDmaSourceAddressCore(sourceAddress);
+        OamDmaMapping.MapSourceAddress(sourceAddress);
 
     public bool IsCpuAddressBlockedByOamDma(ushort address, ushort sourceAddress) =>
-        DmgHardwareProfile.IsCpuAddressBlockedByOamDmaCore(address, sourceAddress);
+        OamDmaMapping.IsCpuAddressBlockedDmg(address, sourceAddress);
 
     public ApuModelSpec CreateApuModelSpec() => ApuModelSpec.Sgb;
 

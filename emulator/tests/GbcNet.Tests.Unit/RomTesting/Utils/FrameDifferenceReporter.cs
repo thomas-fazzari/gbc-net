@@ -6,7 +6,7 @@ using GbcNet.Core.Ppu;
 
 namespace GbcNet.Tests.Unit.RomTesting.Utils;
 
-internal static class Rgb555FrameDifference
+internal static class FrameDifferenceReporter
 {
     public static string CreateMessage(
         VisualRomTestResult result,

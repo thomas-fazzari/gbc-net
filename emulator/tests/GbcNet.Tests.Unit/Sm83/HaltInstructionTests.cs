@@ -2,15 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core.Memory;
+using static GbcNet.Tests.Shared.Opcodes;
 
 namespace GbcNet.Tests.Unit.Sm83;
 
 public sealed class HaltInstructionTests
 {
-    private const byte HaltOpcode = 0x76;
     private const byte EnableInterruptsOpcode = 0xFB;
-    private const byte IncrementBOpcode = 0x04;
-    private const byte NopOpcode = 0x00;
     private const byte Restart0Opcode = 0xC7;
     private const byte VBlankInterrupt = 0b0000_0001;
 
@@ -68,7 +66,7 @@ public sealed class HaltInstructionTests
         var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes =>
         {
             bytes[0x0100] = HaltOpcode;
-            bytes[0x0101] = IncrementBOpcode;
+            bytes[0x0101] = IncBOpcode;
         });
         bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
         bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
@@ -199,7 +197,7 @@ public sealed class HaltInstructionTests
         var (source, sourceBus) = CpuTestFactory.CreateCpuWithBus(bytes =>
         {
             bytes[0x0100] = HaltOpcode;
-            bytes[0x0101] = IncrementBOpcode;
+            bytes[0x0101] = IncBOpcode;
         });
         sourceBus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
         sourceBus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
@@ -210,7 +208,7 @@ public sealed class HaltInstructionTests
         var restored = CpuTestFactory.CreateCpu(bytes =>
         {
             bytes[0x0100] = HaltOpcode;
-            bytes[0x0101] = IncrementBOpcode;
+            bytes[0x0101] = IncBOpcode;
         });
         restored.RestoreState(state);
 

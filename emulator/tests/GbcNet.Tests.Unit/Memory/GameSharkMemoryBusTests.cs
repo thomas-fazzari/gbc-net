@@ -20,7 +20,10 @@ public sealed class GameSharkMemoryBusTests
         var bus = CreateDmgBus();
         var clock = new MachineClock(bus);
         bus.WriteByte(AddressMap.WorkRamStart, 0x44);
-        bus.SetCheatCodes([Parse("01AA00C0"), Parse("01BB00C0")]);
+        bus.SetCheatCodes([
+            CheatCodeParser.Parse(CheatCodeType.GameShark, "01AA00C0"),
+            CheatCodeParser.Parse(CheatCodeType.GameShark, "01BB00C0"),
+        ]);
 
         AdvanceToFirstVBlank(bus, clock, AddressMap.WorkRamStart, expectedValue: 0x44);
 
@@ -33,7 +36,7 @@ public sealed class GameSharkMemoryBusTests
         var bus = CreateDmgBus();
         var clock = new MachineClock(bus);
         bus.Ppu.VideoRenderingEnabled = false;
-        bus.SetCheatCodes([Parse("01AA00C0")]);
+        bus.SetCheatCodes([CheatCodeParser.Parse(CheatCodeType.GameShark, "01AA00C0")]);
 
         AdvanceToFirstVBlank(bus, clock, AddressMap.WorkRamStart, expectedValue: 0x00);
 
@@ -54,7 +57,7 @@ public sealed class GameSharkMemoryBusTests
         );
         var clock = new MachineClock(bus);
         bus.WriteByte(AddressMap.LcdControlRegister, 0x80);
-        bus.SetCheatCodes([Parse("01AA00C0")]);
+        bus.SetCheatCodes([CheatCodeParser.Parse(CheatCodeType.GameShark, "01AA00C0")]);
 
         AdvanceToFirstVBlank(bus, clock, AddressMap.WorkRamStart, expectedValue: 0x00);
 
@@ -65,7 +68,7 @@ public sealed class GameSharkMemoryBusTests
     public void SetCheatCodes_ClearingGameSharkCodesDoesNotRestoreWrittenMemory()
     {
         var bus = CreateDmgBus();
-        bus.SetCheatCodes([Parse("01AA00C0")]);
+        bus.SetCheatCodes([CheatCodeParser.Parse(CheatCodeType.GameShark, "01AA00C0")]);
 
         bus.ApplyGameSharkCodes();
         bus.SetCheatCodes([]);
@@ -105,11 +108,5 @@ public sealed class GameSharkMemoryBusTests
         }
 
         false.Should().BeTrue("The PPU did not enter VBlank within one frame.");
-    }
-
-    private static CheatCode Parse(string text)
-    {
-        CheatCode.TryParse(CheatCodeType.GameShark, text, out var code).Should().BeTrue();
-        return code;
     }
 }

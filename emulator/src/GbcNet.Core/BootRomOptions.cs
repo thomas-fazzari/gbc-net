@@ -1,7 +1,6 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using System.Globalization;
 using GbcNet.Core.Hardware;
 
 namespace GbcNet.Core;
@@ -37,16 +36,6 @@ public sealed class BootRomOptions
             HardwareModel.Dmg => size == DmgBootRomSize,
             HardwareModel.Cgb => size is CgbBootRomSize or CgbBootRomMappedSize,
             HardwareModel.Sgb => size == SgbBootRomSize,
-            _ => throw new ArgumentOutOfRangeException(nameof(model), model, message: null),
-        };
-
-    public static string SizeDescription(HardwareModel model) =>
-        model switch
-        {
-            HardwareModel.Dmg => DmgBootRomSize.ToString(CultureInfo.InvariantCulture),
-            HardwareModel.Cgb =>
-                $"{CgbBootRomSize.ToString(CultureInfo.InvariantCulture)} or {CgbBootRomMappedSize.ToString(CultureInfo.InvariantCulture)}",
-            HardwareModel.Sgb => SgbBootRomSize.ToString(CultureInfo.InvariantCulture),
             _ => throw new ArgumentOutOfRangeException(nameof(model), model, message: null),
         };
 

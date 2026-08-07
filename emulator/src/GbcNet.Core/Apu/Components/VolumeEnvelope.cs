@@ -66,14 +66,13 @@ internal sealed class VolumeEnvelope
 
         _timer = _period;
 
-        switch (_increases)
+        if (_increases && Volume < MaxVolume)
         {
-            case true when Volume < MaxVolume:
-                Volume++;
-                break;
-            case false when Volume > 0:
-                Volume--;
-                break;
+            Volume++;
+        }
+        else if (!_increases && Volume > 0)
+        {
+            Volume--;
         }
     }
 

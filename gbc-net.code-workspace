@@ -31,7 +31,6 @@
     "files.exclude": {
       "**/.omp": true,
       "**/emulator": true,
-      "**/.editorconfig": true,
       "**/.github": true,
       "**/.githooks": true,
       "**/.gitignore": true,

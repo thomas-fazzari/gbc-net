@@ -98,7 +98,10 @@ internal sealed class SaveStateFileService(
         finally
         {
             _saveLock.Release();
-            TryDelete(temporaryPath);
+            FileUtils.TryDeleteRegularFile(
+                temporaryPath,
+                ex => SaveStateFileServiceLog.SaveStateCleanupFailed(logger, ex)
+            );
         }
     }
 
@@ -345,21 +348,6 @@ internal sealed class SaveStateFileService(
                 actualValue: hardwareModel,
                 message: "Save-state hardware model is invalid."
             );
-        }
-    }
-
-    private void TryDelete(string path)
-    {
-        try
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            SaveStateFileServiceLog.SaveStateCleanupFailed(logger, exception);
         }
     }
 

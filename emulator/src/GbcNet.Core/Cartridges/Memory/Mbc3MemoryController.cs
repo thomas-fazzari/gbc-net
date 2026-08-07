@@ -55,6 +55,13 @@ internal sealed class Mbc3MemoryController : ICartridgeMemoryController, ICartri
             ? _externalRam.Ram.BatterySaveSize
             : _externalRam.Ram.BatterySaveSize + Mbc3RealTimeClock.SaveStateSize;
 
+    /// <summary>
+    /// Whether battery-backed save data changed since load or the last clear.
+    /// </summary>
+    /// <remarks>
+    /// Reading this property refreshes the RTC from the system clock so that
+    /// elapsed time since the last save is reflected in the dirty result.
+    /// </remarks>
     public bool IsBatterySaveDirty
     {
         get
@@ -131,13 +138,9 @@ internal sealed class Mbc3MemoryController : ICartridgeMemoryController, ICartri
 
     public void ValidateState(ICartridgeMemoryControllerState state)
     {
-        if (state is not Mbc3MemoryControllerState mbc3State)
-        {
-            throw new ArgumentException(
-                "Cartridge memory controller state is invalid.",
-                nameof(state)
-            );
-        }
+        var mbc3State = CartridgeStateValidator.ValidateControllerState<Mbc3MemoryControllerState>(
+            state
+        );
 
         ValidateState(mbc3State);
     }

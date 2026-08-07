@@ -2,11 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.App.Cheats;
-using GbcNet.App.Database;
 using GbcNet.Core.Cheats;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace GbcNet.Tests.Integration.Cheats;
 
@@ -293,7 +291,7 @@ public sealed class CheatCodeServiceTests
         };
         await test.Service.ReplaceAsync(hash, original, TestContext.Current.CancellationToken);
         var failingService = new CheatCodeService(
-            new TestDbContextFactory(test.DatabasePath, new FailingSaveChangesInterceptor())
+            new TestDbContextFactory(test.DatabasePath, FailingSaveChangesInterceptor.Instance)
         );
 
         var exception = (
@@ -536,35 +534,5 @@ public sealed class CheatCodeServiceTests
         public CheatCodeService Service { get; }
 
         public void Dispose() => TemporaryDirectory.Dispose();
-    }
-
-    private sealed class TestDbContextFactory : IDbContextFactory<GbcNetDbContext>
-    {
-        private readonly DbContextOptions<GbcNetDbContext> _options;
-
-        public TestDbContextFactory(string databasePath, IInterceptor? interceptor = null)
-        {
-            var builder = SqliteDbContextOptions.Configure(
-                new DbContextOptionsBuilder<GbcNetDbContext>(),
-                databasePath
-            );
-            if (interceptor is not null)
-            {
-                builder.AddInterceptors(interceptor);
-            }
-
-            _options = builder.Options;
-        }
-
-        public GbcNetDbContext CreateDbContext() => new(_options);
-    }
-
-    private sealed class FailingSaveChangesInterceptor : SaveChangesInterceptor
-    {
-        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
-            DbContextEventData eventData,
-            InterceptionResult<int> result,
-            CancellationToken cancellationToken = default
-        ) => throw new DbUpdateException("Synthetic save failure.");
     }
 }

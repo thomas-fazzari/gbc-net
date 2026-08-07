@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Media;
 
 namespace GbcNet.App.Shell.Chrome;
@@ -20,16 +19,4 @@ internal static class AppChrome
         ?? throw new InvalidOperationException(
             $"Application brush resource '{resourceKey}' was not found."
         );
-
-    public static Button Button(string text, bool accent = false)
-    {
-        var button = new Button { Content = text };
-        button.Classes.Add("chrome-button");
-        if (accent)
-        {
-            button.Classes.Add("accent");
-        }
-
-        return button;
-    }
 }

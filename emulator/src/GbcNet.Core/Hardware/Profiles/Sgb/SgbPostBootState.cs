@@ -32,9 +32,7 @@ internal static class SgbPostBootState
 
     public static void Apply(Cartridge cartridge, Cpu cpu, MemoryBus bus)
     {
-        DmgPostBootState.Apply(cartridge, cpu, bus);
-        PostBootState.SetCpuRegisters(cpu.Registers, CreateCpuRegisterState());
-        bus.Clock.SetCounter(CreateDividerCounter(cartridge));
+        DmgPostBootState.Apply(cpu, bus, CreateCpuRegisterState(), CreateDividerCounter(cartridge));
         PostBootState.SetHardwareRegisterStates(bus, _sgbRegisterStates);
     }
 

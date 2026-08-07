@@ -13,11 +13,9 @@ internal sealed class MooneyeRegisterSnapshotResultObserver : IRomResultObserver
 {
     private const string Source = "Mooneye register snapshot";
     private const byte LoadBFromBOpcode = 0x40;
-    private const byte FailureByte = 0x42;
     private const ushort DiagnosticHramStart = AddressMap.HighRamStart;
     private const int DiagnosticHramLength = 0x11;
 
-    private static readonly byte[] _passReport = [0x03, 0x05, 0x08, 0x0D, 0x15, 0x22];
     private readonly GameBoy _gameBoy;
 
     public MooneyeRegisterSnapshotResultObserver(GameBoy gameBoy)
@@ -59,14 +57,14 @@ internal sealed class MooneyeRegisterSnapshotResultObserver : IRomResultObserver
 
     private static RomTestStatus? GetStatus(ReadOnlySpan<byte> report)
     {
-        if (report.SequenceEqual(_passReport))
+        if (report.SequenceEqual(MooneyeReport.PassReport))
         {
             return RomTestStatus.Passed;
         }
 
         foreach (var value in report)
         {
-            if (value is not FailureByte)
+            if (value is not MooneyeReport.FailureByte)
             {
                 return null;
             }

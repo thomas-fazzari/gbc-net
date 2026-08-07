@@ -13,21 +13,29 @@ namespace GbcNet.Tests.Unit.Ppu;
 
 public sealed class PpuStateTests
 {
+    public enum PpuTestProfile
+    {
+        Dmg = 0,
+        CgbDmgCompatibility = 1,
+        Cgb = 2,
+    }
+
     private const byte LcdEnable = 0x80;
     private const byte BackgroundEnable = 0x01;
     private const byte ObjectEnable = 0x02;
     private const byte UnsignedBackgroundTileData = 0x10;
     private const byte WindowEnable = 0x20;
 
-    public static TheoryData<int> Profiles => [0, 1, 2];
+    public static TheoryData<PpuTestProfile> Profiles =>
+        [PpuTestProfile.Dmg, PpuTestProfile.CgbDmgCompatibility, PpuTestProfile.Cgb];
 
     [Theory]
     [MemberData(nameof(Profiles))]
-    public void RestoreState_ImmediatelyAfterBoot_RoundTripsEveryProfile(int profileIndex)
+    public void RestoreState_ImmediatelyAfterBoot_RoundTripsEveryProfile(PpuTestProfile profile)
     {
-        var profile = CreateProfile(profileIndex);
-        var source = CreatePpu(profile, out _);
-        var destination = CreatePpu(profile, out _);
+        var hardwareProfile = CreateProfile(profile);
+        var source = CreatePpu(hardwareProfile, out _);
+        var destination = CreatePpu(hardwareProfile, out _);
         var state = source.CaptureState();
 
         destination.RestoreState(state);
@@ -113,7 +121,13 @@ public sealed class PpuStateTests
         afterMalformed.Engine.GetType().Should().Be(before.Engine.GetType());
         afterMalformed.Should().BeEquivalentTo(before, options => options.WithStrictOrdering());
 
-        var wrongEngine = source.CaptureState() with { Engine = new DmgPpuEngine().CaptureState() };
+        var wrongEngine = source.CaptureState() with
+        {
+            Engine = new DmgPixelRulesPpuEngine<DmgShadePixelOutput>(
+                requestsMode2InterruptBeforeVBlank: false,
+                stateWrapper: static s => new DmgPpuEngineState(s)
+            ).CaptureState(),
+        };
 
         FluentActions
             .Invoking(() => destination.RestoreState(wrongEngine))
@@ -127,11 +141,11 @@ public sealed class PpuStateTests
     [Theory]
     [MemberData(nameof(Profiles))]
     public void RestoreState_MidBackgroundFifoAndPartialFramebuffer_ContinuesIdentically(
-        int profileIndex
+        PpuTestProfile profile
     )
     {
-        var profile = CreateProfile(profileIndex);
-        var source = CreatePpu(profile, out var sourceInterrupts);
+        var hardwareProfile = CreateProfile(profile);
+        var source = CreatePpu(hardwareProfile, out var sourceInterrupts);
         ConfigureBackground(source);
         source.WriteRegister(AddressMap.LcdStatusRegister, 0x78);
         source.WriteRegister(
@@ -145,7 +159,7 @@ public sealed class PpuStateTests
         (GetCommon(state.Engine).RenderedPixels > 0).Should().BeTrue();
         (GetCommon(state.Engine).BackgroundWindowFetcher.BackgroundFifoCount > 0).Should().BeTrue();
 
-        var restored = CreatePpu(profile, out var restoredInterrupts);
+        var restored = CreatePpu(hardwareProfile, out var restoredInterrupts);
         restored.RestoreState(state);
 
         restoredInterrupts.InterruptFlag.Should().Be(0);
@@ -190,10 +204,10 @@ public sealed class PpuStateTests
 
     [Theory]
     [MemberData(nameof(Profiles))]
-    public void RestoreState_MidWindowFetch_ContinuesIdentically(int profileIndex)
+    public void RestoreState_MidWindowFetch_ContinuesIdentically(PpuTestProfile profile)
     {
-        var profile = CreateProfile(profileIndex);
-        var source = CreatePpu(profile, out var sourceInterrupts);
+        var hardwareProfile = CreateProfile(profile);
+        var source = CreatePpu(hardwareProfile, out var sourceInterrupts);
         ConfigureBackground(source);
         source.WriteRegister(AddressMap.WindowYRegister, 0);
         source.WriteRegister(AddressMap.WindowXRegister, 7);
@@ -206,7 +220,7 @@ public sealed class PpuStateTests
 
         var state = source.CaptureState();
         GetCommon(state.Engine).BackgroundWindowFetcher.WindowActiveThisLine.Should().BeTrue();
-        var restored = CreatePpu(profile, out var restoredInterrupts);
+        var restored = CreatePpu(hardwareProfile, out var restoredInterrupts);
         restored.RestoreState(state);
 
         DriveIdenticallyToCompletedFrame(source, sourceInterrupts, restored, restoredInterrupts);
@@ -214,10 +228,10 @@ public sealed class PpuStateTests
 
     [Theory]
     [MemberData(nameof(Profiles))]
-    public void RestoreState_AfterObjectSelection_ContinuesIdentically(int profileIndex)
+    public void RestoreState_AfterObjectSelection_ContinuesIdentically(PpuTestProfile profile)
     {
-        var profile = CreateProfile(profileIndex);
-        var source = CreatePpu(profile, out var sourceInterrupts);
+        var hardwareProfile = CreateProfile(profile);
+        var source = CreatePpu(hardwareProfile, out var sourceInterrupts);
         ConfigureBackground(source);
         WriteObject(source, 0, y: 16, x: 16, tile: 0, flags: 0);
         source.WriteRegister(
@@ -229,7 +243,7 @@ public sealed class PpuStateTests
 
         var state = source.CaptureState();
         GetObjects(state.Engine).Selected.Should().BeTrue();
-        var restored = CreatePpu(profile, out var restoredInterrupts);
+        var restored = CreatePpu(hardwareProfile, out var restoredInterrupts);
         restored.RestoreState(state);
 
         DriveIdenticallyToCompletedFrame(source, sourceInterrupts, restored, restoredInterrupts);
@@ -294,13 +308,15 @@ public sealed class PpuStateTests
         frame.Pixels.Span.ToArray().Should().NotBeEmpty();
     }
 
-    private static IHardwareProfile CreateProfile(int profileIndex) =>
-        profileIndex switch
+    private static IHardwareProfile CreateProfile(PpuTestProfile profile) =>
+        profile switch
         {
-            0 => DmgHardwareProfile.Instance,
-            1 => new CgbHardwareProfile(CgbOperatingMode.DmgCompatibility),
-            2 => new CgbHardwareProfile(CgbOperatingMode.Cgb),
-            _ => throw new ArgumentOutOfRangeException(nameof(profileIndex)),
+            PpuTestProfile.Dmg => DmgHardwareProfile.Instance,
+            PpuTestProfile.CgbDmgCompatibility => new CgbHardwareProfile(
+                CgbOperatingMode.DmgCompatibility
+            ),
+            PpuTestProfile.Cgb => new CgbHardwareProfile(CgbOperatingMode.Cgb),
+            _ => throw new ArgumentOutOfRangeException(nameof(profile)),
         };
 
     private static PpuController CreatePpu(

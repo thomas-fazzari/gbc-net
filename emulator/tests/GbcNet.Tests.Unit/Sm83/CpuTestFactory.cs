@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using GbcNet.Core.Cartridges;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Memory;
 using GbcNet.Core.Sm83;
@@ -22,6 +23,16 @@ internal static class CpuTestFactory
     )
     {
         var cartridge = TestRomFactory.LoadCartridge(configure);
+        var bus = new MemoryBus(cartridge, profile ?? DmgHardwareProfile.Instance);
+        return (new Cpu(bus, tickMachineCycle), bus);
+    }
+
+    public static (Cpu Cpu, MemoryBus Bus) CreateCpuWithBus(
+        Cartridge cartridge,
+        IHardwareProfile? profile = null,
+        Action? tickMachineCycle = null
+    )
+    {
         var bus = new MemoryBus(cartridge, profile ?? DmgHardwareProfile.Instance);
         return (new Cpu(bus, tickMachineCycle), bus);
     }
