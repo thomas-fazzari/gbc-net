@@ -18,6 +18,7 @@ using GbcNet.App.Input;
 using GbcNet.App.Shell.Chrome;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Joypad;
+using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App.Configuration;
 
@@ -31,6 +32,7 @@ internal sealed partial class SettingsWindow : Window
     };
     private readonly InputConfigDraft _inputDraft;
     private readonly GamepadManager _gamepadManager;
+    private readonly ILogger _logger;
     private readonly Dictionary<JoypadButton, Button> _keyboardCaptureButtons = [];
     private readonly Dictionary<JoypadButton, TextBlock> _keyboardCaptureErrors = [];
     private readonly Dictionary<JoypadButton, Button> _gamepadCaptureButtons = [];
@@ -41,14 +43,16 @@ internal sealed partial class SettingsWindow : Window
     private CaptureTarget? _captureTarget;
     private NameEditMode _nameEditMode;
 
-    public SettingsWindow(SettingsConfig settings, GamepadManager gamepadManager)
+    public SettingsWindow(SettingsConfig settings, GamepadManager gamepadManager, ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(gamepadManager);
+        ArgumentNullException.ThrowIfNull(logger);
 
         InitializeComponent();
 
         _gamepadManager = gamepadManager;
+        _logger = logger;
 
         _inputDraft = new InputConfigDraft(settings.Input);
         DmgBootRomPathTextBox.Text = settings.BootRoms.DmgPath;
@@ -208,20 +212,31 @@ internal sealed partial class SettingsWindow : Window
 
     private async Task BrowseBootRomAsync(TextBox pathBox, string title)
     {
-        var files = await StorageProvider.OpenFilePickerAsync(
-            new FilePickerOpenOptions
-            {
-                Title = title,
-                AllowMultiple = false,
-                FileTypeFilter = [_binaryFileType],
-            }
-        );
-
-        if (files.Count != 0)
+        try
         {
-            pathBox.Text = files[0].Path.IsFile
-                ? files[0].Path.LocalPath
-                : files[0].Path.ToString();
+            BootRomErrorTextBlock.IsVisible = false;
+            var files = await StorageProvider.OpenFilePickerAsync(
+                new FilePickerOpenOptions
+                {
+                    Title = title,
+                    AllowMultiple = false,
+                    FileTypeFilter = [_binaryFileType],
+                }
+            );
+
+            if (files.Count != 0)
+            {
+                pathBox.Text = files[0].Path.IsFile
+                    ? files[0].Path.LocalPath
+                    : files[0].Path.ToString();
+            }
+        }
+        catch (Exception exception)
+        {
+            SettingsWindowLog.BootRomBrowseFailed(_logger, exception);
+            BootRomErrorTextBlock.Text =
+                "The file picker could not be opened. Enter the path manually.";
+            BootRomErrorTextBlock.IsVisible = true;
         }
     }
 
@@ -319,27 +334,36 @@ internal sealed partial class SettingsWindow : Window
 
     private async void DeleteSelectedProfileAsync(object? sender, RoutedEventArgs e)
     {
-        CancelTransientEdits();
-        var name = SelectedProfileName;
-        if (
-            !await new DestructiveConfirmationWindow(
-                title: "Delete input profile",
-                heading: "Delete this input profile?",
-                message: $"Profile '{name}' will be removed from this settings draft.",
-                destructiveButtonLabel: "Delete"
-            ).ShowDialog<bool>(this)
-        )
+        try
         {
-            return;
-        }
+            CancelTransientEdits();
+            var name = SelectedProfileName;
+            if (
+                !await new DestructiveConfirmationWindow(
+                    title: "Delete input profile",
+                    heading: "Delete this input profile?",
+                    message: $"Profile '{name}' will be removed from this settings draft.",
+                    destructiveButtonLabel: "Delete"
+                ).ShowDialog<bool>(this)
+            )
+            {
+                return;
+            }
 
-        ShowProfileResult(
-            _activeInputTab == InputTab.Keyboard
-                ? _inputDraft.DeleteKeyboardProfile(name)
-                : _inputDraft.DeleteGamepadProfile(name)
-        );
-        ClearValidationSummary();
-        RefreshInputUi();
+            ShowProfileResult(
+                _activeInputTab == InputTab.Keyboard
+                    ? _inputDraft.DeleteKeyboardProfile(name)
+                    : _inputDraft.DeleteGamepadProfile(name)
+            );
+            ClearValidationSummary();
+            RefreshInputUi();
+        }
+        catch (Exception exception)
+        {
+            SettingsWindowLog.ProfileDeleteFailed(_logger, exception);
+            ProfileErrorTextBlock.Text = "The input profile could not be deleted.";
+            ProfileErrorTextBlock.IsVisible = true;
+        }
     }
 
     private void SetActiveProfile(object? sender, RoutedEventArgs e)
@@ -796,4 +820,16 @@ internal sealed partial class SettingsWindow : Window
         Create = 1,
         Rename = 2,
     }
+}
+
+internal static partial class SettingsWindowLog
+{
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "The boot ROM file picker could not be opened."
+    )]
+    internal static partial void BootRomBrowseFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The input profile could not be deleted.")]
+    internal static partial void ProfileDeleteFailed(ILogger logger, Exception exception);
 }

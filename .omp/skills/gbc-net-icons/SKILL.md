@@ -1,5 +1,5 @@
 ---
-name: importing-icons
+name: gbc-net-icons
 description: Find and import Material Design Icons for Avalonia XAML. Use when adding or changing a PathIcon, StreamGeometry, or shared icon resource in GbcNet.
 ---
 

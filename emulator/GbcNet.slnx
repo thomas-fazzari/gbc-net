@@ -6,10 +6,16 @@
   <Folder Name="/Agents/Skills/Game Boy Development/">
     <File Path="../.omp/skills/gameboy-development/SKILL.md" />
   </Folder>
+  <Folder Name="/Agents/Skills/GBC.Net Exception Handling/">
+    <File Path="../.omp/skills/gbc-net-exception-handling/SKILL.md" />
+  </Folder>
+  <Folder Name="/Agents/Skills/GBC.Net Logging/">
+    <File Path="../.omp/skills/gbc-net-logging/SKILL.md" />
+  </Folder>
   <Folder Name="/Agents/Skills/GBC.Net Testing/">
     <File Path="../.omp/skills/gbc-net-testing/SKILL.md" />
   </Folder>
-  <Folder Name="/Agents/Skills/Importing Icons/">
+  <Folder Name="/Agents/Skills/GBC.Net Icons/">
     <File Path="../.omp/skills/importing-icons/SKILL.md" />
   </Folder>
   <Folder Name="/Source/">

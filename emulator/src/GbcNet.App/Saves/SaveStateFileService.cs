@@ -176,24 +176,23 @@ internal sealed class SaveStateFileService(
             }
         }
         catch (Exception exception)
-            when (exception is FileNotFoundException or OperationCanceledException)
+            when (exception
+                    is FileNotFoundException
+                        or InvalidDataException
+                        or OperationCanceledException
+            )
         {
             throw;
         }
-        catch (EndOfStreamException)
+        catch (EndOfStreamException exception)
         {
-            var truncatedFile = new InvalidDataException("Save-state file is truncated.");
-            throw new InvalidDataException(
-                message: "Save-state file could not be read: " + truncatedFile.Message,
-                innerException: truncatedFile
-            );
+            throw new InvalidDataException("Save-state file is truncated.", exception);
         }
         catch (Exception exception)
+            when (exception is IOException or UnauthorizedAccessException or ZstdSharp.ZstdException
+            )
         {
-            throw new InvalidDataException(
-                message: "Save-state file could not be read: " + exception.Message,
-                innerException: exception
-            );
+            throw new InvalidDataException("Save-state file could not be read.", exception);
         }
     }
 

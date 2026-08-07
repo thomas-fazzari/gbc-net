@@ -20,7 +20,8 @@ internal sealed class ConfigurationPresenter(
     Action<InputConfig> applyInputConfig,
     Action<AudioConfig> applyAudioConfig,
     GamepadManager gamepadManager,
-    ILogger<ConfigurationPresenter> logger
+    ILogger<ConfigurationPresenter> logger,
+    ILogger settingsLogger
 )
 {
     public async Task OpenAsync(Window owner)
@@ -49,7 +50,8 @@ internal sealed class ConfigurationPresenter(
         {
             savedConfig = await new SettingsWindow(
                 settings,
-                gamepadManager
+                gamepadManager,
+                settingsLogger
             ).ShowDialog<SettingsConfig?>(owner);
         }
         finally

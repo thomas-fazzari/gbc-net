@@ -27,6 +27,7 @@ internal sealed class EmulationSessionPresenter(
     MainMenu menu,
     ShellOperationRunner operationRunner,
     ILogger<EmulationSessionPresenter> logger,
+    ILogger cheatsLogger,
     TimeProvider? timeProvider = null
 )
 {
@@ -169,23 +170,8 @@ internal sealed class EmulationSessionPresenter(
         {
             await new CheatsWindow(
                 controller.State.CheatCodes.ToArray(),
-                async entries =>
-                {
-                    try
-                    {
-                        await controller.SetCheatCodesAsync(entries, CancellationToken.None);
-                    }
-                    catch (Exception exception)
-                        when (exception
-                                is ArgumentException
-                                    or InvalidOperationException
-                                    or OperationCanceledException
-                        )
-                    {
-                        EmulationSessionPresenterLog.CheatCodeApplyFailed(logger, exception);
-                        throw;
-                    }
-                }
+                entries => controller.SetCheatCodesAsync(entries, CancellationToken.None),
+                cheatsLogger
             ).ShowDialog<bool?>(owner);
         }
         finally
@@ -408,9 +394,6 @@ internal sealed class EmulationSessionPresenter(
 
 internal static partial class EmulationSessionPresenterLog
 {
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Cheat codes could not be applied.")]
-    internal static partial void CheatCodeApplyFailed(ILogger logger, Exception exception);
-
     [LoggerMessage(
         Level = LogLevel.Warning,
         Message = "Loaded ROM could not be recorded in the library."

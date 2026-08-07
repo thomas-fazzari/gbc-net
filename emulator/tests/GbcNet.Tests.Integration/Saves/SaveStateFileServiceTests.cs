@@ -109,10 +109,8 @@ public sealed class SaveStateFileServiceTests
                 .ThrowExactlyAsync<InvalidDataException>()
         ).Which;
 
-        exception
-            .Message.Should()
-            .Be("Save-state file could not be read: Save-state file is truncated.");
-        exception.InnerException.Should().BeOfType<InvalidDataException>();
+        exception.Message.Should().Be("Save-state file is truncated.");
+        exception.InnerException.Should().BeOfType<EndOfStreamException>();
     }
 
     [Fact]

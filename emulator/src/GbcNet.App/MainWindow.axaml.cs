@@ -113,7 +113,8 @@ internal sealed partial class MainWindow : Window, IDisposable
             _statusBar,
             MainMenu,
             _operationRunner,
-            loggerFactory.CreateLogger<EmulationSessionPresenter>()
+            loggerFactory.CreateLogger<EmulationSessionPresenter>(),
+            loggerFactory.CreateLogger<CheatsWindow>()
         );
         _gamepadManager = new GamepadManager(
             inputRouter,
@@ -188,7 +189,8 @@ internal sealed partial class MainWindow : Window, IDisposable
             },
             _menuAdapter.ApplyAudioConfig,
             _gamepadManager,
-            loggerFactory.CreateLogger<ConfigurationPresenter>()
+            loggerFactory.CreateLogger<ConfigurationPresenter>(),
+            loggerFactory.CreateLogger<SettingsWindow>()
         );
 
         _menuAdapter.Configure(

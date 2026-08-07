@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Threading;
 using GbcNet.Core.Cheats;
+using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App.Cheats;
 
@@ -30,6 +31,7 @@ internal sealed partial class CheatsWindow : Window
     private readonly List<CheatDraft> _gameSharkEntries;
     private readonly List<EntryRowControls> _entryRows = [];
     private readonly Func<IReadOnlyList<CheatCodeEntry>, Task> _applyAsync;
+    private readonly ILogger _logger;
     private CheatCodeType _currentType;
     private string _gameGenieNameDraft = string.Empty;
     private string _gameGenieCodeDraft = string.Empty;
@@ -41,11 +43,13 @@ internal sealed partial class CheatsWindow : Window
 
     internal CheatsWindow(
         IReadOnlyList<CheatCodeEntry> entries,
-        Func<IReadOnlyList<CheatCodeEntry>, Task> applyAsync
+        Func<IReadOnlyList<CheatCodeEntry>, Task> applyAsync,
+        ILogger logger
     )
     {
         ArgumentNullException.ThrowIfNull(entries);
         ArgumentNullException.ThrowIfNull(applyAsync);
+        ArgumentNullException.ThrowIfNull(logger);
 
         InitializeComponent();
 
@@ -69,6 +73,7 @@ internal sealed partial class CheatsWindow : Window
         }
 
         _applyAsync = applyAsync;
+        _logger = logger;
 
         Closing += GuardCloseWhileApplying;
         Opened += (_, _) => FocusInitialControl();
@@ -243,64 +248,77 @@ internal sealed partial class CheatsWindow : Window
 
     private async void ApplyAsync(object? sender, RoutedEventArgs e)
     {
-        if (!ValidateEntryCodes())
-        {
-            var currentEntriesValid =
-                _currentType is CheatCodeType.GameGenie
-                    ? _gameGenieEntriesValid
-                    : _gameSharkEntriesValid;
-            var invalidType = _currentType;
-            if (currentEntriesValid)
-            {
-                invalidType =
-                    _currentType is CheatCodeType.GameGenie
-                        ? CheatCodeType.GameShark
-                        : CheatCodeType.GameGenie;
-            }
-            if (_currentType != invalidType)
-            {
-                SaveInputDraft();
-                _currentType = invalidType;
-                UpdatePage();
-                RefreshEntries();
-            }
-
-            FocusFirstInvalidCode();
-            return;
-        }
-
-        var entries = CreateEntries();
-        _isApplying = true;
-        SetDraftEnabled(enabled: false);
-        ApplyErrorTextBlock.IsVisible = false;
-        ApplyErrorTextBlock.Text = string.Empty;
-        ApplyingTextBlock.IsVisible = true;
-        ApplyingTextBlock.Text = "Applying...";
-
         try
         {
-            await _applyAsync(entries);
+            if (!ValidateEntryCodes())
+            {
+                var currentEntriesValid =
+                    _currentType is CheatCodeType.GameGenie
+                        ? _gameGenieEntriesValid
+                        : _gameSharkEntriesValid;
+                var invalidType = _currentType;
+                if (currentEntriesValid)
+                {
+                    invalidType =
+                        _currentType is CheatCodeType.GameGenie
+                            ? CheatCodeType.GameShark
+                            : CheatCodeType.GameGenie;
+                }
+                if (_currentType != invalidType)
+                {
+                    SaveInputDraft();
+                    _currentType = invalidType;
+                    UpdatePage();
+                    RefreshEntries();
+                }
+
+                FocusFirstInvalidCode();
+                return;
+            }
+
+            var entries = CreateEntries();
+            _isApplying = true;
+            SetDraftEnabled(enabled: false);
+            ApplyErrorTextBlock.IsVisible = false;
+            ApplyErrorTextBlock.Text = string.Empty;
+            ApplyingTextBlock.IsVisible = true;
+            ApplyingTextBlock.Text = "Applying...";
+
+            try
+            {
+                await _applyAsync(entries);
+            }
+            catch (Exception exception)
+                when (exception
+                        is ArgumentException
+                            or InvalidOperationException
+                            or OperationCanceledException
+                )
+            {
+                ShowApplyFailure($"Cheat codes could not be applied: {exception.Message}");
+                return;
+            }
+
+            _isApplying = false;
+            Closing -= GuardCloseWhileApplying;
+            Close(dialogResult: true);
         }
         catch (Exception exception)
-            when (exception
-                    is ArgumentException
-                        or InvalidOperationException
-                        or OperationCanceledException
-            )
         {
-            _isApplying = false;
-            ApplyingTextBlock.IsVisible = false;
-            ApplyingTextBlock.Text = string.Empty;
-            ApplyErrorTextBlock.IsVisible = true;
-            ApplyErrorTextBlock.Text = $"Cheat codes could not be applied: {exception.Message}";
-            SetDraftEnabled(enabled: true);
-            ApplyButton.Focus();
-            return;
+            CheatsWindowLog.CheatCodeApplyFailed(_logger, exception);
+            ShowApplyFailure("Cheat codes could not be applied.");
         }
+    }
 
+    private void ShowApplyFailure(string message)
+    {
         _isApplying = false;
-        Closing -= GuardCloseWhileApplying;
-        Close(dialogResult: true);
+        ApplyingTextBlock.IsVisible = false;
+        ApplyingTextBlock.Text = string.Empty;
+        ApplyErrorTextBlock.IsVisible = true;
+        ApplyErrorTextBlock.Text = message;
+        SetDraftEnabled(enabled: true);
+        ApplyButton.Focus();
     }
 
     private void Cancel(object? sender, RoutedEventArgs e) => Close(dialogResult: null);
@@ -743,4 +761,10 @@ internal sealed partial class CheatsWindow : Window
         Button MoveDown,
         Button Remove
     );
+}
+
+internal static partial class CheatsWindowLog
+{
+    [LoggerMessage(Level = LogLevel.Error, Message = "Cheat codes could not be applied.")]
+    internal static partial void CheatCodeApplyFailed(ILogger logger, Exception exception);
 }
