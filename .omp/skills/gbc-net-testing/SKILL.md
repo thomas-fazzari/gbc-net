@@ -18,6 +18,15 @@ Test behavior at the smallest tier that proves it.
   and application workflows.
 * `GbcNet.Tests.Shared`: helpers and fixtures used by both test projects.
 
+Before writing a test helper, check what already exists: `Opcodes`,
+`TestDbContextFactory`, `FailingSaveChangesInterceptor`, and `CheatCodeParser`
+live in `GbcNet.Tests.Shared`; `CpuTestFactory` and `SgbTestHelpers` live in the
+Unit project (`Sm83/`, `Sgb/`); `RomTesting/Utils` has `RomTestHashing`
+(`ComputeSha256`). Do not add private copies.
+
+Type theory data directly (`TheoryData<HardwareModel>`, enums) instead of
+index- or string-driven switches in the test body.
+
 Use xUnit v3 through Microsoft.Testing.Platform. Name tests
 `Method_Condition_Expected`.
 

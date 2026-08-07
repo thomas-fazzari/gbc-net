@@ -4,6 +4,8 @@ updates:
     directory: /emulator
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: Meziantou.Analyzer
   - package-ecosystem: github-actions
     directory: /
     schedule:
