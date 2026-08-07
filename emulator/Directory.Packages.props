@@ -29,7 +29,7 @@
   <ItemGroup Label="Analyzers">
     <GlobalPackageReference
       Include="SonarAnalyzer.CSharp"
-      Version="10.29.0.143774"
+      Version="10.31.0.145097"
       PrivateAssets="all"
       IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
     />
