@@ -4,7 +4,7 @@
 namespace GbcNet.Tests.Shared;
 
 /// <summary>
-/// SM83 opcode constants.
+/// SM83 opcode constants used by several tests.
 /// </summary>
 internal static class Opcodes
 {

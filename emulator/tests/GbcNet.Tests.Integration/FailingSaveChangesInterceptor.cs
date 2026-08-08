@@ -4,7 +4,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
-namespace GbcNet.Tests.Shared;
+namespace GbcNet.Tests.Integration;
 
 /// <summary>
 /// <see cref="SaveChangesInterceptor"/> that throws a configurable exception on every save,

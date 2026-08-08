@@ -5,7 +5,7 @@ using GbcNet.App.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
-namespace GbcNet.Tests.Shared;
+namespace GbcNet.Tests.Integration;
 
 /// <summary>
 /// SQLite-backed <see cref="IDbContextFactory{GbcNetDbContext}"/> for integration tests.
