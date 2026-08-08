@@ -8,11 +8,18 @@ internal enum SortDirection
 
 internal static class SortDirectionExtensions
 {
-    internal static bool IsAscending(this SortDirection direction) =>
-        direction switch
-        {
-            SortDirection.Ascending => true,
-            SortDirection.Descending => false,
-            _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, message: null),
-        };
+    extension(SortDirection direction)
+    {
+        internal bool IsAscending() =>
+            direction switch
+            {
+                SortDirection.Ascending => true,
+                SortDirection.Descending => false,
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(direction),
+                    direction,
+                    message: null
+                ),
+            };
+    }
 }

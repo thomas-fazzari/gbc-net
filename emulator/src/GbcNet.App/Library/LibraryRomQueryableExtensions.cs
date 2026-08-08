@@ -10,50 +10,53 @@ namespace GbcNet.App.Library;
 
 internal static class LibraryRomQueryableExtensions
 {
-    internal static IQueryable<LibraryRomData> SelectData(this IQueryable<LibraryRom> roms) =>
-        roms.Select(rom => new LibraryRomData(
-            rom.RomHash,
-            rom.LastKnownPath,
-            rom.FileName,
-            rom.CartridgeTitle,
-            rom.HardwareKind,
-            rom.NoIntroHash,
-            rom.AddedAt,
-            rom.LastOpenedAt,
-            rom.LaunchCount,
-            rom.PlayTimeTicks,
-            rom.CoverPath
-        ));
-
-    internal static IOrderedQueryable<LibraryRom> ApplySort(
-        this IQueryable<LibraryRom> roms,
-        LibraryQuery query
-    )
+    extension(IQueryable<LibraryRom> roms)
     {
-        var orderedRoms = query.Sort switch
-        {
-            LibrarySortField.LastOpened => query.IsAscending
-                ? roms.OrderBy(rom => rom.LastOpenedAt)
-                : roms.OrderByDescending(rom => rom.LastOpenedAt),
-            LibrarySortField.MostPlayed => query.IsAscending
-                ? roms.OrderBy(rom => rom.LaunchCount)
-                : roms.OrderByDescending(rom => rom.LaunchCount),
-            LibrarySortField.RecentlyAdded => query.IsAscending
-                ? roms.OrderBy(rom => rom.AddedAt)
-                : roms.OrderByDescending(rom => rom.AddedAt),
-            LibrarySortField.MostTimePlayed => query.IsAscending
-                ? roms.OrderBy(rom => rom.PlayTimeTicks)
-                : roms.OrderByDescending(rom => rom.PlayTimeTicks),
-            _ => throw new ArgumentOutOfRangeException(
-                paramName: nameof(query),
-                actualValue: query.Sort,
-                message: null
-            ),
-        };
+        internal IQueryable<LibraryRomData> SelectData() =>
+            roms.Select(rom => new LibraryRomData(
+                rom.RomHash,
+                rom.LastKnownPath,
+                rom.FileName,
+                rom.CartridgeTitle,
+                rom.HardwareKind,
+                rom.NoIntroHash,
+                rom.AddedAt,
+                rom.LastOpenedAt,
+                rom.LaunchCount,
+                rom.PlayTimeTicks,
+                rom.CoverPath
+            ));
 
-        return orderedRoms.ThenBy(rom =>
-            EF.Functions.Collate(rom.FileName, SqliteDbContextOptions.OrdinalIgnoreCaseCollation)
-        );
+        internal IOrderedQueryable<LibraryRom> ApplySort(LibraryQuery query)
+        {
+            var orderedRoms = query.Sort switch
+            {
+                LibrarySortField.LastOpened => query.IsAscending
+                    ? roms.OrderBy(rom => rom.LastOpenedAt)
+                    : roms.OrderByDescending(rom => rom.LastOpenedAt),
+                LibrarySortField.MostPlayed => query.IsAscending
+                    ? roms.OrderBy(rom => rom.LaunchCount)
+                    : roms.OrderByDescending(rom => rom.LaunchCount),
+                LibrarySortField.RecentlyAdded => query.IsAscending
+                    ? roms.OrderBy(rom => rom.AddedAt)
+                    : roms.OrderByDescending(rom => rom.AddedAt),
+                LibrarySortField.MostTimePlayed => query.IsAscending
+                    ? roms.OrderBy(rom => rom.PlayTimeTicks)
+                    : roms.OrderByDescending(rom => rom.PlayTimeTicks),
+                _ => throw new ArgumentOutOfRangeException(
+                    paramName: nameof(query),
+                    actualValue: query.Sort,
+                    message: null
+                ),
+            };
+
+            return orderedRoms.ThenBy(rom =>
+                EF.Functions.Collate(
+                    rom.FileName,
+                    SqliteDbContextOptions.OrdinalIgnoreCaseCollation
+                )
+            );
+        }
     }
 }
 
