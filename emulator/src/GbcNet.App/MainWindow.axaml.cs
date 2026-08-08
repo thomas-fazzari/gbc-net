@@ -22,17 +22,12 @@ namespace GbcNet.App;
 
 internal sealed partial class MainWindow : Window, IDisposable
 {
-    private readonly ConfigurationPresenter _configurationPresenter;
-    private readonly AppConfigurationService _configurationService;
-    private readonly IAudioOutput _audioOutput;
     private readonly EmulationSessionPresenter _emulationSession;
     private readonly GamepadManager _gamepadManager;
     private readonly LcdFramePresenter _framePresenter;
     private readonly ShellOperationRunner _operationRunner;
     private readonly StatusBarPresenter _statusBar;
     private readonly MainWindowMenuAdapter _menuAdapter;
-    private readonly MenuBarVisibilityController _menuBarVisibility;
-    private readonly StatusBarVisibilityController _statusBarVisibility;
     private readonly ILogger<MainWindow> _logger;
     private readonly HashSet<Key> _pressedKeys = [];
     private bool _closeAfterAsyncStop;
@@ -52,8 +47,6 @@ internal sealed partial class MainWindow : Window, IDisposable
     )
     {
         _logger = logger;
-        _configurationService = configurationService;
-        _audioOutput = audioOutput;
         InitializeComponent();
 
         var libraryView = new LibraryView();
@@ -70,16 +63,17 @@ internal sealed partial class MainWindow : Window, IDisposable
             hardwareBadge: StatusHardwareBadge,
             hardwareBadgeText: StatusHardwareBadgeTextBlock,
             speedBadge: StatusSpeedBadge,
-            speed: StatusSpeedTextBlock
+            speed: StatusSpeedTextBlock,
+            logger: loggerFactory.CreateLogger<StatusBarPresenter>()
         );
         _operationRunner = new ShellOperationRunner(
             exception => _statusBar.ShowError(exception.Message),
             logger
         );
 
-        _menuBarVisibility = new MenuBarVisibilityController(MainMenu, this);
-        _statusBarVisibility = new StatusBarVisibilityController(StatusBar, MainMenu);
-        _statusBarVisibility.SetAvailable(isAvailable: false);
+        var menuBarVisibility = new MenuBarVisibilityController(MainMenu, this);
+        var statusBarVisibility = new StatusBarVisibilityController(StatusBar, MainMenu);
+        statusBarVisibility.SetAvailable(isAvailable: false);
 
         var emulationController = new EmulationController(
             startupConfiguration.BootRomOptions,
@@ -140,23 +134,23 @@ internal sealed partial class MainWindow : Window, IDisposable
         {
             ContentHost.Content = emulationView;
             emulationView.Focus();
-            _menuBarVisibility.SetVisible(isVisible: false);
-            _statusBarVisibility.SetAvailable(isAvailable: true);
-            _statusBarVisibility.SetVisible(isVisible: false);
+            menuBarVisibility.SetVisible(isVisible: false);
+            statusBarVisibility.SetAvailable(isAvailable: true);
+            statusBarVisibility.SetVisible(isVisible: false);
         };
         _emulationSession.SessionClosed += (_, _) =>
         {
             ContentHost.Content = libraryView;
-            _menuBarVisibility.SetVisible(isVisible: true);
-            _statusBarVisibility.SetAvailable(isAvailable: false);
+            menuBarVisibility.SetVisible(isVisible: true);
+            statusBarVisibility.SetAvailable(isAvailable: false);
             libraryPresenter.Refresh();
         };
         _emulationSession.SessionFaulted += (_, _) =>
         {
             ContentHost.Content = libraryView;
-            _menuBarVisibility.SetVisible(isVisible: true);
-            _statusBarVisibility.SetAvailable(isAvailable: true);
-            _statusBarVisibility.SetVisible(isVisible: true);
+            menuBarVisibility.SetVisible(isVisible: true);
+            statusBarVisibility.SetAvailable(isAvailable: true);
+            statusBarVisibility.SetVisible(isVisible: true);
             libraryPresenter.Refresh();
         };
 
@@ -165,16 +159,16 @@ internal sealed partial class MainWindow : Window, IDisposable
             this,
             _emulationSession,
             _gamepadManager,
-            _audioOutput,
-            _configurationService,
+            audioOutput,
+            configurationService,
             _statusBar,
             _operationRunner,
-            _menuBarVisibility,
-            _statusBarVisibility,
+            menuBarVisibility,
+            statusBarVisibility,
             loggerFactory.CreateLogger<MainWindowMenuAdapter>()
         );
 
-        _configurationPresenter = new ConfigurationPresenter(
+        var configurationPresenter = new ConfigurationPresenter(
             configurationService,
             startupConfiguration.ConfigPath,
             _statusBar,
@@ -196,7 +190,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         _menuAdapter.Configure(
             emulationView,
             startupConfiguration.AudioConfig,
-            _configurationPresenter
+            configurationPresenter
         );
         libraryView.ViewModeChanged = viewMode =>
             _menuAdapter.SaveLibraryViewMode(libraryView, viewMode);

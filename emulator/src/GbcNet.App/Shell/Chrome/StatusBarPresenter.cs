@@ -4,6 +4,7 @@
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using GbcNet.Core.Hardware;
+using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App.Shell.Chrome;
 
@@ -14,7 +15,8 @@ internal sealed class StatusBarPresenter(
     Border hardwareBadge,
     TextBlock hardwareBadgeText,
     Border speedBadge,
-    TextBlock speed
+    TextBlock speed,
+    ILogger<StatusBarPresenter> logger
 ) : IDisposable
 {
     private Bitmap? _coverBitmap;
@@ -91,6 +93,7 @@ internal sealed class StatusBarPresenter(
                         or ArgumentException
             )
         {
+            StatusBarPresenterLog.CoverLoadFailed(logger, exception);
             ClearCover();
         }
     }
@@ -102,4 +105,10 @@ internal sealed class StatusBarPresenter(
         _coverBitmap?.Dispose();
         _coverBitmap = null;
     }
+}
+
+internal static partial class StatusBarPresenterLog
+{
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Cover art could not be loaded.")]
+    internal static partial void CoverLoadFailed(ILogger logger, Exception exception);
 }

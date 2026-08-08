@@ -4,6 +4,7 @@
 using Avalonia.Controls;
 using GbcNet.App.Shell.Chrome;
 using GbcNet.Core.Hardware;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GbcNet.Tests.Unit.App.Shell.Chrome;
 
@@ -55,6 +56,7 @@ public sealed class StatusBarPresenterTests
             new Border(),
             new TextBlock(),
             speedBadge,
-            speed
+            speed,
+            NullLogger<StatusBarPresenter>.Instance
         );
 }

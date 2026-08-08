@@ -100,15 +100,6 @@ internal sealed class LcdFramePresenter(Image screenImage) : IDisposable
 
     private void QueueRender()
     {
-        try
-        {
-            screenImage.Dispatcher.Post(action: RenderPendingFrame);
-        }
-        catch
-        {
-            Volatile.Write(location: ref _isRenderQueued, value: 0);
-            Interlocked.Exchange(location1: ref _pendingFrame, value: null)?.Dispose();
-            throw;
-        }
+        screenImage.Dispatcher.Post(action: RenderPendingFrame);
     }
 }
