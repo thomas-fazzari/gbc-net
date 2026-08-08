@@ -1,3 +1,8 @@
+---
+name: gbc-net-logging
+description: GBC.Net logging contract per ADR 0002. Use when adding or reviewing logging in GbcNet.App — source-generated LoggerMessage methods, ILogger injection, provider boundaries, Serilog composition root.
+---
+
 # GBC.Net logging
 
 Source of truth: `docs/adr/0002-logging.md`. Do not contradict it.

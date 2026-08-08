@@ -1,3 +1,8 @@
+---
+name: gbc-net-exception-handling
+description: GBC.Net exception handling rules. Use when adding, removing, or reviewing try/catch, exception translation, cancellation handling, retry policy, or error text in GbcNet.Core or GbcNet.App.
+---
+
 # GBC.Net exception handling
 
 ## Find the owner first
@@ -188,21 +193,7 @@ Apply the `## Writing` rules from `.omp/RULES.md` to:
 * comments;
 * XML documentation.
 
-Use short, complete sentences and common words.
-
 State the failed action. Add only stable context that helps the caller act or helps the owner identify the fault.
-
-Remove:
-
-* filler;
-* repeated facts;
-* unnecessary parentheses;
-* semicolons;
-* implementation narration.
-
-Spell out uncommon abbreviations on first use.
-
-Never use "hand-written" as a quality label.
 
 Explain why a catch is safe only when the code cannot make that clear.
 
