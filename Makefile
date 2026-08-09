@@ -14,7 +14,6 @@ CONTAINER_ENGINE ?= $(shell if command -v podman >/dev/null 2>&1; then printf po
 DOTNET_SDK_IMAGE ?= mcr.microsoft.com/dotnet/sdk:10.0.302
 
 DOTNET ?= dotnet
-BUNX ?= bunx
 
 .DEFAULT_GOAL := run
 MAKEFLAGS += --no-builtin-rules --warn-undefined-variables
@@ -34,15 +33,13 @@ run:
 start: run
 
 lint:
-	$(BUNX) markdownlint-cli2@0.23.1
 	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) tool run csharpier check .
 	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) build $(SOLUTION) --configuration $(CONFIGURATION)
 	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) tool run dotnet-ef migrations has-pending-model-changes --project $(APP) --startup-project $(APP) --configuration $(CONFIGURATION) --no-build
 
 check: lint
 
-format: ## Fix Markdown and C# formatting
-	$(BUNX) markdownlint-cli2@0.23.1 --fix
+format: ## Fix C# formatting
 	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) tool run csharpier format .
 
 fix fmt: format

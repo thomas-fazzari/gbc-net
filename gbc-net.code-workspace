@@ -31,14 +31,8 @@
     "files.exclude": {
       "**/.omp": true,
       "**/emulator": true,
-      "**/.github": true,
-      "**/.githooks": true,
-      "**/.gitignore": true,
-      "**/.gitattributes": true,
       "**/.idea": true,
       "**/LICENSE": true,
-      "**/.markdownlint-cli2.jsonc": true,
-      "**/.csharpierignore": true,
       "**/.vscode": true,
       "**/.config": true,
       "**/nuget.config": true,
@@ -48,9 +42,6 @@
     },
     "[csharp][xml]": {
       "editor.defaultFormatter": "csharpier.csharpier-vscode",
-    },
-    "[markdown]": {
-      "editor.defaultFormatter": "DavidAnson.vscode-markdownlint",
     },
     "[json][jsonc]": {
       "editor.defaultFormatter": "vscode.json-language-features",
@@ -173,7 +164,6 @@
   "extensions": {
     "recommendations": [
       "csharpier.csharpier-vscode",
-      "DavidAnson.vscode-markdownlint",
       "EditorConfig.EditorConfig",
       "ms-dotnettools.csdevkit",
       "vscode.json-language-features",
