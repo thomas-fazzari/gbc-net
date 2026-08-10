@@ -20,6 +20,11 @@ public sealed class SaveStateFileServiceTests
         );
         var rom = RomStorageIdentity.Create("Test Rom", [0x01, 0x02]);
 
+        rom.FileStem.Should()
+            .Be("TEST_ROM-A12871FEE210FB8619291EAEA194581CBD2531E4B23759D225F6806923F63222");
+
+        RomStorageIdentity.CreateFileStem("Test Rom", [0x01, 0x02]).Should().Be(rom.FileStem);
+
         saveStates.GetSaveStateDate(rom, 3).Should().BeNull();
 
         await saveStates.SaveAsync(
@@ -37,8 +42,28 @@ public sealed class SaveStateFileServiceTests
         );
 
         payload.Should().Equal(0x10, 0x20, 0x30);
-        Path.GetFileName(saveStates.GetSaveStatePath(rom, 3))[..9].Should().Be("TEST_ROM-");
+        Path.GetFileName(saveStates.GetSaveStatePath(rom, 3))
+            .Should()
+            .Be(rom.FileStem + ".slot-3.gbstate");
         saveStates.GetSaveStateDate(rom, 3).Should().NotBeNull();
+    }
+
+    [Fact]
+    public void GetSaveStatePath_DistinguishesRomsWithTheSameLegacyHashPrefix()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        SaveStateFileService saveStates = new(
+            tempDirectory.Path,
+            NullLogger<SaveStateFileService>.Instance
+        );
+        var firstRom = RomStorageIdentity.Create("Test Rom", [0x00, 0x00, 0xA0, 0x36]);
+        var secondRom = RomStorageIdentity.Create("Test Rom", [0x00, 0x00, 0xB2, 0x54]);
+
+        firstRom.Hash.AsSpan(0, 4).SequenceEqual(secondRom.Hash.AsSpan(0, 4)).Should().BeTrue();
+        saveStates
+            .GetSaveStatePath(firstRom, 0)
+            .Should()
+            .NotBe(saveStates.GetSaveStatePath(secondRom, 0));
     }
 
     [Fact]

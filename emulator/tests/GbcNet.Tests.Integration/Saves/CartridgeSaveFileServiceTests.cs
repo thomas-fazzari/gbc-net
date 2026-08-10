@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Security.Cryptography;
 using GbcNet.App.Saves;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Memory;
@@ -28,7 +29,9 @@ public sealed class CartridgeBatterySaveFileServiceTests
         savePath.Should().NotBeNull();
         await saveFiles.SaveAsync(savePath, cartridge.ExportBatterySave());
         File.Exists(savePath).Should().BeTrue();
-        Path.GetFileName(savePath).Should().StartWith("TEST_ROM-");
+        Path.GetFileName(savePath)
+            .Should()
+            .Be($"TEST_ROM-{Convert.ToHexString(SHA256.HashData(rom))}.sav");
 
         var reloaded = TestRomFactory.LoadCartridge(rom);
         var reloadedSavePath = saveFiles.Load(reloaded, rom);

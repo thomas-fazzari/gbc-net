@@ -11,7 +11,6 @@ namespace GbcNet.App.Saves;
 /// </summary>
 internal sealed class RomStorageIdentity
 {
-    private const int ShortHashBytes = 4;
     private const string FallbackName = "GAME";
 
     private RomStorageIdentity(string fileStem, byte[] hash)
@@ -27,27 +26,14 @@ internal sealed class RomStorageIdentity
     public static RomStorageIdentity Create(string title, ReadOnlySpan<byte> rom)
     {
         var hash = SHA256.HashData(rom);
-        return new(
-            string.Concat(
-                str0: SanitizeName(title),
-                str1: "-",
-                str2: Convert.ToHexString(hash.AsSpan(start: 0, length: ShortHashBytes))
-            ),
-            hash
-        );
+        return new(FormatFileStem(title, hash), hash);
     }
 
-    public static string CreateFileStem(string title, ReadOnlySpan<byte> rom)
-    {
-        // Only the 4-byte short hash for the filename stem is needed here
-        // No need to allocate the full 32-byte hash array + RomStorageIdentity object
-        var hash = SHA256.HashData(rom);
-        return string.Concat(
-            SanitizeName(title),
-            "-",
-            Convert.ToHexString(hash.AsSpan(0, ShortHashBytes))
-        );
-    }
+    public static string CreateFileStem(string title, ReadOnlySpan<byte> rom) =>
+        FormatFileStem(title, SHA256.HashData(rom));
+
+    private static string FormatFileStem(string title, ReadOnlySpan<byte> hash) =>
+        $"{SanitizeName(title)}-{Convert.ToHexString(hash)}";
 
     private static string SanitizeName(string name)
     {
