@@ -4,6 +4,7 @@
 using System.Reflection;
 using System.Security.Cryptography;
 using Avalonia.Platform.Storage;
+using ErrorOr;
 using GbcNet.App.Cheats;
 using GbcNet.App.Database.Entities;
 using GbcNet.App.Emulation;
@@ -53,9 +54,11 @@ public sealed class EmulationControllerTests
         var controller = test.CreateController();
         try
         {
-            var active = await controller.OpenRomFileAsync(
+            var activeResult = await controller.OpenRomFileAsync(
                 TestStorageFile.Create("active.gb", romA)
             );
+            activeResult.IsError.Should().BeFalse();
+            var active = activeResult.Value;
 
             var exception = (
                 await FluentActions
@@ -102,6 +105,40 @@ public sealed class EmulationControllerTests
     }
 
     [Fact]
+    public async Task OpenRomFileAsync_ReturnsValidationErrorAndKeepsActiveSessionForInvalidRom()
+    {
+        using var test = new ControllerTestContext();
+        var controller = test.CreateController();
+        try
+        {
+            var activeResult = await controller.OpenRomFileAsync(
+                TestStorageFile.Create("active.gb", TestRomFactory.Create())
+            );
+            activeResult.IsError.Should().BeFalse();
+            controller.TogglePause();
+            var activeState = controller.State;
+
+            var invalidResult = await controller.OpenRomFileAsync(
+                TestStorageFile.Create("invalid.gb", [])
+            );
+
+            invalidResult.IsError.Should().BeTrue();
+            var error = invalidResult.Errors.Should().ContainSingle().Which;
+            error.Type.Should().Be(ErrorType.Validation);
+            error.Code.Should().Be("Rom.RomTooSmall");
+            error
+                .Description.Should()
+                .Be("ROM must contain at least 336 bytes to include the cartridge header.");
+            controller.State.HasSession.Should().BeTrue();
+            controller.State.Should().Be(activeState);
+        }
+        finally
+        {
+            await controller.StopAsync();
+        }
+    }
+
+    [Fact]
     public async Task SetCheatCodesAsync_KeepsGenericSnapshotWhenPersistenceFails()
     {
         using var test = new ControllerTestContext();
@@ -128,7 +165,9 @@ public sealed class EmulationControllerTests
         var controller = test.CreateController(test.CreateFailingCheatCodeService());
         try
         {
-            await controller.OpenRomFileAsync(TestStorageFile.Create("game.gb", rom));
+            (await controller.OpenRomFileAsync(TestStorageFile.Create("game.gb", rom)))
+                .IsError.Should()
+                .BeFalse();
 
             var exception = (
                 await FluentActions
@@ -178,7 +217,9 @@ public sealed class EmulationControllerTests
         var controller = test.CreateController();
         try
         {
-            await controller.OpenRomFileAsync(TestStorageFile.Create("game.gb", rom));
+            (await controller.OpenRomFileAsync(TestStorageFile.Create("game.gb", rom)))
+                .IsError.Should()
+                .BeFalse();
             controller.State.CheatCodes.ToArray().Should().Equal(initialCodes);
 
             var changedCodes = new[]

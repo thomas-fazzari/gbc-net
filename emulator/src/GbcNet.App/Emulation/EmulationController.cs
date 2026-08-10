@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using Avalonia.Platform.Storage;
+using ErrorOr;
 using GbcNet.App.Audio;
 using GbcNet.App.Cheats;
 using GbcNet.App.Saves;
@@ -83,10 +84,18 @@ internal sealed class EmulationController(
         ApplyFastForwardSettings();
     }
 
-    public async Task<EmulationControllerState> OpenRomFileAsync(IStorageFile file)
+    public async Task<ErrorOr<EmulationControllerState>> OpenRomFileAsync(IStorageFile file)
     {
         var rom = await ReadFileAsync(file);
-        var (cartridge, savePath) = LoadCartridge(rom);
+        var loadResult = Cartridge.Load(rom);
+        if (loadResult.IsFailure)
+        {
+            var error = loadResult.Error;
+            return Error.Validation($"Rom.{error.Code}", error.Message);
+        }
+
+        var cartridge = loadResult.Cartridge;
+        var savePath = cartridgeSaveFileService.Load(cartridge, rom);
         var identity = RomStorageIdentity.Create(cartridge.Header.Title, rom);
         var entries = await cheatCodeService.LoadAsync(identity.Hash, CancellationToken.None);
         var activeCodes = GetActiveCodes(entries);
@@ -110,7 +119,8 @@ internal sealed class EmulationController(
             return State;
         }
 
-        var (cartridge, savePath) = LoadCartridge(_loadedRom);
+        var cartridge = Cartridge.LoadOrThrow(_loadedRom);
+        var savePath = cartridgeSaveFileService.Load(cartridge, _loadedRom);
         var activeCodes = GetActiveCodes(_cheatCodes);
         await StopAsync();
 
@@ -229,12 +239,6 @@ internal sealed class EmulationController(
             await stream.CopyToAsync(memoryStream, CancellationToken.None);
             return memoryStream.ToArray();
         }
-    }
-
-    private (Cartridge Cartridge, string? SavePath) LoadCartridge(byte[] rom)
-    {
-        var cartridge = Cartridge.LoadOrThrow(rom);
-        return (cartridge, cartridgeSaveFileService.Load(cartridge, rom));
     }
 
     private (EmulationSession Session, RomStorageIdentity Rom) GetSaveStateTarget()

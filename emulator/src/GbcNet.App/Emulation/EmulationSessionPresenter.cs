@@ -83,13 +83,19 @@ internal sealed class EmulationSessionPresenter(
     public async Task OpenRomFileAsync(IStorageFile file)
     {
         inputRouter.Clear();
-        var state = await controller.OpenRomFileAsync(file);
+        var result = await controller.OpenRomFileAsync(file);
+        if (result.IsError)
+        {
+            statusBar.ShowError(result.FirstError.Description);
+            return;
+        }
+
         FlushPlayTime();
 
         _loadedRomCoverPath = null;
         ClearPlayTime();
+        var state = result.Value;
         ApplyRomActionResult(state);
-
         if (file.Path.IsFile && state.LoadedCartridgeHeader is { } cartridgeHeader)
         {
             try
