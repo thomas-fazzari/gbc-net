@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using GbcNet.Core.Clock;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
@@ -18,7 +19,8 @@ internal sealed class PpuController(
     bool isVideoRamBankRegisterEnabled,
     bool isColorPaletteIndexRegisterEnabled,
     bool isColorPaletteRamEnabled,
-    bool isObjectPriorityModeRegisterEnabled
+    bool isObjectPriorityModeRegisterEnabled,
+    bool hasDmgStatWriteInterruptQuirk = false
 )
 {
     private const byte ObjectPriorityModeReadMask = 0xFE;
@@ -59,6 +61,7 @@ internal sealed class PpuController(
     private byte _windowY;
     private byte _windowX;
     private ObjectPriorityMode _objectPriorityMode;
+    private int _statWriteQuirkTCyclesRemaining;
 
     /// <summary>
     /// True for CPU-visible LCD/PPU registers FF40-FF45, FF47-FF4B, FF4F, and FF68-FF6C.
@@ -135,7 +138,7 @@ internal sealed class PpuController(
         new(
             _control,
             _lcdYCompare,
-            _statusInterruptSelect,
+            EffectiveStatusInterruptSelect,
             _scrollY,
             _scrollX,
             _windowY,
@@ -161,8 +164,7 @@ internal sealed class PpuController(
                 WriteLcdControl(value);
                 return;
             case AddressMap.LcdStatusRegister:
-                _statusInterruptSelect = (byte)(value & PpuStatusRegister.InterruptSelectMask);
-                RequestInterrupts(engine.WriteStatusInterruptSelect(EngineInputs, IsLcdEnabled));
+                WriteLcdStatus(value);
                 return;
             case AddressMap.LcdYCoordinateRegister:
                 return;
@@ -192,9 +194,33 @@ internal sealed class PpuController(
             );
         }
 
-        var result = engine.Tick(tCycles, EngineInputs, VideoRenderingEnabled);
-        RequestInterrupts(result.Interrupts);
-        return result;
+        if (_statWriteQuirkTCyclesRemaining == 0)
+        {
+            return TickEngine(tCycles);
+        }
+
+        var quirkTCycles = Math.Min(tCycles, _statWriteQuirkTCyclesRemaining);
+        var quirkResult = TickEngine(quirkTCycles);
+        _statWriteQuirkTCyclesRemaining -= quirkTCycles;
+
+        if (_statWriteQuirkTCyclesRemaining != 0)
+        {
+            return quirkResult;
+        }
+
+        RequestInterrupts(engine.WriteStatusInterruptSelect(EngineInputs, IsLcdEnabled));
+
+        if (quirkTCycles == tCycles)
+        {
+            return quirkResult;
+        }
+
+        var remainingResult = TickEngine(tCycles - quirkTCycles);
+        return new PpuEngineTickResult(
+            quirkResult.Interrupts | remainingResult.Interrupts,
+            quirkResult.CompletedFrame ?? remainingResult.CompletedFrame,
+            quirkResult.EnteredVisibleHBlank || remainingResult.EnteredVisibleHBlank
+        );
     }
 
     /// <summary>
@@ -250,9 +276,15 @@ internal sealed class PpuController(
         {
             case AddressMap.LcdControlRegister:
                 _control = value;
+                if (!IsLcdEnabled)
+                {
+                    CompleteStatWriteQuirk();
+                }
+
                 return;
             case AddressMap.LcdStatusRegister:
                 _statusInterruptSelect = (byte)(value & PpuStatusRegister.InterruptSelectMask);
+                _statWriteQuirkTCyclesRemaining = 0;
                 engine.SetStatusState(value, EngineInputs, IsLcdEnabled);
                 return;
             case AddressMap.LcdYCoordinateRegister:
@@ -286,6 +318,7 @@ internal sealed class PpuController(
             _windowY,
             _windowX,
             _objectPriorityMode,
+            _statWriteQuirkTCyclesRemaining,
             VideoRenderingEnabled
         );
 
@@ -295,6 +328,28 @@ internal sealed class PpuController(
         {
             throw new ArgumentException(
                 "State status interrupt select contains unsupported bits.",
+                nameof(state)
+            );
+        }
+
+        if (state.StatWriteQuirkTCyclesRemaining is < 0 or > HardwareTiming.MachineCycleTCycles)
+        {
+            throw new ArgumentException(
+                "State STAT write quirk duration is out of range.",
+                nameof(state)
+            );
+        }
+
+        if (
+            state.StatWriteQuirkTCyclesRemaining != 0
+            && (
+                !hasDmgStatWriteInterruptQuirk
+                || (state.Control & PpuLcdControlRegister.LcdEnableMask) == 0
+            )
+        )
+        {
+            throw new ArgumentException(
+                "State active STAT write quirk is incompatible with this PPU state.",
                 nameof(state)
             );
         }
@@ -345,7 +400,39 @@ internal sealed class PpuController(
         _windowY = state.WindowY;
         _windowX = state.WindowX;
         _objectPriorityMode = state.ObjectPriorityMode;
+        _statWriteQuirkTCyclesRemaining = state.StatWriteQuirkTCyclesRemaining;
         VideoRenderingEnabled = state.VideoRenderingEnabled;
+    }
+
+    private void WriteLcdStatus(byte value)
+    {
+        CompleteStatWriteQuirk();
+        _statusInterruptSelect = (byte)(value & PpuStatusRegister.InterruptSelectMask);
+        if (!hasDmgStatWriteInterruptQuirk || !IsLcdEnabled)
+        {
+            RequestInterrupts(engine.WriteStatusInterruptSelect(EngineInputs, IsLcdEnabled));
+            return;
+        }
+
+        _statWriteQuirkTCyclesRemaining = HardwareTiming.MachineCycleTCycles;
+        RequestInterrupts(engine.WriteStatusInterruptSelect(EngineInputs, IsLcdEnabled));
+    }
+
+    private void CompleteStatWriteQuirk()
+    {
+        if (_statWriteQuirkTCyclesRemaining == 0)
+        {
+            return;
+        }
+
+        _statWriteQuirkTCyclesRemaining = 0;
+    }
+
+    private PpuEngineTickResult TickEngine(int tCycles)
+    {
+        var result = engine.Tick(tCycles, EngineInputs, VideoRenderingEnabled);
+        RequestInterrupts(result.Interrupts);
+        return result;
     }
 
     private static void SetPalette(
@@ -373,8 +460,15 @@ internal sealed class PpuController(
         var lycEqualsLy = engine.LycEqualsLy ? PpuStatusRegister.LycEqualsLyMask : (byte)0;
         var mode = IsLcdEnabled ? (byte)engine.StatusMode : (byte)PpuMode.HBlank;
 
-        return (byte)(PpuStatusRegister.ReadMask | _statusInterruptSelect | lycEqualsLy | mode);
+        return (byte)(
+            PpuStatusRegister.ReadMask | EffectiveStatusInterruptSelect | lycEqualsLy | mode
+        );
     }
+
+    private byte EffectiveStatusInterruptSelect =>
+        _statWriteQuirkTCyclesRemaining == 0
+            ? _statusInterruptSelect
+            : PpuStatusRegister.InterruptSelectMask;
 
     private void SetReadWriteRegister(ushort address, byte value)
     {
@@ -438,6 +532,7 @@ internal sealed class PpuController(
 
         if (wasEnabled && !IsLcdEnabled)
         {
+            CompleteStatWriteQuirk();
             engine.DisableLcd();
             return;
         }
@@ -482,5 +577,6 @@ internal readonly record struct PpuControllerState(
     byte WindowY,
     byte WindowX,
     ObjectPriorityMode ObjectPriorityMode,
+    int StatWriteQuirkTCyclesRemaining,
     bool VideoRenderingEnabled
 );

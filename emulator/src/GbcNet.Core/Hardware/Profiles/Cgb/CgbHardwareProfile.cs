@@ -48,6 +48,8 @@ internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHard
 
     public bool IsObjectPriorityModeRegisterEnabled => OperatingMode is CgbOperatingMode.Cgb;
 
+    public bool HasDmgStatWriteInterruptQuirk => false;
+
     public bool IsVideoRamDmaRegisterEnabled => OperatingMode is CgbOperatingMode.Cgb;
 
     public bool IsCgbHardwareMiscRegisterEnabled => true;

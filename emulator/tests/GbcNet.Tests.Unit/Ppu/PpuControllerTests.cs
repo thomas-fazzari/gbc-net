@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.InteropServices;
+using GbcNet.Core.Clock;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Interrupts;
@@ -434,6 +435,69 @@ public sealed class PpuControllerTests
 
         ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x08);
 
+        interrupts.InterruptFlag.Should().Be(LcdInterruptMask);
+    }
+
+    [Fact]
+    public void WriteRegister_DmgStatWriteQuirkUsesAllInterruptSourcesForOneMachineCycle()
+    {
+        var interrupts = new InterruptController();
+        var ppu = CreatePpu(DmgHardwareProfile.Instance, interrupts);
+        ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
+
+        // Pan Docs lcd-status-registers.md: DMG STAT writes act as $FF for one M-cycle.
+        ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x00);
+
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & PpuStatusRegister.InterruptSelectMask)
+            .Should()
+            .Be(PpuStatusRegister.InterruptSelectMask);
+        interrupts.InterruptFlag.Should().Be(LcdInterruptMask);
+
+        ppu.Tick(HardwareTiming.MachineCycleTCycles - 1);
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & PpuStatusRegister.InterruptSelectMask)
+            .Should()
+            .Be(PpuStatusRegister.InterruptSelectMask);
+
+        ppu.Tick(1);
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & PpuStatusRegister.InterruptSelectMask)
+            .Should()
+            .Be(0x00);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WriteRegister_CgbHardwareDoesNotExposeDmgStatWriteQuirk(bool dmgCompatibilityMode)
+    {
+        var interrupts = new InterruptController();
+        var operatingMode = dmgCompatibilityMode
+            ? CgbOperatingMode.DmgCompatibility
+            : CgbOperatingMode.Cgb;
+        var ppu = CreatePpu(new CgbHardwareProfile(operatingMode), interrupts);
+        ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
+
+        // Pan Docs lcd-status-registers.md explicitly excludes GBC hardware in DMG mode.
+        ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x00);
+
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & PpuStatusRegister.InterruptSelectMask)
+            .Should()
+            .Be(0x00);
+        interrupts.InterruptFlag.Should().Be(0x00);
+    }
+
+    [Fact]
+    public void WriteRegister_SgbUsesMonochromeStatWriteQuirk()
+    {
+        var interrupts = new InterruptController();
+        var ppu = CreatePpu(SgbHardwareProfile.Instance, interrupts);
+        ppu.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
+
+        // Pan Docs sgb-description.md describes the SGB cartridge as a normal Game Boy SoC.
+        ppu.WriteRegister(AddressMap.LcdStatusRegister, 0x00);
+
+        (ppu.ReadRegister(AddressMap.LcdStatusRegister) & PpuStatusRegister.InterruptSelectMask)
+            .Should()
+            .Be(PpuStatusRegister.InterruptSelectMask);
         interrupts.InterruptFlag.Should().Be(LcdInterruptMask);
     }
 
@@ -1217,15 +1281,19 @@ public sealed class PpuControllerTests
             isObjectPriorityModeRegisterEnabled: false
         );
 
-    private static PpuController CreatePpu(CgbHardwareProfile profile) =>
+    private static PpuController CreatePpu(
+        IHardwareProfile profile,
+        InterruptController? interrupts = null
+    ) =>
         new(
-            new InterruptController(),
+            interrupts ?? new InterruptController(),
             profile.CreatePpuEngine(),
             profile.VideoRamBankCount,
             profile.IsVideoRamBankRegisterEnabled,
             profile.IsColorPaletteIndexRegisterEnabled,
             profile.IsColorPaletteRamEnabled,
-            profile.IsObjectPriorityModeRegisterEnabled
+            profile.IsObjectPriorityModeRegisterEnabled,
+            profile.HasDmgStatWriteInterruptQuirk
         );
 
     private static LcdFrame RenderSecondFrame(PpuController ppu, byte lcdControl)

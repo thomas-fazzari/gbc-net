@@ -281,6 +281,61 @@ public sealed class PpuStateTests
     }
 
     [Fact]
+    public void RestoreState_MidDmgStatWriteQuirkPreservesRemainingCycle()
+    {
+        var profile = DmgHardwareProfile.Instance;
+        var source = CreatePpu(profile, out var sourceInterrupts);
+        source.WriteRegister(AddressMap.LcdControlRegister, LcdEnable);
+        source.WriteRegister(AddressMap.LcdStatusRegister, 0x20);
+        source.Tick(2);
+        sourceInterrupts.SetInterruptFlag(0);
+
+        var state = source.CaptureState();
+        var restored = CreatePpu(profile, out var restoredInterrupts);
+        restored.RestoreState(state);
+
+        state.StatWriteQuirkTCyclesRemaining.Should().Be(2);
+        state.StatusInterruptSelect.Should().Be(0x20);
+        restored.Tick(1);
+        restored.CaptureState().StatWriteQuirkTCyclesRemaining.Should().Be(1);
+        (
+            restored.ReadRegister(AddressMap.LcdStatusRegister)
+            & PpuStatusRegister.InterruptSelectMask
+        )
+            .Should()
+            .Be(PpuStatusRegister.InterruptSelectMask);
+
+        restored.Tick(1);
+        restored.CaptureState().StatWriteQuirkTCyclesRemaining.Should().Be(0);
+        (
+            restored.ReadRegister(AddressMap.LcdStatusRegister)
+            & PpuStatusRegister.InterruptSelectMask
+        )
+            .Should()
+            .Be(0x20);
+        restoredInterrupts.InterruptFlag.Should().Be(0x00);
+    }
+
+    [Fact]
+    public void RestoreState_RejectsDmgStatWriteQuirkOnCgbWithoutMutation()
+    {
+        var cgb = CreatePpu(new CgbHardwareProfile(CgbOperatingMode.Cgb), out _);
+        var before = cgb.CaptureState();
+        var invalid = before with
+        {
+            Control = LcdEnable,
+            StatusInterruptSelect = PpuStatusRegister.InterruptSelectMask,
+            StatWriteQuirkTCyclesRemaining = 1,
+        };
+
+        FluentActions
+            .Invoking(() => cgb.RestoreState(invalid))
+            .Should()
+            .ThrowExactly<ArgumentException>();
+        cgb.CaptureState().Should().BeEquivalentTo(before);
+    }
+
+    [Fact]
     public void RestoreState_PreservesCurrentFrameRenderLatchWhenHostRenderingChanges()
     {
         var profile = new CgbHardwareProfile(CgbOperatingMode.Cgb);
@@ -332,7 +387,8 @@ public sealed class PpuStateTests
             profile.IsVideoRamBankRegisterEnabled,
             profile.IsColorPaletteIndexRegisterEnabled,
             profile.IsColorPaletteRamEnabled,
-            profile.IsObjectPriorityModeRegisterEnabled
+            profile.IsObjectPriorityModeRegisterEnabled,
+            profile.HasDmgStatWriteInterruptQuirk
         );
     }
 

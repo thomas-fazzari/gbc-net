@@ -131,7 +131,8 @@ internal sealed class MemoryBus
             hardwareProfile.IsVideoRamBankRegisterEnabled,
             hardwareProfile.IsColorPaletteIndexRegisterEnabled,
             hardwareProfile.IsColorPaletteRamEnabled,
-            hardwareProfile.IsObjectPriorityModeRegisterEnabled
+            hardwareProfile.IsObjectPriorityModeRegisterEnabled,
+            hardwareProfile.HasDmgStatWriteInterruptQuirk
         );
 
         OamDma = new OamDmaController();

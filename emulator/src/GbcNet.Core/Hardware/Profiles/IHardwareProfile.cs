@@ -75,6 +75,11 @@ internal interface IHardwareProfile
     bool IsObjectPriorityModeRegisterEnabled { get; }
 
     /// <summary>
+    /// Indicates whether STAT writes expose the monochrome hardware interrupt quirk.
+    /// </summary>
+    bool HasDmgStatWriteInterruptQuirk { get; }
+
+    /// <summary>
     /// Indicates whether the CPU-visible CGB VRAM DMA registers are enabled.
     /// </summary>
     bool IsVideoRamDmaRegisterEnabled { get; }

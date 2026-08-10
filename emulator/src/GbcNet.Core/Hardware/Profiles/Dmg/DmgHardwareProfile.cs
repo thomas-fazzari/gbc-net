@@ -42,6 +42,8 @@ internal sealed class DmgHardwareProfile : IHardwareProfile
 
     public bool IsObjectPriorityModeRegisterEnabled => false;
 
+    public bool HasDmgStatWriteInterruptQuirk => true;
+
     public bool IsVideoRamDmaRegisterEnabled => false;
 
     public bool IsCgbHardwareMiscRegisterEnabled => false;
