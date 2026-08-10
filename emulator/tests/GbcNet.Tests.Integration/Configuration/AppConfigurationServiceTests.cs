@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using ErrorOr;
+using GbcNet.App;
 using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
@@ -305,6 +306,48 @@ public sealed class AppConfigurationServiceTests
         saved.BootRoms.Should().Be(new BootRomConfig("current-dmg.bin", "new-cgb.bin"));
         saved.Input.Keyboard.ActiveProfile.Should().Be("SpeedRun");
         saved.Input.Gamepad.ActiveProfile.Should().Be("SpeedRun");
+    }
+
+    [Fact]
+    public void SaveSettings_BootRomPathIdentityFollowsPlatformFileSystem()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllBytes(
+            Path.Combine(tempDirectory.Path, "CURRENT-DMG.bin"),
+            BootRomTestFactory.CreateDmg(marker: 0xD0)
+        );
+        AppConfigurationFile.Save(
+            configPath,
+            new AppConfig
+            {
+                BootRoms = new BootRomConfig("CURRENT-DMG.bin"),
+                Input = AppConfigurationFile.CreateDefaultInputConfig(),
+            },
+            NullLogger.Instance
+        );
+        var service = CreateService(configPath);
+
+        var result = service.SaveSettings(
+            new SettingsConfig(
+                new BootRomConfig("current-dmg.bin"),
+                AppConfigurationFile.CreateDefaultInputConfig()
+            )
+        );
+
+        var savedPath = AppConfigurationFile.Load(configPath).BootRoms.DmgPath;
+        var comparison = FileUtils.GetFileSystemPathComparison();
+        if (comparison is StringComparison.OrdinalIgnoreCase)
+        {
+            result.Value.Should().BeEmpty();
+            savedPath.Should().Be("current-dmg.bin");
+        }
+        else
+        {
+            result.Value.Should().ContainSingle();
+            savedPath.Should().Be("CURRENT-DMG.bin");
+        }
     }
 
     [Fact]

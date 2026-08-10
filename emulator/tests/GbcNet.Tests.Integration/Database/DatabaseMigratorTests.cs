@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.App.Database;
+using GbcNet.App.Database.Entities;
+using GbcNet.Core.Cartridges;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -26,6 +28,70 @@ public sealed class DatabaseMigratorTests
         using var context = contextFactory.CreateDbContext();
         context.Database.GetPendingMigrations().Should().BeEmpty();
         CountMigrationHistoryTables(backupPath).Should().Be(0);
+    }
+
+    [Fact]
+    public void Migrate_PathCollationUpgradePreservesRowsAndUniquePathInvariant()
+    {
+        using var temporaryDirectory = TestDirectories.CreateTemporaryDirectory();
+        Directory.CreateDirectory(temporaryDirectory.Path);
+        var databasePath = Path.Combine(temporaryDirectory.Path, "gbcnet.sqlite");
+        var romPath = Path.Combine(temporaryDirectory.Path, "GAME.gb");
+
+        var contextFactory = new TestDbContextFactory(databasePath);
+        var originalRom = LibraryRom.Opened(
+            new string('A', 64),
+            romPath,
+            Path.GetFileName(romPath),
+            cartridgeTitle: "ORIGINAL",
+            CartridgeHardwareKind.GB,
+            noIntroHash: new string('0', 40),
+            openedAt: new DateTimeOffset(2026, 8, 10, 22, 0, 0, TimeSpan.Zero)
+        );
+
+        using (var context = contextFactory.CreateDbContext())
+        {
+            var previousMigration = context.Database.GetMigrations().SkipLast(1).Last();
+            context.Database.Migrate(previousMigration);
+            context.Roms.Add(originalRom);
+            context.SaveChanges();
+        }
+
+        DatabaseMigrator.Migrate(contextFactory, databasePath, NullLogger.Instance);
+
+        using (var context = contextFactory.CreateDbContext())
+        {
+            context.Database.GetPendingMigrations().Should().BeEmpty();
+            var savedRom = context.Roms.Should().ContainSingle().Which;
+            savedRom.RomHash.Should().Be(originalRom.RomHash);
+            savedRom.LastKnownPath.Should().Be(romPath);
+            savedRom.CartridgeTitle.Should().Be("ORIGINAL");
+
+            context.Roms.Add(
+                LibraryRom.Opened(
+                    new string('B', 64),
+                    romPath,
+                    Path.GetFileName(romPath),
+                    cartridgeTitle: "DUPLICATE",
+                    CartridgeHardwareKind.GB,
+                    noIntroHash: new string('1', 40),
+                    openedAt: new DateTimeOffset(2026, 8, 10, 22, 1, 0, TimeSpan.Zero)
+                )
+            );
+            var exception = FluentActions
+                .Invoking(context.SaveChanges)
+                .Should()
+                .ThrowExactly<DbUpdateException>()
+                .Which;
+            exception.InnerException.Should().BeOfType<SqliteException>();
+        }
+
+        using var verificationContext = contextFactory.CreateDbContext();
+        verificationContext
+            .Roms.Should()
+            .ContainSingle()
+            .Which.RomHash.Should()
+            .Be(originalRom.RomHash);
     }
 
     [Fact]

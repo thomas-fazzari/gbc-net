@@ -11,6 +11,7 @@ namespace GbcNet.App.Database;
 internal static class SqliteDbContextOptions
 {
     internal const string OrdinalIgnoreCaseCollation = "GBCNET_ORDINAL_IGNORE_CASE";
+    internal const string FileSystemPathCollation = "GBCNET_FILE_SYSTEM_PATH";
 
     internal static DbContextOptionsBuilder Configure(
         DbContextOptionsBuilder options,
@@ -56,10 +57,21 @@ internal static class SqliteDbContextOptions
             return Task.CompletedTask;
         }
 
-        private static void RegisterCollation(DbConnection connection) =>
-            ((SqliteConnection)connection).CreateCollation(
+        private static void RegisterCollation(DbConnection connection)
+        {
+            var sqliteConnection = (SqliteConnection)connection;
+            var fileSystemPathComparer =
+                FileUtils.GetFileSystemPathComparison() == StringComparison.OrdinalIgnoreCase
+                    ? StringComparer.OrdinalIgnoreCase
+                    : StringComparer.Ordinal;
+            sqliteConnection.CreateCollation(
                 OrdinalIgnoreCaseCollation,
                 StringComparer.OrdinalIgnoreCase.Compare
             );
+            sqliteConnection.CreateCollation(
+                FileSystemPathCollation,
+                fileSystemPathComparer.Compare
+            );
+        }
     }
 }

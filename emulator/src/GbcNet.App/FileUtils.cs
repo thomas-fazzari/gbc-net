@@ -5,6 +5,11 @@ namespace GbcNet.App;
 
 internal static class FileUtils
 {
+    public static StringComparison GetFileSystemPathComparison() =>
+        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
     public static void TryDeleteRegularFile(string path, Action<Exception> onFailure)
     {
         try

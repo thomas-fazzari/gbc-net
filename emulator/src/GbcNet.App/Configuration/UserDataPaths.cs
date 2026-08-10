@@ -75,7 +75,8 @@ internal static class UserDataPaths
             )
             : Path.Combine(
                 GetXdgDirectoryPath(
-                    environmentVariableName: "XDG_CONFIG_HOME",
+                    Environment.GetEnvironmentVariable("XDG_CONFIG_HOME"),
+                    GetUserProfilePath(),
                     fallbackDirectoryName: ".config"
                 ),
                 LinuxDirectoryName
@@ -89,7 +90,8 @@ internal static class UserDataPaths
             )
             : Path.Combine(
                 GetXdgDirectoryPath(
-                    environmentVariableName: "XDG_DATA_HOME",
+                    Environment.GetEnvironmentVariable("XDG_DATA_HOME"),
+                    GetUserProfilePath(),
                     fallbackDirectoryName: Path.Combine(".local", "share")
                 ),
                 LinuxDirectoryName
@@ -98,16 +100,18 @@ internal static class UserDataPaths
     private static string GetKnownFolder(Environment.SpecialFolder folder) =>
         Environment.GetFolderPath(folder, Environment.SpecialFolderOption.Create);
 
-    private static string GetXdgDirectoryPath(
-        string environmentVariableName,
+    internal static string GetXdgDirectoryPath(
+        string? configuredPath,
+        string userProfilePath,
         string fallbackDirectoryName
     )
     {
-        var directoryPath = Environment.GetEnvironmentVariable(environmentVariableName);
+        var directoryPath =
+            !string.IsNullOrWhiteSpace(configuredPath) && Path.IsPathFullyQualified(configuredPath)
+                ? configuredPath
+                : Path.Combine(userProfilePath, fallbackDirectoryName);
 
-        return string.IsNullOrWhiteSpace(directoryPath)
-            ? Path.Combine(GetUserProfilePath(), fallbackDirectoryName)
-            : directoryPath;
+        return Path.GetFullPath(directoryPath);
     }
 
     private static string GetUserProfilePath() =>

@@ -447,7 +447,7 @@ internal sealed class LibraryService(
                     && string.Equals(
                         Path.GetFullPath(coverPath),
                         Path.GetFullPath(exceptPath),
-                        comparisonType: GetFileSystemPathComparison()
+                        comparisonType: FileUtils.GetFileSystemPathComparison()
                     )
                 )
             )
@@ -484,18 +484,13 @@ internal sealed class LibraryService(
         Path.GetFullPath(coverPath)
             .StartsWith(
                 EnsureTrailingDirectorySeparator(_coverDirectoryPath),
-                GetFileSystemPathComparison()
+                FileUtils.GetFileSystemPathComparison()
             );
 
     private static string EnsureTrailingDirectorySeparator(string path) =>
         path.EndsWith(Path.DirectorySeparatorChar) || path.EndsWith(Path.AltDirectorySeparatorChar)
             ? path
             : path + Path.DirectorySeparatorChar;
-
-    private static StringComparison GetFileSystemPathComparison() =>
-        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
 
     private static string? GetSafeImageExtension(string sourceImagePath)
     {

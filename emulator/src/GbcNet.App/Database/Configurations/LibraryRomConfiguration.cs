@@ -30,7 +30,8 @@ internal sealed class LibraryRomConfiguration : IEntityTypeConfiguration<Library
         builder
             .Property(entry => entry.LastKnownPath)
             .HasColumnName("last_known_path")
-            .HasMaxLength(FilePathMaxLength);
+            .HasMaxLength(FilePathMaxLength)
+            .UseCollation(SqliteDbContextOptions.FileSystemPathCollation);
         builder.Property(entry => entry.FileName).HasColumnName("file_name").HasMaxLength(255);
         builder
             .Property(entry => entry.CartridgeTitle)

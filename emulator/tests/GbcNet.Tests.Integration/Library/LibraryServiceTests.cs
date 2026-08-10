@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using ErrorOr;
+using GbcNet.App;
 using GbcNet.App.Database.Entities;
 using GbcNet.App.Library;
 using GbcNet.App.Saves;
@@ -82,6 +83,45 @@ public sealed class LibraryServiceTests
         entry.RomHash.Should().Be(identity.HashHex);
         entry.LastKnownPath.Should().Be(Path.GetFullPath(path));
         entry.CartridgeTitle.Should().Be("MEMORY ROM");
+    }
+
+    [Fact]
+    public void RecordLoadedRom_PathIdentityFollowsPlatformFileSystem()
+    {
+        using var test = new LibraryTestContext();
+        var firstRom = TestRomFactory.Create();
+        var firstCartridge = TestRomFactory.LoadCartridge(firstRom);
+        var firstIdentity = RomStorageIdentity.Create(firstCartridge.Header.Title, firstRom);
+        var secondRom = TestRomFactory.Create(bytes => "SECOND ROM"u8.CopyTo(bytes.AsSpan(0x0134)));
+        var secondCartridge = TestRomFactory.LoadCartridge(secondRom);
+        var secondIdentity = RomStorageIdentity.Create(secondCartridge.Header.Title, secondRom);
+        var directoryPath = Path.GetDirectoryName(test.DatabasePath)!;
+
+        test.Library.RecordLoadedRom(
+            Path.Combine(directoryPath, "GAME.gb"),
+            firstIdentity.HashHex,
+            firstRom,
+            firstCartridge.Header
+        );
+        test.Library.RecordLoadedRom(
+            Path.Combine(directoryPath, "game.gb"),
+            secondIdentity.HashHex,
+            secondRom,
+            secondCartridge.Header
+        );
+
+        var entries = test.Library.GetRoms(limit: 10);
+        if (FileUtils.GetFileSystemPathComparison() == StringComparison.OrdinalIgnoreCase)
+        {
+            entries.Should().ContainSingle().Which.RomHash.Should().Be(secondIdentity.HashHex);
+        }
+        else
+        {
+            entries
+                .Select(entry => entry.RomHash)
+                .Should()
+                .BeEquivalentTo(firstIdentity.HashHex, secondIdentity.HashHex);
+        }
     }
 
     [Fact]

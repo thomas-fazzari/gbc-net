@@ -208,9 +208,7 @@ internal sealed class AppConfigurationService(
         byte[] bytes;
         try
         {
-            var resolvedPath = Path.IsPathFullyQualified(path)
-                ? path
-                : Path.GetFullPath(Path.Combine(path1: configDirectoryPath, path2: path));
+            var resolvedPath = Path.GetFullPath(path, Path.GetFullPath(configDirectoryPath));
             bytes = File.ReadAllBytes(resolvedPath);
         }
         catch (Exception exception) when (IsExpectedPathException(exception))
@@ -257,17 +255,6 @@ internal sealed class AppConfigurationService(
         catch (ConfigurationException exception)
         {
             errors.Add(exception.Message);
-        }
-
-        if (
-            string.Equals(
-                proposedPath,
-                currentPath,
-                comparisonType: StringComparison.OrdinalIgnoreCase
-            )
-        )
-        {
-            return null;
         }
 
         try
