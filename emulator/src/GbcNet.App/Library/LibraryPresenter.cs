@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using Avalonia.Platform.Storage;
+using ErrorOr;
 using GbcNet.App.Shell;
 using Microsoft.Extensions.Logging;
 
@@ -57,16 +58,29 @@ internal sealed class LibraryPresenter
 
         if (!files[0].Path.IsFile)
         {
-            throw new NotSupportedException("Cover image must be a local file.");
+            _view.ShowError("Cover image must be a local file.");
+            return;
         }
 
-        _libraryService.AssignCoverImage(entry.RomHash, files[0].Path.LocalPath);
+        var result = _libraryService.AssignCoverImage(entry.RomHash, files[0].Path.LocalPath);
+        if (result.IsError)
+        {
+            ShowExpectedError(result.FirstError);
+            return;
+        }
+
         Refresh();
     }
 
     private Task ClearCoverAsync(LibraryEntry entry)
     {
-        _libraryService.ClearCover(entry.RomHash);
+        var result = _libraryService.ClearCover(entry.RomHash);
+        if (result.IsError)
+        {
+            ShowExpectedError(result.FirstError);
+            return Task.CompletedTask;
+        }
+
         Refresh();
         return Task.CompletedTask;
     }
@@ -94,6 +108,8 @@ internal sealed class LibraryPresenter
             _view.ShowError(exception.Message);
         }
     }
+
+    private void ShowExpectedError(Error error) => _view.ShowError(error.Description);
 }
 
 internal static partial class LibraryPresenterLog

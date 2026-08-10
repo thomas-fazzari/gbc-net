@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Security.Cryptography;
+using ErrorOr;
 using GbcNet.App.Database;
 using GbcNet.App.Database.Entities;
 using GbcNet.App.Sorting;
@@ -65,6 +66,10 @@ internal sealed class LibraryService(
     TimeProvider? timeProvider = null
 )
 {
+    internal const string RomNotFoundErrorCode = "Library.RomNotFound";
+    internal const string CoverSourceNotFoundErrorCode = "Library.CoverSourceNotFound";
+    internal const string UnsupportedCoverErrorCode = "Library.UnsupportedCover";
+
     private readonly string _coverDirectoryPath = Path.GetFullPath(coverDirectoryPath);
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
@@ -255,32 +260,59 @@ internal sealed class LibraryService(
         }
     }
 
-    public void AssignCoverImage(string romHash, string sourceImagePath)
+    public ErrorOr<Success> AssignCoverImage(string romHash, string sourceImagePath)
     {
+        var imageExtension = GetSafeImageExtension(sourceImagePath);
+        if (imageExtension is null)
+        {
+            return Error.Validation(
+                UnsupportedCoverErrorCode,
+                "Cover image type is not supported."
+            );
+        }
+
         string? temporaryPath = null;
         string? destinationPath = null;
         var committed = false;
 
         try
         {
-            var imageExtension = GetSafeImageExtension(sourceImagePath);
             Directory.CreateDirectory(_coverDirectoryPath);
             var fileName = $"{romHash}-{Guid.NewGuid():N}{imageExtension}";
             temporaryPath = Path.Combine(path1: _coverDirectoryPath, path2: $".{fileName}.tmp");
             destinationPath = Path.Combine(path1: _coverDirectoryPath, path2: fileName);
-            File.Copy(
-                sourceFileName: Path.GetFullPath(sourceImagePath),
-                destFileName: temporaryPath,
-                overwrite: false
-            );
+            try
+            {
+                File.Copy(
+                    sourceFileName: Path.GetFullPath(sourceImagePath),
+                    destFileName: temporaryPath,
+                    overwrite: false
+                );
+            }
+            catch (Exception exception)
+                when ((exception is FileNotFoundException or DirectoryNotFoundException)
+                    && !File.Exists(sourceImagePath)
+                )
+            {
+                DeleteFile(temporaryPath);
+                return Error.NotFound(
+                    CoverSourceNotFoundErrorCode,
+                    "Cover image file was not found."
+                );
+            }
+
             File.Move(sourceFileName: temporaryPath, destFileName: destinationPath);
             temporaryPath = null;
 
             using var db = dbContextFactory.CreateDbContext();
             using var transaction = db.Database.BeginTransaction();
-            var rom =
-                db.Roms.AsTracking().SingleOrDefault(rom => rom.RomHash == romHash)
-                ?? throw new InvalidOperationException("ROM not found: " + romHash);
+            var rom = db.Roms.AsTracking().SingleOrDefault(rom => rom.RomHash == romHash);
+            if (rom is null)
+            {
+                DeleteFile(destinationPath);
+                return Error.NotFound(RomNotFoundErrorCode, "ROM is no longer in the library.");
+            }
+
             var previousCoverPath = rom.CoverPath;
 
             rom.SetCoverPath(destinationPath);
@@ -289,6 +321,7 @@ internal sealed class LibraryService(
             committed = true;
 
             TryDeleteManagedCoverFileIfUnreferenced(previousCoverPath, destinationPath);
+            return Result.Success;
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
@@ -302,22 +335,25 @@ internal sealed class LibraryService(
         }
     }
 
-    public void ClearCover(string romHash)
+    public ErrorOr<Success> ClearCover(string romHash)
     {
         try
         {
             using var db = dbContextFactory.CreateDbContext();
             using var transaction = db.Database.BeginTransaction();
-            var rom =
-                db.Roms.AsTracking().SingleOrDefault(rom => rom.RomHash == romHash)
-                ?? throw new InvalidOperationException("ROM not found: " + romHash);
-            var previousCoverPath = rom.CoverPath;
+            var rom = db.Roms.AsTracking().SingleOrDefault(rom => rom.RomHash == romHash);
+            if (rom is null)
+            {
+                return Error.NotFound(RomNotFoundErrorCode, "ROM is no longer in the library.");
+            }
 
+            var previousCoverPath = rom.CoverPath;
             rom.SetCoverPath(coverPath: null);
             db.SaveChanges();
             transaction.Commit();
 
             TryDeleteManagedCoverFileIfUnreferenced(previousCoverPath);
+            return Result.Success;
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
@@ -460,19 +496,19 @@ internal sealed class LibraryService(
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
 
-    private static string GetSafeImageExtension(string sourceImagePath)
+    private static string? GetSafeImageExtension(string sourceImagePath)
     {
         var extension = Path.GetExtension(sourceImagePath);
         if (extension.Length is < 2 or > 16)
         {
-            throw new InvalidOperationException("Cover image file name has no safe extension.");
+            return null;
         }
 
         foreach (var value in extension.AsSpan(1))
         {
             if (!char.IsAsciiLetterOrDigit(value))
             {
-                throw new InvalidOperationException("Cover image file name has no safe extension.");
+                return null;
             }
         }
 

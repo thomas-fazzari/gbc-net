@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Globalization;
+using ErrorOr;
 using GbcNet.App.Database.Entities;
 using GbcNet.App.Library;
 using GbcNet.App.Sorting;
@@ -560,12 +561,12 @@ public sealed class LibraryServiceTests
         var romHash = test.Library.GetRoms(limit: 10).Should().ContainSingle().Which.RomHash;
         var sourceImagePath = await test.WriteImageAsync(imageFileName, [0x01]);
 
-        Assert
-            .Throws<InvalidOperationException>(() =>
-                test.Library.AssignCoverImage(romHash, sourceImagePath)
-            )
-            .Message.Should()
-            .Be("Cover image file name has no safe extension.");
+        var result = test.Library.AssignCoverImage(romHash, sourceImagePath);
+
+        result.IsError.Should().BeTrue();
+        var error = result.Errors.Should().ContainSingle().Which;
+        error.Type.Should().Be(ErrorType.Validation);
+        error.Code.Should().Be(LibraryService.UnsupportedCoverErrorCode);
     }
 
     [Fact]
@@ -603,8 +604,9 @@ public sealed class LibraryServiceTests
             test.Library.GetRoms(limit: 10).Should().ContainSingle().Which.CoverPath
             ?? throw new InvalidOperationException("Cover path was not stored.");
 
-        test.Library.ClearCover(romHash);
+        var result = test.Library.ClearCover(romHash);
 
+        result.IsError.Should().BeFalse();
         test.Library.GetRoms(limit: 10).Should().ContainSingle().Which.CoverPath.Should().BeNull();
         File.Exists(coverPath).Should().BeFalse();
         Directory
@@ -640,12 +642,9 @@ public sealed class LibraryServiceTests
             test.TimeProvider
         );
 
-        Assert
-            .Throws<InvalidOperationException>(() =>
-                failingLibrary.AssignCoverImage(romHash, newSourcePath)
-            )
-            .Message.Should()
-            .Be("Test database failure.");
+        Assert.Throws<InvalidOperationException>(() =>
+            failingLibrary.AssignCoverImage(romHash, newSourcePath)
+        );
 
         test.Library.GetRoms(limit: 10)
             .Should()
@@ -677,11 +676,12 @@ public sealed class LibraryServiceTests
             ?? throw new InvalidOperationException("Cover path was not stored.");
         var missingSourcePath = Path.Combine(Path.GetDirectoryName(oldSourcePath)!, "missing.png");
 
-        FluentActions
-            .Invoking(() => library.AssignCoverImage(romHash, missingSourcePath))
-            .Should()
-            .ThrowExactly<InvalidOperationException>();
+        var result = library.AssignCoverImage(romHash, missingSourcePath);
 
+        result.IsError.Should().BeTrue();
+        var error = result.Errors.Should().ContainSingle().Which;
+        error.Type.Should().Be(ErrorType.NotFound);
+        error.Code.Should().Be(LibraryService.CoverSourceNotFoundErrorCode);
         test.Library.GetRoms(limit: 10)
             .Should()
             .ContainSingle()
@@ -697,7 +697,7 @@ public sealed class LibraryServiceTests
     }
 
     [Fact]
-    public async Task ClearCover_FailedDatabaseUpdatePreservesPreviousCover()
+    public async Task ClearCover_DatabaseConcurrencyFailureRemainsExceptionAndPreservesCover()
     {
         using var test = new LibraryTestContext();
         var romPath = await test.WriteRomAsync("game.gb", TestRomFactory.Create());
@@ -711,9 +711,7 @@ public sealed class LibraryServiceTests
         var failingLibrary = new LibraryService(
             new TestDbContextFactory(
                 test.DatabasePath,
-                new FailingSaveChangesInterceptor(
-                    new InvalidOperationException("Test database failure.")
-                ),
+                new FailingSaveChangesInterceptor(new DbUpdateConcurrencyException()),
                 timeProvider: test.TimeProvider
             ),
             test.CoverDirectoryPath,
@@ -721,11 +719,11 @@ public sealed class LibraryServiceTests
             test.TimeProvider
         );
 
-        Assert
-            .Throws<InvalidOperationException>(() => failingLibrary.ClearCover(romHash))
-            .Message.Should()
-            .Be("Test database failure.");
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            failingLibrary.ClearCover(romHash)
+        );
 
+        exception.InnerException.Should().BeOfType<DbUpdateConcurrencyException>();
         test.Library.GetRoms(limit: 10)
             .Should()
             .ContainSingle()
@@ -780,25 +778,26 @@ public sealed class LibraryServiceTests
     }
 
     [Fact]
-    public async Task CoverOperations_MissingRomHashReturnsFailure()
+    public async Task CoverOperations_MissingRomHashReturnNotFound()
     {
         using var test = new LibraryTestContext();
         var sourceImagePath = await test.WriteImageAsync("cover.png", [0x07, 0x08, 0x09]);
 
-        Assert
-            .Throws<InvalidOperationException>(() =>
-                test.Library.AssignCoverImage("missing", sourceImagePath)
-            )
-            .Message.Should()
-            .Be("ROM not found: missing");
+        var assignResult = test.Library.AssignCoverImage("missing", sourceImagePath);
+
+        assignResult.IsError.Should().BeTrue();
+        var assignError = assignResult.Errors.Should().ContainSingle().Which;
+        assignError.Type.Should().Be(ErrorType.NotFound);
+        assignError.Code.Should().Be(LibraryService.RomNotFoundErrorCode);
         Directory
             .GetFiles(test.CoverDirectoryPath, "*", SearchOption.TopDirectoryOnly)
             .Should()
             .BeEmpty();
-        Assert
-            .Throws<InvalidOperationException>(() => test.Library.ClearCover("missing"))
-            .Message.Should()
-            .Be("ROM not found: missing");
+        var clearResult = test.Library.ClearCover("missing");
+        clearResult.IsError.Should().BeTrue();
+        var clearError = clearResult.Errors.Should().ContainSingle().Which;
+        clearError.Type.Should().Be(ErrorType.NotFound);
+        clearError.Code.Should().Be(LibraryService.RomNotFoundErrorCode);
     }
 
     private static void InsertLibraryEntry(
