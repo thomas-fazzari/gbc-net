@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using GbcNet.Core.Apu;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Clock;
 using GbcNet.Core.Hardware;
@@ -272,12 +273,14 @@ public sealed class MemoryBusTests
             bytes[0x123F] = 0xAF;
         });
         var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var clock = new MachineClock(bus);
 
         bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x12);
         bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x3F);
         bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0xE1);
         bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x2F);
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
+        TickMachineCycles(clock, 9);
 
         bus.ReadByte(AddressMap.VideoRamDmaSourceHighRegister).Should().Be(0xFF);
         bus.ReadByte(AddressMap.VideoRamDmaSourceLowRegister).Should().Be(0xFF);
@@ -309,7 +312,7 @@ public sealed class MemoryBusTests
     }
 
     [Fact]
-    public void ReadWriteByte_CopiesCgbHBlankVramDmaBlockOnFirstVisibleHBlank()
+    public void ReadWriteByte_CopiesCgbHBlankVramDmaBlockOverEightNormalSpeedCycles()
     {
         var rom = TestRomFactory.Create(bytes =>
         {
@@ -328,8 +331,18 @@ public sealed class MemoryBusTests
 
         TickMachineCycles(clock, 63);
 
-        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0xFF);
+        // Pan Docs `cgb-registers.md`: one 16-byte block takes eight normal-speed M-cycles.
+        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0x00);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0x00);
+
+        TickMachineCycles(clock, 1);
+
         bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0xA1);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x02).Should().Be(0x00);
+
+        TickMachineCycles(clock, 7);
+
+        bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0xFF);
         bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F).Should().Be(0xAF);
     }
 
@@ -353,14 +366,18 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x81);
         bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
 
-        TickMachineCycles(clock, 63);
+        TickMachineCycles(clock, 71);
 
         bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0x00);
         bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0x40);
         bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F).Should().Be(0x4F);
         bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x10).Should().Be(0x00);
 
-        TickMachineCycles(clock, 114);
+        TickMachineCycles(clock, 106);
+
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x10).Should().Be(0x00);
+
+        TickMachineCycles(clock, 8);
 
         bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0xFF);
         bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x10).Should().Be(0x50);
@@ -432,7 +449,7 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x81);
         bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
-        TickMachineCycles(clock, 63);
+        TickMachineCycles(clock, 71);
 
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
         TickMachineCycles(clock, 114);
@@ -454,6 +471,7 @@ public sealed class MemoryBusTests
             }
         });
         var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var clock = new MachineClock(bus);
 
         bus.WriteByte(AddressMap.VideoRamBankRegister, 0x01);
         bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x20);
@@ -461,6 +479,7 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x00);
         bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x01);
+        TickMachineCycles(clock, 17);
 
         bus.ReadByte(AddressMap.VideoRamStart).Should().Be(0x40);
         bus.ReadByte(AddressMap.VideoRamStart + 0x1F).Should().Be(0x5F);
@@ -487,6 +506,7 @@ public sealed class MemoryBusTests
             }
         });
         var bus = CreateBus(rom, new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var clock = new MachineClock(bus);
 
         bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x20);
         bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x00);
@@ -494,7 +514,9 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
 
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
+        TickMachineCycles(clock, 9);
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
+        TickMachineCycles(clock, 9);
 
         bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0x40);
         bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F).Should().Be(0x4F);
@@ -506,6 +528,7 @@ public sealed class MemoryBusTests
     public void ReadWriteByte_CopiesCgbVramDmaFromWorkRam()
     {
         var bus = CreateBus(new CgbHardwareProfile(CgbOperatingMode.Cgb));
+        var clock = new MachineClock(bus);
         bus.WriteByte(AddressMap.WorkRamStart, 0x55);
         bus.WriteByte(AddressMap.WorkRamStart + 0x0F, 0x66);
 
@@ -514,13 +537,14 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x10);
         bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
+        TickMachineCycles(clock, 9);
 
         bus.ReadByte(0x9000).Should().Be(0x55);
         bus.ReadByte(0x900F).Should().Be(0x66);
     }
 
     [Fact]
-    public void CpuWrite_BlocksDuringGeneralPurposeCgbVramDma()
+    public void CpuWrite_BlocksDuringGeneralPurposeCgbVramDmaWhileHardwareClocksContinue()
     {
         var rom = TestRomFactory.Create(bytes =>
         {
@@ -538,6 +562,9 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x30);
         bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x00);
         bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
+        bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
+        TickMachineCycles(clock, 10);
+        bus.Clock.SetCounter(0x00D0);
 
         cpu.Step().Should().Be(2);
         var machineCycles = cpu.Step();
@@ -546,6 +573,10 @@ public sealed class MemoryBusTests
         bus.ReadByte(AddressMap.VideoRamDmaLengthModeStartRegister).Should().Be(0xFF);
         bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0xA1);
         bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F).Should().Be(0xAF);
+        ((PpuMode)(bus.ReadByte(AddressMap.LcdStatusRegister) & 0x03)).Should().Be(PpuMode.Drawing);
+        bus.Clock.ReadDivider().Should().Be(0x01);
+        Span<ApuStereoSample> samples = stackalloc ApuStereoSample[1];
+        bus.Apu.DrainBufferedSamples(samples).Should().Be(1);
     }
 
     [Fact]
@@ -666,7 +697,7 @@ public sealed class MemoryBusTests
         bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0xF0);
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x81);
         bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
-        TickMachineCycles(clock, 63);
+        TickMachineCycles(clock, 71);
         TickMachineCycles(clock, 114);
 
         bus.Ppu.VideoRam.Read(0x9FF0).Should().Be(0xA1);

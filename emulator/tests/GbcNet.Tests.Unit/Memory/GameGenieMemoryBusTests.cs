@@ -4,6 +4,7 @@
 using GbcNet.Core;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Cheats;
+using GbcNet.Core.Clock;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Memory;
@@ -138,16 +139,30 @@ public sealed class GameGenieMemoryBusTests
             new CgbHardwareProfile(CgbOperatingMode.Cgb)
         );
         bus.SetCheatCodes([CheatCodeParser.Parse(CheatCodeType.GameGenie, "068-55F")]);
+        var clock = new MachineClock(bus);
 
         bus.WriteByte(AddressMap.DmaRegister, 0x08);
         bus.TickDma(2);
         bus.TickDma(160);
+        bus.Ppu.ObjectAttributeMemory.Read(AddressMap.ObjectAttributeMemoryStart + 0x55)
+            .Should()
+            .Be(0x06);
 
         bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x08);
         bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x50);
         bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x00);
         bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
         bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
+
+        bus.Ppu.ObjectAttributeMemory.Read(AddressMap.ObjectAttributeMemoryStart + 0x55)
+            .Should()
+            .Be(0x06);
+        bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x05).Should().Be(0x00);
+
+        for (var machineCycle = 0; machineCycle < 9; machineCycle++)
+        {
+            clock.TickMachineCycle();
+        }
 
         bus.Ppu.ObjectAttributeMemory.Read(AddressMap.ObjectAttributeMemoryStart + 0x55)
             .Should()

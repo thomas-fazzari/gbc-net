@@ -23,19 +23,17 @@ internal sealed class CgbVramDmaController(
     private const byte CompletedReadValue = 0xFF;
     private const byte InactiveHBlankReadMask = 0x80;
     private const int BlockSize = 0x10;
-    private const int NormalSpeedBlockMachineCycles = 8;
-    private const int DoubleSpeedBlockMachineCycles = 16;
+    private const int NormalSpeedBytesPerMachineCycle = 2;
+    private const int DoubleSpeedBytesPerMachineCycle = 1;
 
     private byte _sourceHigh;
     private byte _sourceLow;
     private byte _destinationHigh;
     private byte _destinationLow;
-    private byte _lengthModeReadValue = CompletedReadValue;
-
-    private int _hblankBlocksRemaining;
-    private int _cpuStallMachineCycles;
-
-    private bool _isHblankDmaActive;
+    private int _blocksRemaining;
+    private int _bytesRemainingInCurrentBlock;
+    private VramDmaTransferMode _transferMode;
+    private bool _transferStartPending;
     private bool _cpuHalted;
 
     internal CgbVramDmaControllerState CaptureState() =>
@@ -44,10 +42,10 @@ internal sealed class CgbVramDmaController(
             _sourceLow,
             _destinationHigh,
             _destinationLow,
-            _lengthModeReadValue,
-            _hblankBlocksRemaining,
-            _cpuStallMachineCycles,
-            _isHblankDmaActive,
+            _transferMode,
+            _blocksRemaining,
+            _bytesRemainingInCurrentBlock,
+            _transferStartPending,
             _cpuHalted
         );
 
@@ -72,28 +70,48 @@ internal sealed class CgbVramDmaController(
             );
         }
 
-        if (state.HblankBlocksRemaining is < 0 or > LengthMask + 1)
+        if (!Enum.IsDefined(state.TransferMode))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(state),
+                state.TransferMode,
+                "State VRAM DMA transfer mode is invalid."
+            );
+        }
+
+        if (state.BlocksRemaining is < 0 or > LengthMask + 1)
         {
             throw new ArgumentException(
-                "State VRAM DMA HBlank block count is out of range.",
+                "State VRAM DMA block count is out of range.",
                 nameof(state)
             );
         }
 
-        if (state is { IsHblankDmaActive: true, HblankBlocksRemaining: 0 })
+        if (state.BytesRemainingInCurrentBlock is < 0 or > BlockSize)
         {
             throw new ArgumentException(
-                "State active VRAM HBlank DMA must have blocks remaining.",
+                "State VRAM DMA current block byte count is out of range.",
                 nameof(state)
             );
         }
 
         if (
-            state.CpuStallMachineCycles is < 0 or > (LengthMask + 1) * DoubleSpeedBlockMachineCycles
+            (state.TransferMode is not VramDmaTransferMode.Inactive && state.BlocksRemaining == 0)
+            || (
+                state.TransferMode is VramDmaTransferMode.General
+                && state.BytesRemainingInCurrentBlock == 0
+            )
+            || (
+                state.TransferMode is VramDmaTransferMode.Inactive
+                && (state.BytesRemainingInCurrentBlock != 0 || state.TransferStartPending)
+            )
+            || state
+                is { TransferStartPending: true, BytesRemainingInCurrentBlock: not BlockSize }
+                    or { CpuHalted: true, BytesRemainingInCurrentBlock: > 0 }
         )
         {
             throw new ArgumentException(
-                "State VRAM DMA CPU stall duration is out of range.",
+                "State VRAM DMA transfer progress is invalid.",
                 nameof(state)
             );
         }
@@ -106,10 +124,10 @@ internal sealed class CgbVramDmaController(
                     SourceLow: 0,
                     DestinationHigh: 0,
                     DestinationLow: 0,
-                    LengthModeReadValue: CompletedReadValue,
-                    HblankBlocksRemaining: 0,
-                    CpuStallMachineCycles: 0,
-                    IsHblankDmaActive: false,
+                    TransferMode: VramDmaTransferMode.Inactive,
+                    BlocksRemaining: 0,
+                    BytesRemainingInCurrentBlock: 0,
+                    TransferStartPending: false,
                 }
         )
         {
@@ -127,10 +145,10 @@ internal sealed class CgbVramDmaController(
         _sourceLow = state.SourceLow;
         _destinationHigh = state.DestinationHigh;
         _destinationLow = state.DestinationLow;
-        _lengthModeReadValue = state.LengthModeReadValue;
-        _hblankBlocksRemaining = state.HblankBlocksRemaining;
-        _cpuStallMachineCycles = state.CpuStallMachineCycles;
-        _isHblankDmaActive = state.IsHblankDmaActive;
+        _transferMode = state.TransferMode;
+        _blocksRemaining = state.BlocksRemaining;
+        _bytesRemainingInCurrentBlock = state.BytesRemainingInCurrentBlock;
+        _transferStartPending = state.TransferStartPending;
         _cpuHalted = state.CpuHalted;
     }
 
@@ -139,7 +157,7 @@ internal sealed class CgbVramDmaController(
     /// </summary>
     public byte ReadHdmaRegister(ushort address) =>
         isRegisterEnabled && address is AddressMap.VideoRamDmaLengthModeStartRegister
-            ? _lengthModeReadValue
+            ? GetLengthModeReadValue()
             : CompletedReadValue;
 
     /// <summary>
@@ -177,49 +195,72 @@ internal sealed class CgbVramDmaController(
     }
 
     /// <summary>
-    /// Consumes one CPU-blocked VRAM DMA machine cycle, if a transfer stalled execution.
+    /// Indicates that the CPU is blocked while one VRAM DMA block is transferring.
     /// </summary>
-    public bool TryConsumeCpuStallMachineCycle()
+    public bool IsCpuStalled => _bytesRemainingInCurrentBlock > 0;
+
+    /// <summary>
+    /// Starts one active HBlank DMA block on a visible scanline Mode 0 entry.
+    /// </summary>
+    public void BeginHBlankBlock()
     {
-        if (_cpuStallMachineCycles == 0)
+        if (
+            !isRegisterEnabled
+            || _transferMode is not VramDmaTransferMode.HBlank
+            || _bytesRemainingInCurrentBlock > 0
+            || _cpuHalted
+        )
         {
-            return false;
+            return;
         }
 
-        _cpuStallMachineCycles--;
-        return true;
+        _bytesRemainingInCurrentBlock = BlockSize;
+        _transferStartPending = true;
     }
 
     /// <summary>
-    /// Transfers one active HBlank DMA block on a visible scanline Mode 0 entry.
+    /// Advances an active transfer by one elapsed CPU machine cycle.
     /// </summary>
-    public void TransferHBlankBlock()
+    public void TickMachineCycle()
     {
-        if (!isRegisterEnabled || !_isHblankDmaActive || _cpuHalted)
+        if (_bytesRemainingInCurrentBlock == 0)
         {
             return;
         }
 
+        if (_transferStartPending)
+        {
+            _transferStartPending = false;
+            return;
+        }
+
+        if (_transferMode is VramDmaTransferMode.HBlank && _cpuHalted)
+        {
+            return;
+        }
+
+        var bytesToTransfer = Math.Min(
+            _bytesRemainingInCurrentBlock,
+            isDoubleSpeed() ? DoubleSpeedBytesPerMachineCycle : NormalSpeedBytesPerMachineCycle
+        );
+        var blockOffset = BlockSize - _bytesRemainingInCurrentBlock;
+        var sourceAddress = GetSourceAddress();
         var destinationAddress = GetDestinationAddress();
-        if (destinationAddress > AddressMap.VideoRamEnd)
+
+        for (var offset = 0; offset < bytesToTransfer; offset++)
         {
-            CompleteTransfer();
-            return;
+            var byteOffset = blockOffset + offset;
+            writeDestinationByte(
+                (ushort)(destinationAddress + byteOffset),
+                readSourceByte((ushort)(sourceAddress + byteOffset))
+            );
         }
 
-        CopyBlock(GetSourceAddress(), destinationAddress);
-        QueueCpuStall(blockCount: 1);
-        AdvanceSourceAddress();
-        var destinationWithinVram = TryAdvanceDestinationAddress();
-        _hblankBlocksRemaining--;
-
-        if (_hblankBlocksRemaining == 0 || !destinationWithinVram)
+        _bytesRemainingInCurrentBlock -= bytesToTransfer;
+        if (_bytesRemainingInCurrentBlock == 0)
         {
-            CompleteTransfer();
-            return;
+            CompleteBlock();
         }
-
-        _lengthModeReadValue = (byte)(_hblankBlocksRemaining - 1);
     }
 
     private void WriteRegisterState(ushort address, byte value, bool startTransfer)
@@ -264,92 +305,91 @@ internal sealed class CgbVramDmaController(
             return;
         }
 
-        if (_isHblankDmaActive)
+        if (_transferMode is VramDmaTransferMode.HBlank)
         {
             StopHBlankDma();
             return;
         }
 
-        RunGeneralPurposeDma(value);
+        StartGeneralPurposeDma(value);
     }
 
-    private void RunGeneralPurposeDma(byte value)
+    private void StartGeneralPurposeDma(byte value)
     {
-        var blockCount = (value & LengthMask) + 1;
-        var transferredBlocks = 0;
-
-        for (var block = 0; block < blockCount; block++)
-        {
-            var destinationAddress = GetDestinationAddress();
-            if (destinationAddress > AddressMap.VideoRamEnd)
-            {
-                break;
-            }
-
-            CopyBlock(GetSourceAddress(), destinationAddress);
-            transferredBlocks++;
-            AdvanceSourceAddress();
-
-            if (!TryAdvanceDestinationAddress())
-            {
-                break;
-            }
-        }
-
-        CompleteTransfer();
-        QueueCpuStall(transferredBlocks);
+        _blocksRemaining = (value & LengthMask) + 1;
+        _bytesRemainingInCurrentBlock = BlockSize;
+        _transferMode = VramDmaTransferMode.General;
+        _transferStartPending = true;
     }
 
     private void StartHBlankDma(byte value)
     {
-        _hblankBlocksRemaining = (value & LengthMask) + 1;
-        _isHblankDmaActive = true;
-        _lengthModeReadValue = (byte)(value & LengthMask);
+        _blocksRemaining = (value & LengthMask) + 1;
+        _bytesRemainingInCurrentBlock = 0;
+        _transferMode = VramDmaTransferMode.HBlank;
+        _transferStartPending = false;
     }
 
-    private void QueueCpuStall(int blockCount)
+    private void CompleteBlock()
     {
-        _cpuStallMachineCycles +=
-            blockCount
-            * (isDoubleSpeed() ? DoubleSpeedBlockMachineCycles : NormalSpeedBlockMachineCycles);
-    }
+        AdvanceSourceAddress();
+        var destinationWithinVram = TryAdvanceDestinationAddress();
+        _blocksRemaining--;
 
-    private void CopyBlock(ushort sourceAddress, ushort destinationAddress)
-    {
-        for (var offset = 0; offset < BlockSize; offset++)
+        if (_blocksRemaining == 0 || !destinationWithinVram)
         {
-            var currentDestinationAddress = destinationAddress + offset;
-
-            if (currentDestinationAddress > AddressMap.VideoRamEnd)
-            {
-                return;
-            }
-
-            writeDestinationByte(
-                (ushort)currentDestinationAddress,
-                readSourceByte((ushort)(sourceAddress + offset))
-            );
+            CompleteTransfer();
+            return;
         }
+
+        _bytesRemainingInCurrentBlock =
+            _transferMode is VramDmaTransferMode.General ? BlockSize : 0;
     }
 
     private void CompleteTransfer()
     {
-        _isHblankDmaActive = false;
-        _hblankBlocksRemaining = 0;
-        _lengthModeReadValue = CompletedReadValue;
+        _transferMode = VramDmaTransferMode.Inactive;
+        _blocksRemaining = 0;
+        _bytesRemainingInCurrentBlock = 0;
+        _transferStartPending = false;
     }
 
     private void StopHBlankDma()
     {
-        _isHblankDmaActive = false;
-        _lengthModeReadValue = (byte)(InactiveHBlankReadMask | (_hblankBlocksRemaining - 1));
+        _transferMode = VramDmaTransferMode.Inactive;
+        _bytesRemainingInCurrentBlock = 0;
+        _transferStartPending = false;
     }
 
     private void SetLengthModeState(byte value)
     {
-        _lengthModeReadValue = value;
-        _isHblankDmaActive = (value & HBlankModeMask) == 0 && value != CompletedReadValue;
-        _hblankBlocksRemaining = _isHblankDmaActive ? (value & LengthMask) + 1 : 0;
+        _bytesRemainingInCurrentBlock = 0;
+        _transferStartPending = false;
+
+        if (value == CompletedReadValue)
+        {
+            _transferMode = VramDmaTransferMode.Inactive;
+            _blocksRemaining = 0;
+            return;
+        }
+
+        _blocksRemaining = (value & LengthMask) + 1;
+        _transferMode =
+            (value & HBlankModeMask) == 0
+                ? VramDmaTransferMode.HBlank
+                : VramDmaTransferMode.Inactive;
+    }
+
+    private byte GetLengthModeReadValue()
+    {
+        if (_transferMode is not VramDmaTransferMode.Inactive)
+        {
+            return (byte)(_blocksRemaining - 1);
+        }
+
+        return _blocksRemaining > 0
+            ? (byte)(InactiveHBlankReadMask | (_blocksRemaining - 1))
+            : CompletedReadValue;
     }
 
     private ushort GetSourceAddress() => (ushort)((_sourceHigh << 8) | _sourceLow);
@@ -384,9 +424,16 @@ internal readonly record struct CgbVramDmaControllerState(
     byte SourceLow,
     byte DestinationHigh,
     byte DestinationLow,
-    byte LengthModeReadValue,
-    int HblankBlocksRemaining,
-    int CpuStallMachineCycles,
-    bool IsHblankDmaActive,
+    VramDmaTransferMode TransferMode,
+    int BlocksRemaining,
+    int BytesRemainingInCurrentBlock,
+    bool TransferStartPending,
     bool CpuHalted
 );
+
+internal enum VramDmaTransferMode
+{
+    Inactive = 0,
+    General = 1,
+    HBlank = 2,
+}

@@ -49,8 +49,10 @@ internal sealed class MachineClock(MemoryBus bus)
 
         if (ppuResult.EnteredVisibleHBlank)
         {
-            bus.VramDma.TransferHBlankBlock();
+            bus.VramDma.BeginHBlankBlock();
         }
+
+        bus.VramDma.TickMachineCycle();
 
         if (ppuResult.CompletedFrame is { } completedFrame)
         {
