@@ -26,7 +26,8 @@
       "*.code-workspace": "jsonc",
       "*.csproj": "xml",
       "*.props": "xml",
-      "*.slnx": "xml"
+      "*.slnx": "xml",
+      "**/SKILL.md": "markdown"
     },
     "files.exclude": {
       "**/.omp": true,
