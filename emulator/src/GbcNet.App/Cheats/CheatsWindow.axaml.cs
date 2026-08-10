@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Threading;
+using ErrorOr;
 using GbcNet.Core.Cheats;
 using Microsoft.Extensions.Logging;
 
@@ -30,7 +31,7 @@ internal sealed partial class CheatsWindow : Window
     private readonly List<CheatDraft> _gameGenieEntries;
     private readonly List<CheatDraft> _gameSharkEntries;
     private readonly List<EntryRowControls> _entryRows = [];
-    private readonly Func<IReadOnlyList<CheatCodeEntry>, Task> _applyAsync;
+    private readonly Func<IReadOnlyList<CheatCodeEntry>, Task<ErrorOr<Success>>> _applyAsync;
     private readonly ILogger _logger;
     private CheatCodeType _currentType;
     private string _gameGenieNameDraft = string.Empty;
@@ -43,7 +44,7 @@ internal sealed partial class CheatsWindow : Window
 
     internal CheatsWindow(
         IReadOnlyList<CheatCodeEntry> entries,
-        Func<IReadOnlyList<CheatCodeEntry>, Task> applyAsync,
+        Func<IReadOnlyList<CheatCodeEntry>, Task<ErrorOr<Success>>> applyAsync,
         ILogger logger
     )
     {
@@ -284,24 +285,22 @@ internal sealed partial class CheatsWindow : Window
             ApplyingTextBlock.IsVisible = true;
             ApplyingTextBlock.Text = "Applying...";
 
-            try
+            var result = await _applyAsync(entries);
+            if (result.IsError)
             {
-                await _applyAsync(entries);
-            }
-            catch (Exception exception)
-                when (exception
-                        is ArgumentException
-                            or InvalidOperationException
-                            or OperationCanceledException
-                )
-            {
-                ShowApplyFailure($"Cheat codes could not be applied: {exception.Message}");
+                ShowApplyFailure(
+                    $"Cheat codes could not be applied: {result.FirstError.Description}"
+                );
                 return;
             }
 
             _isApplying = false;
             Closing -= GuardCloseWhileApplying;
             Close(dialogResult: true);
+        }
+        catch (OperationCanceledException)
+        {
+            ShowApplyFailure("Cheat code update was canceled.");
         }
         catch (Exception exception)
         {

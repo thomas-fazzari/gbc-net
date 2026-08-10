@@ -13,6 +13,7 @@ using GbcNet.Core;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Cheats;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GbcNet.Tests.Integration.Emulation;
@@ -84,11 +85,12 @@ public sealed class EmulationControllerTests
                     "Live Shark"
                 ),
             };
-            await controller.SetCheatCodesAsync(
+            var result = await controller.SetCheatCodesAsync(
                 updatedCodes,
                 TestContext.Current.CancellationToken
             );
 
+            result.IsError.Should().BeFalse();
             controller.State.CheatCodes.ToArray().Should().Equal(updatedCodes);
             (
                 await test.CheatCodes.LoadAsync(
@@ -103,6 +105,105 @@ public sealed class EmulationControllerTests
         {
             await controller.StopAsync();
         }
+    }
+
+    [Fact]
+    public async Task SetCheatCodesAsync_WithoutActiveSessionReturnsNotFound()
+    {
+        using var test = new ControllerTestContext();
+        var controller = test.CreateController();
+
+        var result = await controller.SetCheatCodesAsync([], TestContext.Current.CancellationToken);
+
+        result.IsError.Should().BeTrue();
+        var error = result.Errors.Should().ContainSingle().Which;
+        error.Type.Should().Be(ErrorType.NotFound);
+        error.Code.Should().Be(EmulationController.NoActiveCheatSessionErrorCode);
+    }
+
+    [Fact]
+    public async Task SetCheatCodesAsync_InvalidCodesReturnsValidationAndPreservesSnapshot()
+    {
+        using var test = new ControllerTestContext();
+        var rom = TestRomFactory.Create();
+        var controller = test.CreateController();
+        try
+        {
+            (await controller.OpenRomFileAsync(TestStorageFile.Create("game.gb", rom)))
+                .IsError.Should()
+                .BeFalse();
+            var code = CheatCodeParser.Parse(CheatCodeType.GameGenie, "0A1-B9F");
+
+            var result = await controller.SetCheatCodesAsync(
+                [new CheatCodeEntry(code, true), new CheatCodeEntry(code, false)],
+                TestContext.Current.CancellationToken
+            );
+
+            result.IsError.Should().BeTrue();
+            var error = result.Errors.Should().ContainSingle().Which;
+            error.Type.Should().Be(ErrorType.Validation);
+            error.Code.Should().Be(EmulationController.InvalidCheatCodesErrorCode);
+            controller.State.CheatCodes.IsEmpty.Should().BeTrue();
+            (
+                await test.CheatCodes.LoadAsync(
+                    SHA256.HashData(rom),
+                    TestContext.Current.CancellationToken
+                )
+            )
+                .Should()
+                .BeEmpty();
+        }
+        finally
+        {
+            await controller.StopAsync();
+        }
+    }
+
+    [Fact]
+    public async Task SetCheatCodesAsync_WhenSessionStopsDuringPersistenceReturnsConflict()
+    {
+        using var test = new ControllerTestContext();
+        var rom = TestRomFactory.Create();
+        var saveStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        var allowSave = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        var interceptor = new BlockingSaveChangesInterceptor(saveStarted, allowSave);
+        var cheatCodes = test.CreateCheatCodeService(interceptor);
+        var controller = test.CreateController(cheatCodes);
+        (await controller.OpenRomFileAsync(TestStorageFile.Create("game.gb", rom)))
+            .IsError.Should()
+            .BeFalse();
+        var code = CheatCodeParser.Parse(CheatCodeType.GameShark, "010100C0");
+
+        var applyTask = controller.SetCheatCodesAsync(
+            [new CheatCodeEntry(code, true)],
+            TestContext.Current.CancellationToken
+        );
+        try
+        {
+            await saveStarted.Task.WaitAsync(
+                TimeSpan.FromSeconds(1),
+                TestContext.Current.CancellationToken
+            );
+            await controller.StopAsync();
+        }
+        finally
+        {
+            allowSave.TrySetResult();
+        }
+
+        var result = await applyTask.WaitAsync(
+            TimeSpan.FromSeconds(1),
+            TestContext.Current.CancellationToken
+        );
+        result.IsError.Should().BeTrue();
+        var error = result.Errors.Should().ContainSingle().Which;
+        error.Type.Should().Be(ErrorType.Conflict);
+        error.Code.Should().Be(EmulationController.CheatSessionChangedErrorCode);
+        controller.State.HasSession.Should().BeFalse();
     }
 
     [Fact]
@@ -207,7 +308,7 @@ public sealed class EmulationControllerTests
                     .ThrowExactlyAsync<InvalidOperationException>()
             ).Which;
 
-            exception.Message.Should().Be("Cheat codes could not be saved.");
+            exception.InnerException.Should().BeOfType<DbUpdateException>();
             controller.State.CheatCodes.ToArray().Should().Equal(existingCodes);
         }
         finally
@@ -288,6 +389,23 @@ public sealed class EmulationControllerTests
         }
     }
 
+    private sealed class BlockingSaveChangesInterceptor(
+        TaskCompletionSource saveStarted,
+        TaskCompletionSource allowSave
+    ) : SaveChangesInterceptor
+    {
+        public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
+            DbContextEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default
+        )
+        {
+            saveStarted.TrySetResult();
+            await allowSave.Task.WaitAsync(cancellationToken);
+            return result;
+        }
+    }
+
     private sealed class ControllerTestContext : IDisposable
     {
         private readonly TestDirectories.TemporaryDirectory _temporaryDirectory =
@@ -314,6 +432,9 @@ public sealed class EmulationControllerTests
 
         public CheatCodeService CreateFailingCheatCodeService() =>
             new(new TestDbContextFactory(DatabasePath, FailingSaveChangesInterceptor.Instance));
+
+        internal CheatCodeService CreateCheatCodeService(IInterceptor interceptor) =>
+            new(new TestDbContextFactory(DatabasePath, interceptor));
 
         public EmulationController CreateController(CheatCodeService? cheatCodes = null) =>
             new(

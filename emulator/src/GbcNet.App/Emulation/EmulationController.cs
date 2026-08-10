@@ -32,6 +32,9 @@ internal sealed class EmulationController(
 )
 {
     internal const int MaximumRomSize = 8 * 1024 * 1024;
+    internal const string NoActiveCheatSessionErrorCode = "Cheat.NoActiveSession";
+    internal const string InvalidCheatCodesErrorCode = "Cheat.InvalidCodes";
+    internal const string CheatSessionChangedErrorCode = "Cheat.SessionChanged";
 
     private EmulationSession? _session;
     private BootRomOptions _bootRomOptions = bootRomOptions;
@@ -185,21 +188,32 @@ internal sealed class EmulationController(
         await session.RestoreSaveStateAsync(state);
     }
 
-    public async Task SetCheatCodesAsync(
+    public async Task<ErrorOr<Success>> SetCheatCodesAsync(
         IReadOnlyList<CheatCodeEntry> entries,
         CancellationToken cancellationToken = default
     )
     {
+        ArgumentNullException.ThrowIfNull(entries);
+
         if (_session is not { } session || _loadedRomStorageIdentity is not { } identity)
         {
-            throw new InvalidOperationException("No ROM is loaded.");
+            return Error.NotFound(NoActiveCheatSessionErrorCode, "No ROM is loaded.");
         }
 
-        var savedEntries = await cheatCodeService.ReplaceAsync(
-            identity.Hash,
-            entries,
-            cancellationToken
-        );
+        CheatCodeEntry[] savedEntries;
+        try
+        {
+            savedEntries = await cheatCodeService.ReplaceAsync(
+                identity.Hash,
+                entries,
+                cancellationToken
+            );
+        }
+        catch (ArgumentException exception)
+        {
+            return Error.Validation(InvalidCheatCodesErrorCode, exception.Message);
+        }
+
         _cheatCodes = savedEntries;
 
         try
@@ -208,8 +222,13 @@ internal sealed class EmulationController(
         }
         catch (OperationCanceledException)
         {
-            return;
+            return Error.Conflict(
+                CheatSessionChangedErrorCode,
+                "The emulation session changed before cheat codes could be applied."
+            );
         }
+
+        return Result.Success;
     }
 
     public DateTime?[] GetSaveStateDates(int slotCount)
