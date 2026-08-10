@@ -121,6 +121,40 @@ public sealed class SgbControllerTests
     }
 
     [Fact]
+    public void Write_ConsumesDeclaredPacketsForUnknownCommand()
+    {
+        // Pan Docs `command-packet-transfers.md`: the header count includes all 1-7 packets.
+        var sgb = new SgbController(commandsEnabled: true);
+        var headerLikeContinuation = CreatePacket(command: 0x17, [0x02]);
+
+        WriteSgbPacket(sgb, CreatePacket(command: 0x1E, [], packetCount: 2));
+        WriteSgbPacket(sgb, headerLikeContinuation);
+        WriteSgbPacket(sgb, command: 0x00, Pal01Payload);
+
+        Rgb555Assertions.PixelEquals(
+            sgb.ApplyPalettes(CreateDmgFrame(shade: 2)),
+            0,
+            expected: 0x3333
+        );
+    }
+
+    [Fact]
+    public void Write_DiscardsCommandWithZeroPacketCount()
+    {
+        // Pan Docs `command-packet-transfers.md` only defines packet counts from 1 through 7.
+        var sgb = new SgbController(commandsEnabled: true);
+
+        WriteSgbPacket(sgb, CreatePacket(command: 0x17, [0x02], packetCount: 0));
+        WriteSgbPacket(sgb, command: 0x00, Pal01Payload);
+
+        Rgb555Assertions.PixelEquals(
+            sgb.ApplyPalettes(CreateDmgFrame(shade: 2)),
+            0,
+            expected: 0x3333
+        );
+    }
+
+    [Fact]
     public void ApplyPendingVramTransfer_LoadsAttributeFilesUsedByAttrSet()
     {
         var sgb = new SgbController(commandsEnabled: true);

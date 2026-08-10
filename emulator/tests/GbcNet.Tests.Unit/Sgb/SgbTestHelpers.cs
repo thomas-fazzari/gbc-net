@@ -22,10 +22,14 @@ internal static class SgbTestHelpers
         return new LcdFrame(160, 144, LcdPixelFormat.DmgShadeIndex8, pixels);
     }
 
-    internal static byte[] CreatePacket(byte command, ReadOnlySpan<byte> payload)
+    internal static byte[] CreatePacket(
+        byte command,
+        ReadOnlySpan<byte> payload,
+        byte packetCount = 1
+    )
     {
         var packet = new byte[16];
-        packet[0] = (byte)((command << 3) | 0x01);
+        packet[0] = (byte)((command << 3) | packetCount);
         payload.CopyTo(packet.AsSpan(1));
         return packet;
     }
@@ -110,9 +114,14 @@ internal static class SgbTestHelpers
 
     internal static void WriteSgbPacket(SgbController sgb, byte command, ReadOnlySpan<byte> payload)
     {
+        WriteSgbPacket(sgb, CreatePacket(command, payload));
+    }
+
+    internal static void WriteSgbPacket(SgbController sgb, ReadOnlySpan<byte> packet)
+    {
         var selectedGroups = (byte)0x30;
         WriteSgbStartPulse(sgb, ref selectedGroups);
-        WriteBits(sgb, ref selectedGroups, CreatePacket(command, payload));
+        WriteBits(sgb, ref selectedGroups, packet);
         WriteSgbBit(sgb, ref selectedGroups, value: false);
     }
 

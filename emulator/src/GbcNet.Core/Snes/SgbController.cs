@@ -100,6 +100,8 @@ internal sealed class SgbController(bool commandsEnabled)
             SgbPacketPhase.AwaitingBit => true,
             SgbPacketPhase.AwaitingStop => state.CommandWriteBitIndex != 0
                 && state.CommandWriteBitIndex % (PacketSizeBytes * 8) == 0,
+            SgbPacketPhase.AwaitingStopBit => state.CommandWriteBitIndex != 0
+                && state.CommandWriteBitIndex % (PacketSizeBytes * 8) == 0,
             _ => false,
         };
 
@@ -152,17 +154,21 @@ internal sealed class SgbController(bool commandsEnabled)
         switch (selectedGroups >> 4)
         {
             case 0b11:
-                if (_packetPhase is SgbPacketPhase.AwaitingPulse or SgbPacketPhase.AwaitingStop)
+                if (_packetPhase is SgbPacketPhase.AwaitingPulse)
                 {
                     _packetPhase = SgbPacketPhase.AwaitingBit;
+                }
+                else if (_packetPhase is SgbPacketPhase.AwaitingStop)
+                {
+                    _packetPhase = SgbPacketPhase.AwaitingStopBit;
                 }
 
                 return;
             case 0b10:
-                ReceiveBit(value: 0, GetCommandSizeBits());
+                ReceiveBit(value: 0, GetCommandInfo());
                 return;
             case 0b01:
-                ReceiveBit(value: 1, GetCommandSizeBits());
+                ReceiveBit(value: 1, GetCommandInfo());
                 return;
             case 0b00:
                 PreparePacketWrite();
@@ -229,17 +235,12 @@ internal sealed class SgbController(bool commandsEnabled)
         ApplyPendingVramTransfer(transferData);
     }
 
-    private (int SizeBits, bool IsSupported) GetCommandSizeBits()
+    private (int SizeBits, bool IsSupported, bool HasValidPacketCount) GetCommandInfo()
     {
         var isSupported = IsSupportedCommand(_command[0] >> 3);
-        var packetCount = isSupported ? _command[0] & 0x07 : 1;
+        var packetCount = _command[0] & 0x07;
 
-        if (packetCount == 0)
-        {
-            packetCount = 1;
-        }
-
-        return (packetCount * PacketSizeBytes * 8, isSupported);
+        return (packetCount * PacketSizeBytes * 8, isSupported, packetCount != 0);
     }
 
     private static bool IsSupportedCommand(int command) =>
@@ -278,21 +279,31 @@ internal sealed class SgbController(bool commandsEnabled)
         _packetPhase = SgbPacketPhase.AwaitingPulse;
     }
 
-    private void ReceiveBit(byte value, (int SizeBits, bool IsSupported) commandInfo)
+    private void ReceiveBit(
+        byte value,
+        (int SizeBits, bool IsSupported, bool HasValidPacketCount) commandInfo
+    )
     {
-        if (_packetPhase is not SgbPacketPhase.AwaitingBit)
+        if (_packetPhase is not SgbPacketPhase.AwaitingBit and not SgbPacketPhase.AwaitingStopBit)
         {
             return;
         }
 
-        if (
-            (_commandWriteBitIndex & ((PacketSizeBytes * 8) - 1)) == 0
-            && _commandWriteBitIndex != 0
-        )
+        if (_packetPhase is SgbPacketPhase.AwaitingStopBit)
         {
-            if (value == 0 && _commandWriteBitIndex == commandInfo.SizeBits)
+            if (
+                value == 0
+                && (
+                    !commandInfo.HasValidPacketCount
+                    || _commandWriteBitIndex == commandInfo.SizeBits
+                )
+            )
             {
-                ExecuteCommand(commandInfo.IsSupported);
+                if (commandInfo.HasValidPacketCount)
+                {
+                    ExecuteCommand(commandInfo.IsSupported);
+                }
+
                 ClearCommand();
             }
 
@@ -469,6 +480,7 @@ internal enum SgbPacketPhase : byte
     AwaitingPulse = 1,
     AwaitingBit = 2,
     AwaitingStop = 3,
+    AwaitingStopBit = 4,
 }
 
 internal readonly record struct SgbControllerState(

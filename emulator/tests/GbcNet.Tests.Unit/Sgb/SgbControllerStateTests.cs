@@ -110,6 +110,27 @@ public sealed class SgbControllerStateTests
     }
 
     [Fact]
+    public void RestoreState_ContinuesUnknownCommandBetweenPackets()
+    {
+        // Pan Docs `command-packet-transfers.md`: continuation packets have no command header.
+        var original = new SgbController(commandsEnabled: true);
+        WriteSgbPacket(original, CreatePacket(command: 0x1E, [], packetCount: 2));
+        var resumed = new SgbController(commandsEnabled: true);
+        resumed.RestoreState(original.CaptureState());
+        var headerLikeContinuation = CreatePacket(command: 0x17, [0x02]);
+
+        WriteSgbPacket(original, headerLikeContinuation);
+        WriteSgbPacket(resumed, headerLikeContinuation);
+        WriteSgbPacket(original, command: 0x00, Pal01Payload);
+        WriteSgbPacket(resumed, command: 0x00, Pal01Payload);
+
+        var originalFrame = original.ApplyPalettes(CreateDmgFrame(shade: 2));
+        var resumedFrame = resumed.ApplyPalettes(CreateDmgFrame(shade: 2));
+        Rgb555Assertions.PixelEquals(originalFrame, 0, expected: 0x3333);
+        resumedFrame.Pixels.ToArray().Should().Equal(originalFrame.Pixels.ToArray());
+    }
+
+    [Fact]
     public void RestoreState_ContinuesPendingTransferCountdown()
     {
         var original = new SgbController(commandsEnabled: true);
