@@ -51,11 +51,28 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     internal CpuState CaptureState() =>
         new(Registers.CaptureState(), Halted, Stopped, HaltBugPending, Ime, ImeEnablePending);
 
+    internal static void ValidateState(CpuState state)
+    {
+        if (
+            (state.Halted && (state.Stopped || state.HaltBugPending))
+            || (state.Stopped && state.HaltBugPending)
+            || (state.HaltBugPending && state.Ime)
+            || (
+                state.ImeEnablePending
+                && (state.Halted || state.Stopped || state.HaltBugPending || state.Ime)
+            )
+        )
+        {
+            throw new ArgumentException("CPU execution state is invalid.", nameof(state));
+        }
+    }
+
     /// <summary>
     /// Restores CPU execution state without executing instructions or raising events.
     /// </summary>
     internal void RestoreState(CpuState state)
     {
+        ValidateState(state);
         Registers.RestoreState(state.Registers);
         Halted = state.Halted;
         Stopped = state.Stopped;

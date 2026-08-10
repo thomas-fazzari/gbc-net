@@ -243,6 +243,7 @@ public sealed class GameBoy
             );
         }
 
+        Cpu.ValidateState(state.Cpu);
         Bus.RestoreState(state.Bus);
         Cpu.RestoreState(state.Cpu);
     }

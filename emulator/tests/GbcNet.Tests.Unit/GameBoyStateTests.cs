@@ -13,6 +13,71 @@ namespace GbcNet.Tests.Unit;
 
 public sealed class GameBoyStateTests
 {
+    // Bits are Halted, Stopped, HaltBugPending, Ime, and ImeEnablePending.
+    // DMG, CGB, and SGB share these states. See Pan Docs `interrupts.md`, `halt.md`,
+    // and `reducing-power-consumption.md`.
+    public static TheoryData<int, bool> CpuExecutionStateRows
+    {
+        get
+        {
+            var rows = new TheoryData<int, bool>();
+            for (var flags = 0; flags < 32; flags++)
+            {
+                rows.Add(
+                    flags,
+                    flags
+                        is 0b00000
+                            or 0b01000
+                            or 0b10000
+                            or 0b00001
+                            or 0b01001
+                            or 0b00010
+                            or 0b01010
+                            or 0b00100
+                );
+            }
+
+            return rows;
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(CpuExecutionStateRows))]
+    public void CpuRestoreState_AcceptsOnlyReachableExecutionAndImeCombinations(
+        int flags,
+        bool isReachable
+    )
+    {
+        var gameBoy = new GameBoy(TestRomFactory.LoadCartridge(), HardwareModel.Dmg);
+        var cpu = gameBoy.Cpu;
+        var before = cpu.CaptureState();
+        var state = before with
+        {
+            Registers = before.Registers with { PC = 0x2345 },
+            Halted = (flags & 0b00001) != 0,
+            Stopped = (flags & 0b00010) != 0,
+            HaltBugPending = (flags & 0b00100) != 0,
+            Ime = (flags & 0b01000) != 0,
+            ImeEnablePending = (flags & 0b10000) != 0,
+        };
+
+        if (isReachable)
+        {
+            FluentActions.Invoking(() => cpu.RestoreState(state)).Should().NotThrow();
+            cpu.CaptureState().Should().Be(state);
+            return;
+        }
+
+        var exception = FluentActions
+            .Invoking(() => cpu.RestoreState(state))
+            .Should()
+            .ThrowExactly<ArgumentException>()
+            .Which;
+
+        exception.ParamName.Should().Be(nameof(state));
+        cpu.CaptureState().Should().Be(before);
+    }
+
     [Fact]
     public void RestoreState_RestoresIndependentMachineContinuation()
     {
@@ -116,6 +181,35 @@ public sealed class GameBoyStateTests
             .Should()
             .ThrowExactly<ArgumentException>();
         gameBoy.Bus.ReadByte(AddressMap.HighRamStart).Should().Be(0xCD);
+    }
+
+    [Fact]
+    public void RestoreState_RejectsInvalidCpuStateBeforeMutatingMachine()
+    {
+        var gameBoy = new GameBoy(TestRomFactory.LoadCartridge(), HardwareModel.Dmg);
+        var state = gameBoy.CaptureState();
+        var invalidState = new GameBoyState(
+            HardwareModel.Dmg,
+            state.Cpu with
+            {
+                Registers = state.Cpu.Registers with { PC = 0x4567 },
+                Halted = true,
+                Stopped = true,
+            },
+            state.Bus
+        );
+        gameBoy.Cpu.Registers.PC = 0x2345;
+        gameBoy.Bus.WriteByte(AddressMap.HighRamStart, 0xCD);
+        var before = gameBoy.CaptureSaveState();
+
+        var exception = FluentActions
+            .Invoking(() => gameBoy.RestoreState(invalidState))
+            .Should()
+            .ThrowExactly<ArgumentException>()
+            .Which;
+
+        exception.ParamName.Should().Be(nameof(state));
+        gameBoy.CaptureSaveState().Should().Equal(before);
     }
 
     [Fact]
