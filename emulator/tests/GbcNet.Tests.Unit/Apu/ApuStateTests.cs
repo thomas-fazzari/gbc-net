@@ -76,6 +76,123 @@ public sealed class ApuStateTests
             .BeEquivalentTo(before, options => options.WithStrictOrdering());
     }
 
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(4)]
+    [InlineData(int.MaxValue)]
+    public void RestoreState_RejectsUnsafePulseSchedulerAccumulator(int accumulator)
+    {
+        var apu = CreatePulse(ApuModelSpec.Cgb);
+        var state = apu.CaptureState();
+        var malformed = state with
+        {
+            Channel1 = state.Channel1 with { TCycleAccumulator = accumulator },
+        };
+
+        FluentActions
+            .Invoking(() => apu.RestoreState(malformed))
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>();
+    }
+
+    [Theory]
+    [InlineData(0, 0, true)]
+    [InlineData(0, 1, false)]
+    [InlineData(8, -1, false)]
+    [InlineData(8, 8, true)]
+    [InlineData(8, 9, false)]
+    public void RestoreState_RejectsUnsafeNoiseSchedulerStateBeforeMutation(
+        int timer,
+        int accumulator,
+        bool isActive
+    )
+    {
+        var target = CreatePulse(ApuModelSpec.Cgb);
+        target.Tick(500);
+        var before = target.CaptureState();
+        var state = CreateNoise(ApuModelSpec.Cgb).CaptureState();
+        var malformed = state with
+        {
+            Channel4 = state.Channel4 with
+            {
+                Timer = timer,
+                TCycleAccumulator = accumulator,
+                IsActive = isActive,
+            },
+        };
+
+        FluentActions
+            .Invoking(() => target.RestoreState(malformed))
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>();
+        target
+            .CaptureState()
+            .Should()
+            .BeEquivalentTo(before, options => options.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void RestoreState_RoundTripsSchedulerBoundaries()
+    {
+        var pulseState = CreatePulse(ApuModelSpec.Cgb).CaptureState();
+        var noiseState = CreateNoise(ApuModelSpec.Cgb).CaptureState();
+        ApuControllerState[] states =
+        [
+            pulseState with
+            {
+                Channel1 = pulseState.Channel1 with { TCycleAccumulator = 0 },
+            },
+            pulseState with
+            {
+                Channel1 = pulseState.Channel1 with { TCycleAccumulator = 3 },
+            },
+            noiseState with
+            {
+                Channel4 = noiseState.Channel4 with
+                {
+                    Timer = 0,
+                    TCycleAccumulator = 0,
+                    IsActive = false,
+                },
+            },
+            noiseState with
+            {
+                Channel4 = noiseState.Channel4 with
+                {
+                    Timer = 8,
+                    TCycleAccumulator = 0,
+                    IsActive = true,
+                },
+            },
+            noiseState with
+            {
+                Channel4 = noiseState.Channel4 with
+                {
+                    Timer = 8,
+                    TCycleAccumulator = 7,
+                    IsActive = true,
+                },
+            },
+            noiseState with
+            {
+                Channel4 = noiseState.Channel4 with
+                {
+                    Timer = 8,
+                    TCycleAccumulator = 7,
+                    IsActive = false,
+                },
+            },
+        ];
+
+        foreach (var state in states)
+        {
+            Restored(ApuModelSpec.Cgb, state)
+                .CaptureState()
+                .Should()
+                .BeEquivalentTo(state, options => options.WithStrictOrdering());
+        }
+    }
+
     [Fact]
     public void RestoreState_ContinuesPulseDutyEnvelopeSweepAndFrameStepExactly()
     {

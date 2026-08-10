@@ -119,6 +119,26 @@ public sealed class GameBoyStateTests
     }
 
     [Fact]
+    public void RestoreSaveState_RejectsUnsafeApuSchedulerPayloadBeforeMutatingMachine()
+    {
+        var gameBoy = new GameBoy(TestRomFactory.LoadCartridge(), HardwareModel.Dmg);
+        gameBoy.Bus.WriteByte(AddressMap.HighRamStart, 0xAB);
+        var payload = JsonNode.Parse(gameBoy.CaptureSaveState())!.AsObject();
+        var channel4 = payload["Bus"]!["Apu"]!["Channel4"]!;
+        channel4["Timer"] = 0;
+        channel4["TCycleAccumulator"] = 0;
+        channel4["IsActive"] = true;
+        gameBoy.Bus.WriteByte(AddressMap.HighRamStart, 0xCD);
+        var before = gameBoy.CaptureSaveState();
+
+        FluentActions
+            .Invoking(() => gameBoy.RestoreSaveState(JsonSerializer.SerializeToUtf8Bytes(payload)))
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>();
+        gameBoy.CaptureSaveState().Should().Equal(before);
+    }
+
+    [Fact]
     public void RestoreState_DoesNotNotifySerialObservers()
     {
         var gameBoy = new GameBoy(TestRomFactory.LoadCartridge(), HardwareModel.Dmg);

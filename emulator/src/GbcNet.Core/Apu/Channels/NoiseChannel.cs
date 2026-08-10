@@ -15,6 +15,7 @@ internal sealed class NoiseChannel
     private const byte TriggerMask = 0x80;
     private const byte DivisorCodeMask = 0x07;
     private const byte WidthModeMask = 0x08;
+    private const byte MaxClockShift = 15;
     private const int ClockShift = 4;
     private const int MaxLength = 64;
     private const int LfsrResetValue = 0;
@@ -79,7 +80,10 @@ internal sealed class NoiseChannel
         if (
             state.Lfsr is < 0 or > MaxLfsrValue
             || state.Timer is < 0 or > MaxTimer
-            || state.ClockShift > 15
+            || state.TCycleAccumulator < 0
+            || (state.Timer == 0 && (state.IsActive || state.TCycleAccumulator != 0))
+            || (state.Timer > 0 && state.TCycleAccumulator >= state.Timer)
+            || state.ClockShift > MaxClockShift
             || state.DivisorCode > DivisorCodeMask
         )
         {

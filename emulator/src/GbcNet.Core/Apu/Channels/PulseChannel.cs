@@ -14,6 +14,8 @@ internal sealed class PulseChannel
     private const byte LengthEnableMask = 0x40;
     private const byte TriggerMask = 0x80;
     private const byte PeriodHighMask = 0x07;
+    private const byte MaxDuty = 3;
+    private const byte MaxDutyStep = 7;
 
     private const int DutyShift = 6;
     private const int PeriodHighShift = 8;
@@ -226,8 +228,9 @@ internal sealed class PulseChannel
         if (
             state.PeriodTimer < 0
             || state.PeriodTimer > PeriodReloadBase
-            || state.Duty > 0x03
-            || state.DutyStep > 0x07
+            || state.TCycleAccumulator is < 0 or >= PulsePeriodClockTCycles
+            || state.Duty > MaxDuty
+            || state.DutyStep > MaxDutyStep
             || state.Period >= PeriodReloadBase
         )
         {
