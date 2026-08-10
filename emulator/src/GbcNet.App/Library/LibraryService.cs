@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Data.Common;
 using System.Security.Cryptography;
 using ErrorOr;
 using GbcNet.App.Database;
@@ -577,8 +578,7 @@ internal sealed class LibraryService(
     }
 
     private static InvalidOperationException CreateLibraryException(Exception exception) =>
-        exception as InvalidOperationException
-        ?? new InvalidOperationException(message: exception.Message, innerException: exception);
+        new(message: "ROM library operation failed.", innerException: exception);
 
     private static bool IsExpectedLibraryException(Exception exception) =>
         exception
@@ -588,6 +588,7 @@ internal sealed class LibraryService(
                 or FormatException
                 or NotSupportedException
                 or ArgumentException
+                or DbException
                 or DbUpdateException;
 }
 

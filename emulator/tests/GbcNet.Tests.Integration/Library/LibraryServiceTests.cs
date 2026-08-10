@@ -7,6 +7,7 @@ using GbcNet.App.Database.Entities;
 using GbcNet.App.Library;
 using GbcNet.App.Sorting;
 using GbcNet.Core.Cartridges;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -629,12 +630,11 @@ public sealed class LibraryServiceTests
             test.Library.GetRoms(limit: 10).Should().ContainSingle().Which.CoverPath
             ?? throw new InvalidOperationException("Cover path was not stored.");
         var newSourcePath = await test.WriteImageAsync("new.png", [.. " !\""u8]);
+        var databaseFailure = new DbUpdateException("Synthetic database failure.");
         var failingLibrary = new LibraryService(
             new TestDbContextFactory(
                 test.DatabasePath,
-                new FailingSaveChangesInterceptor(
-                    new InvalidOperationException("Test database failure.")
-                ),
+                new FailingSaveChangesInterceptor(databaseFailure),
                 timeProvider: test.TimeProvider
             ),
             test.CoverDirectoryPath,
@@ -642,10 +642,11 @@ public sealed class LibraryServiceTests
             test.TimeProvider
         );
 
-        Assert.Throws<InvalidOperationException>(() =>
+        var exception = Assert.Throws<InvalidOperationException>(() =>
             failingLibrary.AssignCoverImage(romHash, newSourcePath)
         );
 
+        exception.InnerException.Should().BeSameAs(databaseFailure);
         test.Library.GetRoms(limit: 10)
             .Should()
             .ContainSingle()
@@ -658,6 +659,25 @@ public sealed class LibraryServiceTests
             .GetFiles(test.CoverDirectoryPath, "*", SearchOption.TopDirectoryOnly)
             .Should()
             .Equal(oldCoverPath);
+    }
+
+    [Fact]
+    public void GetRoms_WhenSqliteCannotOpenDatabasePreservesProviderCause()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var library = new LibraryService(
+            new TestDbContextFactory(tempDirectory.Path),
+            Path.Combine(tempDirectory.Path, "covers"),
+            NullLogger<LibraryService>.Instance
+        );
+
+        var exception = FluentActions
+            .Invoking(() => library.GetRoms(limit: 10))
+            .Should()
+            .ThrowExactly<InvalidOperationException>()
+            .Which;
+
+        exception.InnerException.Should().BeOfType<SqliteException>();
     }
 
     [Fact]
@@ -708,10 +728,11 @@ public sealed class LibraryServiceTests
         var coverPath =
             test.Library.GetRoms(limit: 10).Should().ContainSingle().Which.CoverPath
             ?? throw new InvalidOperationException("Cover path was not stored.");
+        var databaseFailure = new DbUpdateConcurrencyException();
         var failingLibrary = new LibraryService(
             new TestDbContextFactory(
                 test.DatabasePath,
-                new FailingSaveChangesInterceptor(new DbUpdateConcurrencyException()),
+                new FailingSaveChangesInterceptor(databaseFailure),
                 timeProvider: test.TimeProvider
             ),
             test.CoverDirectoryPath,
@@ -723,7 +744,7 @@ public sealed class LibraryServiceTests
             failingLibrary.ClearCover(romHash)
         );
 
-        exception.InnerException.Should().BeOfType<DbUpdateConcurrencyException>();
+        exception.InnerException.Should().BeSameAs(databaseFailure);
         test.Library.GetRoms(limit: 10)
             .Should()
             .ContainSingle()
