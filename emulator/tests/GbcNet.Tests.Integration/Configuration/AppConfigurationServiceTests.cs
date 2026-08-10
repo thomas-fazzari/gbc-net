@@ -200,8 +200,9 @@ public sealed class AppConfigurationServiceTests
 
     [Theory]
     [InlineData("{")]
+    [InlineData("null")]
     [InlineData("{\"input\":{\"version\":1,\"activeProfile\":\"default\",\"profiles\":{}}}")]
-    public void SaveSettings_WhenExistingConfigIsUnreadableOrOld_ReplacesItWithV2(
+    public void SaveSettings_WhenExistingConfigIsMalformedOrOld_ReplacesItWithV2(
         string existingContents
     )
     {
@@ -232,6 +233,39 @@ public sealed class AppConfigurationServiceTests
         input.TryGetProperty("keyboard", out _).Should().BeTrue();
         input.TryGetProperty("gamepad", out _).Should().BeTrue();
         input.TryGetProperty("activeProfile", out _).Should().BeFalse();
+        File.Exists(configPath + ".tmp").Should().BeFalse();
+    }
+
+    [Fact]
+    public void SaveSettings_WhenExistingConfigCannotBeRead_PreservesItAndOriginalFailure()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+        var originalConfig = AppConfigurationFile.CreateDefault();
+        originalConfig.BootRoms = new BootRomConfig("original-dmg.bin");
+        AppConfigurationFile.Save(configPath, originalConfig, NullLogger.Instance);
+        var originalBytes = File.ReadAllBytes(configPath);
+        var service = CreateService(configPath);
+
+        ConfigurationException exception;
+        using (File.Open(configPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            exception = FluentActions
+                .Invoking(() =>
+                    service.SaveSettings(
+                        new SettingsConfig(
+                            new BootRomConfig("replacement-dmg.bin"),
+                            AppConfigurationFile.CreateDefaultInputConfig()
+                        )
+                    )
+                )
+                .Should()
+                .ThrowExactly<ConfigurationException>()
+                .Which;
+        }
+
+        exception.InnerException.Should().BeOfType<IOException>();
+        File.ReadAllBytes(configPath).Should().Equal(originalBytes);
         File.Exists(configPath + ".tmp").Should().BeFalse();
     }
 

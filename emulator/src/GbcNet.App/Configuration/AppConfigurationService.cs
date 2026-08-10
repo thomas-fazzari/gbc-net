@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System.Text.Json;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Emulation;
@@ -53,6 +54,7 @@ internal sealed class AppConfigurationService(
             appConfig = AppConfigurationFile.LoadOrCreate(configPath, logger);
         }
         catch (ConfigurationException exception)
+            when (exception.InnerException is null or JsonException)
         {
             AppConfigurationServiceLog.ConfigurationReadFailed(logger, exception);
             appConfig = AppConfigurationFile.CreateDefault();
