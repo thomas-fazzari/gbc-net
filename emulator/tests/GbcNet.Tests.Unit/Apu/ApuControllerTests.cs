@@ -2,11 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core.Apu;
+using GbcNet.Core.Hardware;
 
 namespace GbcNet.Tests.Unit.Apu;
 
 public sealed class ApuControllerTests
 {
+    public static TheoryData<HardwareModel> SweepModels =>
+        [HardwareModel.Dmg, HardwareModel.Cgb, HardwareModel.Sgb];
+
     [Theory]
     [InlineData(0xFF10, 0x80, 0x00, 0x80)]
     [InlineData(0xFF10, 0x80, 0x80, 0x80)]
@@ -121,16 +125,14 @@ public sealed class ApuControllerTests
         apu.ReadRegister(0xFF26).Should().Be(0xF1);
     }
 
-    [Fact]
-    public void WriteRegister_Channel1SweepImmediateOverflowClearsChannel1Status()
+    [Theory]
+    [MemberData(nameof(SweepModels))]
+    public void WriteRegister_Channel1SweepImmediateOverflowClearsChannel1Status(
+        HardwareModel model
+    )
     {
-        ApuController apu = new(ApuModelSpec.Dmg);
-
-        apu.WriteRegister(0xFF26, 0x80);
-        apu.WriteRegister(0xFF10, 0x01);
-        apu.WriteRegister(0xFF12, 0xF0);
-        apu.WriteRegister(0xFF13, 0x00);
-        apu.WriteRegister(0xFF14, 0x87);
+        // Pan Docs `audio-details.md`: triggering runs an immediate overflow check.
+        var apu = TriggerChannel1(model, sweep: 0x01, period: 0x0700);
 
         apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
@@ -138,19 +140,9 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_Channel1SweepWritesValidNewPeriod()
     {
-        ApuController apu = new(ApuModelSpec.Dmg);
+        var apu = TriggerChannel1(HardwareModel.Dmg, sweep: 0x19, period: 0x0400);
 
-        apu.WriteRegister(0xFF26, 0x80);
-        apu.WriteRegister(0xFF10, 0x19);
-        apu.WriteRegister(0xFF12, 0xF0);
-        apu.WriteRegister(0xFF13, 0x00);
-        apu.WriteRegister(0xFF14, 0x84);
-
-        ApuFrameSequencerEvents events;
-        do
-        {
-            events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
-        } while (!events.SweepClock);
+        ClockSweep(apu);
 
         apu.Channel1Period.Should().Be(0x0200);
         apu.ReadRegister(0xFF26).Should().Be(0xF1);
@@ -159,19 +151,9 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_Channel1SweepOverflowClearsChannel1Status()
     {
-        ApuController apu = new(ApuModelSpec.Dmg);
+        var apu = TriggerChannel1(HardwareModel.Dmg, sweep: 0x11, period: 0x0400);
 
-        apu.WriteRegister(0xFF26, 0x80);
-        apu.WriteRegister(0xFF10, 0x11);
-        apu.WriteRegister(0xFF12, 0xF0);
-        apu.WriteRegister(0xFF13, 0x00);
-        apu.WriteRegister(0xFF14, 0x84);
-
-        ApuFrameSequencerEvents events;
-        do
-        {
-            events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
-        } while (!events.SweepClock);
+        ClockSweep(apu);
 
         apu.Channel1Period.Should().Be(0x0600);
         apu.ReadRegister(0xFF26).Should().Be(0xF0);
@@ -180,21 +162,57 @@ public sealed class ApuControllerTests
     [Fact]
     public void TickSystemCounter_Channel1SweepWithShiftZeroDoesNotWriteBackPeriod()
     {
-        ApuController apu = new(ApuModelSpec.Dmg);
+        var apu = TriggerChannel1(HardwareModel.Dmg, sweep: 0x10, period: 0x0400);
 
-        apu.WriteRegister(0xFF26, 0x80);
-        apu.WriteRegister(0xFF10, 0x10);
-        apu.WriteRegister(0xFF12, 0xF0);
-        apu.WriteRegister(0xFF13, 0x00);
-        apu.WriteRegister(0xFF14, 0x84);
-
-        ApuFrameSequencerEvents events;
-        do
-        {
-            events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
-        } while (!events.SweepClock);
+        ClockSweep(apu);
 
         apu.Channel1Period.Should().Be(0x0400);
+        apu.ReadRegister(0xFF26).Should().Be(0xF1);
+    }
+
+    [Theory]
+    [MemberData(nameof(SweepModels))]
+    public void WriteRegister_Channel1SweepPaceZeroReloadsWhenPaceBecomesActive(HardwareModel model)
+    {
+        // Pan Docs `audio-details.md`: a sweep pace of zero reloads the timer as eight.
+        // Pan Docs `audio-registers.md`: changing zero to a non-zero pace reloads immediately.
+        var apu = TriggerChannel1(model, sweep: 0x01, period: 0x0200);
+        apu.CaptureState().Channel1Sweep.Timer.Should().Be(8);
+
+        ClockSweep(apu);
+        apu.CaptureState().Channel1Sweep.Timer.Should().Be(7);
+        apu.WriteRegister(0xFF10, 0x31);
+        apu.CaptureState().Channel1Sweep.Timer.Should().Be(3);
+
+        ClockSweep(apu);
+        ClockSweep(apu);
+        apu.Channel1Period.Should().Be(0x0200);
+        ClockSweep(apu);
+        apu.Channel1Period.Should().Be(0x0300);
+    }
+
+    [Theory]
+    [MemberData(nameof(SweepModels))]
+    public void WriteRegister_ClearingSweepNegateAfterSubtractionDisablesChannel1(
+        HardwareModel model
+    )
+    {
+        // Pan Docs `audio-details.md`: clearing negate after a subtraction disables CH1.
+        var apu = TriggerChannel1(model, sweep: 0x09, period: 0x0400);
+        apu.ReadRegister(0xFF26).Should().Be(0xF1);
+
+        apu.WriteRegister(0xFF10, 0x01);
+
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
+    }
+
+    [Fact]
+    public void WriteRegister_ClearingSweepNegateBeforeSubtractionKeepsChannel1Active()
+    {
+        var apu = TriggerChannel1(HardwareModel.Dmg, sweep: 0x08, period: 0x0400);
+
+        apu.WriteRegister(0xFF10, 0x00);
+
         apu.ReadRegister(0xFF26).Should().Be(0xF1);
     }
 
@@ -1270,4 +1288,33 @@ public sealed class ApuControllerTests
             apu.WriteRegister(address, value);
         }
     }
+
+    private static ApuController TriggerChannel1(HardwareModel model, byte sweep, ushort period)
+    {
+        ApuController apu = new(GetModelSpec(model));
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF10, sweep);
+        apu.WriteRegister(0xFF12, 0xF0);
+        apu.WriteRegister(0xFF13, (byte)period);
+        apu.WriteRegister(0xFF14, (byte)(0x80 | (period >> 8)));
+        return apu;
+    }
+
+    private static void ClockSweep(ApuController apu)
+    {
+        ApuFrameSequencerEvents events;
+        do
+        {
+            events = apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+        } while (!events.SweepClock);
+    }
+
+    private static ApuModelSpec GetModelSpec(HardwareModel model) =>
+        model switch
+        {
+            HardwareModel.Dmg => ApuModelSpec.Dmg,
+            HardwareModel.Cgb => ApuModelSpec.Cgb,
+            HardwareModel.Sgb => ApuModelSpec.Sgb,
+            _ => throw new ArgumentOutOfRangeException(nameof(model)),
+        };
 }

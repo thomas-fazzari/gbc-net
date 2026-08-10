@@ -21,32 +21,46 @@ internal sealed class Channel1Sweep
     private const byte DirectionSubtractMask = 0x08;
     private const byte ShiftMask = 0x07;
     private const int PaceShift = 4;
+    private const byte DisabledPaceReload = 8;
     private const ushort MaxPeriod = 0x07FF;
 
     private byte _register;
     private byte _timer;
     private ushort _shadowPeriod;
     private bool _enabled;
+    private bool _subtractionCalculated;
 
-    public void WriteRegister(byte value)
+    public bool WriteRegister(byte value)
     {
+        var previousPace = GetPace(_register);
+        var disablesAfterSubtraction =
+            _subtractionCalculated
+            && (_register & DirectionSubtractMask) != 0
+            && (value & DirectionSubtractMask) == 0;
         _register = value;
+        var pace = GetPace(value);
+        if (previousPace == 0 && pace != 0)
+        {
+            _timer = pace;
+        }
+
+        return disablesAfterSubtraction;
     }
 
     public Channel1SweepResult Trigger(ushort period)
     {
-        var pace = (byte)((_register & PaceMask) >> PaceShift);
+        var pace = GetPace(_register);
         var shift = (byte)(_register & ShiftMask);
         _shadowPeriod = period;
-        _timer = pace;
+        _timer = GetTimerReload(pace);
         _enabled = pace != 0 || shift != 0;
+        _subtractionCalculated = false;
         return shift == 0 ? default : GetOverflowCheckResult(period: _shadowPeriod);
     }
 
     public Channel1SweepResult Clock()
     {
-        var pace = (byte)((_register & PaceMask) >> PaceShift);
-        if (!_enabled || pace == 0)
+        if (!_enabled)
         {
             return default;
         }
@@ -57,7 +71,13 @@ internal sealed class Channel1Sweep
             return default;
         }
 
-        _timer = pace;
+        var pace = GetPace(_register);
+        _timer = GetTimerReload(pace);
+        if (pace == 0)
+        {
+            return default;
+        }
+
         if ((_register & ShiftMask) == 0)
         {
             return default;
@@ -84,9 +104,11 @@ internal sealed class Channel1Sweep
         _timer = 0;
         _shadowPeriod = 0;
         _enabled = false;
+        _subtractionCalculated = false;
     }
 
-    internal Channel1SweepState CaptureState() => new(_register, _timer, _shadowPeriod, _enabled);
+    internal Channel1SweepState CaptureState() =>
+        new(_register, _timer, _shadowPeriod, _enabled, _subtractionCalculated);
 
     internal static void ValidateState(Channel1SweepState state)
     {
@@ -103,12 +125,15 @@ internal sealed class Channel1Sweep
         _timer = state.Timer;
         _shadowPeriod = state.ShadowPeriod;
         _enabled = state.Enabled;
+        _subtractionCalculated = state.SubtractionCalculated;
     }
 
     private Channel1SweepResult GetOverflowCheckResult(ushort period)
     {
         var delta = period >> (_register & ShiftMask);
-        var nextPeriod = (_register & DirectionSubtractMask) == 0 ? period + delta : period - delta;
+        var subtract = (_register & DirectionSubtractMask) != 0;
+        _subtractionCalculated |= subtract;
+        var nextPeriod = subtract ? period - delta : period + delta;
         return nextPeriod > MaxPeriod
             ? new Channel1SweepResult(Overflowed: true, PeriodChanged: false, Period: 0)
             : new Channel1SweepResult(
@@ -117,11 +142,16 @@ internal sealed class Channel1Sweep
                 Period: (ushort)nextPeriod
             );
     }
+
+    private static byte GetPace(byte register) => (byte)((register & PaceMask) >> PaceShift);
+
+    private static byte GetTimerReload(byte pace) => pace == 0 ? DisabledPaceReload : pace;
 }
 
 internal readonly record struct Channel1SweepState(
     byte Register,
     byte Timer,
     ushort ShadowPeriod,
-    bool Enabled
+    bool Enabled,
+    bool SubtractionCalculated
 );

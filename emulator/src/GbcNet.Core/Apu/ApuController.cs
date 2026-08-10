@@ -323,7 +323,12 @@ internal sealed class ApuController(ApuModelSpec modelSpec)
         {
             // CH1: pulse plus sweep overflow handling
             case Channel1SweepRegister:
-                _channel1Sweep.WriteRegister(value);
+                if (_channel1Sweep.WriteRegister(value))
+                {
+                    _channel1.Disable();
+                    UpdateChannelStatus(AudioChannel1StatusMask, isActive: false);
+                }
+
                 return;
 
             case Channel1LengthRegister:

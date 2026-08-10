@@ -213,6 +213,25 @@ public sealed class ApuStateTests
     }
 
     [Fact]
+    public void RestoreState_PreservesSweepSubtractionHistory()
+    {
+        // Pan Docs `audio-details.md`: clearing negate after any subtraction disables CH1.
+        ApuController original = new(ApuModelSpec.Cgb);
+        original.WriteRegister(0xFF26, 0x80);
+        original.WriteRegister(0xFF10, 0x09);
+        original.WriteRegister(0xFF12, 0xF0);
+        original.WriteRegister(0xFF13, 0x00);
+        original.WriteRegister(0xFF14, 0x84);
+        var checkpoint = original.CaptureState();
+        checkpoint.Channel1Sweep.SubtractionCalculated.Should().BeTrue();
+        var restored = Restored(ApuModelSpec.Cgb, checkpoint);
+
+        restored.WriteRegister(0xFF10, 0x01);
+
+        restored.ReadRegister(0xFF26).Should().Be(0xF0);
+    }
+
+    [Fact]
     public void RestoreState_ContinuesMidWaveRetainedNibbleExactly()
     {
         ApuController original = new(ApuModelSpec.Cgb);
