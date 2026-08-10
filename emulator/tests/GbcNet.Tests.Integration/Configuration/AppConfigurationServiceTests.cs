@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Text.Json;
+using ErrorOr;
 using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
@@ -131,7 +132,7 @@ public sealed class AppConfigurationServiceTests
     }
 
     [Fact]
-    public void SaveSettings_InvalidInputThrowsAndLeavesFileUntouched()
+    public void SaveSettings_InvalidInputReturnsValidationErrorAndLeavesFileUntouched()
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
@@ -150,22 +151,19 @@ public sealed class AppConfigurationServiceTests
         };
         var service = CreateService(configPath);
 
-        var exception = FluentActions
-            .Invoking(() =>
-                service.SaveSettings(
-                    new SettingsConfig(new BootRomConfig("new-dmg.bin"), invalidInput)
-                )
-            )
-            .Should()
-            .ThrowExactly<ConfigurationException>()
-            .Which;
+        var result = service.SaveSettings(
+            new SettingsConfig(new BootRomConfig("new-dmg.bin"), invalidInput)
+        );
 
-        exception.Message.Should().Contain("exactly 4 bindings");
+        result.IsError.Should().BeTrue();
+        var error = result.Errors.Should().ContainSingle().Which;
+        error.Type.Should().Be(ErrorType.Validation);
+        error.Code.Should().Be(AppConfigurationService.InvalidInputErrorCode);
         File.ReadAllBytes(configPath).Should().Equal(originalBytes);
     }
 
     [Fact]
-    public void SaveSettingsAndSaveAudioConfig_InvalidAudioThrowsAndLeavesFileUntouched()
+    public void SaveSettingsAndSaveAudioConfig_InvalidAudioReturnValidationErrorsAndLeaveFileUntouched()
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
 
@@ -176,25 +174,25 @@ public sealed class AppConfigurationServiceTests
         var service = CreateService(configPath);
         var invalidAudio = new AudioConfig(101, Muted: false);
 
-        FluentActions
-            .Invoking(() =>
-                service.SaveSettings(
-                    new SettingsConfig(
-                        new BootRomConfig("new-dmg.bin"),
-                        AppConfigurationFile.CreateDefaultInputConfig()
-                    )
-                    {
-                        Audio = invalidAudio,
-                    }
-                )
+        var settingsResult = service.SaveSettings(
+            new SettingsConfig(
+                new BootRomConfig("new-dmg.bin"),
+                AppConfigurationFile.CreateDefaultInputConfig()
             )
-            .Should()
-            .ThrowExactly<ConfigurationException>();
-        FluentActions
-            .Invoking(() => service.SaveAudioConfig(invalidAudio))
-            .Should()
-            .ThrowExactly<ConfigurationException>();
+            {
+                Audio = invalidAudio,
+            }
+        );
+        var audioResult = service.SaveAudioConfig(invalidAudio);
 
+        settingsResult.IsError.Should().BeTrue();
+        var settingsError = settingsResult.Errors.Should().ContainSingle().Which;
+        settingsError.Type.Should().Be(ErrorType.Validation);
+        settingsError.Code.Should().Be(AppConfigurationService.InvalidAudioVolumeErrorCode);
+        audioResult.IsError.Should().BeTrue();
+        var audioError = audioResult.Errors.Should().ContainSingle().Which;
+        audioError.Type.Should().Be(ErrorType.Validation);
+        audioError.Code.Should().Be(AppConfigurationService.InvalidAudioVolumeErrorCode);
         File.ReadAllBytes(configPath).Should().Equal(originalBytes);
     }
 
@@ -294,7 +292,7 @@ public sealed class AppConfigurationServiceTests
         );
         var service = CreateService(configPath);
 
-        var errors = service.SaveSettings(
+        var result = service.SaveSettings(
             new SettingsConfig(
                 new BootRomConfig("missing-dmg.bin", "new-cgb.bin"),
                 CreateStrictInput("SpeedRun")
@@ -302,8 +300,8 @@ public sealed class AppConfigurationServiceTests
         );
 
         var saved = AppConfigurationFile.Load(configPath);
-        errors.Should().ContainSingle();
-        errors[0].Should().Contain("DMG boot ROM file could not be read");
+        result.IsError.Should().BeFalse();
+        result.Value.Should().ContainSingle();
         saved.BootRoms.Should().Be(new BootRomConfig("current-dmg.bin", "new-cgb.bin"));
         saved.Input.Keyboard.ActiveProfile.Should().Be("SpeedRun");
         saved.Input.Gamepad.ActiveProfile.Should().Be("SpeedRun");

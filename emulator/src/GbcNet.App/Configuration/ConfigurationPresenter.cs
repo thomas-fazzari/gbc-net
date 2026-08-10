@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Avalonia.Controls;
+using ErrorOr;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.App.Input;
@@ -97,10 +98,10 @@ internal sealed class ConfigurationPresenter(
 
     private void SaveAndApply(SettingsConfig settings)
     {
-        IReadOnlyList<string> bootRomErrors;
+        ErrorOr<IReadOnlyList<string>> result;
         try
         {
-            bootRomErrors = configurationService.SaveSettings(settings);
+            result = configurationService.SaveSettings(settings);
         }
         catch (ConfigurationException exception)
         {
@@ -109,13 +110,19 @@ internal sealed class ConfigurationPresenter(
             return;
         }
 
+        if (result.IsError)
+        {
+            statusBar.ShowError(result.FirstError.Description);
+            return;
+        }
+
         applyInputConfig(settings.Input);
         applyAudioConfig(settings.Audio);
         ReloadBootRomOptions();
 
-        if (bootRomErrors.Count != 0)
+        if (result.Value.Count != 0)
         {
-            statusBar.ShowError(string.Join(Environment.NewLine, bootRomErrors));
+            statusBar.ShowError(string.Join(Environment.NewLine, result.Value));
         }
     }
 

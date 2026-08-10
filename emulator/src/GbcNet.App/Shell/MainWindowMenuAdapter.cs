@@ -133,7 +133,11 @@ internal sealed class MainWindowMenuAdapter(
         ApplyAudioConfig(_audioConfig with { Muted = !_audioConfig.Muted });
         try
         {
-            configurationService.SaveAudioConfig(_audioConfig);
+            var result = configurationService.SaveAudioConfig(_audioConfig);
+            if (result.IsError)
+            {
+                statusBar.ShowError(result.FirstError.Description);
+            }
         }
         catch (ConfigurationException exception)
         {

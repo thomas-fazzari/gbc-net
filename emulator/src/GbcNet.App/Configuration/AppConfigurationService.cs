@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Text.Json;
+using ErrorOr;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Emulation;
@@ -18,6 +19,9 @@ internal sealed class AppConfigurationService(
     ILogger<AppConfigurationService> logger
 )
 {
+    internal const string InvalidInputErrorCode = "Configuration.InvalidInput";
+    internal const string InvalidAudioVolumeErrorCode = "Configuration.InvalidAudioVolume";
+
     public BootRomConfig LoadBootRomConfig() =>
         AppConfigurationFile.LoadOrCreate(configPath, logger).BootRoms;
 
@@ -34,17 +38,23 @@ internal sealed class AppConfigurationService(
             errors
         );
 
-    public IReadOnlyList<string> SaveSettings(SettingsConfig settings)
+    public ErrorOr<IReadOnlyList<string>> SaveSettings(SettingsConfig settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
 
         var validation = InputConfigValidator.Validate(settings.Input);
         if (validation.Count != 0)
         {
-            throw new ConfigurationException(string.Join(Environment.NewLine, validation));
+            return Error.Validation(
+                InvalidInputErrorCode,
+                string.Join(Environment.NewLine, validation)
+            );
         }
 
-        ValidateAudioConfig(settings.Audio);
+        if (GetAudioValidationError(settings.Audio) is { } audioError)
+        {
+            return audioError;
+        }
 
         var bootRomErrors = new List<string>();
 
@@ -88,7 +98,7 @@ internal sealed class AppConfigurationService(
         appConfig.Audio = settings.Audio;
 
         AppConfigurationFile.Save(configPath, appConfig, logger);
-        return bootRomErrors;
+        return ErrorOrFactory.From<IReadOnlyList<string>>(bootRomErrors);
     }
 
     public void SaveEmulationConfig(EmulationConfig config)
@@ -98,13 +108,17 @@ internal sealed class AppConfigurationService(
         AppConfigurationFile.Save(configPath, appConfig, logger);
     }
 
-    public void SaveAudioConfig(AudioConfig config)
+    public ErrorOr<Success> SaveAudioConfig(AudioConfig config)
     {
-        ValidateAudioConfig(config);
+        if (GetAudioValidationError(config) is { } error)
+        {
+            return error;
+        }
 
         var appConfig = AppConfigurationFile.LoadOrCreate(configPath, logger);
         appConfig.Audio = config;
         AppConfigurationFile.Save(configPath, appConfig, logger);
+        return Result.Success;
     }
 
     public void SaveLibraryConfig(LibraryConfig config)
@@ -116,14 +130,16 @@ internal sealed class AppConfigurationService(
         AppConfigurationFile.Save(configPath, appConfig, logger);
     }
 
-    private static void ValidateAudioConfig(AudioConfig config)
+    private static Error? GetAudioValidationError(AudioConfig config)
     {
         ArgumentNullException.ThrowIfNull(config);
 
-        if (!AudioConfig.IsValidVolume(config.VolumePercent))
-        {
-            throw new ConfigurationException("Audio volume must be between 0 and 100 percent.");
-        }
+        return AudioConfig.IsValidVolume(config.VolumePercent)
+            ? null
+            : Error.Validation(
+                InvalidAudioVolumeErrorCode,
+                "Audio volume must be between 0 and 100 percent."
+            );
     }
 
     internal static BootRomOptions LoadBootRomOptions(
