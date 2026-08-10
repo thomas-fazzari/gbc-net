@@ -76,13 +76,14 @@ internal sealed class LibraryService(
 
     public string? RecordLoadedRom(
         string path,
+        string romHash,
         ReadOnlyMemory<byte> rom,
         CartridgeHeader cartridgeHeader
     )
     {
         try
         {
-            return RecordOpenedRomCore(Path.GetFullPath(path), rom, cartridgeHeader);
+            return RecordOpenedRomCore(Path.GetFullPath(path), romHash, rom, cartridgeHeader);
         }
         catch (Exception exception) when (IsExpectedLibraryException(exception))
         {
@@ -90,7 +91,7 @@ internal sealed class LibraryService(
         }
     }
 
-    public void RecordPlayTime(ReadOnlyMemory<byte> rom, TimeSpan duration)
+    public void RecordPlayTime(string romHash, TimeSpan duration)
     {
         if (duration <= TimeSpan.Zero)
         {
@@ -99,7 +100,6 @@ internal sealed class LibraryService(
 
         try
         {
-            var romHash = ComputeRomHash(rom.Span);
             using var db = dbContextFactory.CreateDbContext();
             var entry = db.Roms.AsTracking().SingleOrDefault(entry => entry.RomHash == romHash);
 
@@ -364,11 +364,11 @@ internal sealed class LibraryService(
 
     private string? RecordOpenedRomCore(
         string fullPath,
+        string romHash,
         ReadOnlyMemory<byte> rom,
         CartridgeHeader cartridgeHeader
     )
     {
-        var romHash = ComputeRomHash(rom.Span);
         var noIntroHash = ComputeNoIntroHash(rom.Span);
         var openedAt = _timeProvider.GetUtcNow();
         using var db = dbContextFactory.CreateDbContext();
@@ -515,9 +515,6 @@ internal sealed class LibraryService(
 
         return extension.ToLowerInvariant();
     }
-
-    private static string ComputeRomHash(ReadOnlySpan<byte> rom) =>
-        Convert.ToHexString(SHA256.HashData(rom));
 
 #pragma warning disable CA5350, S4790
     private static string ComputeNoIntroHash(ReadOnlySpan<byte> rom) =>

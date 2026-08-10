@@ -22,9 +22,10 @@ public sealed class CartridgeBatterySaveFileServiceTests
         );
 
         var cartridge = TestRomFactory.LoadCartridge(rom);
+        var identity = RomStorageIdentity.Create(cartridge.Header.Title, rom);
         cartridge.WriteRom(0x0000, 0x0A);
         cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
-        var savePath = saveFiles.Load(cartridge, rom);
+        var savePath = saveFiles.Load(cartridge, identity);
 
         savePath.Should().NotBeNull();
         await saveFiles.SaveAsync(savePath, cartridge.ExportBatterySave());
@@ -34,7 +35,7 @@ public sealed class CartridgeBatterySaveFileServiceTests
             .Be($"TEST_ROM-{Convert.ToHexString(SHA256.HashData(rom))}.sav");
 
         var reloaded = TestRomFactory.LoadCartridge(rom);
-        var reloadedSavePath = saveFiles.Load(reloaded, rom);
+        var reloadedSavePath = saveFiles.Load(reloaded, identity);
 
         reloadedSavePath.Should().Be(savePath);
         reloaded.IsBatterySaveDirty.Should().BeFalse();
@@ -54,10 +55,11 @@ public sealed class CartridgeBatterySaveFileServiceTests
 
         Directory.CreateDirectory(tempDirectory.Path);
         var cartridge = TestRomFactory.LoadCartridge(rom);
-        File.WriteAllBytes(saveFiles.GetBatterySavePath(cartridge, rom), [0x42]);
+        var identity = RomStorageIdentity.Create(cartridge.Header.Title, rom);
+        File.WriteAllBytes(saveFiles.GetBatterySavePath(identity), [0x42]);
 
         FluentActions
-            .Invoking(() => saveFiles.Load(cartridge, rom))
+            .Invoking(() => saveFiles.Load(cartridge, identity))
             .Should()
             .ThrowExactly<InvalidOperationException>();
     }

@@ -11,6 +11,7 @@ using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.App.Input;
 using GbcNet.App.Library;
 using GbcNet.App.Menus;
+using GbcNet.App.Saves;
 using GbcNet.App.Shell;
 using GbcNet.App.Shell.Chrome;
 using GbcNet.Core;
@@ -36,8 +37,7 @@ internal sealed class EmulationSessionPresenter(
 
     private string? _loadedRomCoverPath;
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
-    private ReadOnlyMemory<byte> _activeRom;
-    private bool _hasActiveLibraryRom;
+    private RomStorageIdentity? _activeRomIdentity;
     private long? _playStartedAtTimestamp;
 
     private static readonly FilePickerFileType _gameBoyRomFileType = new("Game Boy ROM")
@@ -96,17 +96,22 @@ internal sealed class EmulationSessionPresenter(
         ClearPlayTime();
         var state = result.Value;
         ApplyRomActionResult(state);
-        if (file.Path.IsFile && state.LoadedCartridgeHeader is { } cartridgeHeader)
+        if (
+            file.Path.IsFile
+            && state.LoadedCartridgeHeader is { } cartridgeHeader
+            && state.LoadedRomIdentity is { } identity
+        )
         {
             try
             {
                 _loadedRomCoverPath = libraryService.RecordLoadedRom(
                     file.Path.LocalPath,
+                    identity.HashHex,
                     state.LoadedRom,
                     cartridgeHeader
                 );
 
-                BeginPlayTime(state.LoadedRom);
+                BeginPlayTime(identity);
                 ShowLoadedRomStatus(state);
                 SyncRecentRoms();
             }
@@ -149,7 +154,7 @@ internal sealed class EmulationSessionPresenter(
         var state = await controller.ResetAsync();
         ApplyRomActionResult(state);
 
-        if (state.HasSession && !state.IsPaused && _hasActiveLibraryRom)
+        if (state.HasSession && !state.IsPaused && _activeRomIdentity is not null)
         {
             ResumePlayTime();
         }
@@ -215,7 +220,7 @@ internal sealed class EmulationSessionPresenter(
         {
             FlushPlayTime();
         }
-        else if (_hasActiveLibraryRom)
+        else if (_activeRomIdentity is not null)
         {
             ResumePlayTime();
         }
@@ -342,10 +347,9 @@ internal sealed class EmulationSessionPresenter(
         operationRunner.Run(() => OpenRomFileAsync(file));
     }
 
-    private void BeginPlayTime(ReadOnlyMemory<byte> rom)
+    private void BeginPlayTime(RomStorageIdentity rom)
     {
-        _activeRom = rom;
-        _hasActiveLibraryRom = true;
+        _activeRomIdentity = rom;
         ResumePlayTime();
     }
 
@@ -353,7 +357,7 @@ internal sealed class EmulationSessionPresenter(
 
     private void FlushPlayTime()
     {
-        if (_playStartedAtTimestamp is not { } startedAt)
+        if (_playStartedAtTimestamp is not { } startedAt || _activeRomIdentity is not { } identity)
         {
             return;
         }
@@ -362,7 +366,7 @@ internal sealed class EmulationSessionPresenter(
         try
         {
             libraryService.RecordPlayTime(
-                _activeRom,
+                identity.HashHex,
                 _timeProvider.GetElapsedTime(startedAt, _timeProvider.GetTimestamp())
             );
         }
@@ -375,8 +379,7 @@ internal sealed class EmulationSessionPresenter(
 
     private void ClearPlayTime()
     {
-        _activeRom = default;
-        _hasActiveLibraryRom = false;
+        _activeRomIdentity = null;
         _playStartedAtTimestamp = null;
     }
 

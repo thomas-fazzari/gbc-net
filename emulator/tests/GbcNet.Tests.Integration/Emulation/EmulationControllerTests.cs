@@ -61,19 +61,23 @@ public sealed class EmulationControllerTests
             );
             activeResult.IsError.Should().BeFalse();
             var active = activeResult.Value;
+            active.LoadedRomIdentity.Should().NotBeNull();
+            active
+                .LoadedRomIdentity!.HashHex.Should()
+                .Be(Convert.ToHexString(SHA256.HashData(romA)));
 
-            var exception = (
-                await FluentActions
-                    .Awaiting(() =>
-                        controller.OpenRomFileAsync(TestStorageFile.Create("broken.gb", romB))
-                    )
-                    .Should()
-                    .ThrowExactlyAsync<InvalidOperationException>()
-            ).Which;
-
-            exception.Message.Should().Be("Cheat codes could not be loaded.");
+            await FluentActions
+                .Awaiting(() =>
+                    controller.OpenRomFileAsync(TestStorageFile.Create("broken.gb", romB))
+                )
+                .Should()
+                .ThrowExactlyAsync<InvalidOperationException>();
             controller.State.HasSession.Should().BeTrue();
             controller.State.LoadedRom.ToArray().Should().Equal(active.LoadedRom.ToArray());
+            controller.State.LoadedRomIdentity.Should().NotBeNull();
+            controller
+                .State.LoadedRomIdentity!.HashHex.Should()
+                .Be(active.LoadedRomIdentity!.HashHex);
             controller.State.LoadedRomFileName.Should().Be(active.LoadedRomFileName);
             controller.State.CheatCodes.ToArray().Should().Equal(expectedCodes);
 

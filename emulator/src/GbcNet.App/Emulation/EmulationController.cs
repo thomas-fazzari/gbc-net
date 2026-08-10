@@ -56,6 +56,7 @@ internal sealed class EmulationController(
             FastForwardEnabled: _fastForwardEnabled,
             FastForwardSpeed: _fastForwardSpeed,
             LoadedRom: _loadedRom,
+            LoadedRomIdentity: _loadedRomStorageIdentity,
             LoadedCartridgeHeader: _loadedCartridgeHeader,
             LoadedRomFileName: _loadedRomFileName,
             HardwareModel: _session?.HardwareModel,
@@ -106,8 +107,8 @@ internal sealed class EmulationController(
         }
 
         var cartridge = loadResult.Cartridge;
-        var savePath = cartridgeSaveFileService.Load(cartridge, rom.Span);
         var identity = RomStorageIdentity.Create(cartridge.Header.Title, rom.Span);
+        var savePath = cartridgeSaveFileService.Load(cartridge, identity);
         var entries = await cheatCodeService.LoadAsync(identity.Hash, CancellationToken.None);
         var activeCodes = GetActiveCodes(entries);
 
@@ -125,13 +126,13 @@ internal sealed class EmulationController(
 
     public async Task<EmulationControllerState> ResetAsync()
     {
-        if (_loadedRom.IsEmpty)
+        if (_loadedRom.IsEmpty || _loadedRomStorageIdentity is not { } identity)
         {
             return State;
         }
 
         var cartridge = Cartridge.LoadOrThrow(_loadedRom.Span);
-        var savePath = cartridgeSaveFileService.Load(cartridge, _loadedRom.Span);
+        var savePath = cartridgeSaveFileService.Load(cartridge, identity);
         var activeCodes = GetActiveCodes(_cheatCodes);
         await StopAsync();
 
@@ -369,6 +370,7 @@ internal readonly record struct EmulationControllerState(
     bool FastForwardEnabled,
     EmulationSpeed FastForwardSpeed,
     ReadOnlyMemory<byte> LoadedRom,
+    RomStorageIdentity? LoadedRomIdentity,
     CartridgeHeader? LoadedCartridgeHeader,
     string LoadedRomFileName,
     HardwareModel? HardwareModel,

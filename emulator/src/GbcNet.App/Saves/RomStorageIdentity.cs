@@ -13,27 +13,25 @@ internal sealed class RomStorageIdentity
 {
     private const string FallbackName = "GAME";
 
-    private RomStorageIdentity(string fileStem, byte[] hash)
+    private RomStorageIdentity(string fileStem, byte[] hash, string hashHex)
     {
         FileStem = fileStem;
         Hash = hash;
+        HashHex = hashHex;
     }
 
     public string FileStem { get; }
 
     public byte[] Hash { get; }
 
+    public string HashHex { get; }
+
     public static RomStorageIdentity Create(string title, ReadOnlySpan<byte> rom)
     {
         var hash = SHA256.HashData(rom);
-        return new(FormatFileStem(title, hash), hash);
+        var hashHex = Convert.ToHexString(hash);
+        return new($"{SanitizeName(title)}-{hashHex}", hash, hashHex);
     }
-
-    public static string CreateFileStem(string title, ReadOnlySpan<byte> rom) =>
-        FormatFileStem(title, SHA256.HashData(rom));
-
-    private static string FormatFileStem(string title, ReadOnlySpan<byte> hash) =>
-        $"{SanitizeName(title)}-{Convert.ToHexString(hash)}";
 
     private static string SanitizeName(string name)
     {

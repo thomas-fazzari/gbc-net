@@ -23,7 +23,7 @@ public sealed class SaveStateFileServiceTests
         rom.FileStem.Should()
             .Be("TEST_ROM-A12871FEE210FB8619291EAEA194581CBD2531E4B23759D225F6806923F63222");
 
-        RomStorageIdentity.CreateFileStem("Test Rom", [0x01, 0x02]).Should().Be(rom.FileStem);
+        rom.HashHex.Should().Be("A12871FEE210FB8619291EAEA194581CBD2531E4B23759D225F6806923F63222");
 
         saveStates.GetSaveStateDate(rom, 3).Should().BeNull();
 

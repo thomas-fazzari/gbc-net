@@ -5,6 +5,7 @@ using System.Globalization;
 using ErrorOr;
 using GbcNet.App.Database.Entities;
 using GbcNet.App.Library;
+using GbcNet.App.Saves;
 using GbcNet.App.Sorting;
 using GbcNet.Core.Cartridges;
 using Microsoft.Data.Sqlite;
@@ -72,11 +73,13 @@ public sealed class LibraryServiceTests
         using var test = new LibraryTestContext();
         var rom = TestRomFactory.Create(bytes => "MEMORY ROM"u8.CopyTo(bytes.AsSpan(0x0134)));
         var cartridge = TestRomFactory.LoadCartridge(rom);
+        var identity = RomStorageIdentity.Create(cartridge.Header.Title, rom);
         var path = Path.Combine(Path.GetDirectoryName(test.DatabasePath)!, "memory.gb");
 
-        test.Library.RecordLoadedRom(path, rom, cartridge.Header);
+        test.Library.RecordLoadedRom(path, identity.HashHex, rom, cartridge.Header);
 
         var entry = test.Library.GetRoms(limit: 10).Should().ContainSingle().Which;
+        entry.RomHash.Should().Be(identity.HashHex);
         entry.LastKnownPath.Should().Be(Path.GetFullPath(path));
         entry.CartridgeTitle.Should().Be("MEMORY ROM");
     }
@@ -87,11 +90,15 @@ public sealed class LibraryServiceTests
         using var test = new LibraryTestContext();
         var rom = TestRomFactory.Create();
         var cartridge = TestRomFactory.LoadCartridge(rom);
+        var identity = RomStorageIdentity.Create(cartridge.Header.Title, rom);
         var path = Path.Combine(Path.GetDirectoryName(test.DatabasePath)!, "time.gb");
 
-        test.Library.RecordLoadedRom(path, rom, cartridge.Header);
-        test.Library.RecordPlayTime(rom, TimeSpan.FromHours(2) + TimeSpan.FromMinutes(3));
-        test.Library.RecordPlayTime(rom, TimeSpan.FromSeconds(45));
+        test.Library.RecordLoadedRom(path, identity.HashHex, rom, cartridge.Header);
+        test.Library.RecordPlayTime(
+            identity.HashHex,
+            TimeSpan.FromHours(2) + TimeSpan.FromMinutes(3)
+        );
+        test.Library.RecordPlayTime(identity.HashHex, TimeSpan.FromSeconds(45));
 
         var entry = test.Library.GetRoms(limit: 10).Should().ContainSingle().Which;
         entry
@@ -949,7 +956,8 @@ public sealed class LibraryServiceTests
         {
             var rom = await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken);
             var cartridge = Cartridge.LoadOrThrow(rom);
-            return Library.RecordLoadedRom(path, rom, cartridge.Header);
+            var identity = RomStorageIdentity.Create(cartridge.Header.Title, rom);
+            return Library.RecordLoadedRom(path, identity.HashHex, rom, cartridge.Header);
         }
 
         public async Task<string> WriteImageAsync(string fileName, byte[] image)

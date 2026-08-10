@@ -17,14 +17,14 @@ internal sealed class CartridgeBatterySaveFileService(
 {
     private const string SaveFileExtension = ".sav";
 
-    public string? Load(Cartridge cartridge, ReadOnlySpan<byte> rom)
+    public string? Load(Cartridge cartridge, RomStorageIdentity rom)
     {
         if (!cartridge.HasBatteryBackedSave)
         {
             return null;
         }
 
-        var path = GetBatterySavePath(cartridge, rom);
+        var path = GetBatterySavePath(rom);
         if (!File.Exists(path))
         {
             return path;
@@ -86,12 +86,8 @@ internal sealed class CartridgeBatterySaveFileService(
         }
     }
 
-    internal string GetBatterySavePath(Cartridge cartridge, ReadOnlySpan<byte> rom) =>
-        Path.Combine(
-            path1: saveDirectoryPath,
-            path2: RomStorageIdentity.CreateFileStem(cartridge.Header.Title, rom)
-                + SaveFileExtension
-        );
+    internal string GetBatterySavePath(RomStorageIdentity rom) =>
+        Path.Combine(path1: saveDirectoryPath, path2: rom.FileStem + SaveFileExtension);
 }
 
 internal static partial class CartridgeBatterySaveFileServiceLog
