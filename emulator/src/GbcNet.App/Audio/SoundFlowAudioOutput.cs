@@ -169,8 +169,16 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
             }
 
             // Start with queued audio so slower hosts do not underrun immediately
-            _device.Start();
-            Volatile.Write(location: ref _isStarted, value: 1);
+            try
+            {
+                _device.Start();
+                Volatile.Write(location: ref _isStarted, value: 1);
+            }
+            catch (Exception exception) when (IsExpectedAudioStartupException(exception))
+            {
+                SoundFlowAudioOutputLog.AudioPlaybackUnavailable(logger, exception);
+                DisableAudioCore();
+            }
         }
     }
 
