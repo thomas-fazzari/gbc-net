@@ -31,9 +31,11 @@ internal sealed class EmulationController(
     EmulationSpeed fastForwardSpeed
 )
 {
+    internal const int MaximumRomSize = 8 * 1024 * 1024;
+
     private EmulationSession? _session;
     private BootRomOptions _bootRomOptions = bootRomOptions;
-    private byte[]? _loadedRom;
+    private ReadOnlyMemory<byte> _loadedRom;
     private CartridgeHeader? _loadedCartridgeHeader;
     private string _loadedRomFileName = string.Empty;
     private RomStorageIdentity? _loadedRomStorageIdentity;
@@ -50,7 +52,7 @@ internal sealed class EmulationController(
             IsPaused: _session?.IsPaused ?? false,
             FastForwardEnabled: _fastForwardEnabled,
             FastForwardSpeed: _fastForwardSpeed,
-            LoadedRom: _loadedRom.AsMemory(),
+            LoadedRom: _loadedRom,
             LoadedCartridgeHeader: _loadedCartridgeHeader,
             LoadedRomFileName: _loadedRomFileName,
             HardwareModel: _session?.HardwareModel,
@@ -86,8 +88,14 @@ internal sealed class EmulationController(
 
     public async Task<ErrorOr<EmulationControllerState>> OpenRomFileAsync(IStorageFile file)
     {
-        var rom = await ReadFileAsync(file);
-        var loadResult = Cartridge.Load(rom);
+        var readResult = await ReadFileAsync(file);
+        if (readResult.IsError)
+        {
+            return readResult.Errors;
+        }
+
+        var rom = readResult.Value;
+        var loadResult = Cartridge.Load(rom.Span);
         if (loadResult.IsFailure)
         {
             var error = loadResult.Error;
@@ -95,8 +103,8 @@ internal sealed class EmulationController(
         }
 
         var cartridge = loadResult.Cartridge;
-        var savePath = cartridgeSaveFileService.Load(cartridge, rom);
-        var identity = RomStorageIdentity.Create(cartridge.Header.Title, rom);
+        var savePath = cartridgeSaveFileService.Load(cartridge, rom.Span);
+        var identity = RomStorageIdentity.Create(cartridge.Header.Title, rom.Span);
         var entries = await cheatCodeService.LoadAsync(identity.Hash, CancellationToken.None);
         var activeCodes = GetActiveCodes(entries);
 
@@ -114,13 +122,13 @@ internal sealed class EmulationController(
 
     public async Task<EmulationControllerState> ResetAsync()
     {
-        if (_loadedRom is null)
+        if (_loadedRom.IsEmpty)
         {
             return State;
         }
 
-        var cartridge = Cartridge.LoadOrThrow(_loadedRom);
-        var savePath = cartridgeSaveFileService.Load(cartridge, _loadedRom);
+        var cartridge = Cartridge.LoadOrThrow(_loadedRom.Span);
+        var savePath = cartridgeSaveFileService.Load(cartridge, _loadedRom.Span);
         var activeCodes = GetActiveCodes(_cheatCodes);
         await StopAsync();
 
@@ -219,17 +227,42 @@ internal sealed class EmulationController(
         ];
     }
 
-    private static async Task<byte[]> ReadFileAsync(IStorageFile file)
+    private static async Task<ErrorOr<ReadOnlyMemory<byte>>> ReadFileAsync(IStorageFile file)
     {
-        var stream = await file.OpenReadAsync();
-        var memoryStream = new MemoryStream();
-        await using (stream)
-        await using (memoryStream)
+        await using var stream = await file.OpenReadAsync();
+        if (stream.CanSeek)
         {
-            await stream.CopyToAsync(memoryStream, CancellationToken.None);
-            return memoryStream.ToArray();
+            var length = stream.Length;
+            if (length > MaximumRomSize)
+            {
+                return RomFileTooLargeError();
+            }
+
+            var rom = GC.AllocateUninitializedArray<byte>((int)length);
+            await stream.ReadExactlyAsync(rom, CancellationToken.None);
+            return new ReadOnlyMemory<byte>(rom);
         }
+
+        var buffer = GC.AllocateUninitializedArray<byte>(MaximumRomSize + 1);
+        var bytesRead = await stream.ReadAtLeastAsync(
+            buffer,
+            buffer.Length,
+            throwOnEndOfStream: false,
+            CancellationToken.None
+        );
+        if (bytesRead > MaximumRomSize)
+        {
+            return RomFileTooLargeError();
+        }
+
+        return new ReadOnlyMemory<byte>(buffer, start: 0, length: bytesRead);
     }
+
+    private static Error RomFileTooLargeError() =>
+        Error.Validation(
+            $"Rom.{nameof(CartridgeLoadErrorCode.UnsupportedRomSize)}",
+            "ROM files larger than 8 MiB are not supported."
+        );
 
     private (EmulationSession Session, RomStorageIdentity Rom) GetSaveStateTarget()
     {

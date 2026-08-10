@@ -10,6 +10,7 @@ using GbcNet.App.Database.Entities;
 using GbcNet.App.Emulation;
 using GbcNet.App.Saves;
 using GbcNet.Core;
+using GbcNet.Core.Cartridges;
 using GbcNet.Core.Cheats;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -139,6 +140,25 @@ public sealed class EmulationControllerTests
     }
 
     [Fact]
+    public async Task OpenRomFileAsync_RejectsOversizedRomAfterReadingOnlyTheSupportedLimit()
+    {
+        using var test = new ControllerTestContext();
+        var stream = new GeneratedReadStream(EmulationController.MaximumRomSize + 2);
+        var controller = test.CreateController();
+
+        var result = await controller.OpenRomFileAsync(
+            TestStorageFile.Create("oversized.gb", () => stream)
+        );
+
+        result.IsError.Should().BeTrue();
+        var error = result.Errors.Should().ContainSingle().Which;
+        error.Type.Should().Be(ErrorType.Validation);
+        error.Code.Should().Be($"Rom.{nameof(CartridgeLoadErrorCode.UnsupportedRomSize)}");
+        stream.BytesRead.Should().Be(EmulationController.MaximumRomSize + 1);
+        controller.State.HasSession.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task SetCheatCodesAsync_KeepsGenericSnapshotWhenPersistenceFails()
     {
         using var test = new ControllerTestContext();
@@ -246,6 +266,28 @@ public sealed class EmulationControllerTests
         }
     }
 
+    private sealed class GeneratedReadStream(int length) : MemoryStream
+    {
+        private int _remaining = length;
+
+        public int BytesRead { get; private set; }
+
+        public override bool CanSeek => false;
+
+        public override ValueTask<int> ReadAsync(
+            Memory<byte> buffer,
+            CancellationToken cancellationToken = default
+        )
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var count = Math.Min(buffer.Length, _remaining);
+            buffer.Span[..count].Clear();
+            _remaining -= count;
+            BytesRead += count;
+            return ValueTask.FromResult(count);
+        }
+    }
+
     private sealed class ControllerTestContext : IDisposable
     {
         private readonly TestDirectories.TemporaryDirectory _temporaryDirectory =
@@ -299,7 +341,7 @@ public class TestStorageFile : DispatchProxy
 {
     private static readonly AsyncLocal<StorageFileContent?> _pendingContent = new();
 
-    private readonly byte[] _data;
+    private readonly Func<Stream> _openRead;
     private readonly string _name;
 
     public TestStorageFile()
@@ -310,12 +352,15 @@ public class TestStorageFile : DispatchProxy
                 "Test storage file content was not initialized."
             );
         _name = content.Name;
-        _data = content.Data;
+        _openRead = content.OpenRead;
     }
 
-    public static IStorageFile Create(string name, byte[] data)
+    public static IStorageFile Create(string name, byte[] data) =>
+        Create(name, () => new MemoryStream(data, writable: false));
+
+    public static IStorageFile Create(string name, Func<Stream> openRead)
     {
-        _pendingContent.Value = new StorageFileContent(name, data);
+        _pendingContent.Value = new StorageFileContent(name, openRead);
         try
         {
             return Create<IStorageFile, TestStorageFile>();
@@ -330,11 +375,9 @@ public class TestStorageFile : DispatchProxy
         targetMethod?.Name switch
         {
             "get_Name" => _name,
-            nameof(IStorageFile.OpenReadAsync) => Task.FromResult<Stream>(
-                new MemoryStream(_data, writable: false)
-            ),
+            nameof(IStorageFile.OpenReadAsync) => Task.FromResult(_openRead()),
             _ => throw new NotSupportedException(targetMethod?.Name),
         };
 
-    private sealed record StorageFileContent(string Name, byte[] Data);
+    private sealed record StorageFileContent(string Name, Func<Stream> OpenRead);
 }
