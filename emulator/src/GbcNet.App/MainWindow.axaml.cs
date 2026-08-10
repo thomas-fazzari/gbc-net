@@ -248,16 +248,8 @@ internal sealed partial class MainWindow : Window, IDisposable
             _closeAfterAsyncStop = true;
             Close();
         }
-        catch (Exception exception)
-            when (exception
-                    is IOException
-                        or UnauthorizedAccessException
-                        or InvalidOperationException
-                        or NotSupportedException
-                        or ArgumentException
-            )
+        finally
         {
-            _statusBar.ShowError(exception.Message);
             Volatile.Write(location: ref _closeStopStarted, value: 0);
         }
     }

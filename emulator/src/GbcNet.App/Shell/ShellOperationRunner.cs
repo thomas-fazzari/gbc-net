@@ -40,7 +40,10 @@ internal sealed class ShellOperationRunner(Action<Exception> handleError, ILogge
             {
                 if (completed.IsFaulted)
                 {
-                    ShellOperationRunnerLog.UnexpectedOperationFailed(logger, completed.Exception);
+                    ShellOperationRunnerLog.UnexpectedOperationFailed(
+                        logger,
+                        completed.Exception!.GetBaseException()
+                    );
                 }
             },
             cancellationToken: CancellationToken.None,
@@ -64,12 +67,7 @@ internal sealed class ShellOperationRunner(Action<Exception> handleError, ILogge
     }
 
     private static bool IsExpectedUiException(Exception exception) =>
-        exception
-            is IOException
-                or UnauthorizedAccessException
-                or InvalidOperationException
-                or NotSupportedException
-                or ArgumentException;
+        exception is IOException or UnauthorizedAccessException or InvalidOperationException;
 }
 
 internal static partial class ShellOperationRunnerLog
