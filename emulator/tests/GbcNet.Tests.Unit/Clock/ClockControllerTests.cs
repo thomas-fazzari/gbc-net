@@ -41,7 +41,7 @@ public sealed class ClockControllerTests
         clock
             .VideoAndAudioTCyclesPerMachineCycle.Should()
             .Be(HardwareTiming.DoubleSpeedMachineCycleTCycles);
-        clock.SpeedSwitchPauseCycles.Should().Be(2050);
+        clock.SpeedSwitchPauseCycles.Should().Be(ClockController.SpeedSwitchPauseDuration);
     }
 
     [Fact]

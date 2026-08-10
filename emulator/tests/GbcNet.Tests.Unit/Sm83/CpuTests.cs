@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using GbcNet.Core.Clock;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Hardware.Profiles;
 using GbcNet.Core.Interrupts;
@@ -62,7 +63,7 @@ public sealed class CpuTests
         machineCycles.Should().Be(2);
         cpu.RunState.Should().Be(CpuRunState.Running);
         bus.Clock.CgbDoubleSpeed.Should().BeTrue();
-        bus.Clock.SpeedSwitchPauseCycles.Should().Be(2050);
+        bus.Clock.SpeedSwitchPauseCycles.Should().Be(ClockController.SpeedSwitchPauseDuration);
         bus.ReadByte(AddressMap.Key1Register).Should().Be(0xFE);
     }
 

@@ -3,6 +3,7 @@
 
 using GbcNet.Core;
 using GbcNet.Core.Apu;
+using GbcNet.Core.Clock;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
@@ -87,15 +88,17 @@ public sealed class GameBoyTests
 
         gameBoy.Bus.Clock.CgbDoubleSpeed.Should().BeTrue();
         gameBoy.Bus.ReadByte(AddressMap.Key1Register).Should().Be(0xFE);
-        gameBoy.Bus.Clock.SpeedSwitchPauseCycles.Should().Be(2050);
+        gameBoy
+            .Bus.Clock.SpeedSwitchPauseCycles.Should()
+            .Be(ClockController.SpeedSwitchPauseDuration);
 
         var pauseMachineCycles = 0;
-        for (var cycle = 0; cycle < 2050; cycle++)
+        for (var cycle = 0; cycle < ClockController.SpeedSwitchPauseDuration; cycle++)
         {
             pauseMachineCycles += gameBoy.Step();
         }
 
-        pauseMachineCycles.Should().Be(2050);
+        pauseMachineCycles.Should().Be(ClockController.SpeedSwitchPauseDuration);
         gameBoy.Bus.Clock.SpeedSwitchPauseCycles.Should().Be(0);
         gameBoy.Bus.ReadByte(AddressMap.DividerRegister).Should().Be(dividerAfterStop);
         gameBoy.Cpu.Registers.B.Should().Be(0);
@@ -105,6 +108,168 @@ public sealed class GameBoyTests
 
         gameBoy.Cpu.Registers.B.Should().Be(1);
         gameBoy.Cpu.Registers.PC.Should().Be(0x0103);
+    }
+
+    // Pan Docs `cgb-registers.md`: the LCD controller and sound timing continue during
+    // the KEY1 pause, while DIV, timers, serial, and OAM DMA use the stopped CPU clock.
+    [Theory]
+    [InlineData(false, 40, true)]
+    [InlineData(true, 21, false)]
+    public void Step_SpeedSwitchPauseAdvancesVideoAndAudioButFreezesCpuClockDomains(
+        bool initialDoubleSpeed,
+        int firstSamplePauseCycle,
+        bool expectedDoubleSpeed
+    )
+    {
+        var cartridge = TestRomFactory.LoadCartridge(bytes =>
+        {
+            bytes[0x0100] = StopOpcode;
+            bytes[0x0101] = 0x00;
+            bytes[0x0102] = IncBOpcode;
+            bytes[0x0143] = 0xC0;
+        });
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Cgb);
+        gameBoy.VideoRenderingEnabled = false;
+        gameBoy.Bus.WriteByte(AddressMap.LcdControlRegister, 0x00);
+        gameBoy.Bus.WriteByte(AddressMap.LcdControlRegister, LcdControlEnabled);
+        gameBoy.Bus.SetHardwareRegisterState(
+            AddressMap.LcdYCoordinateRegister,
+            PpuGeometry.VBlankStartLine - 2
+        );
+        gameBoy.Bus.Clock.SetKey1State(initialDoubleSpeed ? (byte)0x80 : (byte)0x00);
+        gameBoy.Bus.WriteByte(AddressMap.Key1Register, 0x01);
+
+        gameBoy.Step().Should().Be(2);
+
+        gameBoy.Bus.Clock.CgbDoubleSpeed.Should().Be(expectedDoubleSpeed);
+        gameBoy.Bus.Clock.Timers.TimerCounter = 0x3A;
+        gameBoy.Bus.Clock.Timers.SetTimerControlState(0b0000_0101);
+        gameBoy.Bus.WriteByte(AddressMap.SerialTransferDataRegister, 0x41);
+        gameBoy.Bus.WriteByte(AddressMap.SerialTransferControlRegister, 0x83);
+        gameBoy.Bus.WriteByte(AddressMap.DmaRegister, 0xC0);
+        var divider = gameBoy.Bus.Clock.ReadDivider();
+        var serialState = gameBoy.Bus.Serial.CaptureState();
+        var oamDmaState = gameBoy.Bus.OamDma.CaptureState();
+        var programCounter = gameBoy.Cpu.Registers.PC;
+        var observedPpuModes = new bool[4];
+        Span<ApuStereoSample> sample = stackalloc ApuStereoSample[1];
+        var pauseMachineCycles = 0;
+
+        for (var cycle = 1; cycle <= ClockController.SpeedSwitchPauseDuration; cycle++)
+        {
+            pauseMachineCycles += gameBoy.Step();
+            var mode = gameBoy.Bus.ReadByte(AddressMap.LcdStatusRegister) & 0x03;
+            observedPpuModes[mode] = true;
+
+            if (cycle == firstSamplePauseCycle - 1)
+            {
+                gameBoy.DrainAudioSamples(sample).Should().Be(0);
+            }
+            else if (cycle == firstSamplePauseCycle)
+            {
+                gameBoy.DrainAudioSamples(sample).Should().Be(1);
+            }
+        }
+
+        // Pan Docs `rendering-overview.md`: an active PPU crosses modes 0-3 over elapsed dots.
+        observedPpuModes.Should().Equal(true, true, true, true);
+        pauseMachineCycles.Should().Be(ClockController.SpeedSwitchPauseDuration);
+        gameBoy.Bus.Clock.SpeedSwitchPauseCycles.Should().Be(0);
+        gameBoy.Bus.Clock.ReadDivider().Should().Be(divider);
+        gameBoy.Bus.Clock.Timers.TimerCounter.Should().Be(0x3A);
+        gameBoy.Bus.Serial.CaptureState().Should().Be(serialState);
+        gameBoy.Bus.OamDma.CaptureState().Should().Be(oamDmaState);
+        gameBoy.Cpu.Registers.B.Should().Be(0);
+        gameBoy.Cpu.Registers.PC.Should().Be(programCounter);
+
+        gameBoy.Step().Should().Be(1);
+        gameBoy.Cpu.Registers.B.Should().Be(1);
+        gameBoy.Cpu.Registers.PC.Should().Be(0x0103);
+    }
+
+    // Pan Docs `cgb-registers.md`: VRAM DMA keeps its eight-microsecond block timing
+    // while the KEY1 pause continues to clock the LCD controller.
+    [Theory]
+    [InlineData(false, 125, 16)]
+    [InlineData(true, 62, 8)]
+    public void Step_SpeedSwitchPauseAdvancesHblankAndGeneralVramDma(
+        bool initialDoubleSpeed,
+        int machineCyclesBeforeHblank,
+        int transferMachineCycles
+    )
+    {
+        var cartridge = TestRomFactory.LoadCartridge(bytes =>
+        {
+            bytes[0x0100] = StopOpcode;
+            bytes[0x0101] = 0x00;
+            bytes[0x0102] = IncBOpcode;
+            bytes[0x0143] = 0xC0;
+            for (var offset = 0; offset < 0x20; offset++)
+            {
+                bytes[0x2000 + offset] = (byte)(0x40 + offset);
+            }
+        });
+        var gameBoy = new GameBoy(cartridge, HardwareModel.Cgb);
+        gameBoy.Bus.Clock.SetKey1State(initialDoubleSpeed ? (byte)0x80 : (byte)0x00);
+        gameBoy.Bus.WriteByte(AddressMap.Key1Register, 0x01);
+        gameBoy.Step().Should().Be(2);
+        gameBoy.Bus.WriteByte(AddressMap.LcdControlRegister, 0x00);
+        gameBoy.Bus.WriteByte(AddressMap.LcdControlRegister, LcdControlEnabled);
+
+        gameBoy.Bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x20);
+        gameBoy.Bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x00);
+        gameBoy.Bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x00);
+        gameBoy.Bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x00);
+        gameBoy.Bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x80);
+
+        for (var cycle = 0; cycle < machineCyclesBeforeHblank; cycle++)
+        {
+            gameBoy.Step();
+        }
+
+        gameBoy.Bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0x00);
+        gameBoy.Step();
+        gameBoy.Bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0x00);
+
+        for (var cycle = 0; cycle < transferMachineCycles; cycle++)
+        {
+            gameBoy.Step();
+        }
+
+        gameBoy.Bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart).Should().Be(0x40);
+        gameBoy.Bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x0F).Should().Be(0x4F);
+
+        gameBoy.Bus.WriteByte(AddressMap.VideoRamDmaSourceHighRegister, 0x20);
+        gameBoy.Bus.WriteByte(AddressMap.VideoRamDmaSourceLowRegister, 0x10);
+        gameBoy.Bus.WriteByte(AddressMap.VideoRamDmaDestinationHighRegister, 0x00);
+        gameBoy.Bus.WriteByte(AddressMap.VideoRamDmaDestinationLowRegister, 0x10);
+        gameBoy.Bus.WriteByte(AddressMap.VideoRamDmaLengthModeStartRegister, 0x00);
+
+        gameBoy.Step();
+        gameBoy.Bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x10).Should().Be(0x00);
+
+        for (var cycle = 0; cycle < transferMachineCycles; cycle++)
+        {
+            gameBoy.Step();
+        }
+
+        gameBoy.Bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x10).Should().Be(0x50);
+        gameBoy.Bus.Ppu.VideoRam.Read(AddressMap.VideoRamStart + 0x1F).Should().Be(0x5F);
+
+        var elapsedPauseCycles =
+            machineCyclesBeforeHblank + 1 + transferMachineCycles + 1 + transferMachineCycles;
+        for (
+            var cycle = elapsedPauseCycles;
+            cycle < ClockController.SpeedSwitchPauseDuration;
+            cycle++
+        )
+        {
+            gameBoy.Step();
+        }
+
+        gameBoy.Bus.Clock.SpeedSwitchPauseCycles.Should().Be(0);
+        gameBoy.Step().Should().Be(1);
+        gameBoy.Cpu.Registers.B.Should().Be(1);
     }
 
     [Fact]

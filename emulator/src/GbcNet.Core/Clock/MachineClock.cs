@@ -33,7 +33,17 @@ internal sealed class MachineClock(MemoryBus bus)
     public void TickMachineCycle()
     {
         bus.Clock.TickMachineCycle();
+        TickVideoAndAudio();
+        bus.TickDma(1);
+    }
 
+    /// <summary>
+    /// Advances only hardware domains that keep running during the CGB speed-switch pause.
+    /// </summary>
+    public void TickSpeedSwitchPauseMachineCycle() => TickVideoAndAudio();
+
+    private void TickVideoAndAudio()
+    {
         var tCycles = bus.Clock.VideoAndAudioTCyclesPerMachineCycle;
         bus.Apu.Tick(tCycles);
 
@@ -66,8 +76,6 @@ internal sealed class MachineClock(MemoryBus bus)
                 throw;
             }
         }
-
-        bus.TickDma(1);
     }
 
     /// <summary>

@@ -141,7 +141,16 @@ public sealed class GameBoy
 
         try
         {
-            var machineCycles = Bus.Clock.TryStepSpeedSwitchPause() ? 1 : Cpu.Step();
+            int machineCycles;
+            if (Bus.Clock.TryStepSpeedSwitchPause())
+            {
+                _clock.TickSpeedSwitchPauseMachineCycle();
+                machineCycles = 1;
+            }
+            else
+            {
+                machineCycles = Cpu.Step();
+            }
 
             LcdFrame? frame = null;
             try

@@ -14,7 +14,7 @@ namespace GbcNet.Core.Clock;
 internal sealed class ClockController
 {
     // Pan Docs: KEY1-armed STOP pauses the CPU for 2050 M-cycles while DIV is frozen.
-    private const int SpeedSwitchPauseDuration = 2050;
+    internal const int SpeedSwitchPauseDuration = 2050;
 
     private const byte Key1SwitchArmedMask = 0x01;
     private const byte Key1ReadMask = 0x7E;
