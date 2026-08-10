@@ -198,16 +198,6 @@ internal sealed class EmulationController(
         {
             await session.SetCheatCodesAsync(GetActiveCodes(savedEntries));
         }
-        catch (InvalidOperationException exception)
-            when (string.Equals(
-                    exception.Message,
-                    "Emulation session is stopped.",
-                    StringComparison.Ordinal
-                )
-            )
-        {
-            return;
-        }
         catch (OperationCanceledException)
         {
             return;

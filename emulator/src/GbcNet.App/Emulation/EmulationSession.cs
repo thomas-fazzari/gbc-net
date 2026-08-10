@@ -297,7 +297,6 @@ internal sealed class EmulationSession
             }
         }
         catch (Exception exception)
-            when (exception is NotSupportedException or InvalidOperationException)
         {
             fatalException = exception;
         }
@@ -340,9 +339,7 @@ internal sealed class EmulationSession
     {
         if (Volatile.Read(ref _isStopped) != 0)
         {
-            return Task.FromException<T>(
-                new InvalidOperationException("Emulation session is stopped.")
-            );
+            return Task.FromException<T>(CreateSessionStoppedException());
         }
 
         var completion = new TaskCompletionSource<T>(
@@ -364,15 +361,18 @@ internal sealed class EmulationSession
                 {
                     completion.TrySetException(exception);
                 }
+                catch (Exception exception)
+                {
+                    completion.TrySetException(exception);
+                    throw;
+                }
             },
             exception => completion.TrySetException(exception)
         );
 
         if (!_pendingMachineOperations.Writer.TryWrite(pendingOperation))
         {
-            completion.TrySetException(
-                new InvalidOperationException("Emulation session is stopped.")
-            );
+            completion.TrySetException(CreateSessionStoppedException());
         }
 
         return completion.Task;
@@ -388,9 +388,7 @@ internal sealed class EmulationSession
 
     private void FailPendingMachineOperations()
     {
-        var exception = new OperationCanceledException(
-            "Emulation session stopped before handling a request."
-        );
+        var exception = CreateSessionStoppedException();
         while (_pendingMachineOperations.Reader.TryRead(out var operation))
         {
             operation.Fail(exception);
@@ -474,4 +472,7 @@ internal sealed class EmulationSession
         || Volatile.Read(ref _isFastForwardEnabled) == 0
         || Volatile.Read(ref _fastForwardSpeed) <= (int)EmulationSpeed.Normal
         || Volatile.Read(ref _videoFrameRenderRequested) != 0;
+
+    private static OperationCanceledException CreateSessionStoppedException() =>
+        new("Emulation session stopped before handling a request.");
 }
