@@ -103,20 +103,15 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     {
         _currentInstructionMachineCycles = 0;
 
-        if (RunState is CpuRunState.Locked)
+        switch (RunState)
         {
-            IdleCycle();
-            return _currentInstructionMachineCycles;
-        }
-
-        if (RunState is CpuRunState.Stopped)
-        {
-            return StepStopped();
-        }
-
-        if (RunState is CpuRunState.Halted)
-        {
-            return StepHalted();
+            case CpuRunState.Locked:
+                IdleCycle();
+                return _currentInstructionMachineCycles;
+            case CpuRunState.Stopped:
+                return StepStopped();
+            case CpuRunState.Halted:
+                return StepHalted();
         }
 
         if (TryServiceInterrupt(out var interruptMachineCycles))
