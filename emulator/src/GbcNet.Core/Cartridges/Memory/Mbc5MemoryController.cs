@@ -9,7 +9,8 @@ namespace GbcNet.Core.Cartridges.Memory;
 internal sealed class Mbc5MemoryController(
     byte[] rom,
     CartridgeHeader header,
-    bool hasBatteryBackedRam
+    bool hasBatteryBackedRam,
+    bool hasRumble
 ) : ICartridgeMemoryController
 {
     private const int RomBankSize = Cartridge.FixedRomBankSize;
@@ -17,7 +18,9 @@ internal sealed class Mbc5MemoryController(
     private const ushort RomBankNStart = 0x4000;
 
     private const byte RomBankHighMask = 0x01;
-    private const byte RamBankMask = 0x0F;
+    private const byte StandardRamBankMask = 0x0F;
+    private const byte RumbleRamBankMask = 0x07;
+    private const byte RumbleActiveMask = 0x08;
 
     private byte _romBankLow = 1;
     private byte _romBankHigh;
@@ -27,14 +30,19 @@ internal sealed class Mbc5MemoryController(
         hasBatteryBackedRam
     );
 
+    public bool IsRumbleActive { get; private set; }
+
     public ICartridgeSaveData SaveData => _externalRam.Ram;
+
+    private byte RamBankMask => hasRumble ? RumbleRamBankMask : StandardRamBankMask;
 
     public ICartridgeMemoryControllerState CaptureState() =>
         new Mbc5MemoryControllerState(
             _externalRam.CaptureState(),
             _romBankLow,
             _romBankHigh,
-            _ramBank
+            _ramBank,
+            IsRumbleActive
         );
 
     public void ValidateState(ICartridgeMemoryControllerState state)
@@ -52,7 +60,18 @@ internal sealed class Mbc5MemoryController(
 
         if (mbc5State.RamBank > RamBankMask)
         {
-            throw new ArgumentException("RAM bank must be in the 0-15 range.", nameof(state));
+            throw new ArgumentException(
+                "RAM bank exceeds this MBC5 variant's range.",
+                nameof(state)
+            );
+        }
+
+        if (!hasRumble && mbc5State.IsRumbleActive)
+        {
+            throw new ArgumentException(
+                "Rumble cannot be active on this MBC5 variant.",
+                nameof(state)
+            );
         }
     }
 
@@ -64,6 +83,7 @@ internal sealed class Mbc5MemoryController(
         _romBankLow = mbc5State.RomBankLow;
         _romBankHigh = mbc5State.RomBankHigh;
         _ramBank = mbc5State.RamBank;
+        IsRumbleActive = mbc5State.IsRumbleActive;
     }
 
     public byte ReadRom(ushort address)
@@ -92,6 +112,7 @@ internal sealed class Mbc5MemoryController(
                 return;
             case <= 0x5FFF:
                 _ramBank = (byte)(value & RamBankMask);
+                IsRumbleActive = hasRumble && (value & RumbleActiveMask) != 0;
                 return;
         }
     }
@@ -108,5 +129,6 @@ internal sealed record Mbc5MemoryControllerState(
     CartridgeRamWindowState ExternalRam,
     byte RomBankLow,
     byte RomBankHigh,
-    byte RamBank
+    byte RamBank,
+    bool IsRumbleActive
 ) : ICartridgeMemoryControllerState;

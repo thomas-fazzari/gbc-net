@@ -15,6 +15,9 @@ public sealed class Mbc5CartridgeTests
     [InlineData(CartridgeType.Mbc5)]
     [InlineData(CartridgeType.Mbc5Ram)]
     [InlineData(CartridgeType.Mbc5RamBattery)]
+    [InlineData(CartridgeType.Mbc5Rumble)]
+    [InlineData(CartridgeType.Mbc5RumbleRam)]
+    [InlineData(CartridgeType.Mbc5RumbleRamBattery)]
     public void Load_AcceptsMbc5Cartridge(CartridgeType cartridgeType)
     {
         var rom = TestRomFactory.Create(bytes => bytes[0x0147] = (byte)cartridgeType);
@@ -22,6 +25,41 @@ public sealed class Mbc5CartridgeTests
         var cartridge = TestRomFactory.LoadCartridge(rom);
 
         cartridge.Header.CartridgeType.Should().Be(cartridgeType);
+    }
+
+    [Theory]
+    [InlineData(CartridgeType.Mbc5Rumble, 0x00, false, false)]
+    [InlineData(CartridgeType.Mbc5RumbleRam, 0x02, true, false)]
+    [InlineData(CartridgeType.Mbc5RumbleRamBattery, 0x02, true, true)]
+    public void Load_MapsRumbleVariantRamBatteryAndMotor(
+        CartridgeType cartridgeType,
+        byte ramSizeCode,
+        bool hasRam,
+        bool hasBattery
+    )
+    {
+        // Pan Docs the-cartridge-header.md defines RAM and battery presence for 1C-1E.
+        var rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0147] = (byte)cartridgeType;
+            bytes[0x0149] = ramSizeCode;
+        });
+        var cartridge = TestRomFactory.LoadCartridge(rom);
+
+        cartridge.WriteRom(0x0000, 0x0A);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x42);
+
+        cartridge
+            .ReadRam(AddressMap.ExternalRamStart)
+            .Should()
+            .Be(hasRam ? (byte)0x42 : (byte)0xFF);
+        cartridge.HasBatteryBackedSave.Should().Be(hasBattery);
+        cartridge.IsRumbleActive.Should().BeFalse();
+
+        cartridge.WriteRom(0x4000, 0x08);
+        cartridge.IsRumbleActive.Should().BeTrue();
+        cartridge.WriteRom(0x4000, 0x00);
+        cartridge.IsRumbleActive.Should().BeFalse();
     }
 
     [Fact]
@@ -137,6 +175,59 @@ public sealed class Mbc5CartridgeTests
     }
 
     [Fact]
+    public void WriteRom_NonRumbleMbc5KeepsFourRamBankBits()
+    {
+        var rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0147] = (byte)CartridgeType.Mbc5Ram;
+            bytes[0x0149] = 0x04;
+        });
+        var cartridge = TestRomFactory.LoadCartridge(rom);
+        cartridge.WriteRom(0x0000, 0x0A);
+
+        // Pan Docs mbc5.md gives non-rumble cartridges all four RAM-bank bits.
+        cartridge.WriteRom(0x4000, 0x08);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x88);
+        cartridge.WriteRom(0x4000, 0x00);
+
+        cartridge.ReadRam(AddressMap.ExternalRamStart).Should().Be(0x00);
+        cartridge.WriteRom(0x4000, 0x08);
+        cartridge.ReadRam(AddressMap.ExternalRamStart).Should().Be(0x88);
+        cartridge.IsRumbleActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public void WriteRom_RumbleMbc5UsesBitThreeForMotorAndThreeBitsForRamBank()
+    {
+        var rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0147] = (byte)CartridgeType.Mbc5RumbleRam;
+            bytes[0x0149] = 0x04;
+        });
+        var cartridge = TestRomFactory.LoadCartridge(rom);
+        cartridge.WriteRom(0x0000, 0x0A);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x10);
+
+        // Pan Docs mbc5.md assigns bit 3 to rumble and bits 0-2 to RAM banking.
+        cartridge.WriteRom(0x4000, 0x08);
+
+        cartridge.IsRumbleActive.Should().BeTrue();
+        cartridge.ReadRam(AddressMap.ExternalRamStart).Should().Be(0x10);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x80);
+
+        cartridge.WriteRom(0x4000, 0x00);
+        cartridge.IsRumbleActive.Should().BeFalse();
+        cartridge.ReadRam(AddressMap.ExternalRamStart).Should().Be(0x80);
+
+        cartridge.WriteRom(0x4000, 0x0F);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x77);
+        cartridge.WriteRom(0x4000, 0x07);
+
+        cartridge.IsRumbleActive.Should().BeFalse();
+        cartridge.ReadRam(AddressMap.ExternalRamStart).Should().Be(0x77);
+    }
+
+    [Fact]
     public void BatterySave_ExportsAndImportsMbc5RamBanks()
     {
         var rom = TestRomFactory.Create(bytes =>
@@ -240,6 +331,7 @@ public sealed class Mbc5CartridgeTests
         var validMbc5State = (Mbc5MemoryControllerState)validState.Controller;
         var invalidRomHighState = new CartridgeState(validMbc5State with { RomBankHigh = 0x02 });
         var invalidRamBankState = new CartridgeState(validMbc5State with { RamBank = 0x10 });
+        var invalidRumbleState = new CartridgeState(validMbc5State with { IsRumbleActive = true });
 
         FluentActions
             .Invoking(() => cartridge.RestoreState(invalidRomHighState))
@@ -249,8 +341,47 @@ public sealed class Mbc5CartridgeTests
             .Invoking(() => cartridge.RestoreState(invalidRamBankState))
             .Should()
             .ThrowExactly<ArgumentException>();
+        FluentActions
+            .Invoking(() => cartridge.RestoreState(invalidRumbleState))
+            .Should()
+            .ThrowExactly<ArgumentException>();
         cartridge.ReadRom(0x4000).Should().Be(0x80);
         cartridge.ReadRam(ramAddress).Should().Be(0x7F);
+        cartridge.IsRumbleActive.Should().BeFalse();
         cartridge.IsBatterySaveDirty.Should().Be(cartridgeType == CartridgeType.Mbc5RamBattery);
+    }
+
+    [Fact]
+    public void CaptureRestore_RumbleStateAndRamBankAreAtomic()
+    {
+        var rom = TestRomFactory.Create(bytes =>
+        {
+            bytes[0x0147] = (byte)CartridgeType.Mbc5RumbleRamBattery;
+            bytes[0x0149] = 0x04;
+        });
+        var cartridge = TestRomFactory.LoadCartridge(rom);
+        cartridge.WriteRom(0x0000, 0x0A);
+        cartridge.WriteRom(0x4000, 0x0B);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x33);
+        var state = cartridge.CaptureState();
+
+        cartridge.WriteRom(0x4000, 0x01);
+        cartridge.WriteRam(AddressMap.ExternalRamStart, 0x11);
+        cartridge.RestoreState(state);
+
+        cartridge.IsRumbleActive.Should().BeTrue();
+        cartridge.ReadRam(AddressMap.ExternalRamStart).Should().Be(0x33);
+        var restoredState = (Mbc5MemoryControllerState)cartridge.CaptureState().Controller;
+        restoredState.RamBank.Should().Be(0x03);
+        restoredState.IsRumbleActive.Should().BeTrue();
+
+        var invalidState = new CartridgeState(restoredState with { RamBank = 0x08 });
+        FluentActions
+            .Invoking(() => cartridge.RestoreState(invalidState))
+            .Should()
+            .ThrowExactly<ArgumentException>();
+
+        cartridge.IsRumbleActive.Should().BeTrue();
+        cartridge.ReadRam(AddressMap.ExternalRamStart).Should().Be(0x33);
     }
 }

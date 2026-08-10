@@ -87,6 +87,21 @@ public enum CartridgeType
     /// MBC5 memory bank controller with battery-backed external RAM.
     /// </summary>
     Mbc5RamBattery = 0x1B,
+
+    /// <summary>
+    /// MBC5 memory bank controller with a rumble motor and no external RAM.
+    /// </summary>
+    Mbc5Rumble = 0x1C,
+
+    /// <summary>
+    /// MBC5 memory bank controller with a rumble motor and external RAM.
+    /// </summary>
+    Mbc5RumbleRam = 0x1D,
+
+    /// <summary>
+    /// MBC5 memory bank controller with a rumble motor and battery-backed external RAM.
+    /// </summary>
+    Mbc5RumbleRamBattery = 0x1E,
 }
 
 internal static class CartridgeTypeExtensions
@@ -119,7 +134,16 @@ internal static class CartridgeTypeExtensions
             cartridgeType
                 is CartridgeType.Mbc5
                     or CartridgeType.Mbc5Ram
-                    or CartridgeType.Mbc5RamBattery;
+                    or CartridgeType.Mbc5RamBattery
+                    or CartridgeType.Mbc5Rumble
+                    or CartridgeType.Mbc5RumbleRam
+                    or CartridgeType.Mbc5RumbleRamBattery;
+
+        public bool HasRumble() =>
+            cartridgeType
+                is CartridgeType.Mbc5Rumble
+                    or CartridgeType.Mbc5RumbleRam
+                    or CartridgeType.Mbc5RumbleRamBattery;
 
         public bool HasRtc() =>
             cartridgeType is CartridgeType.Mbc3TimerBattery or CartridgeType.Mbc3TimerRamBattery;
@@ -130,6 +154,7 @@ internal static class CartridgeTypeExtensions
                     or CartridgeType.Mbc1RamBattery
                     or CartridgeType.Mbc3TimerRamBattery
                     or CartridgeType.Mbc3RamBattery
-                    or CartridgeType.Mbc5RamBattery;
+                    or CartridgeType.Mbc5RamBattery
+                    or CartridgeType.Mbc5RumbleRamBattery;
     }
 }

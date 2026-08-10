@@ -45,6 +45,12 @@ public sealed class Cartridge
     public bool IsBatterySaveDirty => _memoryController.SaveData.IsBatterySaveDirty;
 
     /// <summary>
+    /// Indicates whether this cartridge's rumble motor is active.
+    /// </summary>
+    public bool IsRumbleActive =>
+        _memoryController is Mbc5MemoryController { IsRumbleActive: true };
+
+    /// <summary>
     /// Parses and loads a cartridge image.
     /// </summary>
     /// <returns>
@@ -272,7 +278,8 @@ public sealed class Cartridge
             _ when cartridgeType.IsMbc5() => new Mbc5MemoryController(
                 rom,
                 header,
-                cartridgeType.HasBatteryBackedExternalRam()
+                cartridgeType.HasBatteryBackedExternalRam(),
+                cartridgeType.HasRumble()
             ),
             _ => null,
         };
