@@ -12,6 +12,39 @@ namespace GbcNet.Tests.Integration.Configuration;
 
 public sealed class AppConfigurationFileTests
 {
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("""{"input":null,"emulation":null,"library":null}""")]
+    public void Load_MissingOrNullRootSectionsUsesDefaults(string json)
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllText(configPath, json);
+
+        var config = AppConfigurationFile.Load(configPath);
+
+        config.Should().BeEquivalentTo(AppConfigurationFile.CreateDefault());
+    }
+
+    [Fact]
+    public void Load_MalformedJsonPreservesParseErrorContract()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllText(configPath, "{");
+
+        var exception = FluentActions
+            .Invoking(() => AppConfigurationFile.Load(configPath))
+            .Should()
+            .ThrowExactly<ConfigurationException>()
+            .Which;
+
+        exception.Message.Should().StartWith("Configuration file could not be parsed:");
+        exception.InnerException.Should().BeOfType<JsonException>();
+    }
+
     [Fact]
     public void Save_WritesJsonThatRoundTripsEscapedBootRomPaths()
     {

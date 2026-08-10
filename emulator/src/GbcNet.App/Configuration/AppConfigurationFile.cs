@@ -50,8 +50,15 @@ internal static class AppConfigurationFile
     {
         try
         {
-            return JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(path), _jsonOptions)
+            var config =
+                JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(path), _jsonOptions)
                 ?? throw new ConfigurationException("Configuration file is empty.");
+
+            config.Input ??= CreateDefaultInputConfig();
+            config.Emulation ??= new();
+            config.Library ??= new();
+
+            return config;
         }
         catch (JsonException exception)
         {
