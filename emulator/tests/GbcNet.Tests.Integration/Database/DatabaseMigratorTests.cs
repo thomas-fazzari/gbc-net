@@ -101,10 +101,12 @@ public sealed class DatabaseMigratorTests
         Directory.CreateDirectory(temporaryDirectory.Path);
         var databasePath = Path.Combine(temporaryDirectory.Path, "gbcnet.sqlite");
         CreateEmptyDatabase(databasePath);
+
         using var firstContextCreated = new ManualResetEventSlim(initialState: false);
+        using var secondMigrationStarted = new ManualResetEventSlim(initialState: false);
         using var releaseFirstContext = new ManualResetEventSlim(initialState: false);
-        using var secondContextCreated = new ManualResetEventSlim(initialState: false);
         var contextCreationCount = 0;
+        var firstContextReleased = 0;
         var cancellationToken = TestContext.Current.CancellationToken;
         var contextFactory = new TestDbContextFactory(
             databasePath,
@@ -114,10 +116,11 @@ public sealed class DatabaseMigratorTests
                 {
                     firstContextCreated.Set();
                     releaseFirstContext.Wait(cancellationToken);
+                    Volatile.Write(ref firstContextReleased, 1);
                     return;
                 }
 
-                secondContextCreated.Set();
+                Volatile.Read(ref firstContextReleased).Should().Be(1);
             }
         );
 
@@ -128,11 +131,12 @@ public sealed class DatabaseMigratorTests
         {
             firstContextCreated.Wait(cancellationToken);
 
-            secondMigration = StartMigration(contextFactory, databasePath);
-            secondContextCreated
-                .Wait(TimeSpan.FromMilliseconds(100), cancellationToken)
-                .Should()
-                .BeFalse();
+            secondMigration = StartMigration(
+                contextFactory,
+                databasePath,
+                secondMigrationStarted.Set
+            );
+            secondMigrationStarted.Wait(cancellationToken);
         }
         finally
         {
@@ -144,6 +148,7 @@ public sealed class DatabaseMigratorTests
             }
         }
 
+        contextCreationCount.Should().Be(2);
         File.Exists(databasePath + ".bak.tmp").Should().BeFalse();
         CountMigrationHistoryTables(databasePath).Should().Be(1);
     }
@@ -157,9 +162,11 @@ public sealed class DatabaseMigratorTests
         var secondDatabasePath = Path.Combine(temporaryDirectory.Path, "second.sqlite");
         CreateEmptyDatabase(firstDatabasePath);
         CreateEmptyDatabase(secondDatabasePath);
+
         using var firstContextCreated = new ManualResetEventSlim(initialState: false);
         using var secondContextCreated = new ManualResetEventSlim(initialState: false);
         using var releaseContexts = new ManualResetEventSlim(initialState: false);
+
         var cancellationToken = TestContext.Current.CancellationToken;
         var firstContextFactory = new TestDbContextFactory(
             firstDatabasePath,
@@ -186,7 +193,7 @@ public sealed class DatabaseMigratorTests
             firstContextCreated.Wait(cancellationToken);
 
             secondMigration = StartMigration(secondContextFactory, secondDatabasePath);
-            secondContextCreated.Wait(TimeSpan.FromSeconds(5), cancellationToken).Should().BeTrue();
+            secondContextCreated.Wait(cancellationToken);
         }
         finally
         {
@@ -197,6 +204,8 @@ public sealed class DatabaseMigratorTests
                 await secondMigration.WaitAsync(cancellationToken);
             }
         }
+
+        secondContextCreated.IsSet.Should().BeTrue();
     }
 
     [Fact]
@@ -226,10 +235,15 @@ public sealed class DatabaseMigratorTests
 
     private static Task StartMigration(
         IDbContextFactory<GbcNetDbContext> contextFactory,
-        string databasePath
+        string databasePath,
+        Action? beforeMigration = null
     ) =>
         Task.Factory.StartNew(
-            () => DatabaseMigrator.Migrate(contextFactory, databasePath, NullLogger.Instance),
+            () =>
+            {
+                beforeMigration?.Invoke();
+                DatabaseMigrator.Migrate(contextFactory, databasePath, NullLogger.Instance);
+            },
             CancellationToken.None,
             TaskCreationOptions.LongRunning,
             TaskScheduler.Default
