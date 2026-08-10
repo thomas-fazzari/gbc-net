@@ -60,7 +60,7 @@ public sealed class CpuTests
         var machineCycles = cpu.Step();
 
         machineCycles.Should().Be(2);
-        cpu.Stopped.Should().BeFalse();
+        cpu.RunState.Should().Be(CpuRunState.Running);
         bus.Clock.CgbDoubleSpeed.Should().BeTrue();
         bus.Clock.SpeedSwitchPauseCycles.Should().Be(2050);
         bus.ReadByte(AddressMap.Key1Register).Should().Be(0xFE);
@@ -81,7 +81,7 @@ public sealed class CpuTests
         var machineCycles = cpu.Step();
 
         machineCycles.Should().Be(2);
-        cpu.Stopped.Should().BeTrue();
+        cpu.RunState.Should().Be(CpuRunState.Stopped);
         bus.Clock.CgbDoubleSpeed.Should().BeFalse();
         bus.Clock.SpeedSwitchPauseCycles.Should().Be(0);
         bus.ReadByte(AddressMap.Key1Register).Should().Be(0x7E);
@@ -920,15 +920,22 @@ public sealed class CpuTests
 
         cpu.Step().Should().Be(1);
 
-        cpu.Halted.Should().BeTrue();
-        bus.Interrupts.InterruptEnable.Should().Be(0);
+        cpu.RunState.Should().Be(CpuRunState.Locked);
+        bus.Interrupts.InterruptEnable.Should().Be(0x1F);
         cpu.Registers.PC.Should().Be(0x0101);
+        var ticksAfterInvalidOpcode = ticks;
 
+        cpu.Ime = ImeState.Enabled;
+        bus.Interrupts.InterruptEnable = 0x01;
         bus.Interrupts.Request(InterruptSource.VBlank);
 
+        // Pan Docs `cpu-instruction-set.md`: invalid opcodes hard-lock the CPU until power off.
+        // The linked decode research shows that the locked state keeps cycling without fetching.
         cpu.Step().Should().Be(1);
-        cpu.Halted.Should().BeTrue();
+        cpu.RunState.Should().Be(CpuRunState.Locked);
+        cpu.Ime.Should().Be(ImeState.Enabled);
         cpu.Registers.PC.Should().Be(0x0101);
-        ticks.Should().Be(2);
+        bus.Interrupts.InterruptEnable.Should().Be(0x01);
+        ticks.Should().Be(ticksAfterInvalidOpcode + 1);
     }
 }

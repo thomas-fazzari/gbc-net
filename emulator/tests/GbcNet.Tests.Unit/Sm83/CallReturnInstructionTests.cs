@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core.Memory;
+using GbcNet.Core.Sm83;
 
 namespace GbcNet.Tests.Unit.Sm83;
 
@@ -85,6 +86,7 @@ public sealed class CallReturnInstructionTests
         cpu.Registers.F.Should().Be(0xF0);
     }
 
+    // Pan Docs `interrupts.md`: RETI enables IME immediately.
     [Fact]
     public void Step_ReturnsFromInterruptAndEnablesInterruptMasterEnableImmediately()
     {
@@ -99,15 +101,14 @@ public sealed class CallReturnInstructionTests
         bus.WriteByte(0xC101, 0x56);
 
         cpu.Step().Should().Be(1);
-        cpu.ImeEnablePending.Should().BeTrue();
+        cpu.Ime.Should().Be(ImeState.EnablePending);
 
         var machineCycles = cpu.Step();
 
         machineCycles.Should().Be(4);
         cpu.Registers.PC.Should().Be(0x5678);
         cpu.Registers.SP.Should().Be(0xC102);
-        cpu.Ime.Should().BeTrue();
-        cpu.ImeEnablePending.Should().BeFalse();
+        cpu.Ime.Should().Be(ImeState.Enabled);
         cpu.Registers.F.Should().Be(0xF0);
     }
 
@@ -126,12 +127,12 @@ public sealed class CallReturnInstructionTests
         bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
 
         cpu.Step().Should().Be(4);
-        cpu.Ime.Should().BeTrue();
+        cpu.Ime.Should().Be(ImeState.Enabled);
         cpu.Registers.PC.Should().Be(0x5678);
         bus.ReadByte(AddressMap.InterruptFlagRegister).Should().Be(0xE1);
 
         cpu.Step().Should().Be(5);
-        cpu.Ime.Should().BeFalse();
+        cpu.Ime.Should().Be(ImeState.Disabled);
         cpu.Registers.PC.Should().Be(VBlankVector);
         bus.ReadByte(AddressMap.InterruptFlagRegister).Should().Be(0xE0);
     }

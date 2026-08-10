@@ -8,44 +8,69 @@ using GbcNet.Core.Cheats;
 using GbcNet.Core.Hardware;
 using GbcNet.Core.Interrupts;
 using GbcNet.Core.Memory;
+using GbcNet.Core.Sm83;
 
 namespace GbcNet.Tests.Unit;
 
 public sealed class GameBoyStateTests
 {
-    // Bits are Halted, Stopped, HaltBugPending, Ime, and ImeEnablePending.
     // DMG, CGB, and SGB share these states. See Pan Docs `interrupts.md`, `halt.md`,
-    // and `reducing-power-consumption.md`.
-    public static TheoryData<int, bool> CpuExecutionStateRows
-    {
-        get
+    // `reducing-power-consumption.md`, and `cpu-instruction-set.md`.
+    public static TheoryData<int, bool, int> ReachableCpuStateRows =>
+        new()
         {
-            var rows = new TheoryData<int, bool>();
-            for (var flags = 0; flags < 32; flags++)
-            {
-                rows.Add(
-                    flags,
-                    flags
-                        is 0b00000
-                            or 0b01000
-                            or 0b10000
-                            or 0b00001
-                            or 0b01001
-                            or 0b00010
-                            or 0b01010
-                            or 0b00100
-                );
-            }
+            { (int)CpuRunState.Running, false, (int)ImeState.Disabled },
+            { (int)CpuRunState.Running, false, (int)ImeState.EnablePending },
+            { (int)CpuRunState.Running, false, (int)ImeState.Enabled },
+            { (int)CpuRunState.Running, true, (int)ImeState.Disabled },
+            { (int)CpuRunState.Halted, false, (int)ImeState.Disabled },
+            { (int)CpuRunState.Halted, false, (int)ImeState.Enabled },
+            { (int)CpuRunState.Stopped, false, (int)ImeState.Disabled },
+            { (int)CpuRunState.Stopped, false, (int)ImeState.Enabled },
+            { (int)CpuRunState.Locked, false, (int)ImeState.Disabled },
+            { (int)CpuRunState.Locked, false, (int)ImeState.Enabled },
+        };
 
-            return rows;
-        }
+    public static TheoryData<int, bool, int> InvalidCpuStateRows =>
+        new()
+        {
+            { (int)CpuRunState.Halted, true, (int)ImeState.Disabled },
+            { (int)CpuRunState.Stopped, true, (int)ImeState.Disabled },
+            { (int)CpuRunState.Locked, true, (int)ImeState.Disabled },
+            { (int)CpuRunState.Running, true, (int)ImeState.EnablePending },
+            { (int)CpuRunState.Running, true, (int)ImeState.Enabled },
+            { (int)CpuRunState.Halted, false, (int)ImeState.EnablePending },
+            { (int)CpuRunState.Stopped, false, (int)ImeState.EnablePending },
+            { (int)CpuRunState.Locked, false, (int)ImeState.EnablePending },
+        };
+
+    [Theory]
+    [MemberData(nameof(ReachableCpuStateRows))]
+    public void CpuRestoreState_AcceptsReachableExecutionAndImeCombinations(
+        int runState,
+        bool haltBugPending,
+        int ime
+    )
+    {
+        var gameBoy = new GameBoy(TestRomFactory.LoadCartridge(), HardwareModel.Dmg);
+        var cpu = gameBoy.Cpu;
+        var state = cpu.CaptureState() with
+        {
+            RunState = (CpuRunState)runState,
+            HaltBugPending = haltBugPending,
+            Ime = (ImeState)ime,
+        };
+
+        FluentActions.Invoking(() => cpu.RestoreState(state)).Should().NotThrow();
+        cpu.CaptureState().Should().Be(state);
     }
 
     [Theory]
-    [MemberData(nameof(CpuExecutionStateRows))]
-    public void CpuRestoreState_AcceptsOnlyReachableExecutionAndImeCombinations(
-        int flags,
-        bool isReachable
+    [MemberData(nameof(InvalidCpuStateRows))]
+    public void CpuRestoreState_RejectsImpossibleExecutionAndImeCombinations(
+        int runState,
+        bool haltBugPending,
+        int ime
     )
     {
         var gameBoy = new GameBoy(TestRomFactory.LoadCartridge(), HardwareModel.Dmg);
@@ -54,24 +79,40 @@ public sealed class GameBoyStateTests
         var state = before with
         {
             Registers = before.Registers with { PC = 0x2345 },
-            Halted = (flags & 0b00001) != 0,
-            Stopped = (flags & 0b00010) != 0,
-            HaltBugPending = (flags & 0b00100) != 0,
-            Ime = (flags & 0b01000) != 0,
-            ImeEnablePending = (flags & 0b10000) != 0,
+            RunState = (CpuRunState)runState,
+            HaltBugPending = haltBugPending,
+            Ime = (ImeState)ime,
         };
-
-        if (isReachable)
-        {
-            FluentActions.Invoking(() => cpu.RestoreState(state)).Should().NotThrow();
-            cpu.CaptureState().Should().Be(state);
-            return;
-        }
 
         var exception = FluentActions
             .Invoking(() => cpu.RestoreState(state))
             .Should()
             .ThrowExactly<ArgumentException>()
+            .Which;
+
+        exception.ParamName.Should().Be(nameof(state));
+        cpu.CaptureState().Should().Be(before);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CpuRestoreState_RejectsInvalidEnumValues(bool invalidRunState)
+    {
+        var gameBoy = new GameBoy(TestRomFactory.LoadCartridge(), HardwareModel.Dmg);
+        var cpu = gameBoy.Cpu;
+        var before = cpu.CaptureState();
+        var state = before with
+        {
+            Registers = before.Registers with { PC = 0x2345 },
+            RunState = invalidRunState ? (CpuRunState)int.MaxValue : before.RunState,
+            Ime = invalidRunState ? before.Ime : (ImeState)int.MaxValue,
+        };
+
+        var exception = FluentActions
+            .Invoking(() => cpu.RestoreState(state))
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>()
             .Which;
 
         exception.ParamName.Should().Be(nameof(state));
@@ -122,6 +163,7 @@ public sealed class GameBoyStateTests
     public void RestoreSaveState_PreservesInvalidOpcodeHardLock()
     {
         var source = new GameBoy(TestRomFactory.LoadCartridge(ConfigureRom), HardwareModel.Dmg);
+        source.Bus.Interrupts.InterruptEnable = 0x01;
         source.Step();
 
         var restored = new GameBoy(TestRomFactory.LoadCartridge(ConfigureRom), HardwareModel.Dmg);
@@ -129,8 +171,8 @@ public sealed class GameBoyStateTests
         restored.Bus.Interrupts.Request(InterruptSource.VBlank);
 
         restored.Step().Should().Be(1);
-        restored.Cpu.Halted.Should().BeTrue();
-        restored.Bus.Interrupts.InterruptEnable.Should().Be(0);
+        restored.Cpu.RunState.Should().Be(CpuRunState.Locked);
+        restored.Bus.Interrupts.InterruptEnable.Should().Be(0x01);
         restored.Cpu.Registers.PC.Should().Be(0x0101);
 
         static void ConfigureRom(byte[] bytes) => bytes[0x0100] = 0xD3;
@@ -193,8 +235,8 @@ public sealed class GameBoyStateTests
             state.Cpu with
             {
                 Registers = state.Cpu.Registers with { PC = 0x4567 },
-                Halted = true,
-                Stopped = true,
+                RunState = CpuRunState.Halted,
+                HaltBugPending = true,
             },
             state.Bus
         );

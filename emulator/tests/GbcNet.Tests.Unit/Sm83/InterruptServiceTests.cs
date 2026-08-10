@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core.Memory;
+using GbcNet.Core.Sm83;
 
 namespace GbcNet.Tests.Unit.Sm83;
 
@@ -23,14 +24,14 @@ public sealed class InterruptServiceTests
     public void Step_ServicesVBlankInterruptBeforeFetchingOpcode()
     {
         var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes => bytes[0x0100] = 0x00);
-        cpu.Ime = true;
+        cpu.Ime = ImeState.Enabled;
         bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
         bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
 
         var machineCycles = cpu.Step();
 
         machineCycles.Should().Be(5);
-        cpu.Ime.Should().BeFalse();
+        cpu.Ime.Should().Be(ImeState.Disabled);
         cpu.Registers.PC.Should().Be(VBlankVector);
         cpu.Registers.SP.Should().Be(OldProgramCounterStackLowByteAddress);
         bus.ReadByte(OldProgramCounterStackLowByteAddress).Should().Be(0x00);
@@ -42,7 +43,7 @@ public sealed class InterruptServiceTests
     public void Step_ServicesHighestPriorityRequestedAndEnabledInterrupt()
     {
         var (cpu, bus) = CpuTestFactory.CreateCpuWithBus();
-        cpu.Ime = true;
+        cpu.Ime = ImeState.Enabled;
         bus.WriteByte(
             AddressMap.InterruptEnableRegister,
             VBlankInterrupt | TimerInterrupt | JoypadInterrupt
@@ -69,7 +70,7 @@ public sealed class InterruptServiceTests
         var machineCycles = cpu.Step();
 
         machineCycles.Should().Be(1);
-        cpu.Ime.Should().BeFalse();
+        cpu.Ime.Should().Be(ImeState.Disabled);
         cpu.Registers.PC.Should().Be(0x0101);
         cpu.Registers.SP.Should().Be(0xFFFE);
         bus.ReadByte(AddressMap.InterruptFlagRegister).Should().Be(0xE1);
@@ -79,14 +80,14 @@ public sealed class InterruptServiceTests
     public void Step_DoesNotServiceInterruptWhenNoRequestIsEnabled()
     {
         var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes => bytes[0x0100] = 0x00);
-        cpu.Ime = true;
+        cpu.Ime = ImeState.Enabled;
         bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
         bus.WriteByte(AddressMap.InterruptFlagRegister, TimerInterrupt);
 
         var machineCycles = cpu.Step();
 
         machineCycles.Should().Be(1);
-        cpu.Ime.Should().BeTrue();
+        cpu.Ime.Should().Be(ImeState.Enabled);
         cpu.Registers.PC.Should().Be(0x0101);
         cpu.Registers.SP.Should().Be(0xFFFE);
         bus.ReadByte(AddressMap.InterruptFlagRegister).Should().Be(0xE4);
@@ -104,18 +105,16 @@ public sealed class InterruptServiceTests
         bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
 
         cpu.Step().Should().Be(1);
-        cpu.Ime.Should().BeFalse();
-        cpu.ImeEnablePending.Should().BeTrue();
+        cpu.Ime.Should().Be(ImeState.EnablePending);
         cpu.Registers.PC.Should().Be(0x0101);
 
         cpu.Step().Should().Be(1);
-        cpu.Ime.Should().BeTrue();
-        cpu.ImeEnablePending.Should().BeFalse();
+        cpu.Ime.Should().Be(ImeState.Enabled);
         cpu.Registers.PC.Should().Be(0x0102);
         bus.ReadByte(AddressMap.InterruptFlagRegister).Should().Be(0xE1);
 
         cpu.Step().Should().Be(5);
-        cpu.Ime.Should().BeFalse();
+        cpu.Ime.Should().Be(ImeState.Disabled);
         cpu.Registers.PC.Should().Be(VBlankVector);
         bus.ReadByte(AddressMap.InterruptFlagRegister).Should().Be(0xE0);
     }
@@ -144,11 +143,10 @@ public sealed class InterruptServiceTests
         restored.RestoreState(state);
 
         restored.Step().Should().Be(source.Step());
-        restored.Ime.Should().BeTrue();
-        restored.ImeEnablePending.Should().BeFalse();
+        restored.Ime.Should().Be(ImeState.Enabled);
 
         restored.Step().Should().Be(source.Step());
-        restored.Ime.Should().BeFalse();
+        restored.Ime.Should().Be(ImeState.Disabled);
         restored.Registers.PC.Should().Be(VBlankVector);
         restoredBus.ReadByte(AddressMap.InterruptFlagRegister).Should().Be(0xE0);
     }
@@ -157,7 +155,7 @@ public sealed class InterruptServiceTests
     public void Step_CancelsInterruptDispatchWhenHighBytePushDisablesAllPendingInterrupts()
     {
         var (cpu, bus) = CpuTestFactory.CreateCpuWithBus();
-        cpu.Ime = true;
+        cpu.Ime = ImeState.Enabled;
         cpu.Registers.PC = 0x0200;
         cpu.Registers.SP = 0x0000;
         bus.WriteByte(AddressMap.InterruptEnableRegister, TimerInterrupt);
@@ -166,7 +164,7 @@ public sealed class InterruptServiceTests
         var machineCycles = cpu.Step();
 
         machineCycles.Should().Be(5);
-        cpu.Ime.Should().BeFalse();
+        cpu.Ime.Should().Be(ImeState.Disabled);
         cpu.Registers.PC.Should().Be(0x0000);
         cpu.Registers.SP.Should().Be(0xFFFE);
         bus.ReadByte(AddressMap.InterruptEnableRegister).Should().Be(0x02);
@@ -178,7 +176,7 @@ public sealed class InterruptServiceTests
     public void Step_DispatchesRemainingInterruptWhenHighBytePushChangesEnabledMask()
     {
         var (cpu, bus) = CpuTestFactory.CreateCpuWithBus();
-        cpu.Ime = true;
+        cpu.Ime = ImeState.Enabled;
         cpu.Registers.PC = 0x0200;
         cpu.Registers.SP = 0x0000;
         bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt | LcdInterrupt);
@@ -187,7 +185,7 @@ public sealed class InterruptServiceTests
         var machineCycles = cpu.Step();
 
         machineCycles.Should().Be(5);
-        cpu.Ime.Should().BeFalse();
+        cpu.Ime.Should().Be(ImeState.Disabled);
         cpu.Registers.PC.Should().Be(LcdVector);
         cpu.Registers.SP.Should().Be(0xFFFE);
         bus.ReadByte(AddressMap.InterruptEnableRegister).Should().Be(0x02);
@@ -199,7 +197,7 @@ public sealed class InterruptServiceTests
     public void Step_DoesNotCancelInterruptDispatchWhenLowBytePushDisablesSelectedInterrupt()
     {
         var (cpu, bus) = CpuTestFactory.CreateCpuWithBus();
-        cpu.Ime = true;
+        cpu.Ime = ImeState.Enabled;
         cpu.Registers.PC = 0x1235;
         cpu.Registers.SP = 0x0001;
         bus.WriteByte(AddressMap.InterruptEnableRegister, SerialInterrupt);
@@ -208,7 +206,7 @@ public sealed class InterruptServiceTests
         var machineCycles = cpu.Step();
 
         machineCycles.Should().Be(5);
-        cpu.Ime.Should().BeFalse();
+        cpu.Ime.Should().Be(ImeState.Disabled);
         cpu.Registers.PC.Should().Be(SerialVector);
         cpu.Registers.SP.Should().Be(0xFFFF);
         bus.ReadByte(AddressMap.InterruptEnableRegister).Should().Be(0x35);
@@ -219,7 +217,7 @@ public sealed class InterruptServiceTests
     public void Step_SelectsInterruptUsingOldInterruptFlagWhenLowBytePushWritesInterruptFlag()
     {
         var (cpu, bus) = CpuTestFactory.CreateCpuWithBus();
-        cpu.Ime = true;
+        cpu.Ime = ImeState.Enabled;
         cpu.Registers.PC = 0x1200;
         cpu.Registers.SP = 0xFF11;
         bus.WriteByte(AddressMap.InterruptEnableRegister, SerialInterrupt);
@@ -228,7 +226,7 @@ public sealed class InterruptServiceTests
         var machineCycles = cpu.Step();
 
         machineCycles.Should().Be(5);
-        cpu.Ime.Should().BeFalse();
+        cpu.Ime.Should().Be(ImeState.Disabled);
         cpu.Registers.PC.Should().Be(SerialVector);
         cpu.Registers.SP.Should().Be(AddressMap.InterruptFlagRegister);
         bus.ReadByte(AddressMap.InterruptFlagRegister).Should().Be(0xE0);

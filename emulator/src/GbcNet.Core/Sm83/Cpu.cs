@@ -15,14 +15,9 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     private int _currentInstructionMachineCycles;
 
     /// <summary>
-    /// Indicates that HALT or an invalid-opcode hard lock has stopped opcode fetching.
+    /// Current opcode-fetch state.
     /// </summary>
-    public bool Halted { get; private set; }
-
-    /// <summary>
-    /// Indicates that STOP has suspended CPU fetches until a selected joypad line goes low.
-    /// </summary>
-    public bool Stopped { get; private set; }
+    public CpuRunState RunState { get; private set; }
 
     /// <summary>
     /// Indicates that the next opcode fetch must not advance PC because of the HALT bug.
@@ -30,14 +25,9 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     public bool HaltBugPending { get; private set; }
 
     /// <summary>
-    /// CPU-internal IME flag. When set, enabled and requested interrupts may be serviced.
+    /// CPU-internal interrupt master enable state.
     /// </summary>
-    public bool Ime { get; internal set; }
-
-    /// <summary>
-    /// Indicates that EI has scheduled IME to become set after one more instruction.
-    /// </summary>
-    public bool ImeEnablePending { get; private set; }
+    public ImeState Ime { get; internal set; }
 
     /// <summary>
     /// Mutable SM83 register file.
@@ -49,17 +39,36 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     /// Captures CPU execution state without allocating.
     /// </summary>
     internal CpuState CaptureState() =>
-        new(Registers.CaptureState(), Halted, Stopped, HaltBugPending, Ime, ImeEnablePending);
+        new(Registers.CaptureState(), RunState, HaltBugPending, Ime);
 
     internal static void ValidateState(CpuState state)
     {
+        if (!Enum.IsDefined(state.RunState))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(state),
+                state.RunState,
+                "CPU run state is invalid."
+            );
+        }
+
+        if (!Enum.IsDefined(state.Ime))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(state),
+                state.Ime,
+                "CPU interrupt master enable state is invalid."
+            );
+        }
+
         if (
-            (state.Halted && (state.Stopped || state.HaltBugPending))
-            || (state.Stopped && state.HaltBugPending)
-            || (state.HaltBugPending && state.Ime)
+            (
+                state.HaltBugPending
+                && (state.RunState is not CpuRunState.Running || state.Ime is not ImeState.Disabled)
+            )
             || (
-                state.ImeEnablePending
-                && (state.Halted || state.Stopped || state.HaltBugPending || state.Ime)
+                state.Ime is ImeState.EnablePending
+                && (state.RunState is not CpuRunState.Running || state.HaltBugPending)
             )
         )
         {
@@ -74,11 +83,9 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     {
         ValidateState(state);
         Registers.RestoreState(state.Registers);
-        Halted = state.Halted;
-        Stopped = state.Stopped;
+        RunState = state.RunState;
         HaltBugPending = state.HaltBugPending;
         Ime = state.Ime;
-        ImeEnablePending = state.ImeEnablePending;
     }
 
     /// <summary>
@@ -96,12 +103,18 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     {
         _currentInstructionMachineCycles = 0;
 
-        if (Stopped)
+        if (RunState is CpuRunState.Locked)
+        {
+            IdleCycle();
+            return _currentInstructionMachineCycles;
+        }
+
+        if (RunState is CpuRunState.Stopped)
         {
             return StepStopped();
         }
 
-        if (Halted)
+        if (RunState is CpuRunState.Halted)
         {
             return StepHalted();
         }
@@ -111,16 +124,15 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
             return interruptMachineCycles;
         }
 
-        var enableImeAfterThisInstruction = ImeEnablePending;
+        var enableImeAfterThisInstruction = Ime is ImeState.EnablePending;
         var machineCycles = ExecuteNextInstruction();
 
-        if (!enableImeAfterThisInstruction || !ImeEnablePending)
+        if (!enableImeAfterThisInstruction || Ime is not ImeState.EnablePending)
         {
             return machineCycles;
         }
 
-        Ime = true;
-        ImeEnablePending = false;
+        Ime = ImeState.Enabled;
 
         return machineCycles;
     }
@@ -130,8 +142,7 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     /// </summary>
     internal void DisableInterrupts()
     {
-        Ime = false;
-        ImeEnablePending = false;
+        Ime = ImeState.Disabled;
     }
 
     /// <summary>
@@ -139,9 +150,9 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     /// </summary>
     internal void EnableInterruptsAfterNextInstruction()
     {
-        if (!Ime && !ImeEnablePending)
+        if (Ime is ImeState.Disabled)
         {
-            ImeEnablePending = true;
+            Ime = ImeState.EnablePending;
         }
     }
 
@@ -150,8 +161,7 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     /// </summary>
     internal void EnableInterruptsImmediately()
     {
-        Ime = true;
-        ImeEnablePending = false;
+        Ime = ImeState.Enabled;
     }
 
     /// <summary>
@@ -161,19 +171,19 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     {
         if (!bus.Interrupts.HasRequestedAndEnabledInterrupt)
         {
-            Halted = true;
+            RunState = CpuRunState.Halted;
             return;
         }
 
         // EI followed by HALT with a pending interrupt fetches HALT twice instead of entering HALT
-        if (ImeEnablePending)
+        if (Ime is ImeState.EnablePending)
         {
             Registers.PC = unchecked((ushort)(Registers.PC - 1));
             return;
         }
 
         // With IME disabled and an interrupt pending, the next opcode is fetched without PC advance
-        if (!Ime)
+        if (Ime is ImeState.Disabled)
         {
             HaltBugPending = true;
         }
@@ -184,7 +194,7 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     /// </summary>
     internal void Stop()
     {
-        Halted = false;
+        RunState = CpuRunState.Running;
 
         if (bus.Clock.TryStartSpeedSwitch())
         {
@@ -192,7 +202,7 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
         }
 
         bus.Clock.ResetDivider();
-        Stopped = true;
+        RunState = CpuRunState.Stopped;
     }
 
     /// <summary>
@@ -255,8 +265,7 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
 
         if (InstructionSet.Find(opcode) is not { } instruction)
         {
-            Halted = true;
-            bus.Interrupts.InterruptEnable = 0;
+            RunState = CpuRunState.Locked;
             return _currentInstructionMachineCycles;
         }
 
@@ -272,7 +281,7 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     {
         if (bus.Joypad.HasSelectedLineLow)
         {
-            Stopped = false;
+            RunState = CpuRunState.Running;
         }
 
         return 0;
@@ -287,9 +296,9 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
             return _currentInstructionMachineCycles;
         }
 
-        Halted = false;
+        RunState = CpuRunState.Running;
 
-        if (Ime)
+        if (Ime is ImeState.Enabled)
         {
             ServiceInterrupt();
         }
@@ -299,7 +308,7 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
 
     private bool TryServiceInterrupt(out int machineCycles)
     {
-        if (!Ime || !bus.Interrupts.HasRequestedAndEnabledInterrupt)
+        if (Ime is not ImeState.Enabled || !bus.Interrupts.HasRequestedAndEnabledInterrupt)
         {
             machineCycles = 0;
             return false;
@@ -312,8 +321,8 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
 
     private void ServiceInterrupt()
     {
-        Halted = false;
-        Ime = false;
+        RunState = CpuRunState.Running;
+        Ime = ImeState.Disabled;
 
         IdleCycle();
         IdleCycle();
@@ -390,7 +399,7 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
 
     private void TickSingleMachineCycle()
     {
-        bus.VramDma.SetCpuHalted(Halted);
+        bus.VramDma.SetCpuHalted(RunState is CpuRunState.Halted);
         tickMachineCycle?.Invoke();
         _currentInstructionMachineCycles++;
     }
@@ -417,9 +426,22 @@ internal sealed class CpuInstructionExecutedEventArgs(byte opcode, Registers reg
 /// </summary>
 internal readonly record struct CpuState(
     RegistersState Registers,
-    bool Halted,
-    bool Stopped,
+    CpuRunState RunState,
     bool HaltBugPending,
-    bool Ime,
-    bool ImeEnablePending
+    ImeState Ime
 );
+
+internal enum CpuRunState
+{
+    Running = 0,
+    Halted = 1,
+    Stopped = 2,
+    Locked = 3,
+}
+
+internal enum ImeState
+{
+    Disabled = 0,
+    EnablePending = 1,
+    Enabled = 2,
+}

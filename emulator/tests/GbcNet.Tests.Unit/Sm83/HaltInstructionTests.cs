@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using GbcNet.Core.Memory;
+using GbcNet.Core.Sm83;
 using static GbcNet.Tests.Shared.Opcodes;
 
 namespace GbcNet.Tests.Unit.Sm83;
 
+// Pan Docs `halt.md`: HALT wakes for a pending enabled interrupt, while the HALT bug changes one fetch.
 public sealed class HaltInstructionTests
 {
     private const byte EnableInterruptsOpcode = 0xFB;
@@ -26,12 +28,12 @@ public sealed class HaltInstructionTests
         });
 
         cpu.Step().Should().Be(1);
-        cpu.Halted.Should().BeTrue();
+        cpu.RunState.Should().Be(CpuRunState.Halted);
         cpu.HaltBugPending.Should().BeFalse();
         cpu.Registers.PC.Should().Be(0x0101);
 
         cpu.Step().Should().Be(1);
-        cpu.Halted.Should().BeTrue();
+        cpu.RunState.Should().Be(CpuRunState.Halted);
         cpu.Registers.PC.Should().Be(0x0101);
     }
 
@@ -45,14 +47,14 @@ public sealed class HaltInstructionTests
         });
 
         cpu.Step().Should().Be(1);
-        cpu.Halted.Should().BeTrue();
+        cpu.RunState.Should().Be(CpuRunState.Halted);
 
         bus.WriteByte(AddressMap.InterruptEnableRegister, VBlankInterrupt);
         bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
 
         cpu.Step().Should().Be(1);
-        cpu.Halted.Should().BeFalse();
-        cpu.Ime.Should().BeFalse();
+        cpu.RunState.Should().Be(CpuRunState.Running);
+        cpu.Ime.Should().Be(ImeState.Disabled);
         cpu.Registers.PC.Should().Be(0x0101);
         bus.ReadByte(AddressMap.InterruptFlagRegister).Should().Be(0xE1);
 
@@ -72,7 +74,7 @@ public sealed class HaltInstructionTests
         bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
 
         cpu.Step().Should().Be(1);
-        cpu.Halted.Should().BeFalse();
+        cpu.RunState.Should().Be(CpuRunState.Running);
         cpu.HaltBugPending.Should().BeTrue();
         cpu.Registers.PC.Should().Be(0x0101);
 
@@ -113,10 +115,10 @@ public sealed class HaltInstructionTests
     public void Step_ServicesPendingInterruptAfterHaltWhenInterruptMasterEnableIsEnabled()
     {
         var (cpu, bus) = CpuTestFactory.CreateCpuWithBus(bytes => bytes[0x0100] = HaltOpcode);
-        cpu.Ime = true;
+        cpu.Ime = ImeState.Enabled;
 
         cpu.Step().Should().Be(1);
-        cpu.Halted.Should().BeTrue();
+        cpu.RunState.Should().Be(CpuRunState.Halted);
         cpu.HaltBugPending.Should().BeFalse();
         cpu.Registers.PC.Should().Be(0x0101);
 
@@ -124,8 +126,8 @@ public sealed class HaltInstructionTests
         bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
 
         cpu.Step().Should().Be(6);
-        cpu.Ime.Should().BeFalse();
-        cpu.Halted.Should().BeFalse();
+        cpu.Ime.Should().Be(ImeState.Disabled);
+        cpu.RunState.Should().Be(CpuRunState.Running);
         cpu.Registers.PC.Should().Be(VBlankVector);
         bus.ReadByte(StackReturnLowByteAddress).Should().Be(0x01);
         bus.ReadByte(StackReturnHighByteAddress).Should().Be(0x01);
@@ -144,19 +146,17 @@ public sealed class HaltInstructionTests
         bus.WriteByte(AddressMap.InterruptFlagRegister, VBlankInterrupt);
 
         cpu.Step().Should().Be(1);
-        cpu.Ime.Should().BeFalse();
-        cpu.ImeEnablePending.Should().BeTrue();
+        cpu.Ime.Should().Be(ImeState.EnablePending);
         cpu.Registers.PC.Should().Be(0x0101);
 
         cpu.Step().Should().Be(1);
-        cpu.Ime.Should().BeTrue();
-        cpu.ImeEnablePending.Should().BeFalse();
-        cpu.Halted.Should().BeFalse();
+        cpu.Ime.Should().Be(ImeState.Enabled);
+        cpu.RunState.Should().Be(CpuRunState.Running);
         cpu.HaltBugPending.Should().BeFalse();
         cpu.Registers.PC.Should().Be(0x0101);
 
         cpu.Step().Should().Be(5);
-        cpu.Ime.Should().BeFalse();
+        cpu.Ime.Should().Be(ImeState.Disabled);
         cpu.Registers.PC.Should().Be(VBlankVector);
         bus.ReadByte(StackReturnLowByteAddress).Should().Be(0x01);
         bus.ReadByte(StackReturnHighByteAddress).Should().Be(0x01);
@@ -169,7 +169,7 @@ public sealed class HaltInstructionTests
         var (source, sourceBus) = CpuTestFactory.CreateCpuWithBus(bytes =>
             bytes[0x0100] = HaltOpcode
         );
-        source.Ime = true;
+        source.Ime = ImeState.Enabled;
 
         source.Step().Should().Be(1);
         var state = source.CaptureState();

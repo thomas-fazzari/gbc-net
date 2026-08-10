@@ -3,6 +3,7 @@
 
 using GbcNet.Core.Joypad;
 using GbcNet.Core.Memory;
+using GbcNet.Core.Sm83;
 using static GbcNet.Tests.Shared.Opcodes;
 
 namespace GbcNet.Tests.Unit.Sm83;
@@ -25,7 +26,7 @@ public sealed class StopInstructionTests
         var machineCycles = cpu.Step();
 
         machineCycles.Should().Be(2);
-        cpu.Stopped.Should().BeTrue();
+        cpu.RunState.Should().Be(CpuRunState.Stopped);
         cpu.Registers.PC.Should().Be(EntryPoint + 2);
         cpu.Registers.B.Should().Be(0);
     }
@@ -50,7 +51,7 @@ public sealed class StopInstructionTests
         var machineCycles = cpu.Step();
 
         machineCycles.Should().Be(0);
-        cpu.Stopped.Should().BeTrue();
+        cpu.RunState.Should().Be(CpuRunState.Stopped);
         ticks.Should().Be(ticksAfterStopInstruction);
         cpu.Registers.PC.Should().Be(EntryPoint + 2);
         cpu.Registers.B.Should().Be(0);
@@ -77,7 +78,7 @@ public sealed class StopInstructionTests
         var wakeMachineCycles = cpu.Step();
 
         wakeMachineCycles.Should().Be(0);
-        cpu.Stopped.Should().BeFalse();
+        cpu.RunState.Should().Be(CpuRunState.Running);
         ticks.Should().Be(ticksAfterStopInstruction);
 
         cpu.Step().Should().Be(1);
@@ -123,13 +124,13 @@ public sealed class StopInstructionTests
         restored.RestoreState(state);
 
         restored.Step().Should().Be(source.Step());
-        restored.Stopped.Should().BeTrue();
+        restored.RunState.Should().Be(CpuRunState.Stopped);
 
         sourceBus.Joypad.SetButtonState(JoypadButton.Right, pressed: true);
         restoredBus.Joypad.SetButtonState(JoypadButton.Right, pressed: true);
 
         restored.Step().Should().Be(source.Step());
-        restored.Stopped.Should().BeFalse();
+        restored.RunState.Should().Be(CpuRunState.Running);
         restored.Step().Should().Be(source.Step());
         restored.Registers.B.Should().Be(1);
     }
