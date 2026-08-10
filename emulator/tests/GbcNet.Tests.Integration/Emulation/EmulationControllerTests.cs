@@ -440,7 +440,10 @@ public sealed class EmulationControllerTests
             new(
                 new BootRomOptions(),
                 AudioOutput,
-                new CartridgeBatterySaveFileService(DirectoryPath),
+                new CartridgeBatterySaveFileService(
+                    DirectoryPath,
+                    NullLogger<CartridgeBatterySaveFileService>.Instance
+                ),
                 new SaveStateFileService(DirectoryPath, NullLogger<SaveStateFileService>.Instance),
                 cheatCodes ?? CheatCodes,
                 static _ => { },

@@ -60,7 +60,10 @@ internal static class DependencyInjection
         ));
 
         // Saves
-        services.AddSingleton(new CartridgeBatterySaveFileService(UserDataPaths.SaveDirectoryPath));
+        services.AddSingleton(provider => new CartridgeBatterySaveFileService(
+            UserDataPaths.SaveDirectoryPath,
+            provider.GetRequiredService<ILogger<CartridgeBatterySaveFileService>>()
+        ));
         services.AddSingleton(provider => new SaveStateFileService(
             UserDataPaths.SaveStateDirectoryPath,
             provider.GetRequiredService<ILogger<SaveStateFileService>>()

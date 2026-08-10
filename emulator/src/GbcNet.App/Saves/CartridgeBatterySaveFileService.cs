@@ -3,22 +3,19 @@
 
 using System.Globalization;
 using GbcNet.Core.Cartridges;
+using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App.Saves;
 
 /// <summary>
 /// Persists cartridge battery-backed save data under the configured save directory.
 /// </summary>
-internal sealed class CartridgeBatterySaveFileService
+internal sealed class CartridgeBatterySaveFileService(
+    string saveDirectoryPath,
+    ILogger<CartridgeBatterySaveFileService> logger
+)
 {
     private const string SaveFileExtension = ".sav";
-
-    private readonly string _saveDirectoryPath;
-
-    internal CartridgeBatterySaveFileService(string saveDirectoryPath)
-    {
-        _saveDirectoryPath = saveDirectoryPath;
-    }
 
     public string? Load(Cartridge cartridge, ReadOnlySpan<byte> rom)
     {
@@ -64,10 +61,11 @@ internal sealed class CartridgeBatterySaveFileService
 
     public async Task SaveAsync(string savePath, ReadOnlyMemory<byte> save)
     {
+        var temporaryPath = $"{savePath}.{Guid.NewGuid():N}.tmp";
+
         try
         {
-            Directory.CreateDirectory(_saveDirectoryPath);
-            var temporaryPath = $"{savePath}.{Guid.NewGuid():N}.tmp";
+            Directory.CreateDirectory(saveDirectoryPath);
 
             await File.WriteAllBytesAsync(temporaryPath, save, CancellationToken.None);
             File.Move(sourceFileName: temporaryPath, destFileName: savePath, overwrite: true);
@@ -79,12 +77,31 @@ internal sealed class CartridgeBatterySaveFileService
                 innerException: exception
             );
         }
+        finally
+        {
+            FileUtils.TryDeleteRegularFile(
+                temporaryPath,
+                ex => CartridgeBatterySaveFileServiceLog.TemporarySaveFileCleanupFailed(logger, ex)
+            );
+        }
     }
 
     internal string GetBatterySavePath(Cartridge cartridge, ReadOnlySpan<byte> rom) =>
         Path.Combine(
-            path1: _saveDirectoryPath,
+            path1: saveDirectoryPath,
             path2: RomStorageIdentity.CreateFileStem(cartridge.Header.Title, rom)
                 + SaveFileExtension
         );
+}
+
+internal static partial class CartridgeBatterySaveFileServiceLog
+{
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Temporary battery save file cleanup failed."
+    )]
+    internal static partial void TemporarySaveFileCleanupFailed(
+        ILogger logger,
+        Exception exception
+    );
 }

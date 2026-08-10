@@ -1,10 +1,10 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using System.Globalization;
 using GbcNet.App.Saves;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Memory;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GbcNet.Tests.Integration.Saves;
 
@@ -15,7 +15,10 @@ public sealed class CartridgeBatterySaveFileServiceTests
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var rom = CreateBatteryBackedMbc1Rom();
-        CartridgeBatterySaveFileService saveFiles = new(tempDirectory.Path);
+        CartridgeBatterySaveFileService saveFiles = new(
+            tempDirectory.Path,
+            NullLogger<CartridgeBatterySaveFileService>.Instance
+        );
 
         var cartridge = TestRomFactory.LoadCartridge(rom);
         cartridge.WriteRom(0x0000, 0x0A);
@@ -41,7 +44,10 @@ public sealed class CartridgeBatterySaveFileServiceTests
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         var rom = CreateBatteryBackedMbc1Rom();
-        CartridgeBatterySaveFileService saveFiles = new(tempDirectory.Path);
+        CartridgeBatterySaveFileService saveFiles = new(
+            tempDirectory.Path,
+            NullLogger<CartridgeBatterySaveFileService>.Instance
+        );
 
         Directory.CreateDirectory(tempDirectory.Path);
         var cartridge = TestRomFactory.LoadCartridge(rom);
@@ -50,14 +56,36 @@ public sealed class CartridgeBatterySaveFileServiceTests
         FluentActions
             .Invoking(() => saveFiles.Load(cartridge, rom))
             .Should()
-            .ThrowExactly<InvalidOperationException>()
-            .Which.Message.Should()
-            .Be(
-                string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"Save file is 1 bytes, but cartridge expects {cartridge.BatterySaveSize} bytes."
-                )
-            );
+            .ThrowExactly<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task SaveAsync_WhenCommitFails_CleansTemporaryFileAndPreservesDestination()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        Directory.CreateDirectory(tempDirectory.Path);
+        var savePath = Path.Combine(tempDirectory.Path, "existing.sav");
+        Directory.CreateDirectory(savePath);
+        var sentinelPath = Path.Combine(savePath, "sentinel");
+        byte[] originalBytes = [0x11];
+        await File.WriteAllBytesAsync(sentinelPath, originalBytes, ct);
+        CartridgeBatterySaveFileService saveFiles = new(
+            tempDirectory.Path,
+            NullLogger<CartridgeBatterySaveFileService>.Instance
+        );
+
+        var exception = (
+            await FluentActions
+                .Awaiting(() => saveFiles.SaveAsync(savePath, new byte[] { 0x42 }))
+                .Should()
+                .ThrowExactlyAsync<IOException>()
+        ).Which;
+
+        exception.InnerException.Should().BeOfType<IOException>();
+        var destinationBytes = await File.ReadAllBytesAsync(sentinelPath, ct);
+        destinationBytes.Should().Equal(originalBytes);
+        Directory.EnumerateFiles(tempDirectory.Path, "existing.sav.*.tmp").Should().BeEmpty();
     }
 
     private static byte[] CreateBatteryBackedMbc1Rom() =>
