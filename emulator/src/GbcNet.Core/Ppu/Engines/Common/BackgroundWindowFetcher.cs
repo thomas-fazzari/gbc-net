@@ -23,6 +23,9 @@ internal sealed class BackgroundWindowFetcher
     private int _discardedPixels;
     private bool _windowYCondition;
     private bool _windowActiveThisLine;
+    private bool _windowTriggeredThisFrame;
+    private bool _dmgWx166FullLineActive;
+    private bool _windowDisablePending;
     private BackgroundFetcherStep _fetcherStep;
     private PixelFetcherSource _fetcherSource;
 
@@ -52,6 +55,9 @@ internal sealed class BackgroundWindowFetcher
             _discardedPixels,
             _windowYCondition,
             _windowActiveThisLine,
+            _windowTriggeredThisFrame,
+            _dmgWx166FullLineActive,
+            _windowDisablePending,
             _fetcherStep,
             _fetcherSource,
             WindowPenaltyDots,
@@ -63,18 +69,15 @@ internal sealed class BackgroundWindowFetcher
 
     internal static void ValidateState(BackgroundWindowFetcherState state)
     {
-        if (state.WindowLine is < 0 or > PpuGeometry.FrameHeight)
+        if (state.WindowLine is < 0 or > byte.MaxValue)
         {
-            throw new ArgumentException(
-                "Window line must be within the visible frame.",
-                nameof(state)
-            );
+            throw new ArgumentException("Window line must be between 0 and 255.", nameof(state));
         }
 
-        if (state.ActiveWindowLine is < 0 or >= PpuGeometry.FrameHeight)
+        if (state.ActiveWindowLine is < 0 or > byte.MaxValue)
         {
             throw new ArgumentException(
-                "Active window line must be within the visible frame.",
+                "Active window line must be between 0 and 255.",
                 nameof(state)
             );
         }
@@ -103,9 +106,21 @@ internal sealed class BackgroundWindowFetcher
             );
         }
 
-        if (state.WindowPenaltyDots is not (0 or WindowStartupPenaltyDots))
+        if (
+            state.WindowPenaltyDots < 0
+            || state.WindowPenaltyDots > PpuGeometry.ScanlineDots
+            || state.WindowPenaltyDots % WindowStartupPenaltyDots != 0
+        )
         {
             throw new ArgumentException("Window penalty dots are invalid.", nameof(state));
+        }
+
+        if (state.DmgWx166FullLineActive && !state.WindowTriggeredThisFrame)
+        {
+            throw new ArgumentException(
+                "A pending WX=166 line requires a prior window trigger.",
+                nameof(state)
+            );
         }
 
         if (state.BackgroundFifoCount is < 0 or > BackgroundFifoCapacity)
@@ -142,6 +157,14 @@ internal sealed class BackgroundWindowFetcher
         {
             throw new ArgumentException("Fetcher source is invalid.", nameof(state));
         }
+
+        if (state.WindowDisablePending && state.FetcherSource is not PixelFetcherSource.Window)
+        {
+            throw new ArgumentException(
+                "A pending Window disable requires the Window fetcher.",
+                nameof(state)
+            );
+        }
     }
 
     internal void RestoreState(BackgroundWindowFetcherState state)
@@ -156,6 +179,9 @@ internal sealed class BackgroundWindowFetcher
         _discardedPixels = state.DiscardedPixels;
         _windowYCondition = state.WindowYCondition;
         _windowActiveThisLine = state.WindowActiveThisLine;
+        _windowTriggeredThisFrame = state.WindowTriggeredThisFrame;
+        _dmgWx166FullLineActive = state.DmgWx166FullLineActive;
+        _windowDisablePending = state.WindowDisablePending;
         _fetcherStep = state.FetcherStep;
         _fetcherSource = state.FetcherSource;
         WindowPenaltyDots = state.WindowPenaltyDots;
@@ -195,12 +221,33 @@ internal sealed class BackgroundWindowFetcher
 
     internal void RefreshWindowYCondition(PpuEngineInputs inputs, byte lcdYCoordinate)
     {
-        if (
-            (inputs.LcdControl & PpuLcdControlRegister.WindowEnableMask) != 0
-            && lcdYCoordinate == inputs.WindowY
-        )
+        if (lcdYCoordinate == inputs.WindowY)
         {
             _windowYCondition = true;
+        }
+    }
+
+    internal void WriteLcdControl(byte previousValue, byte currentValue, bool usesCgbWindowBehavior)
+    {
+        var wasWindowEnabled = (previousValue & PpuLcdControlRegister.WindowEnableMask) != 0;
+        var isWindowEnabled = (currentValue & PpuLcdControlRegister.WindowEnableMask) != 0;
+        if (wasWindowEnabled == isWindowEnabled)
+        {
+            return;
+        }
+
+        if (isWindowEnabled)
+        {
+            _windowDisablePending = false;
+            return;
+        }
+
+        _windowActiveThisLine = false;
+        _windowDisablePending = _fetcherSource is PixelFetcherSource.Window;
+        _dmgWx166FullLineActive = false;
+        if (usesCgbWindowBehavior)
+        {
+            _windowYCondition = false;
         }
     }
 
@@ -211,12 +258,18 @@ internal sealed class BackgroundWindowFetcher
         _windowLine = 0;
         _activeWindowLine = 0;
         _windowYCondition = false;
+        _windowTriggeredThisFrame = false;
+        _dmgWx166FullLineActive = false;
+        _windowDisablePending = false;
     }
 
     internal void ResetForVBlank()
     {
         _windowYCondition = false;
         _windowLine = 0;
+        _windowTriggeredThisFrame = false;
+        _dmgWx166FullLineActive = false;
+        _windowDisablePending = false;
     }
 
     internal void ResetRenderer(PpuEngineBase engine)
@@ -224,6 +277,7 @@ internal sealed class BackgroundWindowFetcher
         _discardedPixels = 0;
         WindowPenaltyDots = 0;
         _windowActiveThisLine = false;
+        _windowDisablePending = false;
         ClearBackgroundFetcher(PixelFetcherSource.Background, engine);
     }
 
@@ -232,8 +286,32 @@ internal sealed class BackgroundWindowFetcher
         WindowPenaltyDots = 0;
     }
 
+    internal void BeginScanline(PpuEngineInputs inputs, PpuEngineBase engine)
+    {
+        if (!_dmgWx166FullLineActive)
+        {
+            return;
+        }
+
+        if (inputs.WindowX != MaxVisibleWindowX || !CanStartWindow(inputs, engine))
+        {
+            _dmgWx166FullLineActive = false;
+            return;
+        }
+
+        _windowDisablePending = false;
+        StartWindow();
+        ClearBackgroundFetcher(PixelFetcherSource.Window, engine);
+    }
+
     internal void Advance(PpuEngineInputs inputs, byte lcdYCoordinate, PpuEngineBase engine)
     {
+        if (_windowDisablePending && _fetcherStep is BackgroundFetcherStep.GetTile)
+        {
+            _windowDisablePending = false;
+            ClearBackgroundFetcher(PixelFetcherSource.Background, engine);
+        }
+
         switch (_fetcherStep)
         {
             case BackgroundFetcherStep.GetTile:
@@ -256,18 +334,23 @@ internal sealed class BackgroundWindowFetcher
         }
     }
 
-    internal void TryStartWindow(PpuEngineInputs inputs, int renderedPixels, PpuEngineBase engine)
+    internal bool TryTriggerWindow(PpuEngineInputs inputs, int renderedPixels, PpuEngineBase engine)
     {
-        if (
-            !CanStartWindow(inputs, engine)
-            || renderedPixels < Math.Max(0, inputs.WindowX - WindowXScreenOffset)
-        )
+        if (!IsWindowTriggerPosition(inputs.WindowX, renderedPixels))
         {
-            return;
+            return false;
         }
 
-        StartWindow();
-        ClearBackgroundFetcher(PixelFetcherSource.Window, engine);
+        if (CanStartWindow(inputs, engine))
+        {
+            StartWindow();
+            _dmgWx166FullLineActive =
+                !engine.UsesCgbWindowBehavior && inputs.WindowX == MaxVisibleWindowX;
+            ClearBackgroundFetcher(PixelFetcherSource.Window, engine);
+            return false;
+        }
+
+        return ShouldInsertDisabledWindowPixel(inputs, engine);
     }
 
     internal void TryStartWindowForTimingOnly(PpuEngineInputs inputs, PpuEngineBase engine)
@@ -275,6 +358,8 @@ internal sealed class BackgroundWindowFetcher
         if (CanStartWindow(inputs, engine))
         {
             StartWindow();
+            _dmgWx166FullLineActive =
+                !engine.UsesCgbWindowBehavior && inputs.WindowX == MaxVisibleWindowX;
         }
     }
 
@@ -398,12 +483,24 @@ internal sealed class BackgroundWindowFetcher
         && inputs.WindowX <= MaxVisibleWindowX
         && engine.IsWindowEnabled(inputs);
 
+    private bool ShouldInsertDisabledWindowPixel(PpuEngineInputs inputs, PpuEngineBase engine) =>
+        !engine.UsesCgbWindowBehavior
+        && _windowYCondition
+        && _windowTriggeredThisFrame
+        && (inputs.LcdControl & PpuLcdControlRegister.WindowEnableMask) == 0
+        && (inputs.LcdControl & PpuLcdControlRegister.BackgroundWindowEnableOrPriorityMask) != 0
+        && ((inputs.WindowX + _latchedScrollX) & ScrollXLowBitsMask) == ScrollXLowBitsMask;
+
+    private static bool IsWindowTriggerPosition(byte windowX, int renderedPixels) =>
+        windowX == 0 ? renderedPixels == 0 : renderedPixels + WindowXScreenOffset == windowX;
+
     private void StartWindow()
     {
         WindowPenaltyDots += WindowStartupPenaltyDots;
         _windowActiveThisLine = true;
+        _windowTriggeredThisFrame = true;
         _activeWindowLine = _windowLine;
-        _windowLine++;
+        _windowLine = (_windowLine + 1) & byte.MaxValue;
     }
 
     private void ClearBackgroundFetcher(PixelFetcherSource source, PpuEngineBase engine)
@@ -442,6 +539,9 @@ internal readonly record struct BackgroundWindowFetcherState(
     int DiscardedPixels,
     bool WindowYCondition,
     bool WindowActiveThisLine,
+    bool WindowTriggeredThisFrame,
+    bool DmgWx166FullLineActive,
+    bool WindowDisablePending,
     BackgroundFetcherStep FetcherStep,
     PixelFetcherSource FetcherSource,
     int WindowPenaltyDots,

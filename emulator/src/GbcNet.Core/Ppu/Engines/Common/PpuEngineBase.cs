@@ -110,6 +110,8 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
 
     protected abstract int ObjectPenaltyDots { get; }
 
+    internal abstract bool UsesCgbWindowBehavior { get; }
+
     protected virtual bool RequestsMode2InterruptBeforeVBlank => false;
 
     public PpuEngineTickResult Tick(int tCycles, PpuEngineInputs inputs, bool renderFrame)
@@ -231,6 +233,11 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
         return PpuInterruptRequests.None;
     }
 
+    public void WriteLcdControl(byte previousValue, PpuEngineInputs inputs)
+    {
+        BgWindowFetcher.WriteLcdControl(previousValue, inputs.LcdControl, UsesCgbWindowBehavior);
+    }
+
     public void DisableLcd()
     {
         Timing.DisableLcd();
@@ -316,7 +323,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
 
     protected abstract void ClearObjects();
 
-    protected abstract void TryRenderPixel(PpuEngineInputs inputs);
+    protected abstract void TryRenderPixel(PpuEngineInputs inputs, bool insertDisabledWindowPixel);
 
     #region BackgroundWindowFetcher callbacks
 
@@ -432,7 +439,7 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
             return;
         }
 
-        BeginRenderingScanline();
+        BeginRenderingScanline(inputs);
         BgWindowFetcher.TryStartWindowForTimingOnly(inputs, this);
     }
 
@@ -442,20 +449,25 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
 
         if (!_renderingScanline)
         {
-            BeginRenderingScanline();
+            BeginRenderingScanline(inputs);
         }
 
         for (var dot = 0; dot < dots && RenderedPixels < PpuGeometry.FrameWidth; dot++)
         {
-            BgWindowFetcher.TryStartWindow(inputs, RenderedPixels, this);
+            var insertDisabledWindowPixel = BgWindowFetcher.TryTriggerWindow(
+                inputs,
+                RenderedPixels,
+                this
+            );
             BgWindowFetcher.Advance(inputs, LcdYCoordinate, this);
-            TryRenderPixel(inputs);
+            TryRenderPixel(inputs, insertDisabledWindowPixel);
         }
     }
 
-    private void BeginRenderingScanline()
+    private void BeginRenderingScanline(PpuEngineInputs inputs)
     {
         ResetRenderer();
+        BgWindowFetcher.BeginScanline(inputs, this);
         _renderingScanline = true;
     }
 

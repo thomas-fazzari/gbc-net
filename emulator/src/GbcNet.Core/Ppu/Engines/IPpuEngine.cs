@@ -71,6 +71,11 @@ internal interface IPpuEngine
     PpuInterruptRequests EnableLcd(PpuEngineInputs inputs, bool renderFrame);
 
     /// <summary>
+    /// Applies an LCDC write while the LCD remains enabled.
+    /// </summary>
+    void WriteLcdControl(byte previousValue, PpuEngineInputs inputs);
+
+    /// <summary>
     /// Applies the model-specific LCD-disable transition and clears transient rendering state.
     /// </summary>
     void DisableLcd();

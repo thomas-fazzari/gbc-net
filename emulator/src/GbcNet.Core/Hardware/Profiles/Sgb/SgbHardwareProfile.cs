@@ -52,6 +52,7 @@ internal sealed class SgbHardwareProfile : IHardwareProfile
 
     public IPpuEngine CreatePpuEngine() =>
         new DmgPixelRulesPpuEngine<DmgShadePixelOutput>(
+            usesCgbWindowBehavior: false,
             requestsMode2InterruptBeforeVBlank: false,
             stateWrapper: static s => new DmgPpuEngineState(s)
         );

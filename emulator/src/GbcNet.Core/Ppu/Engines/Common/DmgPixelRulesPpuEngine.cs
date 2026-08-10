@@ -27,6 +27,7 @@ internal interface IDmgPixelOutput
 /// state in the profile-specific <see cref="IPpuEngineState"/> subtype for JSON discrimination.
 /// </remarks>
 internal sealed class DmgPixelRulesPpuEngine<TPixelOutput>(
+    bool usesCgbWindowBehavior,
     bool requestsMode2InterruptBeforeVBlank,
     Func<DmgPixelRulesPpuEngineState, IPpuEngineState> stateWrapper
 ) : PpuEngineBase(TPixelOutput.BytesPerPixel, TPixelOutput.PixelFormat)
@@ -104,6 +105,8 @@ internal sealed class DmgPixelRulesPpuEngine<TPixelOutput>(
 
     protected override int ObjectPenaltyDots => _objects.PenaltyDots;
 
+    internal override bool UsesCgbWindowBehavior => usesCgbWindowBehavior;
+
     protected override void EnsureObjectsSelected(PpuEngineInputs inputs)
     {
         _objects.EnsureSelected(
@@ -161,17 +164,30 @@ internal sealed class DmgPixelRulesPpuEngine<TPixelOutput>(
         return true;
     }
 
-    protected override void TryRenderPixel(PpuEngineInputs inputs)
+    protected override void TryRenderPixel(PpuEngineInputs inputs, bool insertDisabledWindowPixel)
     {
-        if (BgWindowFetcher.BackgroundFifoCount == 0 || RenderedPixels == PpuGeometry.FrameWidth)
+        if (RenderedPixels == PpuGeometry.FrameWidth)
         {
             return;
         }
 
-        var colorId = PopBackgroundPixel();
-        if (BgWindowFetcher.ShouldDiscardPixel())
+        byte colorId;
+        if (insertDisabledWindowPixel)
         {
-            return;
+            colorId = 0;
+        }
+        else
+        {
+            if (BgWindowFetcher.BackgroundFifoCount == 0)
+            {
+                return;
+            }
+
+            colorId = PopBackgroundPixel();
+            if (BgWindowFetcher.ShouldDiscardPixel())
+            {
+                return;
+            }
         }
 
         TPixelOutput.WritePixel(

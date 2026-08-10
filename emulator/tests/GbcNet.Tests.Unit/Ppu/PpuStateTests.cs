@@ -18,6 +18,7 @@ public sealed class PpuStateTests
         Dmg = 0,
         CgbDmgCompatibility = 1,
         Cgb = 2,
+        Sgb = 3,
     }
 
     private const byte LcdEnable = 0x80;
@@ -28,6 +29,23 @@ public sealed class PpuStateTests
 
     public static TheoryData<PpuTestProfile> Profiles =>
         [PpuTestProfile.Dmg, PpuTestProfile.CgbDmgCompatibility, PpuTestProfile.Cgb];
+
+    public static TheoryData<PpuTestProfile> WindowProfiles =>
+        [
+            PpuTestProfile.Dmg,
+            PpuTestProfile.Sgb,
+            PpuTestProfile.CgbDmgCompatibility,
+            PpuTestProfile.Cgb,
+        ];
+
+    public static TheoryData<PpuTestProfile, bool> WindowYResetProfiles =>
+        new()
+        {
+            { PpuTestProfile.Dmg, false },
+            { PpuTestProfile.Sgb, false },
+            { PpuTestProfile.CgbDmgCompatibility, true },
+            { PpuTestProfile.Cgb, true },
+        };
 
     [Theory]
     [MemberData(nameof(Profiles))]
@@ -124,6 +142,7 @@ public sealed class PpuStateTests
         var wrongEngine = source.CaptureState() with
         {
             Engine = new DmgPixelRulesPpuEngine<DmgShadePixelOutput>(
+                usesCgbWindowBehavior: false,
                 requestsMode2InterruptBeforeVBlank: false,
                 stateWrapper: static s => new DmgPpuEngineState(s)
             ).CaptureState(),
@@ -209,12 +228,7 @@ public sealed class PpuStateTests
         var hardwareProfile = CreateProfile(profile);
         var source = CreatePpu(hardwareProfile, out var sourceInterrupts);
         ConfigureBackground(source);
-        source.WriteRegister(AddressMap.WindowYRegister, 0);
-        source.WriteRegister(AddressMap.WindowXRegister, 7);
-        source.WriteRegister(
-            AddressMap.LcdControlRegister,
-            LcdEnable | BackgroundEnable | WindowEnable | UnsignedBackgroundTileData
-        );
+        ConfigureWindow(source);
         source.Tick(110);
         sourceInterrupts.SetInterruptFlag(0);
 
@@ -224,6 +238,253 @@ public sealed class PpuStateTests
         restored.RestoreState(state);
 
         DriveIdenticallyToCompletedFrame(source, sourceInterrupts, restored, restoredInterrupts);
+    }
+
+    [Theory]
+    [MemberData(nameof(WindowProfiles))]
+    public void WindowYCondition_LatchesBeforeWindowIsEnabled(PpuTestProfile profile)
+    {
+        // Pan Docs `window-behavior.md`: WY=LY latches at scanline start independently of WX.
+        var ppu = CreatePpu(CreateProfile(profile), out _);
+        ConfigureWindow(ppu, enabled: false);
+        ppu.WriteRegister(
+            AddressMap.LcdControlRegister,
+            LcdEnable | BackgroundEnable | WindowEnable | UnsignedBackgroundTileData
+        );
+
+        ppu.Tick(81);
+
+        GetCommon(ppu.CaptureState().Engine)
+            .BackgroundWindowFetcher.WindowActiveThisLine.Should()
+            .BeTrue();
+    }
+
+    [Theory]
+    [MemberData(nameof(WindowYResetProfiles))]
+    public void WindowYCondition_ClearsOnWindowDisableOnlyOnCgbHardware(
+        PpuTestProfile profile,
+        bool resetsWindowYCondition
+    )
+    {
+        // Pan Docs `window-behavior.md`: a falling LCDC.5 resets the Y condition on GBC.
+        var ppu = CreatePpu(CreateProfile(profile), out _);
+        const byte enabledControl =
+            LcdEnable | BackgroundEnable | WindowEnable | UnsignedBackgroundTileData;
+
+        ConfigureWindow(ppu);
+        ppu.WriteRegister(
+            AddressMap.LcdControlRegister,
+            LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
+        );
+        ppu.WriteRegister(AddressMap.LcdControlRegister, enabledControl);
+
+        ppu.Tick(81);
+
+        var window = GetCommon(ppu.CaptureState().Engine).BackgroundWindowFetcher;
+        window.WindowYCondition.Should().Be(!resetsWindowYCondition);
+        window.WindowActiveThisLine.Should().Be(!resetsWindowYCondition);
+    }
+
+    [Fact]
+    public void WindowTrigger_CanRepeatAfterLcdcDisableOnDmg()
+    {
+        // Pan Docs `window-behavior.md`: clearing LCDC.5 rearms the trigger in one scanline.
+        var ppu = CreatePpu(DmgHardwareProfile.Instance, out _);
+        const byte enabledControl =
+            LcdEnable | BackgroundEnable | WindowEnable | UnsignedBackgroundTileData;
+        ConfigureWindow(ppu);
+        ppu.Tick(81);
+
+        ppu.WriteRegister(
+            AddressMap.LcdControlRegister,
+            LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
+        );
+        ppu.WriteRegister(AddressMap.LcdControlRegister, enabledControl);
+        ppu.Tick(1);
+
+        var window = GetCommon(ppu.CaptureState().Engine).BackgroundWindowFetcher;
+        window.WindowLine.Should().Be(2);
+        window.WindowPenaltyDots.Should().Be(12);
+    }
+
+    [Fact]
+    public void RestoreState_ContinuesWindowDisableAtFetcherBoundary()
+    {
+        // Pan Docs `pixel-fifo.md`: LCDC changes affect the BG/Window tile fetcher boundary.
+        var source = CreatePpu(DmgHardwareProfile.Instance, out _);
+        ConfigureWindow(source);
+        source.Tick(81);
+        source.WriteRegister(
+            AddressMap.LcdControlRegister,
+            LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
+        );
+        GetCommon(source.CaptureState().Engine)
+            .BackgroundWindowFetcher.WindowDisablePending.Should()
+            .BeTrue();
+        var restored = CreatePpu(DmgHardwareProfile.Instance, out _);
+        restored.RestoreState(source.CaptureState());
+
+        source.Tick(1);
+        restored.Tick(1);
+
+        GetCommon(restored.CaptureState().Engine)
+            .BackgroundWindowFetcher.FetcherSource.Should()
+            .Be(PixelFetcherSource.Background);
+        restored
+            .CaptureState()
+            .Should()
+            .BeEquivalentTo(source.CaptureState(), options => options.WithStrictOrdering());
+    }
+
+    [Theory]
+    [MemberData(nameof(WindowYResetProfiles))]
+    public void DisabledWindow_InsertsColorZeroOnlyOnMonochromeTileBoundary(
+        PpuTestProfile profile,
+        bool usesCgbWindowBehavior
+    )
+    {
+        // Pan Docs `window-behavior.md`: pre-CGB LCDC.5 disable inserts color 0 at a BG tile boundary.
+        var ppu = CreatePpu(CreateProfile(profile), out _);
+        ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, 0xE4);
+
+        WriteBackgroundColor(ppu, paletteIndex: 0, colorId: 1, rgb555: 0x1234);
+        WriteTileRow(ppu, AddressMap.VideoRamStart, row: 0, lowByte: 0xFF, highByte: 0);
+        WriteTileRow(ppu, AddressMap.VideoRamStart, row: 1, lowByte: 0xFF, highByte: 0);
+
+        ConfigureWindow(ppu);
+
+        ppu.Tick(452);
+
+        ppu.WriteRegister(AddressMap.WindowXRegister, 15);
+        ppu.WriteRegister(
+            AddressMap.LcdControlRegister,
+            LcdEnable | BackgroundEnable | UnsignedBackgroundTileData
+        );
+
+        ppu.Tick(200);
+
+        var frameBuffer = GetCommon(ppu.CaptureState().Engine).FrameBuffer;
+        var bytesPerPixel = frameBuffer.Length / (PpuGeometry.FrameWidth * PpuGeometry.FrameHeight);
+        var previousPixel = frameBuffer.AsSpan(
+            (PpuGeometry.FrameWidth + 7) * bytesPerPixel,
+            bytesPerPixel
+        );
+        var boundaryPixel = frameBuffer.AsSpan(
+            (PpuGeometry.FrameWidth + 8) * bytesPerPixel,
+            bytesPerPixel
+        );
+        if (usesCgbWindowBehavior)
+        {
+            boundaryPixel.ToArray().Should().Equal(previousPixel.ToArray());
+        }
+        else
+        {
+            boundaryPixel.ToArray().Should().NotEqual(previousPixel.ToArray());
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(WindowYResetProfiles))]
+    public void WindowX166_CarriesFullLineOnlyOnMonochromeHardware(
+        PpuTestProfile profile,
+        bool usesCgbWindowBehavior
+    )
+    {
+        // Pan Docs `window-behavior.md`: monochrome WX=166 spans the screen one line late.
+        var ppu = CreatePpu(CreateProfile(profile), out _);
+        ConfigureWindow(ppu, windowX: 166);
+
+        ppu.Tick(452 + 85);
+
+        var window = GetCommon(ppu.CaptureState().Engine).BackgroundWindowFetcher;
+        window.WindowActiveThisLine.Should().Be(!usesCgbWindowBehavior);
+        window
+            .FetcherSource.Should()
+            .Be(usesCgbWindowBehavior ? PixelFetcherSource.Background : PixelFetcherSource.Window);
+
+        ppu.Tick(PpuGeometry.ScanlineDots);
+
+        window = GetCommon(ppu.CaptureState().Engine).BackgroundWindowFetcher;
+        window.WindowActiveThisLine.Should().Be(!usesCgbWindowBehavior);
+        window
+            .FetcherSource.Should()
+            .Be(usesCgbWindowBehavior ? PixelFetcherSource.Background : PixelFetcherSource.Window);
+    }
+
+    [Fact]
+    public void RestoreState_ContinuesActiveDmgWindowX166Lines()
+    {
+        var source = CreatePpu(DmgHardwareProfile.Instance, out _);
+        ConfigureWindow(source, windowX: 166);
+        source.Tick(452);
+        GetCommon(source.CaptureState().Engine)
+            .BackgroundWindowFetcher.DmgWx166FullLineActive.Should()
+            .BeTrue();
+
+        var restored = CreatePpu(DmgHardwareProfile.Instance, out _);
+        restored.RestoreState(source.CaptureState());
+
+        source.Tick(85 + PpuGeometry.ScanlineDots);
+        restored.Tick(85 + PpuGeometry.ScanlineDots);
+
+        restored
+            .CaptureState()
+            .Should()
+            .BeEquivalentTo(source.CaptureState(), options => options.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void ValidateState_RejectsActiveWindowX166WithoutPriorTrigger()
+    {
+        var ppu = CreatePpu(DmgHardwareProfile.Instance, out _);
+        var state = ppu.CaptureState();
+        var engine = state.Engine.Should().BeOfType<DmgPpuEngineState>().Subject;
+        var invalidWindow = engine.PixelRules.Common.BackgroundWindowFetcher with
+        {
+            WindowTriggeredThisFrame = false,
+            DmgWx166FullLineActive = true,
+        };
+        var invalid = state with
+        {
+            Engine = new DmgPpuEngineState(
+                engine.PixelRules with
+                {
+                    Common = engine.PixelRules.Common with
+                    {
+                        BackgroundWindowFetcher = invalidWindow,
+                    },
+                }
+            ),
+        };
+
+        FluentActions
+            .Invoking(() => ppu.ValidateState(invalid))
+            .Should()
+            .ThrowExactly<ArgumentException>();
+
+        var invalidDisable = state with
+        {
+            Engine = new DmgPpuEngineState(
+                engine.PixelRules with
+                {
+                    Common = engine.PixelRules.Common with
+                    {
+                        BackgroundWindowFetcher = engine
+                            .PixelRules
+                            .Common
+                            .BackgroundWindowFetcher with
+                        {
+                            WindowDisablePending = true,
+                            FetcherSource = PixelFetcherSource.Background,
+                        },
+                    },
+                }
+            ),
+        };
+        FluentActions
+            .Invoking(() => ppu.ValidateState(invalidDisable))
+            .Should()
+            .ThrowExactly<ArgumentException>();
     }
 
     [Theory]
@@ -367,6 +628,7 @@ public sealed class PpuStateTests
         profile switch
         {
             PpuTestProfile.Dmg => DmgHardwareProfile.Instance,
+            PpuTestProfile.Sgb => SgbHardwareProfile.Instance,
             PpuTestProfile.CgbDmgCompatibility => new CgbHardwareProfile(
                 CgbOperatingMode.DmgCompatibility
             ),
@@ -396,6 +658,21 @@ public sealed class PpuStateTests
     {
         WriteTileRow(ppu, AddressMap.VideoRamStart, 0, lowByte: 0xAA, highByte: 0x55);
         ppu.VideoRam.Write(0x9800, 0);
+    }
+
+    private static void ConfigureWindow(PpuController ppu, byte windowX = 7, bool enabled = true)
+    {
+        ppu.WriteRegister(AddressMap.WindowYRegister, 0);
+        ppu.WriteRegister(AddressMap.WindowXRegister, windowX);
+        ppu.WriteRegister(
+            AddressMap.LcdControlRegister,
+            (byte)(
+                LcdEnable
+                | BackgroundEnable
+                | UnsignedBackgroundTileData
+                | (enabled ? WindowEnable : 0)
+            )
+        );
     }
 
     private static void WriteObject(

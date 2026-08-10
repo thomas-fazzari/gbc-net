@@ -753,6 +753,29 @@ public sealed class PpuControllerTests
     }
 
     [Fact]
+    public void Renderer_WindowXZeroStartsBeforeFineScrollDiscard()
+    {
+        // Pan Docs `window-behavior.md`: WX=0 switches before the SCX fine-scroll discard.
+        var ppu = CreatePpu();
+        ppu.WriteRegister(AddressMap.BackgroundPaletteRegister, IdentityPalette);
+        ppu.WriteRegister(AddressMap.ScrollXRegister, 0x03);
+        ppu.WriteRegister(AddressMap.WindowXRegister, 0x00);
+        ppu.VideoRam.Write(0x9C00, 0x01);
+        WriteTileRow(ppu, 0x8010, row: 0, lowByte: 0x10, highByte: 0x00);
+
+        var frame = RenderSecondFrame(
+            ppu,
+            LcdEnable
+                | BackgroundEnable
+                | UnsignedBackgroundTileData
+                | WindowEnable
+                | WindowTileMap1
+        );
+
+        frame.Pixels.Span[0].Should().Be(0x01);
+    }
+
+    [Fact]
     public void Renderer_IncrementsWindowLineOnlyWhenWindowStarts()
     {
         var ppu = CreatePpu();
@@ -1271,6 +1294,7 @@ public sealed class PpuControllerTests
         new(
             interrupts ?? new InterruptController(),
             new DmgPixelRulesPpuEngine<DmgShadePixelOutput>(
+                usesCgbWindowBehavior: false,
                 requestsMode2InterruptBeforeVBlank: false,
                 stateWrapper: static s => new DmgPpuEngineState(s)
             ),

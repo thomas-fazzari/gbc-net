@@ -528,6 +528,7 @@ internal sealed class PpuController(
     private void WriteLcdControl(byte value)
     {
         var wasEnabled = IsLcdEnabled;
+        var previousValue = _control;
         _control = value;
 
         if (wasEnabled && !IsLcdEnabled)
@@ -540,6 +541,12 @@ internal sealed class PpuController(
         if (!wasEnabled && IsLcdEnabled)
         {
             RequestInterrupts(engine.EnableLcd(EngineInputs, VideoRenderingEnabled));
+            return;
+        }
+
+        if (wasEnabled)
+        {
+            engine.WriteLcdControl(previousValue, EngineInputs);
         }
     }
 

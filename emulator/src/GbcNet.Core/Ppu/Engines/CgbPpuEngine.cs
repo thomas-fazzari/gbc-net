@@ -89,6 +89,8 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
 
     protected override int ObjectPenaltyDots => _objects.PenaltyDots;
 
+    internal override bool UsesCgbWindowBehavior => true;
+
     protected override bool RequestsMode2InterruptBeforeVBlank => true;
 
     protected override int Mode2InterruptLeadDots => Mode2InterruptLeadDotsValue;
@@ -146,8 +148,15 @@ internal sealed class CgbPpuEngine() : PpuEngineBase(Rgb555BytesPerPixel, LcdPix
         return true;
     }
 
-    protected override void TryRenderPixel(PpuEngineInputs inputs)
+    protected override void TryRenderPixel(PpuEngineInputs inputs, bool insertDisabledWindowPixel)
     {
+        if (insertDisabledWindowPixel)
+        {
+            WriteRgb555Pixel(MixPixel(backgroundColorId: 0, backgroundAttributes: 0, inputs));
+            RenderedPixels++;
+            return;
+        }
+
         if (BgWindowFetcher.BackgroundFifoCount == 0 || RenderedPixels == PpuGeometry.FrameWidth)
         {
             return;

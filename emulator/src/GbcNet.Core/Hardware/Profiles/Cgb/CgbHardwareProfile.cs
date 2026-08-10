@@ -60,6 +60,7 @@ internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHard
         OperatingMode is CgbOperatingMode.Cgb
             ? new CgbPpuEngine()
             : new DmgPixelRulesPpuEngine<CgbDmgCompatibilityPixelOutput>(
+                usesCgbWindowBehavior: true,
                 requestsMode2InterruptBeforeVBlank: true,
                 stateWrapper: static s => new CgbDmgCompatibilityPpuEngineState(s)
             );
