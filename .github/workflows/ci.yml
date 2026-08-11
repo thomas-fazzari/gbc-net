@@ -20,6 +20,7 @@ jobs:
   verify:
     name: Verify (${{ matrix.configuration }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       matrix:
         include:
@@ -40,7 +41,15 @@ jobs:
         run: make install
 
       - name: Lint, build, and test
-        run: make lint ${{ matrix.target }} CONFIGURATION=${{ matrix.configuration }}
+        run: make lint ${{ matrix.target }} CONFIGURATION=${{ matrix.configuration }} TEST_ARGS="--results-directory TestResults --hangdump --hangdump-timeout 3m"
+
+      - name: Upload hang dumps
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: hangdumps-${{ matrix.configuration }}
+          path: "**/TestResults/*.dmp"
+          if-no-files-found: ignore
 
       - name: Upload coverage to Codecov
         if: matrix.configuration == 'Release'
