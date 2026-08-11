@@ -3,6 +3,7 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:converters="using:Avalonia.Data.Converters"
   xmlns:library="using:GbcNet.App.Library"
+  xmlns:ti="using:TablerIcons"
   x:Class="GbcNet.App.Library.LibraryView"
 >
   <UserControl.Styles>
@@ -10,25 +11,25 @@
       <Setter Property="Height" Value="34" />
       <Setter Property="MinWidth" Value="220" />
       <Setter Property="Padding" Value="10,0" />
-      <Setter Property="Background" Value="{DynamicResource ChromeSurfaceBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="{DynamicResource ChromeCornerRadius}" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
       <Setter Property="FontSize" Value="12" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
     <Style Selector="TextBox.library-search:focus">
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SysPrimaryBrush}" />
     </Style>
     <Style Selector="ComboBox.library-filter">
       <Setter Property="Height" Value="34" />
       <Setter Property="HorizontalAlignment" Value="Stretch" />
       <Setter Property="Padding" Value="8,0" />
-      <Setter Property="Background" Value="{DynamicResource ChromeSurfaceBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
       <Setter Property="FontSize" Value="12" />
     </Style>
     <Style Selector="ComboBox.library-filter.hardware-filter">
@@ -38,10 +39,10 @@
       <Setter Property="MinWidth" Value="104" />
     </Style>
     <Style Selector="ComboBox.library-filter:pointerover">
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeMutedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SysTextMutedBrush}" />
     </Style>
     <Style Selector="ComboBox.library-filter:focus">
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SysPrimaryBrush}" />
     </Style>
     <Style Selector="Button.library-toolbar-button, ToggleButton.library-toolbar-button">
       <Setter Property="Width" Value="34" />
@@ -49,31 +50,31 @@
       <Setter Property="MinWidth" Value="34" />
       <Setter Property="Padding" Value="0" />
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="{DynamicResource ChromeCornerRadius}" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeMutedBrush}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysTextMutedBrush}" />
       <Setter Property="HorizontalContentAlignment" Value="Center" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
     <Style Selector="Button.library-toolbar-button:pointerover, ToggleButton.library-toolbar-button:pointerover">
-      <Setter Property="Background" Value="{DynamicResource ChromeHoverBrush}" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+      <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
     </Style>
     <Style Selector="ToggleButton.library-toolbar-button:checked /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
     </Style>
     <Style Selector="ToggleButton.library-toolbar-button:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
     </Style>
     <Style Selector="ToggleButton.library-toolbar-button:checked:pressed /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
     </Style>
     <Style Selector="Button.library-tile">
       <Setter Property="Width" Value="180" />
@@ -87,20 +88,20 @@
       <Setter Property="VerticalContentAlignment" Value="Stretch" />
     </Style>
     <Style Selector="Button.library-tile:pointerover">
-      <Setter Property="Background" Value="{DynamicResource ChromePanelBrush}" />
+      <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
     </Style>
     <Style Selector="TableView.library-list-row">
-      <Setter Property="Foreground" Value="{DynamicResource ChromeStatusBrush}" />
-      <Setter Property="Background" Value="{DynamicResource ChromeBackgroundBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysActiveBrush}" />
+      <Setter Property="Background" Value="{DynamicResource SysCanvasBrush}" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
     </Style>
     <Style Selector="TableView.library-list-row TableViewColumnHeader">
       <Setter Property="Padding" Value="6,4" />
-      <Setter Property="Background" Value="{DynamicResource ChromeBackgroundBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeSelectedBorderBrush}" />
+      <Setter Property="Background" Value="{DynamicResource SysCanvasBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SysPrimaryBrush}" />
       <Setter Property="BorderThickness" Value="0,0,0,1" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeStatusBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysActiveBrush}" />
       <Setter Property="FontSize" Value="11" />
       <Setter Property="FontWeight" Value="Medium" />
     </Style>
@@ -109,12 +110,12 @@
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeStatusBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysActiveBrush}" />
       <Setter Property="FontSize" Value="11" />
       <Setter Property="FontWeight" Value="Medium" />
     </Style>
     <Style Selector="Button.library-sort-header:pointerover">
-      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
     </Style>
     <Style Selector="TableView.library-list-row TableViewRow">
       <Setter Property="MinHeight" Value="64" />
@@ -138,22 +139,22 @@
       <Setter Property="MinWidth" Value="22" />
       <Setter Property="Padding" Value="0" />
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="7" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeStatusBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysActiveBrush}" />
       <Setter Property="HorizontalAlignment" Value="Center" />
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="HorizontalContentAlignment" Value="Center" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
     <Style Selector="Button.tile-actions:pointerover">
-      <Setter Property="Background" Value="{DynamicResource ChromeHoverBrush}" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+      <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
     </Style>
   </UserControl.Styles>
 
-  <Border x:Name="LibraryPageBackground" Background="{DynamicResource ChromeBackgroundBrush}">
+  <Border x:Name="LibraryPageBackground" Background="{DynamicResource SysCanvasBrush}">
     <Grid x:Name="LibraryViewport" Margin="24,18">
       <Grid
         x:Name="LibraryContent"
@@ -165,7 +166,7 @@
       >
         <Border
           Padding="0,0,0,14"
-          BorderBrush="{DynamicResource ChromeHairBrush}"
+          BorderBrush="{DynamicResource SysBorderBrush}"
           BorderThickness="0,0,0,1"
         >
           <Grid ColumnSpacing="4">
@@ -183,17 +184,13 @@
                 ToolTip.Tip="Open ROM"
                 AutomationProperties.Name="Open ROM"
               >
-                <PathIcon
-                  Width="16"
-                  Height="16"
-                  Data="{StaticResource IconCollectionsAddRegular}"
-                />
+                <ti:TablerIcon Width="16" Height="16" Icon="IconFolderOpen" />
               </Button>
               <Border
                 Width="1"
                 Height="24"
                 Margin="4,0"
-                Background="{DynamicResource ChromeHairBrush}"
+                Background="{DynamicResource SysBorderBrush}"
                 VerticalAlignment="Center"
               />
               <ToggleButton
@@ -204,7 +201,7 @@
                 ToolTip.Tip="Grid view"
                 AutomationProperties.Name="Grid view"
               >
-                <PathIcon Width="18" Height="18" Data="{StaticResource IconGridRegular}" />
+                <ti:TablerIcon Width="16" Height="16" Icon="IconLayoutGrid" />
               </ToggleButton>
               <ToggleButton
                 x:Name="ListViewToggle"
@@ -214,7 +211,7 @@
                 ToolTip.Tip="List view"
                 AutomationProperties.Name="List view"
               >
-                <PathIcon Width="16" Height="16" Data="{StaticResource IconAppsListRegular}" />
+                <ti:TablerIcon Width="16" Height="16" Icon="IconList" />
               </ToggleButton>
             </StackPanel>
 
@@ -223,7 +220,7 @@
               Width="1"
               Height="24"
               Margin="4,0"
-              Background="{DynamicResource ChromeHairBrush}"
+              Background="{DynamicResource SysBorderBrush}"
               VerticalAlignment="Center"
             />
 
@@ -288,9 +285,9 @@
                         <Border
                           Grid.Row="0"
                           Height="164"
-                          Background="{DynamicResource ChromeSurfaceBrush}"
+                          Background="{DynamicResource SysSurfaceRaisedBrush}"
                           ClipToBounds="True"
-                          CornerRadius="{DynamicResource ChromeCornerRadius}"
+                          CornerRadius="{DynamicResource RefRadiusMedium}"
                         >
                           <Grid>
                             <Image
@@ -301,7 +298,7 @@
                             <TextBlock
                               Text="ROM"
                               IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNull}}"
-                              Foreground="{DynamicResource ChromeMutedBrush}"
+                              Foreground="{DynamicResource SysTextMutedBrush}"
                               FontSize="26"
                               FontWeight="SemiBold"
                               HorizontalAlignment="Center"
@@ -313,7 +310,7 @@
                           Grid.Row="1"
                           Margin="0,8,0,0"
                           Text="{Binding UserFriendlyTitle}"
-                          Foreground="{DynamicResource ChromeTextBrush}"
+                          Foreground="{DynamicResource SysTextBrush}"
                           FontSize="13"
                           FontWeight="Medium"
                           MaxLines="2"
@@ -327,15 +324,15 @@
                             Orientation="Horizontal"
                             VerticalAlignment="Bottom"
                           >
-                            <PathIcon
-                              Width="12"
-                              Height="12"
-                              Data="{StaticResource IconTimerRegular}"
-                              Foreground="{DynamicResource ChromeMutedBrush}"
+                            <ti:TablerIcon
+                              Width="16"
+                              Height="16"
+                              Icon="IconClock"
+                              Brush="{DynamicResource SysTextMutedBrush}"
                             />
                             <TextBlock
                               Text="{Binding PlayTimeText}"
-                              Foreground="{DynamicResource ChromeMutedBrush}"
+                              Foreground="{DynamicResource SysTextMutedBrush}"
                               FontSize="11"
                               VerticalAlignment="Center"
                             />
@@ -360,7 +357,7 @@
                             Click="OnTileActionsButtonClick"
                             AutomationProperties.Name="ROM actions"
                           >
-                            <PathIcon Width="12" Height="12" Data="{StaticResource IconSettings}" />
+                            <ti:TablerIcon Width="16" Height="16" Icon="IconDots" />
                           </Button>
                         </Grid>
                       </Grid>
@@ -380,21 +377,18 @@
             <TableView.Resources>
               <StaticResource
                 x:Key="SystemControlBackgroundChromeMediumBrush"
-                ResourceKey="ChromeBackgroundBrush"
+                ResourceKey="SysCanvasBrush"
               />
               <SolidColorBrush
                 x:Key="TableViewColumnHeaderSeparatorBackground"
                 Color="Transparent"
               />
-              <StaticResource x:Key="TableViewRowBackground" ResourceKey="ChromeBackgroundBrush" />
+              <StaticResource x:Key="TableViewRowBackground" ResourceKey="SysCanvasBrush" />
               <StaticResource
                 x:Key="TableViewRowBackgroundPointerOver"
-                ResourceKey="ChromePanelBrush"
+                ResourceKey="SysSurfaceBrush"
               />
-              <StaticResource
-                x:Key="TableViewRowBackgroundPressed"
-                ResourceKey="ChromePanelBrush"
-              />
+              <StaticResource x:Key="TableViewRowBackgroundPressed" ResourceKey="SysSurfaceBrush" />
               <Thickness x:Key="TableViewRowPadding">0</Thickness>
               <Thickness x:Key="TableViewCellPadding">6,4</Thickness>
             </TableView.Resources>
@@ -410,9 +404,9 @@
                     <Border
                       Width="48"
                       Height="48"
-                      Background="{DynamicResource ChromeSurfaceBrush}"
+                      Background="{DynamicResource SysSurfaceRaisedBrush}"
                       ClipToBounds="True"
-                      CornerRadius="{DynamicResource ChromeCornerRadius}"
+                      CornerRadius="{DynamicResource RefRadiusMedium}"
                     >
                       <Grid>
                         <Image
@@ -423,7 +417,7 @@
                         <TextBlock
                           Text="ROM"
                           IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNull}}"
-                          Foreground="{DynamicResource ChromeMutedBrush}"
+                          Foreground="{DynamicResource SysTextMutedBrush}"
                           FontSize="10"
                           HorizontalAlignment="Center"
                           VerticalAlignment="Center"
@@ -444,16 +438,16 @@
                     >
                       <StackPanel Spacing="8" Orientation="Horizontal">
                         <TextBlock Text="ROM" />
-                        <PathIcon
-                          Width="10"
-                          Height="10"
-                          Data="{StaticResource IconSortDesc}"
+                        <ti:TablerIcon
+                          Width="16"
+                          Height="16"
+                          Icon="IconSortAscending"
                           IsVisible="{Binding $parent[UserControl].IsTitleSortAscending}"
                         />
-                        <PathIcon
-                          Width="10"
-                          Height="10"
-                          Data="{StaticResource IconSortAsc}"
+                        <ti:TablerIcon
+                          Width="16"
+                          Height="16"
+                          Icon="IconSortDescending"
                           IsVisible="{Binding $parent[UserControl].IsTitleSortDescending}"
                         />
                       </StackPanel>
@@ -465,7 +459,7 @@
                     <StackPanel Spacing="2" VerticalAlignment="Center">
                       <TextBlock
                         Text="{Binding UserFriendlyTitle}"
-                        Foreground="{DynamicResource ChromeTextBrush}"
+                        Foreground="{DynamicResource SysTextBrush}"
                         FontSize="13"
                         FontWeight="Medium"
                         TextTrimming="CharacterEllipsis"
@@ -475,7 +469,7 @@
                       <TextBlock
                         Text="{Binding CartridgeTitle}"
                         IsVisible="{Binding HasCartridgeTitle}"
-                        Foreground="{DynamicResource ChromeMutedBrush}"
+                        Foreground="{DynamicResource SysTextMutedBrush}"
                         FontSize="11"
                         TextTrimming="CharacterEllipsis"
                         MaxLines="1"
@@ -534,7 +528,7 @@
                       <TextBlock
                         IsVisible="{Binding HasOther}"
                         Text="Other"
-                        Foreground="{DynamicResource ChromeStatusBrush}"
+                        Foreground="{DynamicResource SysActiveBrush}"
                         FontSize="12"
                         VerticalAlignment="Center"
                       />
@@ -558,16 +552,16 @@
                     >
                       <StackPanel Spacing="8" Orientation="Horizontal">
                         <TextBlock Text="Time Played" />
-                        <PathIcon
-                          Width="10"
-                          Height="10"
-                          Data="{StaticResource IconSortDesc}"
+                        <ti:TablerIcon
+                          Width="16"
+                          Height="16"
+                          Icon="IconSortAscending"
                           IsVisible="{Binding $parent[UserControl].IsTimePlayedSortAscending}"
                         />
-                        <PathIcon
-                          Width="10"
-                          Height="10"
-                          Data="{StaticResource IconSortAsc}"
+                        <ti:TablerIcon
+                          Width="16"
+                          Height="16"
+                          Icon="IconSortDescending"
                           IsVisible="{Binding $parent[UserControl].IsTimePlayedSortDescending}"
                         />
                       </StackPanel>
@@ -591,16 +585,16 @@
                     >
                       <StackPanel Spacing="8" Orientation="Horizontal">
                         <TextBlock Text="Plays" />
-                        <PathIcon
-                          Width="10"
-                          Height="10"
-                          Data="{StaticResource IconSortDesc}"
+                        <ti:TablerIcon
+                          Width="16"
+                          Height="16"
+                          Icon="IconSortAscending"
                           IsVisible="{Binding $parent[UserControl].IsPlaysSortAscending}"
                         />
-                        <PathIcon
-                          Width="10"
-                          Height="10"
-                          Data="{StaticResource IconSortAsc}"
+                        <ti:TablerIcon
+                          Width="16"
+                          Height="16"
+                          Icon="IconSortDescending"
                           IsVisible="{Binding $parent[UserControl].IsPlaysSortDescending}"
                         />
                       </StackPanel>
@@ -624,16 +618,16 @@
                     >
                       <StackPanel Spacing="8" Orientation="Horizontal">
                         <TextBlock Text="Last played" />
-                        <PathIcon
-                          Width="10"
-                          Height="10"
-                          Data="{StaticResource IconSortDesc}"
+                        <ti:TablerIcon
+                          Width="16"
+                          Height="16"
+                          Icon="IconSortAscending"
                           IsVisible="{Binding $parent[UserControl].IsLastPlayedSortAscending}"
                         />
-                        <PathIcon
-                          Width="10"
-                          Height="10"
-                          Data="{StaticResource IconSortAsc}"
+                        <ti:TablerIcon
+                          Width="16"
+                          Height="16"
+                          Icon="IconSortDescending"
                           IsVisible="{Binding $parent[UserControl].IsLastPlayedSortDescending}"
                         />
                       </StackPanel>
@@ -656,7 +650,7 @@
                       Click="OnTileActionsButtonClick"
                       AutomationProperties.Name="ROM actions"
                     >
-                      <PathIcon Width="12" Height="12" Data="{StaticResource IconSettings}" />
+                      <ti:TablerIcon Width="16" Height="16" Icon="IconDots" />
                     </Button>
                   </DataTemplate>
                 </TableViewColumn.CellTemplate>
@@ -675,13 +669,13 @@
                 x:Name="EmptyStateText"
                 FontSize="16"
                 FontWeight="SemiBold"
-                Foreground="{DynamicResource ChromeTextBrush}"
+                Foreground="{DynamicResource SysTextBrush}"
                 TextAlignment="Center"
               />
               <TextBlock
                 x:Name="EmptyStateDescription"
                 FontSize="12"
-                Foreground="{DynamicResource ChromeMutedBrush}"
+                Foreground="{DynamicResource SysTextMutedBrush}"
                 TextAlignment="Center"
                 TextWrapping="Wrap"
               />

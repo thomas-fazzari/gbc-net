@@ -8,11 +8,11 @@ namespace GbcNet.App.Shell.Chrome;
 
 internal static class AppChrome
 {
-    public const string Bg = "ChromeBackgroundBrush";
-    public const string Text = "ChromeTextBrush";
-    public const string Muted = "ChromeMutedBrush";
-    public const string Status = "ChromeStatusBrush";
-    public const string Error = "ChromeErrorBrush";
+    public const string Bg = "SysCanvasBrush";
+    public const string Text = "SysTextBrush";
+    public const string Muted = "SysTextMutedBrush";
+    public const string Status = "SysTextMutedBrush";
+    public const string Error = "SysDangerBrush";
 
     public static IBrush Brush(string resourceKey) =>
         Application.Current?.Resources[resourceKey] as IBrush

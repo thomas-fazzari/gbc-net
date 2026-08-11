@@ -25,24 +25,20 @@ internal sealed class DestructiveConfirmationWindow : Window
         Content = BuildContent(heading, message, destructiveButtonLabel);
     }
 
-    private static Button CreateChromeButton(string text, bool accent = false)
+    private static Button CreateButton(string text, bool destructive = false)
     {
         var button = new Button { Content = text };
-        button.Classes.Add("chrome-button");
-        if (accent)
-        {
-            button.Classes.Add("accent");
-        }
+        button.Classes.Add(destructive ? "destructive" : "secondary");
 
         return button;
     }
 
     private StackPanel BuildContent(string heading, string message, string destructiveButtonLabel)
     {
-        var cancelButton = CreateChromeButton("Cancel");
+        var cancelButton = CreateButton("Cancel");
         cancelButton.Click += (_, _) => Close(dialogResult: false);
 
-        var destructiveButton = CreateChromeButton(destructiveButtonLabel, accent: true);
+        var destructiveButton = CreateButton(destructiveButtonLabel, destructive: true);
         destructiveButton.Click += (_, _) => Close(dialogResult: true);
         return new StackPanel
         {

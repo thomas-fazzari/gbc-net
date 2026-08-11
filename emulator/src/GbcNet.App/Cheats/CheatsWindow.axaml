@@ -10,47 +10,47 @@
   MinHeight="520"
   CanResize="True"
   WindowStartupLocation="CenterOwner"
-  Background="{DynamicResource ChromeBackgroundBrush}"
+  Background="{DynamicResource SysCanvasBrush}"
 >
   <Window.Styles>
     <Style Selector="TextBlock.dialog-title">
       <Setter Property="FontSize" Value="18" />
       <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
     </Style>
     <Style Selector="Border.input-well, Border.code-list">
-      <Setter Property="Background" Value="{DynamicResource ChromeSurfaceBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="{DynamicResource ChromeCornerRadius}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
     </Style>
     <Style Selector="Border.input-well:focus-within">
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SysPrimaryBrush}" />
     </Style>
     <Style Selector="Border.input-well.error">
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeErrorBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SysDangerBrush}" />
     </Style>
     <Style Selector="TextBox.code-input">
       <Setter Property="Height" Value="34" />
       <Setter Property="Padding" Value="10,0" />
       <Setter Property="FontSize" Value="13" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
       <Setter Property="FocusAdorner" Value="{x:Null}" />
     </Style>
     <Style Selector="Border.code-row">
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
       <Setter Property="Padding" Value="12" />
     </Style>
     <Style Selector="ToggleSwitch.code-toggle">
       <Setter Property="FocusAdorner">
         <FocusAdornerTemplate>
           <Border
-            BorderBrush="{DynamicResource ChromeFocusBorderBrush}"
+            BorderBrush="{DynamicResource SysPrimaryBrush}"
             BorderThickness="1"
-            CornerRadius="{DynamicResource ChromeCornerRadius}"
+            CornerRadius="{DynamicResource RefRadiusMedium}"
           />
         </FocusAdornerTemplate>
       </Setter>
@@ -71,7 +71,7 @@
         <chrome:SidebarNavButton
           x:Name="GameGenieNavButton"
           Classes="sidebar-item selected"
-          IconData="{StaticResource IconMagicStaff}"
+          IconData="IconWand"
           Label="Game Genie"
           Click="ShowGameGeniePage"
           AutomationProperties.Name="Game Genie cheats"
@@ -81,7 +81,7 @@
         <chrome:SidebarNavButton
           x:Name="GameSharkNavButton"
           Classes="sidebar-item"
-          IconData="{StaticResource IconShark}"
+          IconData="IconFish"
           Label="GameShark"
           Click="ShowGameSharkPage"
           AutomationProperties.Name="GameShark cheats"
@@ -197,8 +197,8 @@
     <Border
       Grid.Row="1"
       Grid.Column="1"
-      Background="{DynamicResource ChromeBackgroundBrush}"
-      BorderBrush="{DynamicResource ChromeHairBrush}"
+      Background="{DynamicResource SysCanvasBrush}"
+      BorderBrush="{DynamicResource SysBorderBrush}"
       BorderThickness="0,1,0,0"
       Padding="32,12"
     >

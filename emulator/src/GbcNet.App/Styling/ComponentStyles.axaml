@@ -1,0 +1,223 @@
+<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:ti="using:TablerIcons"
+>
+  <Styles.Resources>
+    <Thickness x:Key="CompButtonPadding">16,0</Thickness>
+    <Thickness x:Key="CompCompactButtonPadding">12,0</Thickness>
+    <Thickness x:Key="CompIconButtonPadding">10</Thickness>
+    <Thickness x:Key="CompFieldPadding">12,0</Thickness>
+    <Thickness x:Key="CompCardPadding">16</Thickness>
+    <Thickness x:Key="CompBadgePadding">8,4</Thickness>
+    <Thickness x:Key="CompNotificationPadding">16,12</Thickness>
+  </Styles.Resources>
+
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{DynamicResource SysCanvasBrush}" />
+    <Setter Property="FontFamily" Value="{DynamicResource SysFontFamily}" />
+    <Setter Property="FontSize" Value="{DynamicResource RefFontSizeBody}" />
+    <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+  </Style>
+  <Style Selector="MenuItem">
+    <Setter Property="FontFamily" Value="{DynamicResource SysFontFamily}" />
+  </Style>
+  <Style Selector="ti|TablerIcon">
+    <Setter Property="Brush" Value="{DynamicResource SysIconBrush}" />
+    <Setter Property="Width" Value="{DynamicResource RefIconSizeMedium}" />
+    <Setter Property="Height" Value="{DynamicResource RefIconSizeMedium}" />
+    <Setter Property="StrokeWidth" Value="{DynamicResource RefIconStrokeWidth}" />
+  </Style>
+  <Style Selector="Button, ComboBox, MenuItem, Slider, ToggleButton, ToggleSwitch">
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button:focus-visible, ToggleButton:focus-visible, ComboBox:focus-visible, ToggleSwitch:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource SysPrimaryBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="TextBox:focus-within">
+    <Setter Property="BorderBrush" Value="{DynamicResource SysPrimaryBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <Style Selector="TextBlock.title">
+    <Setter Property="FontSize" Value="{DynamicResource RefFontSizeTitle}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="LineHeight" Value="{DynamicResource RefLineHeightTitle}" />
+  </Style>
+  <Style Selector="TextBlock.subtitle">
+    <Setter Property="FontSize" Value="{DynamicResource RefFontSizeSubtitle}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="LineHeight" Value="{DynamicResource RefLineHeightSubtitle}" />
+  </Style>
+  <Style Selector="TextBlock.body">
+    <Setter Property="FontSize" Value="{DynamicResource RefFontSizeBody}" />
+    <Setter Property="LineHeight" Value="{DynamicResource RefLineHeightBody}" />
+  </Style>
+  <Style Selector="TextBlock.label">
+    <Setter Property="FontSize" Value="{DynamicResource RefFontSizeLabel}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="LineHeight" Value="{DynamicResource RefLineHeightLabel}" />
+  </Style>
+  <Style Selector="TextBlock.muted">
+    <Setter Property="Foreground" Value="{DynamicResource SysTextMutedBrush}" />
+  </Style>
+  <Style Selector="TextBlock.error">
+    <Setter Property="Foreground" Value="{DynamicResource SysDangerBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <Style Selector="Button.primary, Button.secondary, Button.destructive">
+    <Setter Property="Height" Value="{DynamicResource RefControlHeight}" />
+    <Setter Property="Padding" Value="{DynamicResource CompButtonPadding}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource SysPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysPrimaryBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SysOnPrimaryBrush}" />
+  </Style>
+  <Style Selector="Button.primary:pointerover">
+    <Setter Property="Opacity" Value="0.92" />
+  </Style>
+  <Style Selector="Button.primary:pressed">
+    <Setter Property="Opacity" Value="0.8" />
+  </Style>
+  <Style Selector="Button.secondary">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+  </Style>
+  <Style Selector="Button.secondary:pointerover">
+    <Setter Property="BorderBrush" Value="{DynamicResource SysPrimaryBrush}" />
+  </Style>
+  <Style Selector="Button.secondary:pressed">
+    <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+  </Style>
+  <Style Selector="Button.destructive">
+    <Setter Property="Background" Value="{DynamicResource SysDangerBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysDangerBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SysOnPrimaryBrush}" />
+  </Style>
+  <Style Selector="Button.destructive:pointerover">
+    <Setter Property="Opacity" Value="0.92" />
+  </Style>
+  <Style Selector="Button.destructive:pressed">
+    <Setter Property="Opacity" Value="0.8" />
+  </Style>
+  <Style Selector="Button.icon">
+    <Setter Property="Width" Value="{DynamicResource RefTargetSize}" />
+    <Setter Property="Height" Value="{DynamicResource RefTargetSize}" />
+    <Setter Property="Padding" Value="{DynamicResource CompIconButtonPadding}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusPill}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource SysTextMutedBrush}" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.icon:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+  </Style>
+  <Style Selector="Button.icon:pressed">
+    <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+  </Style>
+  <Style Selector="Button.compact">
+    <Setter Property="Height" Value="{DynamicResource RefControlHeightSmall}" />
+    <Setter Property="Padding" Value="{DynamicResource CompCompactButtonPadding}" />
+  </Style>
+
+  <Style Selector="TextBox.field, TextBox.search">
+    <Setter Property="Height" Value="{DynamicResource RefControlHeight}" />
+    <Setter Property="Padding" Value="{DynamicResource CompFieldPadding}" />
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+  </Style>
+  <Style Selector="TextBox.field">
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
+  </Style>
+  <Style Selector="TextBox.search">
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusPill}" />
+  </Style>
+
+  <Style Selector="ToggleButton.segmented">
+    <Setter Property="Height" Value="{DynamicResource RefControlHeightSmall}" />
+    <Setter Property="Padding" Value="{DynamicResource CompCompactButtonPadding}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusPill}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource SysTextMutedBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.segmented:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.segmented:checked">
+    <Setter Property="Background" Value="{DynamicResource SysPrimaryBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SysOnPrimaryBrush}" />
+  </Style>
+
+  <Style Selector="Border.card">
+    <Setter Property="Padding" Value="{DynamicResource CompCardPadding}" />
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusLarge}" />
+  </Style>
+  <Style Selector="Border.card:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+  </Style>
+  <Style Selector="Border.badge">
+    <Setter Property="Padding" Value="{DynamicResource CompBadgePadding}" />
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusPill}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.badge.active">
+    <Setter Property="Background" Value="{DynamicResource SysActiveBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysActiveBrush}" />
+  </Style>
+  <Style Selector="Border.badge.active TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource SysOnActiveBrush}" />
+  </Style>
+
+  <Style Selector="Button.modal-nav">
+    <Setter Property="Height" Value="{DynamicResource RefControlHeight}" />
+    <Setter Property="Padding" Value="{DynamicResource CompCompactButtonPadding}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource SysTextMutedBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+  </Style>
+  <Style Selector="Button.modal-nav:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+  </Style>
+  <Style Selector="Button.modal-nav.selected">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysPrimaryBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+  </Style>
+
+  <Style Selector="Border.notification">
+    <Setter Property="MaxWidth" Value="480" />
+    <Setter Property="Padding" Value="{DynamicResource CompNotificationPadding}" />
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
+  </Style>
+  <Style Selector="Border.notification.error">
+    <Setter Property="BorderBrush" Value="{DynamicResource SysDangerBrush}" />
+  </Style>
+</Styles>

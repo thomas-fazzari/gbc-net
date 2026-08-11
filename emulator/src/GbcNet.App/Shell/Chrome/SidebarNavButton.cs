@@ -4,7 +4,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.Media;
+using TablerIcons;
 
 namespace GbcNet.App.Shell.Chrome;
 
@@ -13,15 +13,17 @@ internal sealed class SidebarNavButton : Button
     // Reuses the Button.sidebar-item styles defined by each window.
     protected override Type StyleKeyOverride => typeof(Button);
 
-    public static readonly StyledProperty<StreamGeometry?> IconDataProperty =
-        AvaloniaProperty.Register<SidebarNavButton, StreamGeometry?>(nameof(IconData));
+    public static readonly StyledProperty<Icons?> IconDataProperty = AvaloniaProperty.Register<
+        SidebarNavButton,
+        Icons?
+    >(nameof(IconData));
 
     public static readonly StyledProperty<string?> LabelProperty = AvaloniaProperty.Register<
         SidebarNavButton,
         string?
     >(nameof(Label));
 
-    public StreamGeometry? IconData
+    public Icons? IconData
     {
         get => GetValue(IconDataProperty);
         set => SetValue(IconDataProperty, value);
@@ -59,11 +61,11 @@ internal sealed class SidebarNavButton : Button
             ColumnSpacing = 9,
             Children =
             {
-                new PathIcon
+                new TablerIcon
                 {
-                    Width = 15,
-                    Height = 15,
-                    Data = IconData,
+                    Width = 16,
+                    Height = 16,
+                    Icon = IconData,
                 },
                 label,
             },

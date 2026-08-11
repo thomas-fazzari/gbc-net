@@ -7,7 +7,7 @@
   <Viewbox Stretch="Uniform">
     <Border
       x:Name="ScreenBackground"
-      Background="{DynamicResource ChromeBackgroundBrush}"
+      Background="{DynamicResource SysCanvasBrush}"
       RenderOptions.BitmapInterpolationMode="None"
     >
       <Image x:Name="ScreenImage" Width="160" Height="144" Stretch="Fill" />
