@@ -8,12 +8,16 @@ using Microsoft.Extensions.Logging;
 
 namespace GbcNet.App.Library;
 
-internal sealed class LibraryPresenter
+internal sealed class LibraryPresenter : IDisposable
 {
+    private static readonly TimeSpan SearchDebounceDelay = TimeSpan.FromMilliseconds(200);
+
     private readonly LibraryService _libraryService;
     private readonly LibraryView _view;
     private readonly IStorageProvider _storageProvider;
     private readonly ILogger<LibraryPresenter> _logger;
+    private readonly ShellOperationRunner _operationRunner;
+    private readonly LibrarySearch _search;
 
     public LibraryPresenter(
         LibraryView view,
@@ -28,6 +32,16 @@ internal sealed class LibraryPresenter
         _storageProvider = storageProvider;
         _view = view;
         _logger = logger;
+        _operationRunner = operationRunner;
+        _search = new LibrarySearch(
+            (query, cancellationToken) =>
+                Task.Run<IReadOnlyList<LibraryEntry>>(
+                    () => libraryService.GetRoms(query),
+                    cancellationToken
+                ),
+            view.Load,
+            SearchDebounceDelay
+        );
         view.RomSelected = entry =>
             operationRunner.Run(async () =>
             {
@@ -37,7 +51,7 @@ internal sealed class LibraryPresenter
         view.SetCoverRequested = entry => operationRunner.Run(() => SetCoverAsync(entry));
         view.ClearCoverRequested = entry => operationRunner.Run(() => ClearCoverAsync(entry));
         view.RemoveRequested = entry => operationRunner.Run(() => RemoveRomAsync(entry));
-        view.QueryChanged = Refresh;
+        view.QueryChanged = () => Refresh(debounce: true);
     }
 
     private async Task SetCoverAsync(LibraryEntry entry)
@@ -96,11 +110,25 @@ internal sealed class LibraryPresenter
         Refresh();
     }
 
-    public void Refresh()
+    public void Refresh() => Refresh(debounce: false);
+
+    public void Dispose()
+    {
+        _view.QueryChanged = null;
+        _search.Dispose();
+    }
+
+    private void Refresh(bool debounce)
+    {
+        var refresh = RefreshAsync(_view.Query, debounce);
+        _operationRunner.Run(() => refresh);
+    }
+
+    private async Task RefreshAsync(LibraryQuery query, bool debounce)
     {
         try
         {
-            _view.Load(_libraryService.GetRoms(_view.Query));
+            await _search.RefreshAsync(query, debounce);
         }
         catch (InvalidOperationException exception)
         {
@@ -110,6 +138,64 @@ internal sealed class LibraryPresenter
     }
 
     private void ShowExpectedError(Error error) => _view.ShowError(error.Description);
+}
+
+internal sealed class LibrarySearch(
+    Func<LibraryQuery, CancellationToken, Task<IReadOnlyList<LibraryEntry>>> searchAsync,
+    Action<IReadOnlyList<LibraryEntry>> load,
+    TimeSpan debounceDelay
+) : IDisposable
+{
+    private CancellationTokenSource? _cancellation;
+    private bool _disposed;
+
+    public async Task RefreshAsync(LibraryQuery query, bool debounce)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        var cancellation = new CancellationTokenSource();
+        var previous = Interlocked.Exchange(ref _cancellation, cancellation);
+        if (previous is not null)
+        {
+            await previous.CancelAsync();
+        }
+
+        await RunAsync(query, debounce, cancellation);
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        Interlocked.Exchange(ref _cancellation, null)?.Cancel();
+    }
+
+    private async Task RunAsync(
+        LibraryQuery query,
+        bool debounce,
+        CancellationTokenSource cancellation
+    )
+    {
+        try
+        {
+            if (debounce)
+            {
+                await Task.Delay(debounceDelay, cancellation.Token);
+            }
+
+            var entries = await searchAsync(query, cancellation.Token);
+            cancellation.Token.ThrowIfCancellationRequested();
+            load(entries);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            // A newer query or presenter disposal canceled this refresh.
+        }
+        finally
+        {
+            Interlocked.CompareExchange(ref _cancellation, null, cancellation);
+            cancellation.Dispose();
+        }
+    }
 }
 
 internal static partial class LibraryPresenterLog

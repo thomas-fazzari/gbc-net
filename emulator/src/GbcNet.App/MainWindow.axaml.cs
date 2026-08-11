@@ -25,6 +25,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     private readonly EmulationSessionPresenter _emulationSession;
     private readonly GamepadManager _gamepadManager;
     private readonly LcdFramePresenter _framePresenter;
+    private readonly LibraryPresenter _libraryPresenter;
     private readonly ShellOperationRunner _operationRunner;
     private readonly StatusBarPresenter _statusBar;
     private readonly MainWindowMenuAdapter _menuAdapter;
@@ -121,7 +122,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         libraryView.OpenRomRequested = () =>
             _operationRunner.Run(() => _emulationSession.OpenRomAsync(StorageProvider));
 
-        var libraryPresenter = new LibraryPresenter(
+        _libraryPresenter = new LibraryPresenter(
             libraryView,
             libraryService,
             _operationRunner,
@@ -143,7 +144,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             ContentHost.Content = libraryView;
             menuBarVisibility.SetVisible(isVisible: true);
             statusBarVisibility.SetAvailable(isAvailable: false);
-            libraryPresenter.Refresh();
+            _libraryPresenter.Refresh();
         };
         _emulationSession.SessionFaulted += (_, _) =>
         {
@@ -151,7 +152,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             menuBarVisibility.SetVisible(isVisible: true);
             statusBarVisibility.SetAvailable(isAvailable: true);
             statusBarVisibility.SetVisible(isVisible: true);
-            libraryPresenter.Refresh();
+            _libraryPresenter.Refresh();
         };
 
         _menuAdapter = new MainWindowMenuAdapter(
@@ -195,7 +196,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         libraryView.ViewModeChanged = viewMode =>
             _menuAdapter.SaveLibraryViewMode(libraryView, viewMode);
         _emulationSession.AttachDragDrop(this);
-        libraryPresenter.Refresh();
+        _libraryPresenter.Refresh();
 
         if (startupConfiguration.StartupErrorMessage is not null)
         {
@@ -236,6 +237,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     public void Dispose()
     {
         _gamepadManager.Dispose();
+        _libraryPresenter.Dispose();
         _statusBar.Dispose();
         _framePresenter.Dispose();
     }
