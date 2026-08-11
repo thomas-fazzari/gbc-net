@@ -2,6 +2,7 @@
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:converters="using:Avalonia.Data.Converters"
+  xmlns:library="using:GbcNet.App.Library"
   x:Class="GbcNet.App.Library.LibraryView"
 >
   <UserControl.Styles>
@@ -281,7 +282,7 @@
                   </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
-                  <DataTemplate x:CompileBindings="False">
+                  <DataTemplate x:DataType="library:LibraryTile">
                     <Button Classes="library-tile" Click="OnRomTileClick">
                       <Grid RowDefinitions="164,48,*">
                         <Border
@@ -405,7 +406,7 @@
                 HorizontalContentAlignment="Center"
               >
                 <TableViewColumn.CellTemplate>
-                  <DataTemplate x:CompileBindings="False">
+                  <DataTemplate x:DataType="library:LibraryTile">
                     <Border
                       Width="48"
                       Height="48"
@@ -460,7 +461,7 @@
                   </DataTemplate>
                 </TableViewColumn.HeaderTemplate>
                 <TableViewColumn.CellTemplate>
-                  <DataTemplate x:CompileBindings="False">
+                  <DataTemplate x:DataType="library:LibraryTile">
                     <StackPanel Spacing="2" VerticalAlignment="Center">
                       <TextBlock
                         Text="{Binding UserFriendlyTitle}"
@@ -487,11 +488,12 @@
               <TableViewColumn
                 Header="System"
                 Width="96"
-                Binding="{ReflectionBinding HardwareText}"
+                x:DataType="library:LibraryTile"
+                Binding="{Binding HardwareText}"
               />
               <TableViewColumn Header="Region" Width="108">
                 <TableViewColumn.CellTemplate>
-                  <DataTemplate x:CompileBindings="False">
+                  <DataTemplate x:DataType="library:LibraryTile">
                     <StackPanel Spacing="4" Orientation="Horizontal" VerticalAlignment="Center">
                       <Border
                         Width="21"
@@ -543,7 +545,8 @@
               <TableViewColumn
                 Header="Time Played"
                 Width="112"
-                Binding="{ReflectionBinding PlayTimeText}"
+                x:DataType="library:LibraryTile"
+                Binding="{Binding PlayTimeText}"
               >
                 <TableViewColumn.HeaderTemplate>
                   <DataTemplate x:CompileBindings="False">
@@ -575,7 +578,8 @@
               <TableViewColumn
                 Header="Plays"
                 Width="80"
-                Binding="{ReflectionBinding PlayCountText}"
+                x:DataType="library:LibraryTile"
+                Binding="{Binding PlayCountText}"
               >
                 <TableViewColumn.HeaderTemplate>
                   <DataTemplate x:CompileBindings="False">
@@ -607,7 +611,8 @@
               <TableViewColumn
                 Header="Last played"
                 Width="120"
-                Binding="{ReflectionBinding LastPlayedText}"
+                x:DataType="library:LibraryTile"
+                Binding="{Binding LastPlayedText}"
               >
                 <TableViewColumn.HeaderTemplate>
                   <DataTemplate x:CompileBindings="False">
@@ -643,7 +648,7 @@
                 HorizontalContentAlignment="Left"
               >
                 <TableViewColumn.CellTemplate>
-                  <DataTemplate x:CompileBindings="False">
+                  <DataTemplate x:DataType="library:LibraryTile">
                     <Button
                       Classes="tile-actions"
                       HorizontalAlignment="Left"

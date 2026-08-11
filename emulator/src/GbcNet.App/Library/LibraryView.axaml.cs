@@ -10,7 +10,6 @@ using Avalonia.Media.Imaging;
 using GbcNet.App.Configuration.Sections.Library;
 using GbcNet.App.Shell.Chrome;
 using GbcNet.App.Sorting;
-using JetBrains.Annotations;
 
 namespace GbcNet.App.Library;
 
@@ -371,65 +370,59 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
 
         _coverBitmaps.Clear();
     }
+}
 
-    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
-    private sealed class LibraryTile(LibraryEntry entry, Bitmap? coverBitmap)
+internal sealed class LibraryTile(LibraryEntry entry, Bitmap? coverBitmap)
+{
+    public LibraryEntry Entry { get; } = entry;
+    public Bitmap? CoverBitmap { get; } = coverBitmap;
+
+    public string UserFriendlyTitle { get; } =
+        entry.NoIntroMetadata?.Title ?? Path.GetFileNameWithoutExtension(entry.FileName);
+
+    public string CartridgeTitle { get; } = entry.CartridgeTitle ?? string.Empty;
+    public bool HasCartridgeTitle { get; } = !string.IsNullOrWhiteSpace(entry.CartridgeTitle);
+
+    public string PlayCountText { get; } = entry.LaunchCount.ToString(CultureInfo.InvariantCulture);
+
+    public string PlayTimeText { get; } = FormatPlayTime(entry.PlayTime);
+
+    public string HardwareText { get; } = entry.HardwareKind.ToString();
+
+    public bool HasJapan { get; } =
+        entry.NoIntroMetadata?.Regions.HasFlag(NoIntroRegion.Japan) is true;
+    public bool HasUsa { get; } = entry.NoIntroMetadata?.Regions.HasFlag(NoIntroRegion.Usa) is true;
+    public bool HasEurope { get; } =
+        entry.NoIntroMetadata?.Regions.HasFlag(NoIntroRegion.Europe) is true;
+    public bool HasWorld { get; } =
+        entry.NoIntroMetadata?.Regions.HasFlag(NoIntroRegion.World) is true;
+    public bool HasOther { get; } =
+        entry.NoIntroMetadata is { Regions: var regions }
+        && (
+            regions
+            & ~(
+                NoIntroRegion.Japan | NoIntroRegion.Usa | NoIntroRegion.Europe | NoIntroRegion.World
+            )
+        ) != NoIntroRegion.None;
+
+    public string LastPlayedText { get; } =
+        entry.LastOpenedAt.ToLocalTime().ToString("d", CultureInfo.CurrentCulture);
+
+    private static string FormatPlayTime(TimeSpan playTime)
     {
-        public LibraryEntry Entry { get; } = entry;
-        public Bitmap? CoverBitmap { get; } = coverBitmap;
-
-        public string UserFriendlyTitle { get; } =
-            entry.NoIntroMetadata?.Title ?? Path.GetFileNameWithoutExtension(entry.FileName);
-
-        public string CartridgeTitle { get; } = entry.CartridgeTitle ?? string.Empty;
-        public bool HasCartridgeTitle { get; } = !string.IsNullOrWhiteSpace(entry.CartridgeTitle);
-
-        public string PlayCountText { get; } =
-            entry.LaunchCount.ToString(CultureInfo.InvariantCulture);
-
-        public string PlayTimeText { get; } = FormatPlayTime(entry.PlayTime);
-
-        public string HardwareText { get; } = entry.HardwareKind.ToString();
-
-        public bool HasJapan { get; } =
-            entry.NoIntroMetadata?.Regions.HasFlag(NoIntroRegion.Japan) is true;
-        public bool HasUsa { get; } =
-            entry.NoIntroMetadata?.Regions.HasFlag(NoIntroRegion.Usa) is true;
-        public bool HasEurope { get; } =
-            entry.NoIntroMetadata?.Regions.HasFlag(NoIntroRegion.Europe) is true;
-        public bool HasWorld { get; } =
-            entry.NoIntroMetadata?.Regions.HasFlag(NoIntroRegion.World) is true;
-        public bool HasOther { get; } =
-            entry.NoIntroMetadata is { Regions: var regions }
-            && (
-                regions
-                & ~(
-                    NoIntroRegion.Japan
-                    | NoIntroRegion.Usa
-                    | NoIntroRegion.Europe
-                    | NoIntroRegion.World
-                )
-            ) != NoIntroRegion.None;
-
-        public string LastPlayedText { get; } =
-            entry.LastOpenedAt.ToLocalTime().ToString("d", CultureInfo.CurrentCulture);
-
-        private static string FormatPlayTime(TimeSpan playTime)
+        if (playTime < TimeSpan.FromMinutes(1))
         {
-            if (playTime < TimeSpan.FromMinutes(1))
-            {
-                return string.Create(CultureInfo.InvariantCulture, $"{playTime.Seconds} s");
-            }
-
-            if (playTime < TimeSpan.FromHours(1))
-            {
-                return string.Create(CultureInfo.InvariantCulture, $"{playTime.Minutes} min");
-            }
-
-            return string.Create(
-                CultureInfo.InvariantCulture,
-                $"{(int)playTime.TotalHours}h {playTime.Minutes:D2}m"
-            );
+            return string.Create(CultureInfo.InvariantCulture, $"{playTime.Seconds} s");
         }
+
+        if (playTime < TimeSpan.FromHours(1))
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"{playTime.Minutes} min");
+        }
+
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"{(int)playTime.TotalHours}h {playTime.Minutes:D2}m"
+        );
     }
 }
