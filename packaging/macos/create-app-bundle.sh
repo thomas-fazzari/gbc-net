@@ -14,7 +14,6 @@ esac
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 project_dir=$(CDPATH= cd -- "$(dirname -- "$app_project")" && pwd)
-"$script_dir/../generate-icons.sh" "$project_dir/Assets/Icon.png"
 escape_sed_replacement() {
         printf '%s' "$1" | sed 's/[&|]/\\&/g'
 }
