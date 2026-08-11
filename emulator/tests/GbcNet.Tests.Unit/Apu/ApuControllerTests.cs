@@ -343,8 +343,92 @@ public sealed class ApuControllerTests
         apu.ReadRegister(0xFF26).Should().Be(0xF2);
     }
 
+    [Theory]
+    [MemberData(nameof(HardwareModels))]
+    public void WriteRegister_EnablingLengthBeforeNonLengthStepClocksEveryChannel(
+        HardwareModel model
+    )
+    {
+        // Pan Docs `audio-details.md`: enabling length before a frame-sequencer step that
+        // does not clock length immediately decrements the counter and disables at zero.
+        ApuController apu = new(GetModelSpec(model));
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF11, 0x3F);
+        apu.WriteRegister(0xFF12, 0xF0);
+        apu.WriteRegister(0xFF14, 0x80);
+        apu.WriteRegister(0xFF16, 0x3F);
+        apu.WriteRegister(0xFF17, 0xF0);
+        apu.WriteRegister(0xFF19, 0x80);
+        apu.WriteRegister(0xFF1A, 0x80);
+        apu.WriteRegister(0xFF1B, 0xFF);
+        apu.WriteRegister(0xFF1E, 0x80);
+        apu.WriteRegister(0xFF20, 0x3F);
+        apu.WriteRegister(0xFF21, 0xF0);
+        apu.WriteRegister(0xFF23, 0x80);
+        apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+
+        apu.WriteRegister(0xFF14, 0x40);
+        apu.WriteRegister(0xFF19, 0x40);
+        apu.WriteRegister(0xFF1E, 0x40);
+        apu.WriteRegister(0xFF23, 0x40);
+
+        var state = apu.CaptureState();
+        state.Channel1.Length.Counter.Should().Be(0);
+        state.Channel2.Length.Counter.Should().Be(0);
+        state.Channel3.Length.Counter.Should().Be(0);
+        state.Channel4.Length.Counter.Should().Be(0);
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
+    }
+
+    [Theory]
+    [MemberData(nameof(HardwareModels))]
+    public void WriteRegister_EnablingLengthBeforeLengthStepWaitsForThatStep(HardwareModel model)
+    {
+        ApuController apu = new(GetModelSpec(model));
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF16, 0x3F);
+        apu.WriteRegister(0xFF17, 0xF0);
+        apu.WriteRegister(0xFF19, 0x80);
+
+        apu.WriteRegister(0xFF19, 0x40);
+
+        apu.ReadRegister(0xFF26).Should().Be(0xF2);
+        apu.CaptureState().Channel2.Length.Counter.Should().Be(1);
+        apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+        apu.ReadRegister(0xFF26).Should().Be(0xF0);
+    }
+
+    [Theory]
+    [MemberData(nameof(HardwareModels))]
+    public void WriteRegister_TriggeringExpiredLengthsBeforeNonLengthStepReloadsOneShort(
+        HardwareModel model
+    )
+    {
+        // Pan Docs `audio-details.md`: an enabled trigger from zero reloads 63 ticks for
+        // pulse/noise and 255 for wave before a step that does not clock length.
+        ApuController apu = new(GetModelSpec(model));
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
+        apu.WriteRegister(0xFF12, 0xF0);
+        apu.WriteRegister(0xFF17, 0xF0);
+        apu.WriteRegister(0xFF1A, 0x80);
+        apu.WriteRegister(0xFF21, 0xF0);
+
+        apu.WriteRegister(0xFF14, 0xC0);
+        apu.WriteRegister(0xFF19, 0xC0);
+        apu.WriteRegister(0xFF1E, 0xC0);
+        apu.WriteRegister(0xFF23, 0xC0);
+
+        var state = apu.CaptureState();
+        state.Channel1.Length.Counter.Should().Be(63);
+        state.Channel2.Length.Counter.Should().Be(63);
+        state.Channel3.Length.Counter.Should().Be(255);
+        state.Channel4.Length.Counter.Should().Be(63);
+        apu.ReadRegister(0xFF26).Should().Be(0xFF);
+    }
+
     [Fact]
-    public void WriteRegister_TriggeringChannel2ReloadsExpiredLengthCounter()
+    public void WriteRegister_TriggeringExpiredChannel2BeforeNonLengthStepReloadsTo63()
     {
         ApuController apu = new(ApuModelSpec.Dmg);
 
@@ -355,7 +439,7 @@ public sealed class ApuControllerTests
         apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false));
 
         apu.WriteRegister(0xFF19, 0xC0);
-        for (var lengthEvents = 0; lengthEvents < 63; )
+        for (var lengthEvents = 0; lengthEvents < 62; )
         {
             if (
                 apu.TickSystemCounter(new ApuTickInputs(1 << 12, CgbDoubleSpeed: false)).LengthClock

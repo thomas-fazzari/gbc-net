@@ -131,17 +131,20 @@ internal sealed class WaveChannel
     /// <summary>
     /// Applies NR34 period high, length enable, and trigger side effects.
     /// </summary>
-    public void WriteControl(byte value)
+    public void WriteControl(byte value, ApuLengthWriteContext context)
     {
         Period = (ushort)((Period & 0xFF) | ((value & PeriodHighMask) << PeriodHighShift));
-        _length.SetEnabled((value & LengthEnableMask) != 0);
+        var triggered = (value & TriggerMask) != 0;
+        if (_length.WriteControl((value & LengthEnableMask) != 0, triggered, context))
+        {
+            IsActive = false;
+        }
 
-        if ((value & TriggerMask) == 0)
+        if (!triggered)
         {
             return;
         }
 
-        _length.TriggerReloadIfExpired();
         _periodTimer = PeriodReloadBase - Period;
         _tCycleAccumulator = 0;
         _sampleIndex = 0;

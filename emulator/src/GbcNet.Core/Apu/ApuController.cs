@@ -351,7 +351,11 @@ internal sealed class ApuController(ApuModelSpec modelSpec)
                 return;
 
             case Channel1PeriodHighControlRegister:
-                _channel1.WriteControl(value, _registers[Channel1EnvelopeRegister - RegisterStart]);
+                _channel1.WriteControl(
+                    value,
+                    _registers[Channel1EnvelopeRegister - RegisterStart],
+                    GetLengthWriteContext()
+                );
                 if ((value & TriggerMask) != 0)
                 {
                     var triggerSweepResult = _channel1Sweep.Trigger(_channel1.Period);
@@ -379,7 +383,11 @@ internal sealed class ApuController(ApuModelSpec modelSpec)
                 return;
 
             case Channel2PeriodHighControlRegister:
-                _channel2.WriteControl(value, _registers[Channel2EnvelopeRegister - RegisterStart]);
+                _channel2.WriteControl(
+                    value,
+                    _registers[Channel2EnvelopeRegister - RegisterStart],
+                    GetLengthWriteContext()
+                );
                 UpdateChannelStatus(AudioChannel2StatusMask, _channel2.IsActive);
                 return;
 
@@ -402,7 +410,7 @@ internal sealed class ApuController(ApuModelSpec modelSpec)
                 return;
 
             case Channel3PeriodHighControlRegister:
-                _channel3.WriteControl(value);
+                _channel3.WriteControl(value, GetLengthWriteContext());
                 UpdateChannelStatus(AudioChannel3StatusMask, _channel3.IsActive);
                 return;
 
@@ -421,11 +429,18 @@ internal sealed class ApuController(ApuModelSpec modelSpec)
                 return;
 
             case Channel4ControlRegister:
-                _channel4.WriteControl(value, _registers[Channel4EnvelopeRegister - RegisterStart]);
+                _channel4.WriteControl(
+                    value,
+                    _registers[Channel4EnvelopeRegister - RegisterStart],
+                    GetLengthWriteContext()
+                );
                 UpdateChannelStatus(AudioChannel4StatusMask, _channel4.IsActive);
                 return;
         }
     }
+
+    private ApuLengthWriteContext GetLengthWriteContext() =>
+        new(NextStepClocksLength: DivApuStep is 0 or 2 or 4 or 6);
 
     private void WriteLengthWhenPoweredOff(ushort address, byte value)
     {

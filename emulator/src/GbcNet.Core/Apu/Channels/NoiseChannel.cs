@@ -142,16 +142,19 @@ internal sealed class NoiseChannel
     /// <summary>
     /// Applies NR44 length enable and trigger side effects.
     /// </summary>
-    public void WriteControl(byte value, byte envelope)
+    public void WriteControl(byte value, byte envelope, ApuLengthWriteContext context)
     {
-        _length.SetEnabled((value & LengthEnableMask) != 0);
+        var triggered = (value & TriggerMask) != 0;
+        if (_length.WriteControl((value & LengthEnableMask) != 0, triggered, context))
+        {
+            IsActive = false;
+        }
 
-        if ((value & TriggerMask) == 0)
+        if (!triggered)
         {
             return;
         }
 
-        _length.TriggerReloadIfExpired();
         _envelope.Trigger(envelope);
         // Trigger resets the pseudo-random generator before the next clock.
         _lfsr = LfsrResetValue;

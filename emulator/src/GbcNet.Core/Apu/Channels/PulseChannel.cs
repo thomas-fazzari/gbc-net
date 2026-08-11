@@ -117,17 +117,20 @@ internal sealed class PulseChannel
     /// <summary>
     /// Applies NRx4 period high, length enable, and trigger side effects.
     /// </summary>
-    public void WriteControl(byte value, byte envelope)
+    public void WriteControl(byte value, byte envelope, ApuLengthWriteContext context)
     {
         Period = (ushort)((Period & 0xFF) | ((value & PeriodHighMask) << PeriodHighShift));
-        _length.SetEnabled((value & LengthEnableMask) != 0);
+        var triggered = (value & TriggerMask) != 0;
+        if (_length.WriteControl((value & LengthEnableMask) != 0, triggered, context))
+        {
+            IsActive = false;
+        }
 
-        if ((value & TriggerMask) == 0)
+        if (!triggered)
         {
             return;
         }
 
-        _length.TriggerReloadIfExpired();
         _periodTimer = PeriodReloadBase - Period;
         _tCycleAccumulator = 0;
         _envelope.Trigger(envelope);

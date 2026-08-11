@@ -20,22 +20,32 @@ internal sealed class LengthCounter(int maxLength)
     }
 
     /// <summary>
-    /// Reloads full length on trigger only if the counter already expired.
+    /// Applies NRx4 length enable and trigger timing against the next frame-sequencer step.
     /// </summary>
-    public void TriggerReloadIfExpired()
+    public bool WriteControl(bool enabled, bool triggered, ApuLengthWriteContext context)
     {
-        if (_counter == 0)
-        {
-            _counter = maxLength;
-        }
-    }
-
-    /// <summary>
-    /// Sets whether frame-sequencer length clocks affect this counter.
-    /// </summary>
-    public void SetEnabled(bool enabled)
-    {
+        var wasEnabled = _enabled;
         _enabled = enabled;
+
+        var expiredWithoutTrigger = false;
+        if (!context.NextStepClocksLength && !wasEnabled && enabled && _counter != 0)
+        {
+            _counter--;
+            expiredWithoutTrigger = _counter == 0 && !triggered;
+        }
+
+        if (!triggered || _counter != 0)
+        {
+            return expiredWithoutTrigger;
+        }
+
+        _counter = maxLength;
+        if (!context.NextStepClocksLength && enabled)
+        {
+            _counter--;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -80,3 +90,5 @@ internal sealed class LengthCounter(int maxLength)
 }
 
 internal readonly record struct LengthCounterState(int Counter, bool Enabled);
+
+internal readonly record struct ApuLengthWriteContext(bool NextStepClocksLength);
