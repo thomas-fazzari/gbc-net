@@ -16,7 +16,7 @@ DOTNET ?= dotnet
 .DEFAULT_GOAL := run
 MAKEFLAGS += --no-builtin-rules --warn-undefined-variables
 
-.PHONY: install setup init run start lint check fix format fmt tests unit integration coverage bundle package pack icons copyrights contributors
+.PHONY: install setup init run start format-check lint check fix format fmt tests unit integration coverage bundle package pack icons copyrights contributors
 
 install: ## Restore dependencies and configure Git hooks
 	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) restore $(SOLUTION)
@@ -30,8 +30,10 @@ run:
 
 start: run
 
-lint:
+format-check:
 	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) tool run csharpier check .
+
+lint: format-check
 	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) build $(SOLUTION) --configuration $(CONFIGURATION)
 	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) tool run dotnet-ef migrations has-pending-model-changes --project $(APP) --startup-project $(APP) --configuration $(CONFIGURATION) --no-build
 
