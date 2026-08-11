@@ -288,7 +288,7 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
         Bitmap? bitmap = null;
         try
         {
-            bitmap = TryLoadCoverBitmap(entry.CoverPath);
+            bitmap = ThumbnailUtils.TryLoad(entry.CoverPath);
             var tile = new LibraryTile(entry, bitmap);
             if (bitmap is not null)
             {
@@ -353,31 +353,6 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
         items.Add(remove);
 
         return new MenuFlyout { ItemsSource = items };
-    }
-
-    private static Bitmap? TryLoadCoverBitmap(string? coverPath)
-    {
-        if (coverPath is null || !File.Exists(coverPath))
-        {
-            return null;
-        }
-
-        try
-        {
-            using var stream = File.OpenRead(coverPath);
-            return new Bitmap(stream);
-        }
-        catch (Exception exception)
-            when (exception
-                    is IOException
-                        or UnauthorizedAccessException
-                        or InvalidOperationException
-                        or NotSupportedException
-                        or ArgumentException
-            )
-        {
-            return null;
-        }
     }
 
     private void ClearTiles()
