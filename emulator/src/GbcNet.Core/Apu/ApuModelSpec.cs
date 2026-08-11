@@ -12,12 +12,14 @@ internal readonly record struct ApuModelSpec
 
     private ApuModelSpec(
         bool isPcmOutputRegisterEnabled,
+        bool allowsLengthWritesWhenPoweredOff,
         int outputClockHz,
         double highPassChargeFactorPerTCycle,
         ushort divApuDoubleSpeedFallingEdgeMask
     )
     {
         IsPcmOutputRegisterEnabled = isPcmOutputRegisterEnabled;
+        AllowsLengthWritesWhenPoweredOff = allowsLengthWritesWhenPoweredOff;
         OutputClockHz = outputClockHz;
         HighPassChargeFactorPerTCycle = highPassChargeFactorPerTCycle;
         DivApuDoubleSpeedFallingEdgeMask = divApuDoubleSpeedFallingEdgeMask;
@@ -29,6 +31,7 @@ internal readonly record struct ApuModelSpec
     public static ApuModelSpec Dmg { get; } =
         new(
             isPcmOutputRegisterEnabled: false,
+            allowsLengthWritesWhenPoweredOff: true,
             outputClockHz: 4_194_304,
             highPassChargeFactorPerTCycle: 0.999958,
             divApuDoubleSpeedFallingEdgeMask: DivApuNormalSpeedFallingEdgeMask
@@ -40,6 +43,7 @@ internal readonly record struct ApuModelSpec
     public static ApuModelSpec Cgb { get; } =
         new(
             isPcmOutputRegisterEnabled: true,
+            allowsLengthWritesWhenPoweredOff: false,
             outputClockHz: 4_194_304,
             highPassChargeFactorPerTCycle: 0.998943,
             divApuDoubleSpeedFallingEdgeMask: 1 << 13
@@ -51,6 +55,7 @@ internal readonly record struct ApuModelSpec
     public static ApuModelSpec Sgb { get; } =
         new(
             isPcmOutputRegisterEnabled: false,
+            allowsLengthWritesWhenPoweredOff: true,
             outputClockHz: 4_295_454,
             highPassChargeFactorPerTCycle: 0.999958,
             divApuDoubleSpeedFallingEdgeMask: DivApuNormalSpeedFallingEdgeMask
@@ -60,6 +65,11 @@ internal readonly record struct ApuModelSpec
     /// Indicates whether CGB PCM output registers FF76-FF77 are enabled.
     /// </summary>
     public bool IsPcmOutputRegisterEnabled { get; }
+
+    /// <summary>
+    /// Indicates whether NRx1 length timers remain writable while NR52 is off.
+    /// </summary>
+    public bool AllowsLengthWritesWhenPoweredOff { get; }
 
     /// <summary>
     /// Source clock used by the fixed-rate output sample scheduler.

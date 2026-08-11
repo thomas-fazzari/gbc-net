@@ -8,7 +8,7 @@ namespace GbcNet.Tests.Unit.Apu;
 
 public sealed class ApuControllerTests
 {
-    public static TheoryData<HardwareModel> SweepModels =>
+    public static TheoryData<HardwareModel> HardwareModels =>
         [HardwareModel.Dmg, HardwareModel.Cgb, HardwareModel.Sgb];
 
     [Theory]
@@ -59,16 +59,60 @@ public sealed class ApuControllerTests
         apu.ReadRegister(0xFF26).Should().Be(0xF0);
     }
 
-    [Fact]
-    public void WriteRegister_IgnoresNonMasterRegistersWhenPoweredOff()
+    [Theory]
+    [MemberData(nameof(HardwareModels))]
+    public void WriteRegister_IgnoresNonLengthRegistersWhenPoweredOff(HardwareModel model)
     {
-        ApuController apu = new(ApuModelSpec.Dmg);
+        ApuController apu = new(GetModelSpec(model));
 
         apu.WriteRegister(0xFF24, 0x77);
         apu.WriteRegister(0xFF25, 0xFF);
 
         apu.ReadRegister(0xFF24).Should().Be(0x00);
         apu.ReadRegister(0xFF25).Should().Be(0x00);
+    }
+
+    [Theory]
+    [InlineData(HardwareModel.Dmg)]
+    [InlineData(HardwareModel.Sgb)]
+    public void WriteRegister_UpdatesOnlyLengthTimersWhenPoweredOffOnMonochromeModels(
+        HardwareModel model
+    )
+    {
+        // Pan Docs `audio-registers.md`: NRx1 length timers remain writable while NR52 is off
+        // on monochrome models. Duty bits in NR11 and NR21 do not.
+        ApuController apu = new(GetModelSpec(model));
+
+        apu.WriteRegister(0xFF11, 0xFF);
+        apu.WriteRegister(0xFF16, 0xC1);
+        apu.WriteRegister(0xFF1B, 0xFE);
+        apu.WriteRegister(0xFF20, 0xFF);
+
+        var state = apu.CaptureState();
+        state.Channel1.Length.Counter.Should().Be(1);
+        state.Channel1.Duty.Should().Be(0);
+        state.Channel2.Length.Counter.Should().Be(63);
+        state.Channel2.Duty.Should().Be(0);
+        state.Channel3.Length.Counter.Should().Be(2);
+        state.Channel4.Length.Counter.Should().Be(1);
+    }
+
+    [Fact]
+    public void WriteRegister_IgnoresLengthRegistersWhenPoweredOffOnCgb()
+    {
+        // Pan Docs `audio-registers.md`: the powered-off NRx1 exception is monochrome-only.
+        ApuController apu = new(ApuModelSpec.Cgb);
+
+        apu.WriteRegister(0xFF11, 0x3F);
+        apu.WriteRegister(0xFF16, 0x3F);
+        apu.WriteRegister(0xFF1B, 0xFF);
+        apu.WriteRegister(0xFF20, 0x3F);
+
+        var state = apu.CaptureState();
+        state.Channel1.Length.Counter.Should().Be(0);
+        state.Channel2.Length.Counter.Should().Be(0);
+        state.Channel3.Length.Counter.Should().Be(0);
+        state.Channel4.Length.Counter.Should().Be(0);
     }
 
     [Fact]
@@ -126,7 +170,7 @@ public sealed class ApuControllerTests
     }
 
     [Theory]
-    [MemberData(nameof(SweepModels))]
+    [MemberData(nameof(HardwareModels))]
     public void WriteRegister_Channel1SweepImmediateOverflowClearsChannel1Status(
         HardwareModel model
     )
@@ -171,7 +215,7 @@ public sealed class ApuControllerTests
     }
 
     [Theory]
-    [MemberData(nameof(SweepModels))]
+    [MemberData(nameof(HardwareModels))]
     public void WriteRegister_Channel1SweepPaceZeroReloadsWhenPaceBecomesActive(HardwareModel model)
     {
         // Pan Docs `audio-details.md`: a sweep pace of zero reloads the timer as eight.
@@ -192,7 +236,7 @@ public sealed class ApuControllerTests
     }
 
     [Theory]
-    [MemberData(nameof(SweepModels))]
+    [MemberData(nameof(HardwareModels))]
     public void WriteRegister_ClearingSweepNegateAfterSubtractionDisablesChannel1(
         HardwareModel model
     )

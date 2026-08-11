@@ -48,6 +48,7 @@ internal sealed class ApuController(ApuModelSpec modelSpec)
     private const ushort AudioMasterControlRegister = 0xFF26;
     private const byte AudioMasterWritableMask = 0x80;
     private const byte EnvelopeDacEnableMask = 0xF8;
+    private const byte SixBitLengthTimerMask = 0x3F;
     private const byte WaveDacEnableMask = 0x80;
 
     private const byte AudioChannelStatusMask = 0x0F;
@@ -313,6 +314,11 @@ internal sealed class ApuController(ApuModelSpec modelSpec)
 
         if ((_registers[AudioMasterControlRegister - RegisterStart] & AudioMasterWritableMask) == 0)
         {
+            if (modelSpec.AllowsLengthWritesWhenPoweredOff)
+            {
+                WriteLengthWhenPoweredOff(address, value);
+            }
+
             return;
         }
 
@@ -417,6 +423,25 @@ internal sealed class ApuController(ApuModelSpec modelSpec)
             case Channel4ControlRegister:
                 _channel4.WriteControl(value, _registers[Channel4EnvelopeRegister - RegisterStart]);
                 UpdateChannelStatus(AudioChannel4StatusMask, _channel4.IsActive);
+                return;
+        }
+    }
+
+    private void WriteLengthWhenPoweredOff(ushort address, byte value)
+    {
+        switch (address)
+        {
+            case Channel1LengthRegister:
+                _channel1.WriteLength((byte)(value & SixBitLengthTimerMask));
+                return;
+            case Channel2LengthRegister:
+                _channel2.WriteLength((byte)(value & SixBitLengthTimerMask));
+                return;
+            case Channel3LengthRegister:
+                _channel3.WriteLength(value);
+                return;
+            case Channel4LengthRegister:
+                _channel4.WriteLength((byte)(value & SixBitLengthTimerMask));
                 return;
         }
     }
