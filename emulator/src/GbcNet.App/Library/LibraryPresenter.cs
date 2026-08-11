@@ -35,10 +35,7 @@ internal sealed class LibraryPresenter : IDisposable
         _operationRunner = operationRunner;
         _search = new LibrarySearch(
             (query, cancellationToken) =>
-                Task.Run<IReadOnlyList<LibraryEntry>>(
-                    () => libraryService.GetRoms(query),
-                    cancellationToken
-                ),
+                Task.Run(() => libraryService.GetRoms(query), cancellationToken),
             view.Load,
             SearchDebounceDelay
         );
@@ -49,7 +46,7 @@ internal sealed class LibraryPresenter : IDisposable
                 Refresh();
             });
         view.SetCoverRequested = entry => operationRunner.Run(() => SetCoverAsync(entry));
-        view.ClearCoverRequested = entry => operationRunner.Run(() => ClearCoverAsync(entry));
+        view.ClearCoverRequested = entry => operationRunner.Run(() => ClearCover(entry));
         view.RemoveRequested = entry => operationRunner.Run(() => RemoveRomAsync(entry));
         view.QueryChanged = () => Refresh(debounce: true);
     }
@@ -86,17 +83,16 @@ internal sealed class LibraryPresenter : IDisposable
         Refresh();
     }
 
-    private Task ClearCoverAsync(LibraryEntry entry)
+    private void ClearCover(LibraryEntry entry)
     {
         var result = _libraryService.ClearCover(entry.RomHash);
         if (result.IsError)
         {
             ShowExpectedError(result.FirstError);
-            return Task.CompletedTask;
+            return;
         }
 
         Refresh();
-        return Task.CompletedTask;
     }
 
     private async Task RemoveRomAsync(LibraryEntry entry)

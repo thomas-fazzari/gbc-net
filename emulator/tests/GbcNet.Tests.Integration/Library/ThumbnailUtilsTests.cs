@@ -41,16 +41,12 @@ public sealed class ThumbnailUtilsTests
     }
 
     [Fact]
-    public async Task TryLoad_ReturnsNullForInvalidImage()
+    public void TryLoad_ReturnsNullForInvalidImage()
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
         Directory.CreateDirectory(tempDirectory.Path);
         var path = Path.Combine(tempDirectory.Path, "invalid.png");
-        await File.WriteAllBytesAsync(
-            path,
-            "not an image"u8.ToArray(),
-            TestContext.Current.CancellationToken
-        );
+        File.WriteAllBytes(path, "not an image"u8);
 
         ThumbnailUtils.TryLoad(path).Should().BeNull();
     }

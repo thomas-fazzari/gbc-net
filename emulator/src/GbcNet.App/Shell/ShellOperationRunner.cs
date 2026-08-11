@@ -21,6 +21,13 @@ internal sealed class ShellOperationRunner(Action<Exception> handleError, ILogge
         _ = RunAsync(action);
     }
 
+    public void Run(Action action) =>
+        Run(() =>
+        {
+            action();
+            return Task.CompletedTask;
+        });
+
     /// <summary>
     /// Queues an operation after the previous shell operation has completed.
     /// </summary>

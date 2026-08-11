@@ -68,19 +68,19 @@ internal sealed class ConfigurationPresenter(
         SaveAndApply(savedConfig);
     }
 
-    public Task OpenConfigurationDirectoryAsync() =>
-        OpenDirectoryAsync(
+    public void OpenConfigurationDirectory() =>
+        OpenDirectory(
             Path.GetDirectoryName(configPath),
             "Configuration file location could not be opened."
         );
 
-    public static Task OpenLogDirectoryAsync() =>
-        OpenDirectoryAsync(
+    public static void OpenLogDirectory() =>
+        OpenDirectory(
             Path.GetDirectoryName(UserDataPaths.LogFilePath),
             "Log file location could not be opened."
         );
 
-    private static Task OpenDirectoryAsync(string? directoryPath, string errorMessage)
+    private static void OpenDirectory(string? directoryPath, string errorMessage)
     {
         if (string.IsNullOrWhiteSpace(directoryPath))
         {
@@ -92,8 +92,6 @@ internal sealed class ConfigurationPresenter(
         using var process =
             Process.Start(new ProcessStartInfo { FileName = directoryPath, UseShellExecute = true })
             ?? throw new InvalidOperationException(errorMessage);
-
-        return Task.CompletedTask;
     }
 
     private void SaveAndApply(SettingsConfig settings)

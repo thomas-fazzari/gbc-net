@@ -179,7 +179,6 @@ public sealed class ShellOperationRunnerTests
         {
             events.Add("third");
             thirdOperationCompleted.SetResult();
-            return Task.CompletedTask;
         });
 #pragma warning restore CA1849, S6966
 

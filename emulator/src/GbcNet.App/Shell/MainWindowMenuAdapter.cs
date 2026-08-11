@@ -60,9 +60,9 @@ internal sealed class MainWindowMenuAdapter(
         mainMenu.OpenConfiguration = () =>
             operationRunner.Run(() => configurationPresenter.OpenAsync(window));
         mainMenu.OpenConfigurationFileLocation = () =>
-            operationRunner.Run(configurationPresenter.OpenConfigurationDirectoryAsync);
+            operationRunner.Run(configurationPresenter.OpenConfigurationDirectory);
         mainMenu.OpenLogFileLocation = () =>
-            operationRunner.Run(ConfigurationPresenter.OpenLogDirectoryAsync);
+            operationRunner.Run(ConfigurationPresenter.OpenLogDirectory);
         mainMenu.TogglePause = emulationSession.TogglePause;
         mainMenu.Reset = () => operationRunner.Run(emulationSession.ResetAsync);
         mainMenu.OpenCheats = () =>
@@ -94,7 +94,7 @@ internal sealed class MainWindowMenuAdapter(
         mainMenu.ToggleFullscreen = ToggleFullscreen;
         mainMenu.ToggleMenuBar = menuBarVisibility.Toggle;
         mainMenu.ToggleStatusBar = statusBarVisibility.Toggle;
-        mainMenu.OpenGitHubRepository = () => operationRunner.Run(OpenGitHubRepositoryAsync);
+        mainMenu.OpenGitHubRepository = () => operationRunner.Run(OpenGitHubRepository);
         window.Activated += (_, _) => gamepadManager.SetGameplayEnabled(enabled: true);
         window.Deactivated += (_, _) => gamepadManager.SetGameplayEnabled(enabled: false);
         SyncMenuState();
@@ -167,7 +167,7 @@ internal sealed class MainWindowMenuAdapter(
                 : WindowState.FullScreen;
     }
 
-    private static Task OpenGitHubRepositoryAsync()
+    private static void OpenGitHubRepository()
     {
         using var process =
             Process.Start(
@@ -177,7 +177,5 @@ internal sealed class MainWindowMenuAdapter(
                     UseShellExecute = true,
                 }
             ) ?? throw new InvalidOperationException("GitHub repository could not be opened.");
-
-        return Task.CompletedTask;
     }
 }
