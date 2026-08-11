@@ -47,12 +47,6 @@ internal static class Program
             .CreateLogger();
     }
 
-#pragma warning disable AVALONIA_X11_CSD
     public static AppBuilder BuildAvaloniaApp() =>
-        AppBuilder
-            .Configure<GbcNetApplication>()
-            .UsePlatformDetect()
-            .With(new X11PlatformOptions { EnableDrawnDecorations = true })
-            .LogToTrace();
-#pragma warning restore AVALONIA_X11_CSD
+        AppBuilder.Configure<GbcNetApplication>().UsePlatformDetect().LogToTrace();
 }

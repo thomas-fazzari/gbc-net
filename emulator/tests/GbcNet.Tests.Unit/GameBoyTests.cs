@@ -473,6 +473,53 @@ public sealed class GameBoyTests
     }
 
     [Fact]
+    public void BootRomHandoff_ClearsSgbHeaderPacketState()
+    {
+        var cartridge = TestRomFactory.LoadCartridge(CreateSgbRom());
+        var bootRom = BootRomTestFactory.CreateSgb();
+        var gameBoy = new GameBoy(
+            cartridge,
+            HardwareModel.Sgb,
+            new BootRomOptions { SgbBootRom = bootRom }
+        );
+
+        // Pan Docs `power-up-sequence.md`: the SGB boot ROM ends its header transfer
+        // with the otherwise-invalid $FB packet before unmapping itself.
+        WriteSgbPacket(gameBoy, CreatePacket(command: 0x1F, [], packetCount: 3));
+        gameBoy.Bus.WriteByte(AddressMap.BootRomDisableRegister, 0x01);
+        WriteSgbPacket(
+            gameBoy,
+            command: 0x00,
+            [
+                0x34,
+                0x12,
+                0x22,
+                0x22,
+                0x33,
+                0x33,
+                0x44,
+                0x44,
+                0x55,
+                0x55,
+                0x66,
+                0x66,
+                0x77,
+                0x77,
+                0x00,
+            ]
+        );
+        gameBoy.Bus.Ppu.WriteRegister(AddressMap.LcdControlRegister, 0x91);
+
+        var frame = gameBoy
+            .Bus.TickPpu(456 * 144)
+            .CompletedFrame.Should()
+            .BeOfType<LcdFrame>()
+            .Subject;
+
+        Rgb555Assertions.PixelEquals(frame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x1234);
+    }
+
+    [Fact]
     public void Joypad_SgbMltReqEnablesPlayerIdReadback()
     {
         var cartridge = TestRomFactory.LoadCartridge(CreateSgbRom());
@@ -807,10 +854,11 @@ public sealed class GameBoyTests
             configure?.Invoke(bytes);
         });
 
-    private static void WriteSgbPacket(GameBoy gameBoy, byte command, ReadOnlySpan<byte> payload)
-    {
-        var packet = CreatePacket(command, payload);
+    private static void WriteSgbPacket(GameBoy gameBoy, byte command, ReadOnlySpan<byte> payload) =>
+        WriteSgbPacket(gameBoy, CreatePacket(command, payload));
 
+    private static void WriteSgbPacket(GameBoy gameBoy, ReadOnlySpan<byte> packet)
+    {
         WriteSgbStartPulse(gameBoy);
         foreach (var value in packet)
         {

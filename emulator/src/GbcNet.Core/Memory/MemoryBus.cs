@@ -733,7 +733,13 @@ internal sealed class MemoryBus
             case <= AddressMap.NotUsableEnd:
                 return;
             case AddressMap.BootRomDisableRegister:
+                var wasBootRomMapped = _bootRom?.IsMapped == true;
                 _bootRom?.WriteDisableRegister(value);
+                if (wasBootRomMapped && _bootRom?.IsMapped == false)
+                {
+                    _sgb?.ResetPacketReceiver();
+                }
+
                 return;
             case <= AddressMap.IoRegistersEnd:
                 _ioRegisters.WriteCpu(address, value);

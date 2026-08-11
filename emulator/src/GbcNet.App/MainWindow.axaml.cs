@@ -265,6 +265,11 @@ internal sealed partial class MainWindow : Window, IDisposable
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        if (!e.Handled && e.Key is Key.Escape && WindowState is WindowState.FullScreen)
+        {
+            WindowState = WindowState.Normal;
+            e.Handled = true;
+        }
 
         if (!e.Handled && IsSearchGesture(e) && LibrarySearchHost.IsVisible)
         {

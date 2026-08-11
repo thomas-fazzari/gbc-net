@@ -467,6 +467,12 @@ internal sealed class SgbController(bool commandsEnabled)
         _currentPlayer &= _playerCount - 1;
     }
 
+    internal void ResetPacketReceiver()
+    {
+        ClearCommand();
+        _packetPhase = SgbPacketPhase.AwaitingPacketStart;
+    }
+
     private void ClearCommand()
     {
         Array.Clear(_command);
