@@ -374,30 +374,23 @@ internal sealed partial class CheatsWindow : Window
         var codeHelpText = gameGenie ? GameGenieCodeHelpText : GameSharkCodeHelpText;
         var codeTextBox = new TextBox
         {
-            Classes = { "code-input" },
+            Classes = { "field" },
+            Width = 144,
             MaxLength = gameGenie ? 32 : 8,
             Text = entry.CodeText,
             PlaceholderText = gameGenie ? "ABC-DEF or ABC-DEF-GHI" : "01VVLLHH",
         };
-        var codeEditor = new Border
-        {
-            Classes = { "input-well" },
-            Width = 144,
-            Child = codeTextBox,
-        };
 
         var nameTextBox = new TextBox
         {
-            Classes = { "code-input" },
+            Classes = { "field" },
             MaxLength = CheatCodeService.MaxNameLength,
             Text = entry.Name,
             PlaceholderText = "Name (optional)",
         };
-        var nameEditor = new Border { Classes = { "input-well" }, Child = nameTextBox };
 
         var toggle = new ToggleSwitch
         {
-            Classes = { "code-toggle" },
             IsChecked = entry.IsEnabled,
             OnContent = "On",
             OffContent = "Off",
@@ -457,9 +450,9 @@ internal sealed partial class CheatsWindow : Window
         {
             ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto"),
             ColumnSpacing = 8,
-            Children = { codeEditor, nameEditor, toggle, actions },
+            Children = { codeTextBox, nameTextBox, toggle, actions },
         };
-        Grid.SetColumn(nameEditor, 1);
+        Grid.SetColumn(nameTextBox, 1);
         Grid.SetColumn(toggle, 2);
         Grid.SetColumn(actions, 3);
 
@@ -477,7 +470,6 @@ internal sealed partial class CheatsWindow : Window
         _entryRows.Add(
             new EntryRowControls(
                 codeTextBox,
-                codeEditor,
                 nameTextBox,
                 toggle,
                 moveUpButton,
@@ -526,10 +518,10 @@ internal sealed partial class CheatsWindow : Window
 
     private bool ValidateEntryCodes()
     {
-        foreach (var row in _entryRows)
+        foreach (var codeEditor in _entryRows.Select(static row => row.CodeEditor))
         {
-            row.CodeEditorBorder.Classes.Remove("error");
-            row.CodeEditor[property: AutomationProperties.HelpTextProperty] = CodeHelpText;
+            codeEditor.Classes.Remove("error");
+            codeEditor[property: AutomationProperties.HelpTextProperty] = CodeHelpText;
         }
 
         _gameGenieEntriesValid = ValidateEntries(
@@ -614,7 +606,7 @@ internal sealed partial class CheatsWindow : Window
     private void MarkCodeError(int index, string message)
     {
         var row = _entryRows[index];
-        row.CodeEditorBorder.Classes.Add("error");
+        row.CodeEditor.Classes.Add("error");
         row.CodeEditor[property: AutomationProperties.HelpTextProperty] = message;
     }
 
@@ -654,7 +646,7 @@ internal sealed partial class CheatsWindow : Window
 
     private void FocusFirstInvalidCode()
     {
-        var index = _entryRows.FindIndex(row => row.CodeEditorBorder.Classes.Contains("error"));
+        var index = _entryRows.FindIndex(row => row.CodeEditor.Classes.Contains("error"));
         if (index >= 0)
         {
             PostFocus(_entryRows[index].CodeEditor);
@@ -758,7 +750,6 @@ internal sealed partial class CheatsWindow : Window
 
     private readonly record struct EntryRowControls(
         TextBox CodeEditor,
-        Border CodeEditorBorder,
         TextBox NameEditor,
         ToggleSwitch Toggle,
         Button MoveUp,

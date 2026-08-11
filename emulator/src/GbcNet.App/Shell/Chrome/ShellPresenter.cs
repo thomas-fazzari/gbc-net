@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 
@@ -23,6 +24,7 @@ internal sealed class ShellPresenter(
             StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
         );
         notificationItems.ItemsSource = messages.Length == 0 ? [text] : messages;
+        notification[AutomationProperties.NameProperty] = text;
         notification.IsVisible = true;
     }
 

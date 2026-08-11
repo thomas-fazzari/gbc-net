@@ -1,6 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using GbcNet.App.Shell.Chrome;
@@ -19,6 +20,10 @@ public sealed class ShellPresenterTests
         presenter.ShowError($"First{Environment.NewLine}Second");
 
         notification.IsVisible.Should().BeTrue();
+        notification[AutomationProperties.NameProperty]
+            .Should()
+            .Be($"First{Environment.NewLine}Second");
+
         items.ItemsSource!.Cast<string>().Should().Equal("First", "Second");
     }
 

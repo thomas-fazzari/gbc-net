@@ -53,13 +53,12 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
         get;
         set
         {
-            var searchText = value ?? string.Empty;
-            if (string.Equals(field, searchText, StringComparison.Ordinal))
+            if (string.Equals(field, value, StringComparison.Ordinal))
             {
                 return;
             }
 
-            field = searchText;
+            field = value;
             _propertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SearchText)));
             NotifyQueryChanged();
         }
@@ -334,9 +333,6 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
 
         button.Flyout = CreateTileActionsFlyout(tile.Entry);
     }
-
-    private static void OnTileActionsButtonClick(object? sender, RoutedEventArgs e) =>
-        e.Handled = true;
 
     private MenuFlyout CreateTileActionsFlyout(LibraryEntry entry)
     {

@@ -3,7 +3,6 @@
 
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using TablerIcons;
 
@@ -13,20 +12,20 @@ internal sealed class SidebarNavButton : Button
 {
     protected override Type StyleKeyOverride => typeof(Button);
 
-    public static readonly StyledProperty<Icons?> IconDataProperty = AvaloniaProperty.Register<
+    public static readonly StyledProperty<Icons?> IconProperty = AvaloniaProperty.Register<
         SidebarNavButton,
         Icons?
-    >(nameof(IconData));
+    >(nameof(Icon));
 
     public static readonly StyledProperty<string?> LabelProperty = AvaloniaProperty.Register<
         SidebarNavButton,
         string?
     >(nameof(Label));
 
-    public Icons? IconData
+    public Icons? Icon
     {
-        get => GetValue(IconDataProperty);
-        set => SetValue(IconDataProperty, value);
+        get => GetValue(IconProperty);
+        set => SetValue(IconProperty, value);
     }
 
     public string? Label
@@ -35,16 +34,10 @@ internal sealed class SidebarNavButton : Button
         set => SetValue(LabelProperty, value);
     }
 
-    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
-    {
-        base.OnApplyTemplate(e);
-        UpdateContent();
-    }
-
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == IconDataProperty || change.Property == LabelProperty)
+        if (change.Property == IconProperty || change.Property == LabelProperty)
         {
             UpdateContent();
         }
@@ -70,7 +63,7 @@ internal sealed class SidebarNavButton : Button
                 {
                     Width = 20,
                     Height = 20,
-                    Icon = IconData,
+                    Icon = Icon,
                     VerticalAlignment = VerticalAlignment.Center,
                 },
                 label,

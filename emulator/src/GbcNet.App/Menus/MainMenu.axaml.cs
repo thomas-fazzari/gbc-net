@@ -33,7 +33,7 @@ internal sealed partial class MainMenu : UserControl
     private static readonly KeyGesture _muteGesture = KeyGesture.Parse(
         gesture: OperatingSystem.IsMacOS() ? "Meta+Shift+M" : "Ctrl+Shift+M"
     );
-    private const int StateSlotCount = 10;
+    internal const int StateSlotCount = 10;
 
     private readonly MenuItem[] _saveStateSlotMenuItems = new MenuItem[StateSlotCount];
     private readonly MenuItem[] _loadStateSlotMenuItems = new MenuItem[StateSlotCount];
@@ -96,7 +96,7 @@ internal sealed partial class MainMenu : UserControl
 
         InitializeComponent();
 
-        ConfigureWindowMenu();
+        ConfigureMenu();
     }
 
     public Action? OpenRom { get; set; }
@@ -229,7 +229,7 @@ internal sealed partial class MainMenu : UserControl
 
         foreach (var entry in entries)
         {
-            OpenRecentMenuItem.Items.Add(CreateWindowRecentRomMenuItem(entry));
+            OpenRecentMenuItem.Items.Add(CreateRecentRomMenuItem(entry));
         }
     }
 
@@ -254,7 +254,7 @@ internal sealed partial class MainMenu : UserControl
         Dispatcher.UIThread.Post(() => ToggleFullscreen?.Invoke(), DispatcherPriority.Background);
     }
 
-    private void ConfigureWindowMenu()
+    private void ConfigureMenu()
     {
         FileMenuItem.SubmenuOpened += (_, _) => RefreshRecentRoms?.Invoke();
         OpenRomMenuItem.InputGesture = _openRomGesture;
@@ -290,8 +290,8 @@ internal sealed partial class MainMenu : UserControl
     {
         for (var slotIndex = 0; slotIndex < StateSlotCount; slotIndex++)
         {
-            var saveItem = CreateWindowStateSlotMenuItem(slotIndex, SaveStateCommand);
-            var loadItem = CreateWindowStateSlotMenuItem(slotIndex, LoadStateCommand);
+            var saveItem = CreateStateSlotMenuItem(slotIndex, SaveStateCommand);
+            var loadItem = CreateStateSlotMenuItem(slotIndex, LoadStateCommand);
 
             _saveStateSlotMenuItems[slotIndex] = saveItem;
             _loadStateSlotMenuItems[slotIndex] = loadItem;
@@ -300,7 +300,7 @@ internal sealed partial class MainMenu : UserControl
         }
     }
 
-    private static MenuItem CreateWindowStateSlotMenuItem(int slotIndex, ICommand command) =>
+    private static MenuItem CreateStateSlotMenuItem(int slotIndex, ICommand command) =>
         new()
         {
             Header = $"Slot {slotIndex + 1}",
@@ -312,13 +312,13 @@ internal sealed partial class MainMenu : UserControl
     {
         foreach (var speed in Enum.GetValues<EmulationSpeed>())
         {
-            var windowItem = CreateWindowFastForwardSpeedMenuItem(speed);
-            _fastForwardSpeedMenuItems.Add((windowItem, speed));
-            FastForwardSpeedMenuItem.Items.Add(windowItem);
+            var item = CreateFastForwardSpeedMenuItem(speed);
+            _fastForwardSpeedMenuItems.Add((item, speed));
+            FastForwardSpeedMenuItem.Items.Add(item);
         }
     }
 
-    private MenuItem CreateWindowFastForwardSpeedMenuItem(EmulationSpeed speed) =>
+    private MenuItem CreateFastForwardSpeedMenuItem(EmulationSpeed speed) =>
         new()
         {
             Header = speed.GetDisplayName(),
@@ -327,7 +327,7 @@ internal sealed partial class MainMenu : UserControl
             CommandParameter = speed,
         };
 
-    private MenuItem CreateWindowRecentRomMenuItem(LibraryEntry entry) =>
+    private MenuItem CreateRecentRomMenuItem(LibraryEntry entry) =>
         new()
         {
             Header = entry.FileName,

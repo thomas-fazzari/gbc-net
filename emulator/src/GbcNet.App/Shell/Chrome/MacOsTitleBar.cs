@@ -9,7 +9,6 @@ using Microsoft.Win32.SafeHandles;
 
 namespace GbcNet.App.Shell.Chrome;
 
-[SuppressMessage("Blocker Bug", "S3869:\"SafeHandle.DangerousGetHandle\" should not be called")]
 internal sealed partial class MacOsTitleBar : IDisposable
 {
     private const string ObjectiveCRuntime = "/usr/lib/libobjc.A.dylib";
@@ -140,6 +139,7 @@ internal sealed partial class MacOsTitleBar : IDisposable
         }
     }
 
+    [SuppressMessage("Blocker Bug", "S3869:\"SafeHandle.DangerousGetHandle\" should not be called")]
     private void SetToolbarVisible(bool isVisible)
     {
         if (_toolbar is { IsInvalid: false })
@@ -167,9 +167,6 @@ internal sealed partial class MacOsTitleBar : IDisposable
 
     [LibraryImport(ObjectiveCRuntime, EntryPoint = "objc_msgSend")]
     private static partial nint Send(nint receiver, nint selector, nint argument);
-
-    [LibraryImport(ObjectiveCRuntime, EntryPoint = "objc_msgSend")]
-    private static partial void SendArgument(nint receiver, nint selector, nint argument);
 
     [LibraryImport(ObjectiveCRuntime, EntryPoint = "objc_msgSend")]
     private static partial void SendToolbarArgument(

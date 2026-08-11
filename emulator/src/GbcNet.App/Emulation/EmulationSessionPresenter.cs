@@ -33,7 +33,6 @@ internal sealed class EmulationSessionPresenter(
 )
 {
     private const int RecentRomLimit = 5;
-    private const int SaveStateSlotCount = 10;
 
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
     private RomStorageIdentity? _activeRomIdentity;
@@ -110,7 +109,6 @@ internal sealed class EmulationSessionPresenter(
                 );
 
                 BeginPlayTime(identity);
-                ShowLoadedRomStatus(state);
                 SyncRecentRoms();
             }
             catch (InvalidOperationException exception)
@@ -310,8 +308,8 @@ internal sealed class EmulationSessionPresenter(
     private void SyncSaveStateDates() =>
         menu.SetSaveStateDates(
             controller.State.HasSession
-                ? controller.GetSaveStateDates(SaveStateSlotCount)
-                : new DateTime?[SaveStateSlotCount]
+                ? controller.GetSaveStateDates(MainMenu.StateSlotCount)
+                : new DateTime?[MainMenu.StateSlotCount]
         );
 
     public void SyncRecentRoms()

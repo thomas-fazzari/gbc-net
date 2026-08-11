@@ -17,7 +17,6 @@
           <MenuItem
             x:Name="OpenRomMenuItem"
             Header="_Open ROM..."
-            InputGesture="Ctrl+O"
             Command="{Binding OpenRomCommand, ElementName=Root}"
           />
           <MenuItem x:Name="OpenRecentMenuItem" Header="Open _Recent" IsEnabled="False" />
@@ -25,7 +24,6 @@
           <MenuItem
             x:Name="CloseWindowMenuItem"
             Header="_Close"
-            InputGesture="Ctrl+W"
             Command="{Binding CloseCommand, ElementName=Root}"
           />
         </MenuItem>
@@ -34,7 +32,6 @@
           <MenuItem
             x:Name="ConfigurationMenuItem"
             Header="_Configuration..."
-            InputGesture="Ctrl+C"
             Command="{Binding ConfigurationCommand, ElementName=Root}"
           />
           <Separator />
@@ -54,19 +51,16 @@
           <MenuItem
             x:Name="PauseEmulationMenuItem"
             Header="_Pause"
-            InputGesture="Space"
             Command="{Binding PauseCommand, ElementName=Root}"
           />
           <MenuItem
             x:Name="ResetEmulationMenuItem"
             Header="_Reset"
-            InputGesture="Ctrl+R"
             Command="{Binding ResetCommand, ElementName=Root}"
           />
           <MenuItem
             x:Name="CheatsMenuItem"
             Header="_Cheats..."
-            InputGesture="Ctrl+G"
             Command="{Binding CheatsCommand, ElementName=Root}"
           />
           <MenuItem

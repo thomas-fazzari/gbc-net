@@ -126,9 +126,7 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
 
             try
             {
-                // SoundFlow 1.4.1 shifts MiniAudioBackend by one.
-                // These values select native ALSA, then JACK.
-                // TODO: Remove when its mapping is fixed.
+                // SoundFlow 1.4.1 maps these values to native ALSA, then JACK on Linux.
                 _engine = OperatingSystem.IsLinux()
                     ? new MiniAudioEngine([MiniAudioBackend.PulseAudio, MiniAudioBackend.Alsa])
                     : new MiniAudioEngine();

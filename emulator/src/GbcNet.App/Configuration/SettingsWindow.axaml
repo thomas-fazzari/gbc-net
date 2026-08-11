@@ -15,8 +15,6 @@
 >
   <Window.Styles>
     <Style Selector="TextBlock.page-description">
-      <Setter Property="Foreground" Value="{DynamicResource SysTextMutedBrush}" />
-      <Setter Property="TextWrapping" Value="Wrap" />
       <Setter Property="FontSize" Value="13" />
     </Style>
     <Style Selector="TextBlock.subtitle">
@@ -28,19 +26,6 @@
     </Style>
     <Style Selector="Border.modal-rail">
       <Setter Property="Padding" Value="10,16" />
-    </Style>
-    <Style Selector="Border.modal-footer">
-      <Setter Property="Padding" Value="16,8,20,16" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
-    </Style>
-    <Style Selector="Border.card">
-      <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
-    </Style>
-    <Style Selector="Border.card:pointerover">
-      <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
     </Style>
     <Style Selector="ListBox.profile-list">
       <Setter Property="Background" Value="Transparent" />
@@ -68,22 +53,6 @@
       <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
       <Setter Property="BorderBrush" Value="Transparent" />
     </Style>
-    <Style Selector="TextBox.path-box">
-      <Setter Property="PlaceholderText" Value="No file selected" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderBrush" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Padding" Value="{DynamicResource CompFieldPadding}" />
-      <Setter Property="VerticalContentAlignment" Value="Center" />
-      <Setter Property="FocusAdorner" Value="{x:Null}" />
-    </Style>
-    <Style Selector="Border.path-well">
-      <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
-      <Setter Property="BorderBrush" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
-      <Setter Property="Height" Value="{DynamicResource RefControlHeight}" />
-    </Style>
   </Window.Styles>
 
   <Grid RowDefinitions="*,Auto" ColumnDefinitions="176,*">
@@ -92,7 +61,7 @@
         <chrome:SidebarNavButton
           x:Name="GeneralNavButton"
           Classes="modal-nav selected"
-          IconData="IconAdjustmentsHorizontal"
+          Icon="IconAdjustmentsHorizontal"
           Label="General"
           Click="ShowGeneralPage"
           AutomationProperties.Name="General settings"
@@ -102,7 +71,7 @@
         <chrome:SidebarNavButton
           x:Name="BootRomNavButton"
           Classes="modal-nav"
-          IconData="IconDeviceNintendo"
+          Icon="IconDeviceNintendo"
           Label="Boot ROMs"
           Click="ShowBootRomPage"
           AutomationProperties.Name="Boot ROM settings"
@@ -112,7 +81,7 @@
         <chrome:SidebarNavButton
           x:Name="InputsNavButton"
           Classes="modal-nav"
-          IconData="IconDeviceGamepad2"
+          Icon="IconDeviceGamepad2"
           Label="Inputs"
           Click="ShowInputsPage"
           AutomationProperties.Name="Input settings"
@@ -215,7 +184,7 @@
                 <RadioButton
                   x:Name="LightThemeRadioButton"
                   Grid.Column="1"
-                  Classes="segmented middle"
+                  Classes="segmented"
                   GroupName="ThemeMode"
                   Content="Light"
                   AutomationProperties.Name="Use light theme"
@@ -264,13 +233,14 @@
             ColumnSpacing="8"
           >
             <TextBlock Grid.Row="0" Classes="label" Text="DMG" VerticalAlignment="Center" />
-            <Border Grid.Row="0" Grid.Column="1" Classes="path-well">
-              <TextBox
-                x:Name="DmgBootRomPathTextBox"
-                Classes="path-box"
-                AutomationProperties.Name="DMG boot ROM path"
-              />
-            </Border>
+            <TextBox
+              x:Name="DmgBootRomPathTextBox"
+              Grid.Row="0"
+              Grid.Column="1"
+              Classes="field"
+              PlaceholderText="No file selected"
+              AutomationProperties.Name="DMG boot ROM path"
+            />
             <Button
               Grid.Row="0"
               Grid.Column="2"
@@ -293,13 +263,14 @@
             </Button>
 
             <TextBlock Grid.Row="1" Classes="label" Text="CGB" VerticalAlignment="Center" />
-            <Border Grid.Row="1" Grid.Column="1" Classes="path-well">
-              <TextBox
-                x:Name="CgbBootRomPathTextBox"
-                Classes="path-box"
-                AutomationProperties.Name="CGB boot ROM path"
-              />
-            </Border>
+            <TextBox
+              x:Name="CgbBootRomPathTextBox"
+              Grid.Row="1"
+              Grid.Column="1"
+              Classes="field"
+              PlaceholderText="No file selected"
+              AutomationProperties.Name="CGB boot ROM path"
+            />
             <Button
               Grid.Row="1"
               Grid.Column="2"
@@ -322,13 +293,14 @@
             </Button>
 
             <TextBlock Grid.Row="2" Classes="label" Text="SGB" VerticalAlignment="Center" />
-            <Border Grid.Row="2" Grid.Column="1" Classes="path-well">
-              <TextBox
-                x:Name="SgbBootRomPathTextBox"
-                Classes="path-box"
-                AutomationProperties.Name="SGB boot ROM path"
-              />
-            </Border>
+            <TextBox
+              x:Name="SgbBootRomPathTextBox"
+              Grid.Row="2"
+              Grid.Column="1"
+              Classes="field"
+              PlaceholderText="No file selected"
+              AutomationProperties.Name="SGB boot ROM path"
+            />
             <Button
               Grid.Row="2"
               Grid.Column="2"

@@ -87,6 +87,22 @@ public sealed class AppConfigurationIntegrationTests
     }
 
     [Fact]
+    public void Load_NullAudioUsesDefaultAudio()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllText(configPath, """{"audio":null}""");
+
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
+
+        startupConfiguration
+            .StartupErrorMessage.Should()
+            .Be("Audio volume must be between 0 and 100 percent.");
+        startupConfiguration.AudioConfig.Should().Be(new AudioConfig());
+    }
+
+    [Fact]
     public void Load_InvalidLibraryViewModeUsesDefaultFallback()
     {
         using var tempDirectory = TestDirectories.CreateTemporaryDirectory();

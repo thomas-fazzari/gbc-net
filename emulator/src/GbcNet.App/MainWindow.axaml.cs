@@ -55,6 +55,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         _logger = logger;
         InitializeComponent();
+        ScalingChanged += (_, _) => UpdateTitleBarInsets();
         _macOsTitleBar = new MacOsTitleBar(this);
         FullscreenTitleBarButton.IsVisible = !OperatingSystem.IsWindows();
         UpdateTitleBarInsets();
@@ -162,6 +163,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             _emulationSession,
             _gamepadManager,
             audioOutput,
+            startupConfiguration.AudioConfig,
             configurationService,
             _shell,
             _operationRunner,
@@ -188,11 +190,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             loggerFactory.CreateLogger<SettingsWindow>()
         );
 
-        _menuAdapter.Configure(
-            emulationView,
-            startupConfiguration.AudioConfig,
-            configurationPresenter
-        );
+        _menuAdapter.Configure(emulationView, configurationPresenter);
         libraryView.ViewModeChanged = _menuAdapter.SaveLibraryViewMode;
         _emulationSession.AttachDragDrop(this);
         _libraryPresenter.Refresh();
@@ -334,7 +332,6 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     private void SetEmulationTitleBar(bool isEmulating)
     {
-        LibraryTitleBarLeft.IsVisible = !isEmulating;
         LibrarySearchHost.IsVisible = !isEmulating;
         LibraryTitleBarActions.IsVisible = !isEmulating;
         EmulationTitleBarLeft.IsVisible = isEmulating;

@@ -9,21 +9,11 @@ namespace GbcNet.Tests.Unit.App;
 
 public sealed class GbcNetApplicationTests
 {
-    [Theory]
-    [InlineData((int)ThemeMode.System)]
-    [InlineData((int)ThemeMode.Light)]
-    [InlineData((int)ThemeMode.Dark)]
-    public void GetThemeVariant_MapsThemeMode(int value)
+    [Fact]
+    public void GetThemeVariant_MapsThemeModes()
     {
-        var mode = (ThemeMode)value;
-        var expected = mode switch
-        {
-            ThemeMode.System => ThemeVariant.Default,
-            ThemeMode.Light => ThemeVariant.Light,
-            ThemeMode.Dark => ThemeVariant.Dark,
-            _ => throw new ArgumentOutOfRangeException(nameof(value), value, message: null),
-        };
-
-        GbcNetApplication.GetThemeVariant(mode).Should().Be(expected);
+        GbcNetApplication.GetThemeVariant(ThemeMode.System).Should().Be(ThemeVariant.Default);
+        GbcNetApplication.GetThemeVariant(ThemeMode.Light).Should().Be(ThemeVariant.Light);
+        GbcNetApplication.GetThemeVariant(ThemeMode.Dark).Should().Be(ThemeVariant.Dark);
     }
 }

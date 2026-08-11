@@ -27,22 +27,20 @@ internal sealed class MainWindowMenuAdapter(
     EmulationSessionPresenter emulationSession,
     GamepadManager gamepadManager,
     IAudioOutput audioOutput,
+    AudioConfig audioConfig,
     AppConfigurationService configurationService,
     ShellPresenter shell,
     ShellOperationRunner operationRunner,
     ILogger<MainWindowMenuAdapter> logger
 )
 {
-    // Set by Configure() before any menu interaction.
-    private AudioConfig _audioConfig = null!;
+    private AudioConfig _audioConfig = audioConfig;
 
     public void Configure(
         EmulationView emulationView,
-        AudioConfig audioConfig,
         ConfigurationPresenter configurationPresenter
     )
     {
-        _audioConfig = audioConfig;
         ApplyAudioConfig(_audioConfig);
 
         mainMenu.AttachToWindow(window);

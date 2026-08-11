@@ -18,9 +18,6 @@
       <Setter Property="Width" Value="144" />
     </Style>
     <Style Selector="Button.library-tile">
-      <Setter Property="Width" Value="176" />
-      <Setter Property="Height" Value="252" />
-      <Setter Property="Margin" Value="4" />
       <Setter Property="Padding" Value="8" />
       <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
       <Setter Property="BorderBrush" Value="Transparent" />
@@ -285,89 +282,96 @@
                   </ItemsControl.ItemsPanel>
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="library:LibraryTile">
-                      <Button Classes="library-tile" Click="OnRomTileClick">
-                        <Grid RowDefinitions="160,48,*">
-                          <Border
-                            Grid.Row="0"
-                            Height="160"
-                            Background="{DynamicResource SysSurfaceRaisedBrush}"
-                            ClipToBounds="True"
-                            CornerRadius="{DynamicResource RefRadiusSmall}"
-                          >
-                            <Grid>
-                              <Image
-                                Source="{Binding CoverBitmap}"
-                                IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNotNull}}"
-                                Stretch="Fill"
-                              />
-                              <TextBlock
-                                Text="ROM"
-                                IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNull}}"
-                                Foreground="{DynamicResource SysTextMutedBrush}"
-                                FontSize="22"
-                                FontWeight="Medium"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                              />
-                            </Grid>
-                          </Border>
-                          <TextBlock
-                            Grid.Row="1"
-                            Margin="0,8,0,0"
-                            Text="{Binding UserFriendlyTitle}"
-                            Foreground="{DynamicResource SysTextBrush}"
-                            FontSize="12"
-                            FontWeight="Medium"
-                            MaxLines="2"
-                            TextTrimming="WordEllipsis"
-                            TextWrapping="Wrap"
-                            VerticalAlignment="Top"
-                          />
-                          <Grid Grid.Row="2" ColumnDefinitions="*,Auto,28" ColumnSpacing="4">
-                            <StackPanel
-                              Height="24"
-                              Spacing="4"
-                              Orientation="Horizontal"
-                              VerticalAlignment="Bottom"
-                            >
-                              <ti:TablerIcon
-                                Width="16"
-                                Height="16"
-                                Icon="IconClock"
-                                Brush="{DynamicResource SysTextMutedBrush}"
-                              />
-                              <TextBlock
-                                Text="{Binding PlayTimeText}"
-                                Foreground="{DynamicResource SysTextMutedBrush}"
-                                FontSize="11"
-                                VerticalAlignment="Center"
-                              />
-                            </StackPanel>
+                      <Grid Width="176" Height="252" Margin="4">
+                        <Button
+                          Classes="library-tile"
+                          Click="OnRomTileClick"
+                          AutomationProperties.Name="{Binding UserFriendlyTitle}"
+                        >
+                          <Grid RowDefinitions="160,48,*">
                             <Border
-                              Grid.Column="1"
-                              Classes="badge tile-badge"
-                              HorizontalAlignment="Right"
-                              VerticalAlignment="Bottom"
+                              Grid.Row="0"
+                              Height="160"
+                              Background="{DynamicResource SysSurfaceRaisedBrush}"
+                              ClipToBounds="True"
+                              CornerRadius="{DynamicResource RefRadiusSmall}"
                             >
-                              <TextBlock
-                                Text="{Binding HardwareText}"
-                                Classes="label"
-                                VerticalAlignment="Center"
-                              />
+                              <Grid>
+                                <Image
+                                  Source="{Binding CoverBitmap}"
+                                  IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNotNull}}"
+                                  Stretch="Fill"
+                                />
+                                <TextBlock
+                                  Text="ROM"
+                                  IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNull}}"
+                                  Foreground="{DynamicResource SysTextMutedBrush}"
+                                  FontSize="22"
+                                  FontWeight="Medium"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                />
+                              </Grid>
                             </Border>
-                            <Button
-                              Grid.Column="2"
-                              Classes="tile-actions"
-                              VerticalAlignment="Bottom"
-                              Loaded="OnTileActionsButtonLoaded"
-                              Click="OnTileActionsButtonClick"
-                              AutomationProperties.Name="ROM actions"
-                            >
-                              <ti:TablerIcon Width="16" Height="16" Icon="IconDots" />
-                            </Button>
+                            <TextBlock
+                              Grid.Row="1"
+                              Margin="0,8,0,0"
+                              Text="{Binding UserFriendlyTitle}"
+                              Foreground="{DynamicResource SysTextBrush}"
+                              FontSize="12"
+                              FontWeight="Medium"
+                              MaxLines="2"
+                              TextTrimming="WordEllipsis"
+                              TextWrapping="Wrap"
+                              VerticalAlignment="Top"
+                            />
+                            <Grid Grid.Row="2" ColumnDefinitions="*,Auto,28" ColumnSpacing="4">
+                              <StackPanel
+                                Height="24"
+                                Spacing="4"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Bottom"
+                              >
+                                <ti:TablerIcon
+                                  Width="16"
+                                  Height="16"
+                                  Icon="IconClock"
+                                  Brush="{DynamicResource SysTextMutedBrush}"
+                                />
+                                <TextBlock
+                                  Text="{Binding PlayTimeText}"
+                                  Foreground="{DynamicResource SysTextMutedBrush}"
+                                  FontSize="11"
+                                  VerticalAlignment="Center"
+                                />
+                              </StackPanel>
+                              <Border
+                                Grid.Column="1"
+                                Classes="badge tile-badge"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Bottom"
+                              >
+                                <TextBlock
+                                  Text="{Binding HardwareText}"
+                                  Classes="label"
+                                  VerticalAlignment="Center"
+                                />
+                              </Border>
+                            </Grid>
                           </Grid>
-                        </Grid>
-                      </Button>
+                        </Button>
+                        <Button
+                          Classes="tile-actions"
+                          Margin="0,0,8,8"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Bottom"
+                          Loaded="OnTileActionsButtonLoaded"
+                          ToolTip.Tip="ROM actions"
+                          AutomationProperties.Name="ROM actions"
+                        >
+                          <ti:TablerIcon Width="16" Height="16" Icon="IconDots" />
+                        </Button>
+                      </Grid>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -467,6 +471,7 @@
                         Tag="Title"
                         Click="OnTableSortClick"
                         ToolTip.Tip="Sort by title"
+                        AutomationProperties.Name="Sort by title"
                       >
                         <StackPanel Spacing="8" Orientation="Horizontal">
                           <TextBlock Text="ROM" />
@@ -582,6 +587,7 @@
                         Tag="MostTimePlayed"
                         Click="OnTableSortClick"
                         ToolTip.Tip="Sort by time played"
+                        AutomationProperties.Name="Sort by time played"
                       >
                         <StackPanel Spacing="8" Orientation="Horizontal">
                           <TextBlock Text="Time Played" />
@@ -616,6 +622,7 @@
                         Tag="MostPlayed"
                         Click="OnTableSortClick"
                         ToolTip.Tip="Sort by plays"
+                        AutomationProperties.Name="Sort by plays"
                       >
                         <StackPanel Spacing="8" Orientation="Horizontal">
                           <TextBlock Text="Plays" />
@@ -650,6 +657,7 @@
                         Tag="LastOpened"
                         Click="OnTableSortClick"
                         ToolTip.Tip="Sort by last played"
+                        AutomationProperties.Name="Sort by last played"
                       >
                         <StackPanel Spacing="8" Orientation="Horizontal">
                           <TextBlock Text="Last played" />
@@ -682,7 +690,7 @@
                         Classes="tile-actions table-actions"
                         HorizontalAlignment="Left"
                         Loaded="OnTileActionsButtonLoaded"
-                        Click="OnTileActionsButtonClick"
+                        ToolTip.Tip="ROM actions"
                         AutomationProperties.Name="ROM actions"
                       >
                         <ti:TablerIcon Width="16" Height="16" Icon="IconDots" />

@@ -14,8 +14,6 @@
 >
   <Window.Styles>
     <Style Selector="TextBlock.page-description">
-      <Setter Property="Foreground" Value="{DynamicResource SysTextMutedBrush}" />
-      <Setter Property="TextWrapping" Value="Wrap" />
       <Setter Property="FontSize" Value="12" />
     </Style>
     <Style Selector="TextBlock.subtitle">
@@ -24,34 +22,10 @@
     <Style Selector="Border.modal-rail">
       <Setter Property="Padding" Value="8,12" />
     </Style>
-    <Style Selector="Border.modal-footer">
-      <Setter Property="Padding" Value="16,8,20,16" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
-    </Style>
-    <Style Selector="Border.input-well">
-      <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
-      <Setter Property="BorderBrush" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
-      <Setter Property="Height" Value="{DynamicResource RefControlHeight}" />
-    </Style>
     <Style Selector="Border.code-list">
       <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
-    </Style>
-    <Style Selector="Border.input-well.error">
-      <Setter Property="BorderBrush" Value="{DynamicResource SysDangerBrush}" />
-      <Setter Property="BorderThickness" Value="1" />
-    </Style>
-    <Style Selector="TextBox.code-input">
-      <Setter Property="Padding" Value="{DynamicResource CompFieldPadding}" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderBrush" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="VerticalContentAlignment" Value="Center" />
-      <Setter Property="FocusAdorner" Value="{x:Null}" />
     </Style>
     <Style Selector="Border.code-row">
       <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
@@ -65,7 +39,7 @@
         <chrome:SidebarNavButton
           x:Name="GameGenieNavButton"
           Classes="modal-nav selected"
-          IconData="IconWand"
+          Icon="IconWand"
           Label="Game Genie"
           Click="ShowGameGeniePage"
           AutomationProperties.Name="Game Genie cheats"
@@ -75,7 +49,7 @@
         <chrome:SidebarNavButton
           x:Name="GameSharkNavButton"
           Classes="modal-nav"
-          IconData="IconFish"
+          Icon="IconFish"
           Label="GameShark"
           Click="ShowGameSharkPage"
           AutomationProperties.Name="GameShark cheats"
@@ -100,28 +74,24 @@
       </StackPanel>
 
       <Grid Grid.Row="1" RowDefinitions="Auto,Auto" RowSpacing="6">
-        <Border Classes="input-well">
-          <TextBox
-            x:Name="NameTextBox"
-            Classes="code-input"
-            MaxLength="80"
-            PlaceholderText="Name (optional)"
-            AutomationProperties.Name="Cheat name (optional)"
-            AutomationProperties.HelpText="Optional name for the Game Genie code"
-          />
-        </Border>
+        <TextBox
+          x:Name="NameTextBox"
+          Classes="field"
+          MaxLength="80"
+          PlaceholderText="Name (optional)"
+          AutomationProperties.Name="Cheat name (optional)"
+          AutomationProperties.HelpText="Optional name for the Game Genie code"
+        />
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-          <Border Classes="input-well">
-            <TextBox
-              x:Name="CodeTextBox"
-              Classes="code-input"
-              MaxLength="32"
-              PlaceholderText="ABC-DEF or ABC-DEF-GHI"
-              TextChanged="ValidateCodeInput"
-              AutomationProperties.Name="Game Genie code"
-              AutomationProperties.HelpText="Enter a six- or nine-digit Game Genie code"
-            />
-          </Border>
+          <TextBox
+            x:Name="CodeTextBox"
+            Classes="field"
+            MaxLength="32"
+            PlaceholderText="ABC-DEF or ABC-DEF-GHI"
+            TextChanged="ValidateCodeInput"
+            AutomationProperties.Name="Game Genie code"
+            AutomationProperties.HelpText="Enter a six- or nine-digit Game Genie code"
+          />
           <Button
             x:Name="AddButton"
             Grid.Column="1"
