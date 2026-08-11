@@ -10,15 +10,13 @@ CONFIGURATION ?= Debug
 RUN_CONFIGURATION ?= Release
 RUNTIME ?= osx-arm64
 TEST_ARGS ?=
-CONTAINER_ENGINE ?= $(shell if command -v podman >/dev/null 2>&1; then printf podman; elif command -v docker >/dev/null 2>&1; then printf docker; fi)
-DOTNET_SDK_IMAGE ?= mcr.microsoft.com/dotnet/sdk:10.0.302
 
 DOTNET ?= dotnet
 
 .DEFAULT_GOAL := run
 MAKEFLAGS += --no-builtin-rules --warn-undefined-variables
 
-.PHONY: install setup init run start lint check fix format fmt tests unit integration integration-c coverage bundle package pack icons copyrights contributors
+.PHONY: install setup init run start lint check fix format fmt tests unit integration coverage bundle package pack icons copyrights contributors
 
 install: ## Restore dependencies and configure Git hooks
 	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) restore $(SOLUTION)
@@ -51,17 +49,6 @@ unit: ## Run unit tests
 
 integration: ## Run filesystem and database integration tests
 	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) run --project $(INTEGRATION_TESTS) --configuration $(CONFIGURATION) -- $(TEST_ARGS)
-
-integration-c: ## Run integration tests in Podman or Docker
-	@if [ -z "$(CONTAINER_ENGINE)" ]; then echo "Podman or Docker is required."; exit 1; fi
-	$(CONTAINER_ENGINE) run --rm \
-		--env DOTNET_CLI_TELEMETRY_OPTOUT=1 \
-		--env TESTINGPLATFORM_TELEMETRY_OPTOUT=1 \
-		--volume "$(CURDIR):/workspace:ro" \
-		--volume gbcnet-nuget:/root/.nuget/packages \
-		--workdir /workspace/$(DOTNET_WORKSPACE) \
-		$(DOTNET_SDK_IMAGE) \
-		dotnet run --project $(INTEGRATION_TESTS) --configuration $(CONFIGURATION) --artifacts-path /tmp/artifacts -- $(TEST_ARGS)
 
 coverage: ## Run all tests and write Cobertura coverage
 	mkdir -p "$(COVERAGE_DIR)"

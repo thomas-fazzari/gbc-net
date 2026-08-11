@@ -16,4 +16,4 @@ Use Makefile entry points instead of duplicating their underlying commands.
 
 * `make unit CONFIGURATION=Release`
 * `make lint CONFIGURATION=Release`
-* `make integration-c CONFIGURATION=Release`
+* `make integration CONFIGURATION=Release`

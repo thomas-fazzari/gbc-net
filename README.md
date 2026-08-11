@@ -34,10 +34,9 @@ make
 <p>Integration tests exercise filesystem and database behavior.</p>
 
 ```sh
-make tests         # All tests on host
+make tests         # All tests
 make unit          # Unit tests only
-make integration   # Integration tests on host
-make integration-c # Integration tests in Podman or Docker
+make integration   # Integration tests only
 ```
 
 <h2>Compatibility</h2>
