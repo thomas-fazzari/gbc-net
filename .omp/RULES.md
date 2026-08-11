@@ -29,5 +29,5 @@ Apply these rules to human-facing prose stored in or submitted for the repositor
 * Avoid semicolons except in dense table cells. Prefer a period.
 * Cut filler lead-ins, repeated points, and facts the reader can already see.
   Question any parenthetical longer than about six words.
-* Never use "hand-written" as a quality label. Name the concrete Halcyon project
+* Never use "hand-written" as a quality label. Name the concrete GBC.Net project
   or resource instead.
