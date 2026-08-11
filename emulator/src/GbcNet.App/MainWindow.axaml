@@ -7,7 +7,7 @@
   xmlns:ti="using:TablerIcons"
   x:Class="GbcNet.App.MainWindow"
   x:Name="Root"
-  Title="GbcNet"
+  Title=""
   Width="1180"
   Height="720"
   MinWidth="780"
@@ -179,6 +179,7 @@
                 <ti:TablerIcon Icon="IconPlayerTrackNext" />
               </ToggleButton>
               <Button
+                x:Name="FullscreenTitleBarButton"
                 Classes="icon titlebar"
                 Command="{Binding FullscreenCommand, ElementName=MainMenu}"
                 ToolTip.Tip="Fullscreen"

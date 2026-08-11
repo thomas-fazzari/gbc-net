@@ -22,6 +22,11 @@ namespace GbcNet.App;
 
 internal sealed partial class MainWindow : Window, IDisposable
 {
+    private const double DefaultTitleBarSpacing = 8;
+    private const double MacOsTitleBarLeftInset = 88;
+    private const double WindowsTitleBarLeftInset = 32;
+    private const double WindowsTitleBarSpacing = 48;
+
     private readonly EmulationSessionPresenter _emulationSession;
     private readonly GamepadManager _gamepadManager;
     private readonly LcdFramePresenter _framePresenter;
@@ -51,6 +56,7 @@ internal sealed partial class MainWindow : Window, IDisposable
         _logger = logger;
         InitializeComponent();
         _macOsTitleBar = new MacOsTitleBar(this);
+        FullscreenTitleBarButton.IsVisible = !OperatingSystem.IsWindows();
         UpdateTitleBarInsets();
         LibrarySearchTextBox.TextChanged += OnLibrarySearchTextChanged;
         UpdateSearchAction();
@@ -214,6 +220,12 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
     }
 
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        UpdateTitleBarInsets();
+    }
+
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
@@ -354,10 +366,31 @@ internal sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
-        var left = OperatingSystem.IsMacOS()
-            ? 88
-            : Math.Max(WindowDecorationMargin.Left, OffScreenMargin.Left) + 8;
-        var right = Math.Max(WindowDecorationMargin.Right, OffScreenMargin.Right) + 8;
+        double left;
+        if (OperatingSystem.IsMacOS())
+        {
+            left = MacOsTitleBarLeftInset;
+        }
+        else if (OperatingSystem.IsWindows())
+        {
+            left = WindowsTitleBarLeftInset;
+        }
+        else
+        {
+            left =
+                Math.Max(WindowDecorationMargin.Left, OffScreenMargin.Left)
+                + DefaultTitleBarSpacing;
+        }
+
+        var rightSpacing = OperatingSystem.IsWindows()
+            ? WindowsTitleBarSpacing
+            : DefaultTitleBarSpacing;
+        var right =
+            Math.Max(
+                Math.Max(WindowDecorationMargin.Right, OffScreenMargin.Right),
+                WindowsTitleBar.GetCaptionButtonsWidth(this)
+            ) + rightSpacing;
+
         EmulationTitleBarLeft.Margin = new Thickness(left, 0, 0, 0);
         TitleBarActionsHost.Margin = new Thickness(0, 0, right, 0);
     }
