@@ -10,11 +10,9 @@ namespace GbcNet.Core.Cheats;
 /// </summary>
 public readonly record struct GameSharkCode
 {
-    private readonly string? _canonicalCode;
-
     private GameSharkCode(string canonicalCode, ushort address, byte value)
     {
-        _canonicalCode = canonicalCode;
+        CanonicalCode = canonicalCode;
         Address = address;
         Value = value;
     }
@@ -22,7 +20,7 @@ public readonly record struct GameSharkCode
     /// <summary>
     /// The uppercase eight-digit code text.
     /// </summary>
-    public string CanonicalCode => _canonicalCode ?? string.Empty;
+    public string CanonicalCode => field ?? string.Empty;
 
     /// <summary>
     /// The CPU-visible address written at VBlank entry.
