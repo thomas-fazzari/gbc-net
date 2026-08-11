@@ -951,27 +951,49 @@ public sealed class MemoryBusTests
         bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0x34);
     }
 
-    [Fact]
-    public void ReadWriteByte_IgnoresNotUsableRange()
+    [Theory]
+    [InlineData(HardwareModel.Dmg, false)]
+    [InlineData(HardwareModel.Cgb, false)]
+    [InlineData(HardwareModel.Cgb, true)]
+    [InlineData(HardwareModel.Sgb, false)]
+    public void ReadWriteByte_ExposesModelSpecificNotUsableRange(
+        HardwareModel model,
+        bool cgbCompatibilityMode
+    )
     {
-        var bus = CreateBus();
+        // Pan Docs `memory-map.md`: DMG/SGB read 00 outside OAM blocking, while the
+        // supported CGB behavior mirrors the address high nibble in both operating modes.
+        var bus = CreateBus(GetProfile(model, cgbCompatibilityMode));
 
         bus.WriteByte(0xFEA0, 0x12);
+        bus.WriteByte(0xFEBF, 0x23);
         bus.WriteByte(0xFEFF, 0x34);
 
-        bus.ReadByte(0xFEA0).Should().Be(0x00);
-        bus.ReadByte(0xFEFF).Should().Be(0x00);
+        var isCgb = model is HardwareModel.Cgb;
+        bus.ReadByte(0xFEA0).Should().Be(isCgb ? (byte)0xAA : (byte)0x00);
+        bus.ReadByte(0xFEBF).Should().Be(isCgb ? (byte)0xBB : (byte)0x00);
+        bus.ReadByte(0xFEFF).Should().Be(isCgb ? (byte)0xFF : (byte)0x00);
     }
 
-    [Fact]
-    public void ReadWriteByte_KeepsNotUsableRangeBehaviorDuringPpuOamBlock()
+    [Theory]
+    [InlineData(HardwareModel.Dmg, false)]
+    [InlineData(HardwareModel.Cgb, false)]
+    [InlineData(HardwareModel.Cgb, true)]
+    [InlineData(HardwareModel.Sgb, false)]
+    public void ReadWriteByte_ReturnsFfForNotUsableRangeDuringPpuOamBlock(
+        HardwareModel model,
+        bool cgbCompatibilityMode
+    )
     {
-        var bus = CreateBus();
+        // Pan Docs `memory-map.md`: FEA0-FEFF returns FF whenever OAM is blocked.
+        var bus = CreateBus(GetProfile(model, cgbCompatibilityMode));
         bus.WriteByte(AddressMap.LcdControlRegister, LcdEnable);
+        bus.Ppu.Tick(80);
 
         bus.WriteByte(AddressMap.NotUsableStart, 0x42);
 
-        bus.ReadByte(AddressMap.NotUsableStart).Should().Be(0x00);
+        bus.ReadByte(AddressMap.NotUsableStart).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.NotUsableEnd).Should().Be(0xFF);
     }
 
     [Fact]
@@ -1377,15 +1399,24 @@ public sealed class MemoryBusTests
         bus.ReadByte(AddressMap.ObjectAttributeMemoryStart).Should().Be(0x42);
     }
 
-    [Fact]
-    public void ReadWriteByte_KeepsNotUsableRangeBehaviorDuringDma()
+    [Theory]
+    [InlineData(HardwareModel.Dmg, false)]
+    [InlineData(HardwareModel.Cgb, false)]
+    [InlineData(HardwareModel.Cgb, true)]
+    [InlineData(HardwareModel.Sgb, false)]
+    public void ReadWriteByte_ReturnsFfForNotUsableRangeWhileOamDmaBlocksOam(
+        HardwareModel model,
+        bool cgbCompatibilityMode
+    )
     {
-        var bus = CreateBus();
+        var bus = CreateBus(GetProfile(model, cgbCompatibilityMode));
 
         bus.WriteByte(AddressMap.DmaRegister, 0xC0);
         bus.WriteByte(AddressMap.NotUsableStart, 0x42);
+        bus.TickDma(2);
 
-        bus.ReadByte(AddressMap.NotUsableStart).Should().Be(0x00);
+        bus.ReadByte(AddressMap.NotUsableStart).Should().Be(0xFF);
+        bus.ReadByte(AddressMap.NotUsableEnd).Should().Be(0xFF);
     }
 
     [Fact]
@@ -1511,6 +1542,17 @@ public sealed class MemoryBusTests
         var cartridge = TestRomFactory.LoadCartridge(rom);
         return new MemoryBus(cartridge, profile);
     }
+
+    private static IHardwareProfile GetProfile(HardwareModel model, bool cgbCompatibilityMode) =>
+        model switch
+        {
+            HardwareModel.Dmg => DmgHardwareProfile.Instance,
+            HardwareModel.Cgb => new CgbHardwareProfile(
+                cgbCompatibilityMode ? CgbOperatingMode.DmgCompatibility : CgbOperatingMode.Cgb
+            ),
+            HardwareModel.Sgb => SgbHardwareProfile.Instance,
+            _ => throw new ArgumentOutOfRangeException(nameof(model)),
+        };
 
     private static void TickMachineCycles(MemoryBus bus, int machineCycles)
     {

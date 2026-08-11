@@ -34,6 +34,7 @@ internal sealed class MemoryBus
     private readonly BootRom? _bootRom;
     private readonly SgbController? _sgb;
     private readonly CgbMiscRegisters _cgbMiscRegisters;
+    private readonly bool _mirrorsNotUsableAddressNibble;
 
     private CheatCode[]?[]? _gameGenieCodesByLowAddress;
     private CheatCode[]? _gameSharkCodes;
@@ -103,6 +104,7 @@ internal sealed class MemoryBus
         );
 
         _hardwareProfile = hardwareProfile;
+        _mirrorsNotUsableAddressNibble = hardwareProfile.Model is HardwareModel.Cgb;
 
         Interrupts = new InterruptController();
         _sgb =
@@ -445,7 +447,7 @@ internal sealed class MemoryBus
 
     private bool TryReadDmaConflictedByte(ushort address, out byte value)
     {
-        if (IsObjectAttributeMemory(address) && OamDma.IsCpuOamBlocked)
+        if (IsOamBusRange(address) && OamDma.IsCpuOamBlocked)
         {
             value = 0xFF;
             return true;
@@ -473,12 +475,17 @@ internal sealed class MemoryBus
             is >= AddressMap.ObjectAttributeMemoryStart
                 and <= AddressMap.ObjectAttributeMemoryEnd;
 
+    private static bool IsOamBusRange(ushort address) =>
+        address is >= AddressMap.ObjectAttributeMemoryStart and <= AddressMap.NotUsableEnd;
+
     private bool IsCpuVideoMemoryReadBlockedByPpu(ushort address) =>
         address switch
         {
             >= AddressMap.VideoRamStart and <= AddressMap.VideoRamEnd =>
                 Ppu.IsCpuVideoRamReadBlocked,
             >= AddressMap.ObjectAttributeMemoryStart and <= AddressMap.ObjectAttributeMemoryEnd =>
+                Ppu.IsCpuObjectAttributeMemoryReadBlocked,
+            >= AddressMap.NotUsableStart and <= AddressMap.NotUsableEnd =>
                 Ppu.IsCpuObjectAttributeMemoryReadBlocked,
             _ => false,
         };
@@ -502,11 +509,22 @@ internal sealed class MemoryBus
             <= AddressMap.WorkRamEnd => _workRam.Read(address),
             <= AddressMap.EchoRamEnd => _workRam.Read(address),
             <= AddressMap.ObjectAttributeMemoryEnd => Ppu.ObjectAttributeMemory.Read(address),
-            <= AddressMap.NotUsableEnd => 0x00,
+            <= AddressMap.NotUsableEnd => ReadNotUsableByte(address),
             <= AddressMap.IoRegistersEnd => _ioRegisters.Read(address),
             <= AddressMap.HighRamEnd => _highRam.Read(address),
             AddressMap.InterruptEnableRegister => Interrupts.InterruptEnable,
         };
+
+    private byte ReadNotUsableByte(ushort address)
+    {
+        if (!_mirrorsNotUsableAddressNibble)
+        {
+            return 0x00;
+        }
+
+        var highNibble = (byte)(address & 0xF0);
+        return (byte)(highNibble | (highNibble >> 4));
+    }
 
     private byte ReadOamDmaSourceByte(ushort address)
     {
