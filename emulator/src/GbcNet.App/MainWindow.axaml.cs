@@ -26,8 +26,9 @@ internal sealed partial class MainWindow : Window, IDisposable
     private readonly GamepadManager _gamepadManager;
     private readonly LcdFramePresenter _framePresenter;
     private readonly LibraryPresenter _libraryPresenter;
+    private readonly MacOsTitleBar _macOsTitleBar;
     private readonly ShellOperationRunner _operationRunner;
-    private readonly StatusBarPresenter _statusBar;
+    private readonly ShellPresenter _shell;
     private readonly MainWindowMenuAdapter _menuAdapter;
     private readonly ILogger<MainWindow> _logger;
     private readonly HashSet<Key> _pressedKeys = [];
@@ -49,32 +50,32 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         _logger = logger;
         InitializeComponent();
+        _macOsTitleBar = new MacOsTitleBar(this);
+        UpdateTitleBarInsets();
+        LibrarySearchTextBox.TextChanged += OnLibrarySearchTextChanged;
+        UpdateSearchAction();
 
         var libraryView = new LibraryView();
         libraryView.SetViewMode(startupConfiguration.LibraryConfig.ViewMode);
+        LibrarySearchHost.DataContext = libraryView;
         var emulationView = new EmulationView();
         ContentHost.Content = libraryView;
 
         _framePresenter = new LcdFramePresenter(emulationView.Screen);
 
-        _statusBar = new StatusBarPresenter(
-            message: StatusTextBlock,
-            coverFrame: StatusCoverFrame,
-            coverImage: StatusCoverImage,
-            hardwareBadge: StatusHardwareBadge,
-            hardwareBadgeText: StatusHardwareBadgeTextBlock,
-            speedBadge: StatusSpeedBadge,
-            speed: StatusSpeedTextBlock,
-            logger: loggerFactory.CreateLogger<StatusBarPresenter>()
+        _shell = new ShellPresenter(
+            RomTitleTextBlock,
+            EmulationStateBadge,
+            EmulationStateTextBlock,
+            PauseTitleBarButton,
+            FastForwardTitleBarButton,
+            Notification,
+            NotificationItemsControl
         );
         _operationRunner = new ShellOperationRunner(
-            exception => _statusBar.ShowError(exception.Message),
+            exception => _shell.ShowError(exception.Message),
             logger
         );
-
-        var menuBarVisibility = new MenuBarVisibilityController(MainMenu, this);
-        var statusBarVisibility = new StatusBarVisibilityController(StatusBar, MainMenu);
-        statusBarVisibility.SetAvailable(isAvailable: false);
 
         var emulationController = new EmulationController(
             startupConfiguration.BootRomOptions,
@@ -105,7 +106,7 @@ internal sealed partial class MainWindow : Window, IDisposable
             inputRouter,
             libraryService,
             configurationService,
-            _statusBar,
+            _shell,
             MainMenu,
             _operationRunner,
             loggerFactory.CreateLogger<EmulationSessionPresenter>(),
@@ -119,39 +120,33 @@ internal sealed partial class MainWindow : Window, IDisposable
         );
 
         _gamepadManager.Start();
-        libraryView.OpenRomRequested = () =>
-            _operationRunner.Run(() => _emulationSession.OpenRomAsync(StorageProvider));
-
+        libraryView.OpenRomRequested = () => MainMenu.OpenRomCommand.Execute(parameter: null);
         _libraryPresenter = new LibraryPresenter(
             libraryView,
             libraryService,
             _operationRunner,
             StorageProvider,
             loggerFactory.CreateLogger<LibraryPresenter>(),
-            path => _emulationSession.OpenRecentRomAsync(StorageProvider, path)
+            path => _emulationSession.OpenRecentRomAsync(StorageProvider, path),
+            _shell.ShowError
         );
 
         _emulationSession.SessionOpened += (_, _) =>
         {
             ContentHost.Content = emulationView;
             emulationView.Focus();
-            menuBarVisibility.SetVisible(isVisible: false);
-            statusBarVisibility.SetAvailable(isAvailable: true);
-            statusBarVisibility.SetVisible(isVisible: false);
+            SetEmulationTitleBar(isEmulating: true);
         };
         _emulationSession.SessionClosed += (_, _) =>
         {
             ContentHost.Content = libraryView;
-            menuBarVisibility.SetVisible(isVisible: true);
-            statusBarVisibility.SetAvailable(isAvailable: false);
+            SetEmulationTitleBar(isEmulating: false);
             _libraryPresenter.Refresh();
         };
         _emulationSession.SessionFaulted += (_, _) =>
         {
             ContentHost.Content = libraryView;
-            menuBarVisibility.SetVisible(isVisible: true);
-            statusBarVisibility.SetAvailable(isAvailable: true);
-            statusBarVisibility.SetVisible(isVisible: true);
+            SetEmulationTitleBar(isEmulating: false);
             _libraryPresenter.Refresh();
         };
 
@@ -162,17 +157,15 @@ internal sealed partial class MainWindow : Window, IDisposable
             _gamepadManager,
             audioOutput,
             configurationService,
-            _statusBar,
+            _shell,
             _operationRunner,
-            menuBarVisibility,
-            statusBarVisibility,
             loggerFactory.CreateLogger<MainWindowMenuAdapter>()
         );
 
         var configurationPresenter = new ConfigurationPresenter(
             configurationService,
             startupConfiguration.ConfigPath,
-            _statusBar,
+            _shell,
             _emulationSession.SetBootRomOptions,
             input =>
             {
@@ -194,14 +187,13 @@ internal sealed partial class MainWindow : Window, IDisposable
             startupConfiguration.AudioConfig,
             configurationPresenter
         );
-        libraryView.ViewModeChanged = viewMode =>
-            _menuAdapter.SaveLibraryViewMode(libraryView, viewMode);
+        libraryView.ViewModeChanged = _menuAdapter.SaveLibraryViewMode;
         _emulationSession.AttachDragDrop(this);
         _libraryPresenter.Refresh();
 
         if (startupConfiguration.StartupErrorMessage is not null)
         {
-            _statusBar.ShowError(startupConfiguration.StartupErrorMessage);
+            _shell.ShowError(startupConfiguration.StartupErrorMessage);
         }
     }
 
@@ -227,6 +219,19 @@ internal sealed partial class MainWindow : Window, IDisposable
         base.OnPropertyChanged(change);
         // Fires during base Window construction, before _menuAdapter is assigned.
         _menuAdapter?.SyncFullscreenState(change);
+
+        if (change.Property == WindowStateProperty && TitleBarHost is { } titleBar)
+        {
+            titleBar.IsVisible = WindowState is not WindowState.FullScreen;
+        }
+
+        if (
+            change.Property == WindowDecorationMarginProperty
+            || change.Property == OffScreenMarginProperty
+        )
+        {
+            UpdateTitleBarInsets();
+        }
     }
 
     protected override void OnClosed(EventArgs e)
@@ -237,9 +242,9 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     public void Dispose()
     {
+        _macOsTitleBar.Dispose();
         _gamepadManager.Dispose();
         _libraryPresenter.Dispose();
-        _statusBar.Dispose();
         _framePresenter.Dispose();
     }
 
@@ -260,6 +265,12 @@ internal sealed partial class MainWindow : Window, IDisposable
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+
+        if (!e.Handled && IsSearchGesture(e) && LibrarySearchHost.IsVisible)
+        {
+            LibrarySearchTextBox.Focus();
+            e.Handled = true;
+        }
 
         if (!e.Handled)
         {
@@ -295,7 +306,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     private void OnPersistenceError(Exception exception)
     {
         MainWindowLog.PersistenceFailed(_logger, exception);
-        Dispatcher.UIThread.Post(() => _statusBar.ShowError(exception.Message));
+        Dispatcher.UIThread.Post(() => _shell.ShowError(exception.Message));
     }
 
     private void OnEmulationFaulted(Exception exception)
@@ -303,6 +314,57 @@ internal sealed partial class MainWindow : Window, IDisposable
         MainWindowLog.EmulationFaulted(_logger, exception);
         _emulationSession.ShowFault(exception);
     }
+
+    private void SetEmulationTitleBar(bool isEmulating)
+    {
+        LibraryTitleBarLeft.IsVisible = !isEmulating;
+        LibrarySearchHost.IsVisible = !isEmulating;
+        LibraryTitleBarActions.IsVisible = !isEmulating;
+        EmulationTitleBarLeft.IsVisible = isEmulating;
+        EmulationTitleBarCenter.IsVisible = isEmulating;
+        EmulationTitleBarActions.IsVisible = isEmulating;
+    }
+
+    private void OnClearSearchClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        LibrarySearchTextBox.Text = string.Empty;
+        LibrarySearchTextBox.Focus();
+    }
+
+    private void OnLibrarySearchTextChanged(object? sender, TextChangedEventArgs e) =>
+        UpdateSearchAction();
+
+    private void UpdateSearchAction()
+    {
+        var hasSearchText = !string.IsNullOrEmpty(LibrarySearchTextBox.Text);
+        ClearSearchButton.IsVisible = hasSearchText;
+        OpenRomSearchButton.IsVisible = !hasSearchText;
+        SearchBrowseDivider.IsVisible = !hasSearchText;
+    }
+
+    private void UpdateTitleBarInsets()
+    {
+        if (TitleBarActionsHost is null || EmulationTitleBarLeft is null)
+        {
+            return;
+        }
+
+        var left = OperatingSystem.IsMacOS()
+            ? 88
+            : Math.Max(WindowDecorationMargin.Left, OffScreenMargin.Left) + 8;
+        var right = Math.Max(WindowDecorationMargin.Right, OffScreenMargin.Right) + 8;
+        EmulationTitleBarLeft.Margin = new Thickness(left, 0, 0, 0);
+        TitleBarActionsHost.Margin = new Thickness(0, 0, right, 0);
+    }
+
+    private void OnDismissNotificationClick(
+        object? sender,
+        Avalonia.Interactivity.RoutedEventArgs e
+    ) => _shell.DismissError();
+
+    private static bool IsSearchGesture(KeyEventArgs e) =>
+        e.Key is Key.F
+        && (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Meta)) is not KeyModifiers.None;
 }
 
 internal static partial class MainWindowLog

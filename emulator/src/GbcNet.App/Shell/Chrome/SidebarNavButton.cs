@@ -4,13 +4,13 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Layout;
 using TablerIcons;
 
 namespace GbcNet.App.Shell.Chrome;
 
 internal sealed class SidebarNavButton : Button
 {
-    // Reuses the Button.sidebar-item styles defined by each window.
     protected override Type StyleKeyOverride => typeof(Button);
 
     public static readonly StyledProperty<Icons?> IconDataProperty = AvaloniaProperty.Register<
@@ -52,20 +52,26 @@ internal sealed class SidebarNavButton : Button
 
     private void UpdateContent()
     {
-        var label = new TextBlock { Classes = { "chrome-label", "sidebar-label" }, Text = Label };
+        var label = new TextBlock
+        {
+            Classes = { "label" },
+            Text = Label,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
         Grid.SetColumn(label, 1);
 
         Content = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("16,*"),
-            ColumnSpacing = 9,
+            ColumnDefinitions = new ColumnDefinitions("20,*"),
+            ColumnSpacing = 10,
             Children =
             {
                 new TablerIcon
                 {
-                    Width = 16,
-                    Height = 16,
+                    Width = 20,
+                    Height = 20,
                     Icon = IconData,
+                    VerticalAlignment = VerticalAlignment.Center,
                 },
                 label,
             },

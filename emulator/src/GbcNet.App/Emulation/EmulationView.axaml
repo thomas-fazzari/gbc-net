@@ -2,12 +2,17 @@
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   x:Class="GbcNet.App.Emulation.EmulationView"
+  Background="{DynamicResource CompEmulationStageBrush}"
   Focusable="True"
 >
+  <UserControl.Resources>
+    <SolidColorBrush x:Key="CompEmulationStageBrush" Color="#000000" />
+  </UserControl.Resources>
+
   <Viewbox Stretch="Uniform">
     <Border
       x:Name="ScreenBackground"
-      Background="{DynamicResource SysCanvasBrush}"
+      Background="{DynamicResource CompEmulationStageBrush}"
       RenderOptions.BitmapInterpolationMode="None"
     >
       <Image x:Name="ScreenImage" Width="160" Height="144" Stretch="Fill" />

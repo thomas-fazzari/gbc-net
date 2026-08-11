@@ -22,7 +22,7 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
     private SortDirection? _tableSortDirection;
     private LibraryViewMode _viewMode;
     private bool _refreshingFilters;
-    private PropertyChangedEventHandler? _sortIndicatorsChanged;
+    private PropertyChangedEventHandler? _propertyChanged;
 
     public LibraryView()
     {
@@ -32,7 +32,6 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
         _regionFilter = LibraryRegionFilter.All;
         SetViewMode(LibraryViewMode.Grid);
         DetachedFromVisualTree += (_, _) => ClearTiles();
-        LibrarySearchTextBox.TextChanged += (_, _) => NotifyQueryChanged();
     }
 
     public Action<LibraryEntry>? RomSelected { get; set; }
@@ -45,9 +44,26 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
 
     event PropertyChangedEventHandler? INotifyPropertyChanged.PropertyChanged
     {
-        add => _sortIndicatorsChanged += value;
-        remove => _sortIndicatorsChanged -= value;
+        add => _propertyChanged += value;
+        remove => _propertyChanged -= value;
     }
+
+    public string SearchText
+    {
+        get;
+        set
+        {
+            var searchText = value ?? string.Empty;
+            if (string.Equals(field, searchText, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            field = searchText;
+            _propertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SearchText)));
+            NotifyQueryChanged();
+        }
+    } = string.Empty;
 
     public bool IsTitleSortAscending =>
         IsSortIndicatorVisible(LibrarySortField.Title, SortDirection.Ascending);
@@ -68,7 +84,7 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
 
     public LibraryQuery Query =>
         new(
-            SearchText: LibrarySearchTextBox.Text,
+            SearchText: SearchText,
             Hardware: _hardwareFilter,
             Sort: _tableSortMode ?? LibrarySortField.LastOpened,
             Region: _regionFilter,
@@ -101,12 +117,12 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
         RomTableView.IsVisible = !isEmpty && _viewMode is LibraryViewMode.List;
         EmptyState.IsVisible = isEmpty;
         EmptyStateText.Text = hasActiveQuery ? "No matching ROMs" : "No ROMs yet";
-        EmptyStateText.Foreground = AppChrome.Brush(AppChrome.Text);
         EmptyStateDescription.IsVisible = true;
         EmptyStateDescription.Text = hasActiveQuery
             ? "Try changing or clearing your filters."
             : "Open a ROM to add it to your library.";
         ClearFiltersButton.IsVisible = hasActiveQuery;
+        OpenRomButton.IsVisible = !hasActiveQuery;
 
         if (isEmpty)
         {
@@ -132,25 +148,13 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
         return new DestructiveConfirmationWindow(
             title: "Remove ROM",
             heading: "Remove this ROM from your library?",
-            message: "It will be removed from your GBC.Net library. The file stays on disk.",
+            message: "This removes the ROM from your library, not from disk.",
             destructiveButtonLabel: "Remove"
         ).ShowDialog<bool>(owner);
     }
 
-    public void ShowError(string message)
-    {
-        ClearTiles();
-        LibraryScrollViewer.IsVisible = false;
-        RomTableView.IsVisible = false;
-        EmptyState.IsVisible = true;
-        EmptyStateText.Text = message;
-        EmptyStateText.Foreground = AppChrome.Brush(AppChrome.Error);
-        EmptyStateDescription.IsVisible = false;
-        ClearFiltersButton.IsVisible = false;
-    }
-
     private bool HasActiveQuery =>
-        !string.IsNullOrWhiteSpace(LibrarySearchTextBox.Text)
+        !string.IsNullOrWhiteSpace(SearchText)
         || _hardwareFilter != LibraryHardwareFilter.All
         || _regionFilter != LibraryRegionFilter.All
         || _tableSortMode is not null;
@@ -231,7 +235,7 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
         _refreshingFilters = true;
         try
         {
-            LibrarySearchTextBox.Text = string.Empty;
+            SearchText = string.Empty;
             _hardwareFilter = LibraryHardwareFilter.All;
             _regionFilter = LibraryRegionFilter.All;
             _tableSortMode = null;
@@ -253,7 +257,7 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
         sortMode is LibrarySortField.Title ? SortDirection.Ascending : SortDirection.Descending;
 
     private void UpdateSortIndicators() =>
-        _sortIndicatorsChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
+        _propertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
 
     private bool IsSortIndicatorVisible(LibrarySortField sortMode, SortDirection sortDirection) =>
         _tableSortMode == sortMode && _tableSortDirection == sortDirection;

@@ -285,7 +285,7 @@ internal static partial class AppConfigurationServiceLog
 {
     [LoggerMessage(
         Level = LogLevel.Warning,
-        Message = "Existing configuration could not be read before saving; defaults will be used."
+        Message = "Existing configuration could not be read before saving. Defaults will be used."
     )]
     internal static partial void ConfigurationReadFailed(ILogger logger, Exception exception);
 }

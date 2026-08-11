@@ -10,7 +10,7 @@ namespace GbcNet.App.Library;
 
 internal sealed class LibraryPresenter : IDisposable
 {
-    private static readonly TimeSpan SearchDebounceDelay = TimeSpan.FromMilliseconds(200);
+    private static readonly TimeSpan _searchDebounceDelay = TimeSpan.FromMilliseconds(200);
 
     private readonly LibraryService _libraryService;
     private readonly LibraryView _view;
@@ -18,6 +18,7 @@ internal sealed class LibraryPresenter : IDisposable
     private readonly ILogger<LibraryPresenter> _logger;
     private readonly ShellOperationRunner _operationRunner;
     private readonly LibrarySearch _search;
+    private readonly Action<string> _showError;
 
     public LibraryPresenter(
         LibraryView view,
@@ -25,7 +26,8 @@ internal sealed class LibraryPresenter : IDisposable
         ShellOperationRunner operationRunner,
         IStorageProvider storageProvider,
         ILogger<LibraryPresenter> logger,
-        Func<string, Task> openRomAsync
+        Func<string, Task> openRomAsync,
+        Action<string> showError
     )
     {
         _libraryService = libraryService;
@@ -33,11 +35,12 @@ internal sealed class LibraryPresenter : IDisposable
         _view = view;
         _logger = logger;
         _operationRunner = operationRunner;
+        _showError = showError;
         _search = new LibrarySearch(
             (query, cancellationToken) =>
                 Task.Run(() => libraryService.GetRoms(query), cancellationToken),
             view.Load,
-            SearchDebounceDelay
+            _searchDebounceDelay
         );
         view.RomSelected = entry =>
             operationRunner.Run(async () =>
@@ -69,7 +72,7 @@ internal sealed class LibraryPresenter : IDisposable
 
         if (!files[0].Path.IsFile)
         {
-            _view.ShowError("Cover image must be a local file.");
+            _showError("Cover image must be a local file.");
             return;
         }
 
@@ -129,11 +132,11 @@ internal sealed class LibraryPresenter : IDisposable
         catch (InvalidOperationException exception)
         {
             LibraryPresenterLog.RefreshFailed(_logger, exception);
-            _view.ShowError(exception.Message);
+            _showError(exception.Message);
         }
     }
 
-    private void ShowExpectedError(Error error) => _view.ShowError(error.Description);
+    private void ShowExpectedError(Error error) => _showError(error.Description);
 }
 
 internal sealed class LibrarySearch(

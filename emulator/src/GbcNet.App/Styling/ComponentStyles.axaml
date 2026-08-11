@@ -4,13 +4,13 @@
   xmlns:ti="using:TablerIcons"
 >
   <Styles.Resources>
-    <Thickness x:Key="CompButtonPadding">16,0</Thickness>
-    <Thickness x:Key="CompCompactButtonPadding">12,0</Thickness>
-    <Thickness x:Key="CompIconButtonPadding">10</Thickness>
-    <Thickness x:Key="CompFieldPadding">12,0</Thickness>
-    <Thickness x:Key="CompCardPadding">16</Thickness>
-    <Thickness x:Key="CompBadgePadding">8,4</Thickness>
-    <Thickness x:Key="CompNotificationPadding">16,12</Thickness>
+    <Thickness x:Key="CompButtonPadding">12,0</Thickness>
+    <Thickness x:Key="CompCompactButtonPadding">10,0</Thickness>
+    <Thickness x:Key="CompIconButtonPadding">6</Thickness>
+    <Thickness x:Key="CompFieldPadding">10,0</Thickness>
+    <Thickness x:Key="CompCardPadding">12</Thickness>
+    <Thickness x:Key="CompBadgePadding">6,2</Thickness>
+    <Thickness x:Key="CompNotificationPadding">12,10</Thickness>
   </Styles.Resources>
 
   <Style Selector="Window">
@@ -21,43 +21,205 @@
   </Style>
   <Style Selector="MenuItem">
     <Setter Property="FontFamily" Value="{DynamicResource SysFontFamily}" />
+    <Setter Property="FontSize" Value="{DynamicResource RefFontSizeBody}" />
+    <Setter Property="MinWidth" Value="196" />
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+  </Style>
+  <Style Selector="MenuItem:pointerover /template/ Border#root, MenuItem:selected /template/ Border#root">
+    <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="MenuItem:disabled">
+    <Setter Property="Opacity" Value="0.42" />
+  </Style>
+  <Style Selector="MenuItem /template/ Popup#PART_Popup > Border">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
+    <Setter Property="Padding" Value="4" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style Selector="MenuFlyoutPresenter">
+    <Setter Property="MinWidth" Value="204" />
+    <Setter Property="Padding" Value="4" />
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
+  </Style>
+  <Style Selector="Separator">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Margin" Value="8,4" />
+    <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+  </Style>
+  <Style Selector="ComboBox">
+    <Setter Property="FontFamily" Value="{DynamicResource SysFontFamily}" />
+    <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="MaxDropDownHeight" Value="320" />
+    <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+  </Style>
+  <Style Selector="ComboBox /template/ ToggleButton#toggle">
+    <Setter Property="Width" Value="36" />
+    <Setter Property="MinWidth" Value="36" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0,999,999,0" />
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+  </Style>
+  <Style Selector="ComboBox /template/ ToggleButton#toggle:pointerover, ComboBox /template/ ToggleButton#toggle:pressed, ComboBox /template/ ToggleButton#toggle:checked">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="ComboBox /template/ ToggleButton#toggle /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0,999,999,0" />
+  </Style>
+  <Style Selector="ComboBox /template/ ToggleButton#toggle:pointerover /template/ ContentPresenter#PART_ContentPresenter, ComboBox /template/ ToggleButton#toggle:pressed /template/ ContentPresenter#PART_ContentPresenter, ComboBox /template/ ToggleButton#toggle:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="ComboBox /template/ Popup#PART_Popup > Border">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
+    <Setter Property="Padding" Value="4" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style Selector="ComboBox /template/ ToggleButton#toggle Path">
+    <Setter Property="Fill" Value="{DynamicResource SysIconBrush}" />
+  </Style>
+  <Style Selector="ComboBoxItem, ListBoxItem">
+    <Setter Property="Height" Value="34" />
+    <Setter Property="MinHeight" Value="34" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusSmall}" />
+    <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="ComboBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+  </Style>
+  <Style Selector="ComboBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="ComboBoxItem:selected:focus /template/ ContentPresenter#PART_ContentPresenter, ComboBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected:focus /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="ScrollBar:vertical">
+    <Setter Property="Width" Value="{DynamicResource ScrollBarThickness}" />
+  </Style>
+  <Style Selector="ScrollBar:horizontal">
+    <Setter Property="Height" Value="{DynamicResource ScrollBarThickness}" />
+  </Style>
+  <Style Selector="ScrollBar /template/ RepeatButton.repeat">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="ScrollBar /template/ Thumb#thumb">
+    <Setter Property="Background" Value="{DynamicResource SysTextMutedBrush}" />
+    <Setter Property="Opacity" Value="0.55" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border
+          Background="{TemplateBinding Background}"
+          CornerRadius="{DynamicResource RefRadiusPill}"
+        />
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="ScrollBar /template/ Thumb#thumb:pointerover, ScrollBar /template/ Thumb#thumb:pressed">
+    <Setter Property="Opacity" Value="0.85" />
+  </Style>
+  <Style Selector="ToolTip">
+    <Setter Property="MaxWidth" Value="320" />
+    <Setter Property="Padding" Value="8,5" />
+    <Setter Property="Background" Value="{DynamicResource CompTooltipBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusSmall}" />
+    <Setter Property="Foreground" Value="{DynamicResource CompTooltipTextBrush}" />
+    <Setter Property="FontFamily" Value="{DynamicResource SysFontFamily}" />
+    <Setter Property="FontSize" Value="{DynamicResource RefFontSizeLabel}" />
   </Style>
   <Style Selector="ti|TablerIcon">
     <Setter Property="Brush" Value="{DynamicResource SysIconBrush}" />
     <Setter Property="Width" Value="{DynamicResource RefIconSizeMedium}" />
     <Setter Property="Height" Value="{DynamicResource RefIconSizeMedium}" />
     <Setter Property="StrokeWidth" Value="{DynamicResource RefIconStrokeWidth}" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <Style Selector="Button, ComboBox, MenuItem, Slider, ToggleButton, ToggleSwitch">
     <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="ToolTip.ShowDelay" Value="500" />
+  </Style>
+  <Style Selector="Button">
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="ToggleButton">
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBox">
+    <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
   <Style Selector="Button:focus-visible, ToggleButton:focus-visible, ComboBox:focus-visible, ToggleSwitch:focus-visible">
-    <Setter Property="BorderBrush" Value="{DynamicResource SysPrimaryBrush}" />
-    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
   </Style>
-  <Style Selector="TextBox:focus-within">
-    <Setter Property="BorderBrush" Value="{DynamicResource SysPrimaryBrush}" />
-    <Setter Property="BorderThickness" Value="2" />
+  <Style Selector="TextBox">
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+  </Style>
+  <Style Selector="ToggleSwitch:focus-visible">
+    <Setter Property="Opacity" Value="0.82" />
+  </Style>
+  <Style Selector="ToggleSwitch:checked /template/ Border#SwitchKnobBounds">
+    <Setter Property="Background" Value="{DynamicResource SysTextMutedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysTextMutedBrush}" />
+  </Style>
+  <Style Selector="ToggleSwitch:checked /template/ Ellipse#SwitchKnobOn">
+    <Setter Property="Fill" Value="{DynamicResource HighlightForegroundBrush}" />
+  </Style>
+  <Style Selector="ToggleSwitch:checked:pointerover /template/ Border#SwitchKnobBounds, ToggleSwitch:checked:pressed /template/ Border#SwitchKnobBounds">
+    <Setter Property="Background" Value="{DynamicResource HighlightBrush2}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource HighlightBrush2}" />
   </Style>
 
   <Style Selector="TextBlock.title">
     <Setter Property="FontSize" Value="{DynamicResource RefFontSizeTitle}" />
-    <Setter Property="FontWeight" Value="Bold" />
-    <Setter Property="LineHeight" Value="{DynamicResource RefLineHeightTitle}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="TextBlock.subtitle">
     <Setter Property="FontSize" Value="{DynamicResource RefFontSizeSubtitle}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="LineHeight" Value="{DynamicResource RefLineHeightSubtitle}" />
+    <Setter Property="FontWeight" Value="Medium" />
   </Style>
   <Style Selector="TextBlock.body">
     <Setter Property="FontSize" Value="{DynamicResource RefFontSizeBody}" />
-    <Setter Property="LineHeight" Value="{DynamicResource RefLineHeightBody}" />
   </Style>
   <Style Selector="TextBlock.label">
     <Setter Property="FontSize" Value="{DynamicResource RefFontSizeLabel}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="LineHeight" Value="{DynamicResource RefLineHeightLabel}" />
+    <Setter Property="FontWeight" Value="Medium" />
   </Style>
   <Style Selector="TextBlock.muted">
     <Setter Property="Foreground" Value="{DynamicResource SysTextMutedBrush}" />
@@ -66,12 +228,17 @@
     <Setter Property="Foreground" Value="{DynamicResource SysDangerBrush}" />
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
+  <Style Selector="TextBlock.active">
+    <Setter Property="Foreground" Value="{DynamicResource SysActiveBrush}" />
+  </Style>
 
   <Style Selector="Button.primary, Button.secondary, Button.destructive">
-    <Setter Property="Height" Value="{DynamicResource RefControlHeight}" />
+    <Setter Property="Height" Value="{DynamicResource RefControlHeightSmall}" />
+    <Setter Property="MinWidth" Value="72" />
     <Setter Property="Padding" Value="{DynamicResource CompButtonPadding}" />
-    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusPill}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
@@ -86,15 +253,21 @@
   <Style Selector="Button.primary:pressed">
     <Setter Property="Opacity" Value="0.8" />
   </Style>
+  <Style Selector="Button.primary:focus-visible">
+    <Setter Property="Opacity" Value="0.84" />
+  </Style>
   <Style Selector="Button.secondary">
     <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
   </Style>
   <Style Selector="Button.secondary:pointerover">
-    <Setter Property="BorderBrush" Value="{DynamicResource SysPrimaryBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
   </Style>
   <Style Selector="Button.secondary:pressed">
+    <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+  </Style>
+  <Style Selector="Button.secondary:focus-visible">
     <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
   </Style>
   <Style Selector="Button.destructive">
@@ -108,67 +281,214 @@
   <Style Selector="Button.destructive:pressed">
     <Setter Property="Opacity" Value="0.8" />
   </Style>
-  <Style Selector="Button.icon">
-    <Setter Property="Width" Value="{DynamicResource RefTargetSize}" />
-    <Setter Property="Height" Value="{DynamicResource RefTargetSize}" />
+  <Style Selector="Button.destructive:focus-visible">
+    <Setter Property="Opacity" Value="0.84" />
+  </Style>
+  <Style Selector="Button.primary ti|TablerIcon, Button.destructive ti|TablerIcon">
+    <Setter Property="Brush" Value="{DynamicResource SysOnPrimaryBrush}" />
+  </Style>
+  <Style Selector="Button.primary:disabled, Button.secondary:disabled, Button.destructive:disabled">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource SysTextMutedBrush}" />
+    <Setter Property="Opacity" Value="0.48" />
+  </Style>
+  <Style Selector="Button.primary:disabled ti|TablerIcon, Button.secondary:disabled ti|TablerIcon, Button.destructive:disabled ti|TablerIcon">
+    <Setter Property="Brush" Value="{DynamicResource SysTextMutedBrush}" />
+  </Style>
+  <Style Selector="Button.icon, ToggleButton.icon">
+    <Setter Property="Width" Value="{DynamicResource RefControlHeightSmall}" />
+    <Setter Property="MinWidth" Value="{DynamicResource RefControlHeightSmall}" />
+    <Setter Property="Height" Value="{DynamicResource RefControlHeightSmall}" />
     <Setter Property="Padding" Value="{DynamicResource CompIconButtonPadding}" />
     <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusPill}" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Foreground" Value="{DynamicResource SysTextMutedBrush}" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
-  <Style Selector="Button.icon:pointerover">
+  <Style Selector="Button.icon.filled, ToggleButton.icon.filled">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+  </Style>
+  <Style Selector="Button.icon.titlebar, ToggleButton.icon.titlebar">
+    <Setter Property="Width" Value="36" />
+    <Setter Property="MinWidth" Value="36" />
+    <Setter Property="Height" Value="36" />
+    <Setter Property="Padding" Value="8" />
+  </Style>
+  <Style Selector="Button.icon:pointerover, ToggleButton.icon:pointerover">
     <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
   </Style>
-  <Style Selector="Button.icon:pressed">
+  <Style Selector="Button.icon:pointerover ti|TablerIcon, ToggleButton.icon:pointerover ti|TablerIcon">
+    <Setter Property="Brush" Value="{DynamicResource SysTextBrush}" />
+  </Style>
+  <Style Selector="Button.icon:pressed, ToggleButton.icon:pressed">
     <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
   </Style>
-  <Style Selector="Button.compact">
+  <Style Selector="Button.icon:focus-visible, ToggleButton.icon:focus-visible">
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Button.icon:disabled, ToggleButton.icon:disabled">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Opacity" Value="0.38" />
+  </Style>
+  <Style Selector="Button.icon:disabled /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.icon:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Button.primary /template/ ContentPresenter#PART_ContentPresenter, Button.secondary /template/ ContentPresenter#PART_ContentPresenter, Button.destructive /template/ ContentPresenter#PART_ContentPresenter, Button.icon /template/ ContentPresenter#PART_ContentPresenter, Button.modal-nav /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.icon /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segmented /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Button.primary /template/ ContentPresenter#PART_ContentPresenter, Button.secondary /template/ ContentPresenter#PART_ContentPresenter, Button.destructive /template/ ContentPresenter#PART_ContentPresenter, Button.icon /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.icon /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusPill}" />
+  </Style>
+  <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter, Button.secondary:disabled /template/ ContentPresenter#PART_ContentPresenter, Button.destructive:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SysPrimaryBrush}" />
+  </Style>
+  <Style Selector="Button.secondary:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.secondary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+  </Style>
+  <Style Selector="Button.destructive:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.destructive:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SysDangerBrush}" />
+  </Style>
+  <Style Selector="Button.icon:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.icon:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.icon:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+  </Style>
+  <Style Selector="Button.icon.filled /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.icon.filled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+  </Style>
+  <Style Selector="Button.icon.filled:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.icon.filled:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+  </Style>
+  <Style Selector="Button.icon:pressed /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.icon:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.icon:checked">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource SysActiveBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.icon:checked ti|TablerIcon">
+    <Setter Property="Brush" Value="{DynamicResource SysActiveBrush}" />
+  </Style>
+  <Style Selector="Button.compact, ToggleButton.compact">
     <Setter Property="Height" Value="{DynamicResource RefControlHeightSmall}" />
     <Setter Property="Padding" Value="{DynamicResource CompCompactButtonPadding}" />
   </Style>
 
-  <Style Selector="TextBox.field, TextBox.search">
+  <Style Selector="TextBox.field, TextBox.search, ComboBox.field">
     <Setter Property="Height" Value="{DynamicResource RefControlHeight}" />
     <Setter Property="Padding" Value="{DynamicResource CompFieldPadding}" />
     <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
   </Style>
   <Style Selector="TextBox.field">
     <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
   </Style>
+  <Style Selector="ComboBox.field">
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
   <Style Selector="TextBox.search">
     <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusPill}" />
   </Style>
+  <Style Selector="TextBox.field:pointerover, TextBox.field:focus-within, TextBox.search:pointerover, TextBox.search:focus-within, ComboBox.field:pointerover, ComboBox.field:focus-visible">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
 
-  <Style Selector="ToggleButton.segmented">
+  <Style Selector="Button.segmented, ToggleButton.segmented, RadioButton.segmented">
     <Setter Property="Height" Value="{DynamicResource RefControlHeightSmall}" />
     <Setter Property="Padding" Value="{DynamicResource CompCompactButtonPadding}" />
-    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusPill}" />
+    <Setter Property="CornerRadius" Value="0" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Foreground" Value="{DynamicResource SysTextMutedBrush}" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
-  <Style Selector="ToggleButton.segmented:pointerover">
-    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+  <Style Selector="Button.segmented.left, Button.segmented.first, ToggleButton.segmented.left, ToggleButton.segmented.first, RadioButton.segmented.first">
+    <Setter Property="CornerRadius" Value="999,0,0,999" />
+  </Style>
+  <Style Selector="Button.segmented.right, Button.segmented.last, ToggleButton.segmented.right, ToggleButton.segmented.last, RadioButton.segmented.last">
+    <Setter Property="CornerRadius" Value="0,999,999,0" />
+  </Style>
+  <Style Selector="Button.segmented:pointerover, ToggleButton.segmented:pointerover, RadioButton.segmented:pointerover, RadioButton.segmented:focus-visible">
+    <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
   </Style>
-  <Style Selector="ToggleButton.segmented:checked">
-    <Setter Property="Background" Value="{DynamicResource SysPrimaryBrush}" />
-    <Setter Property="Foreground" Value="{DynamicResource SysOnPrimaryBrush}" />
+  <Style Selector="Button.segmented.selected, ToggleButton.segmented:checked, RadioButton.segmented:checked">
+    <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+  </Style>
+  <Style Selector="Button.segmented.selected ti|TablerIcon, ToggleButton.segmented:checked ti|TablerIcon, RadioButton.segmented:checked ti|TablerIcon">
+    <Setter Property="Brush" Value="{DynamicResource SysTextBrush}" />
+  </Style>
+  <Style Selector="Button.segmented /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segmented /template/ ContentPresenter#PART_ContentPresenter, RadioButton.segmented /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Button.segmented.left /template/ ContentPresenter#PART_ContentPresenter, Button.segmented.first /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segmented.left /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segmented.first /template/ ContentPresenter#PART_ContentPresenter, RadioButton.segmented.first /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="CornerRadius" Value="999,0,0,999" />
+  </Style>
+  <Style Selector="Button.segmented.right /template/ ContentPresenter#PART_ContentPresenter, Button.segmented.last /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segmented.right /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segmented.last /template/ ContentPresenter#PART_ContentPresenter, RadioButton.segmented.last /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="CornerRadius" Value="0,999,999,0" />
+  </Style>
+  <Style Selector="Button.segmented:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.segmented.selected /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segmented:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segmented:checked /template/ ContentPresenter#PART_ContentPresenter, RadioButton.segmented:pointerover /template/ ContentPresenter#PART_ContentPresenter, RadioButton.segmented:focus-visible /template/ ContentPresenter#PART_ContentPresenter, RadioButton.segmented:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+  </Style>
+  <Style Selector="RadioButton.segmented">
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border
+          Padding="{TemplateBinding Padding}"
+          Background="{TemplateBinding Background}"
+          BorderBrush="{TemplateBinding BorderBrush}"
+          BorderThickness="{TemplateBinding BorderThickness}"
+          CornerRadius="{TemplateBinding CornerRadius}"
+        >
+          <ContentPresenter
+            Name="PART_ContentPresenter"
+            Content="{TemplateBinding Content}"
+            ContentTemplate="{TemplateBinding ContentTemplate}"
+            Foreground="{TemplateBinding Foreground}"
+            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+          />
+        </Border>
+      </ControlTemplate>
+    </Setter>
   </Style>
 
   <Style Selector="Border.card">
     <Setter Property="Padding" Value="{DynamicResource CompCardPadding}" />
     <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusLarge}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
   </Style>
   <Style Selector="Border.card:pointerover">
     <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
@@ -176,21 +496,20 @@
   <Style Selector="Border.badge">
     <Setter Property="Padding" Value="{DynamicResource CompBadgePadding}" />
     <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusPill}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
-  <Style Selector="Border.badge.active">
-    <Setter Property="Background" Value="{DynamicResource SysActiveBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource SysActiveBrush}" />
+  <Style Selector="Border.badge.emulation-state">
+    <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
   </Style>
-  <Style Selector="Border.badge.active TextBlock">
-    <Setter Property="Foreground" Value="{DynamicResource SysOnActiveBrush}" />
+  <Style Selector="Border.badge.emulation-state TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
   </Style>
 
   <Style Selector="Button.modal-nav">
-    <Setter Property="Height" Value="{DynamicResource RefControlHeight}" />
+    <Setter Property="Height" Value="{DynamicResource RefControlHeightSmall}" />
     <Setter Property="Padding" Value="{DynamicResource CompCompactButtonPadding}" />
     <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
     <Setter Property="Background" Value="Transparent" />
@@ -203,10 +522,32 @@
     <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
   </Style>
+  <Style Selector="Button.modal-nav:pointerover ti|TablerIcon">
+    <Setter Property="Brush" Value="{DynamicResource SysTextBrush}" />
+  </Style>
   <Style Selector="Button.modal-nav.selected">
     <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource SysPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+  </Style>
+  <Style Selector="Button.modal-nav.selected ti|TablerIcon">
+    <Setter Property="Brush" Value="{DynamicResource SysPrimaryBrush}" />
+  </Style>
+  <Style Selector="Button.modal-nav:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.modal-nav.selected /template/ ContentPresenter#PART_ContentPresenter, Button.modal-nav:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+  </Style>
+
+  <Style Selector="Border.modal-rail">
+    <Setter Property="Padding" Value="8" />
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,1,0" />
+  </Style>
+  <Style Selector="Border.modal-footer">
+    <Setter Property="Padding" Value="20,10" />
+    <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
   </Style>
 
   <Style Selector="Border.notification">
@@ -219,5 +560,9 @@
   </Style>
   <Style Selector="Border.notification.error">
     <Setter Property="BorderBrush" Value="{DynamicResource SysDangerBrush}" />
+  </Style>
+
+  <Style Selector="Button:disabled, ToggleButton:disabled, ComboBox:disabled, TextBox:disabled">
+    <Setter Property="Opacity" Value="0.42" />
   </Style>
 </Styles>

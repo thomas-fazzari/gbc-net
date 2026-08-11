@@ -13,7 +13,7 @@
     </ResourceDictionary>
   </Application.Resources>
   <Application.Styles>
-    <FluentTheme />
+    <SimpleTheme />
     <StyleInclude Source="avares://GbcNet/Styling/ComponentStyles.axaml" />
   </Application.Styles>
 </Application>

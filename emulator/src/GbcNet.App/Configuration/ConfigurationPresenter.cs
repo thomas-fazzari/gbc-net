@@ -17,7 +17,7 @@ namespace GbcNet.App.Configuration;
 internal sealed class ConfigurationPresenter(
     AppConfigurationService configurationService,
     string configPath,
-    StatusBarPresenter statusBar,
+    ShellPresenter shell,
     Action<BootRomOptions> setBootRomOptions,
     Action<InputConfig> applyInputConfig,
     Action<AudioConfig> applyAudioConfig,
@@ -37,7 +37,7 @@ internal sealed class ConfigurationPresenter(
         catch (ConfigurationException exception)
         {
             ConfigurationPresenterLog.LoadFailed(logger, exception);
-            statusBar.ShowError(exception.Message);
+            shell.ShowError(exception.Message);
             var defaults = AppConfigurationFile.CreateDefault();
             settings = new SettingsConfig(defaults.BootRoms, defaults.Input)
             {
@@ -107,13 +107,13 @@ internal sealed class ConfigurationPresenter(
         catch (ConfigurationException exception)
         {
             ConfigurationPresenterLog.SaveFailed(logger, exception);
-            statusBar.ShowError(exception.Message);
+            shell.ShowError(exception.Message);
             return;
         }
 
         if (result.IsError)
         {
-            statusBar.ShowError(result.FirstError.Description);
+            shell.ShowError(result.FirstError.Description);
             return;
         }
 
@@ -124,7 +124,7 @@ internal sealed class ConfigurationPresenter(
 
         if (result.Value.Count != 0)
         {
-            statusBar.ShowError(string.Join(Environment.NewLine, result.Value));
+            shell.ShowError(string.Join(Environment.NewLine, result.Value));
         }
     }
 
@@ -138,7 +138,7 @@ internal sealed class ConfigurationPresenter(
             return settings;
         }
 
-        statusBar.ShowError(string.Join(Environment.NewLine, errors));
+        shell.ShowError(string.Join(Environment.NewLine, errors));
         return settings with { Input = AppConfigurationFile.CreateDefaultInputConfig() };
     }
 
@@ -157,7 +157,7 @@ internal sealed class ConfigurationPresenter(
 
         if (errors.Count != 0)
         {
-            statusBar.ShowError(string.Join(Environment.NewLine, errors));
+            shell.ShowError(string.Join(Environment.NewLine, errors));
         }
     }
 }
@@ -166,7 +166,7 @@ internal static partial class ConfigurationPresenterLog
 {
     [LoggerMessage(
         Level = LogLevel.Warning,
-        Message = "Settings could not be loaded; defaults will be shown."
+        Message = "Settings could not be loaded. Defaults will be shown."
     )]
     internal static partial void LoadFailed(ILogger logger, Exception exception);
 

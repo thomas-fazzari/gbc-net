@@ -11,6 +11,7 @@ using Avalonia.Threading;
 using ErrorOr;
 using GbcNet.Core.Cheats;
 using Microsoft.Extensions.Logging;
+using TablerIcons;
 
 namespace GbcNet.App.Cheats;
 
@@ -135,8 +136,8 @@ internal sealed partial class CheatsWindow : Window
         GameSharkNavButton.Classes.Set("selected", !gameGenie);
         PageTitleTextBlock.Text = gameGenie ? "Game Genie" : "GameShark";
         PageHelpTextBlock.Text = gameGenie
-            ? "Codes are checked top to bottom; the first matching code wins."
-            : "Codes rewrite memory every frame; for the same address, the last code wins.";
+            ? "Codes are checked from top to bottom. The first match wins."
+            : "Codes rewrite memory each frame. For duplicate addresses, the last code wins.";
 
         NameTextBox.Text = gameGenie ? _gameGenieNameDraft : _gameSharkNameDraft;
         NameTextBox[property: AutomationProperties.NameProperty] = "Cheat name (optional)";
@@ -404,15 +405,15 @@ internal sealed partial class CheatsWindow : Window
             VerticalAlignment = VerticalAlignment.Center,
         };
 
-        var moveUpButton = CreateRowActionButton("Move up");
+        var moveUpButton = CreateRowActionButton(Icons.IconArrowUp, "Move up");
         moveUpButton.IsEnabled = index != 0;
         moveUpButton.Click += (_, _) => MoveEntry(index, offset: -1);
 
-        var moveDownButton = CreateRowActionButton("Move down");
+        var moveDownButton = CreateRowActionButton(Icons.IconArrowDown, "Move down");
         moveDownButton.IsEnabled = index != entries.Count - 1;
         moveDownButton.Click += (_, _) => MoveEntry(index, offset: 1);
 
-        var removeButton = CreateRowActionButton("Remove");
+        var removeButton = CreateRowActionButton(Icons.IconTrash, "Remove");
         removeButton.Click += (_, _) => RemoveEntry(index);
 
         var actions = new StackPanel
@@ -486,13 +487,17 @@ internal sealed partial class CheatsWindow : Window
         );
     }
 
-    private static Button CreateRowActionButton(string content) =>
-        new()
+    private static Button CreateRowActionButton(Icons icon, string toolTip)
+    {
+        var button = new Button
         {
-            Classes = { "chrome-button", "row-action" },
-            Content = content,
+            Classes = { "icon" },
+            Content = new TablerIcon { Icon = icon },
             VerticalAlignment = VerticalAlignment.Center,
         };
+        ToolTip.SetTip(button, toolTip);
+        return button;
+    }
 
     private static string? NormalizeName(string? name) =>
         string.IsNullOrWhiteSpace(name) ? null : name.Trim();

@@ -21,7 +21,6 @@ internal sealed class DestructiveConfirmationWindow : Window
         SizeToContent = SizeToContent.WidthAndHeight;
         CanResize = false;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        Background = AppChrome.Brush(AppChrome.Bg);
         Content = BuildContent(heading, message, destructiveButtonLabel);
     }
 
@@ -42,23 +41,16 @@ internal sealed class DestructiveConfirmationWindow : Window
         destructiveButton.Click += (_, _) => Close(dialogResult: true);
         return new StackPanel
         {
-            Width = 360,
-            Margin = new Thickness(18),
-            Spacing = 14,
+            Width = 380,
+            Margin = new Thickness(24),
+            Spacing = 16,
             Children =
             {
-                new TextBlock
-                {
-                    Text = heading,
-                    Foreground = AppChrome.Brush(AppChrome.Text),
-                    FontSize = 16,
-                    FontWeight = FontWeight.SemiBold,
-                },
+                new TextBlock { Text = heading, Classes = { "subtitle" } },
                 new TextBlock
                 {
                     Text = message,
-                    Foreground = AppChrome.Brush(AppChrome.Muted),
-                    FontSize = 13,
+                    Classes = { "body", "muted" },
                     TextWrapping = TextWrapping.Wrap,
                 },
                 new StackPanel
