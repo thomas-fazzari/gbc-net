@@ -31,7 +31,9 @@ internal static class DependencyInjection
         AddAppServices(services);
 
         services.AddTransient<MainWindow>();
-        return services.BuildServiceProvider();
+        return services.BuildServiceProvider(
+            new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true }
+        );
     }
 
     private static void AddAppServices(IServiceCollection services)
