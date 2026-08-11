@@ -76,15 +76,13 @@
       {
         "label": "build",
         "type": "process",
-        "command": "dotnet",
+        "command": "make",
         "args": [
-          "build",
-          "GbcNet.slnx",
-          "--configuration",
-          "Debug"
+          "lint",
+          "CONFIGURATION=Debug"
         ],
         "options": {
-          "cwd": "${workspaceFolder:Root}/emulator"
+          "cwd": "${workspaceFolder:Root}"
         },
         "group": {
           "kind": "build",
@@ -95,15 +93,13 @@
       {
         "label": "build-release",
         "type": "process",
-        "command": "dotnet",
+        "command": "make",
         "args": [
-          "build",
-          "GbcNet.slnx",
-          "--configuration",
-          "Release"
+          "lint",
+          "CONFIGURATION=Release"
         ],
         "options": {
-          "cwd": "${workspaceFolder:Root}/emulator"
+          "cwd": "${workspaceFolder:Root}"
         },
         "problemMatcher": "$msCompile"
       },
