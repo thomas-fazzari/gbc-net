@@ -31,6 +31,8 @@ internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelForm
 
     public PpuMode StatusMode => Timing.StatusMode;
 
+    public int? CurrentOamScanRow => Timing.CurrentOamScanRow;
+
     public bool IsCpuVideoRamReadBlocked =>
         Timing.IsCpuVideoRamReadBlocked(GetCurrentDrawingEndDots());
 

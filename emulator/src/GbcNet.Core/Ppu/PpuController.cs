@@ -134,6 +134,11 @@ internal sealed class PpuController(
     public bool IsCpuObjectAttributeMemoryWriteBlocked =>
         IsLcdEnabled && engine.IsCpuObjectAttributeMemoryWriteBlocked;
 
+    /// <summary>
+    /// Current OAM row scanned by the enabled LCD, or null outside OAM scan.
+    /// </summary>
+    internal int? CurrentOamScanRow => IsLcdEnabled ? engine.CurrentOamScanRow : null;
+
     private PpuEngineInputs EngineInputs =>
         new(
             _control,
@@ -418,15 +423,7 @@ internal sealed class PpuController(
         RequestInterrupts(engine.WriteStatusInterruptSelect(EngineInputs, IsLcdEnabled));
     }
 
-    private void CompleteStatWriteQuirk()
-    {
-        if (_statWriteQuirkTCyclesRemaining == 0)
-        {
-            return;
-        }
-
-        _statWriteQuirkTCyclesRemaining = 0;
-    }
+    private void CompleteStatWriteQuirk() => _statWriteQuirkTCyclesRemaining = 0;
 
     private PpuEngineTickResult TickEngine(int tCycles)
     {

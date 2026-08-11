@@ -26,6 +26,11 @@ internal interface IPpuEngine
     PpuMode StatusMode { get; }
 
     /// <summary>
+    /// Current OAM row scanned by monochrome hardware, or null outside OAM scan.
+    /// </summary>
+    int? CurrentOamScanRow { get; }
+
+    /// <summary>
     /// Indicates that CPU reads from VRAM return FF because the LCD engine owns the bus.
     /// </summary>
     bool IsCpuVideoRamReadBlocked { get; }

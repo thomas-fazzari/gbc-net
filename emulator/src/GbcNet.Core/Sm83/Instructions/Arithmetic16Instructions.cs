@@ -109,7 +109,7 @@ internal static class Arithmetic16Instructions
     {
         var value = cpu.Registers.GetRegisterPair(registerPair);
         cpu.Registers.SetRegisterPair(registerPair, unchecked((ushort)(value + 1)));
-        cpu.IdleCycle();
+        cpu.IncrementDecrementCycle(value);
     }
 
     /// <summary>
@@ -119,7 +119,7 @@ internal static class Arithmetic16Instructions
     {
         var value = cpu.Registers.GetRegisterPair(registerPair);
         cpu.Registers.SetRegisterPair(registerPair, unchecked((ushort)(value - 1)));
-        cpu.IdleCycle();
+        cpu.IncrementDecrementCycle(value);
     }
 
     /// <summary>

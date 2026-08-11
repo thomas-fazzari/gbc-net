@@ -35,6 +35,7 @@ internal sealed class MemoryBus
     private readonly SgbController? _sgb;
     private readonly CgbMiscRegisters _cgbMiscRegisters;
     private readonly bool _mirrorsNotUsableAddressNibble;
+    private readonly bool _hasOamCorruptionBug;
 
     private CheatCode[]?[]? _gameGenieCodesByLowAddress;
     private CheatCode[]? _gameSharkCodes;
@@ -105,6 +106,7 @@ internal sealed class MemoryBus
 
         _hardwareProfile = hardwareProfile;
         _mirrorsNotUsableAddressNibble = hardwareProfile.Model is HardwareModel.Cgb;
+        _hasOamCorruptionBug = hardwareProfile.Model is HardwareModel.Dmg or HardwareModel.Sgb;
 
         Interrupts = new InterruptController();
         _sgb =
@@ -270,8 +272,18 @@ internal sealed class MemoryBus
     /// <summary>
     /// Reads a CPU-visible byte, applying active OAM DMA conflicts and PPU bus blocking.
     /// </summary>
-    public byte ReadByte(ushort address)
+    public byte ReadByte(ushort address) => ReadByte(address, OamCorruptionType.Read);
+
+    /// <summary>
+    /// Reads a byte while the CPU increment/decrement unit drives the same address bus cycle.
+    /// </summary>
+    internal byte ReadByteWithIncrementDecrement(ushort address) =>
+        ReadByte(address, OamCorruptionType.ReadWithIncrementDecrement);
+
+    private byte ReadByte(ushort address, OamCorruptionType corruptionType)
     {
+        TryCorruptOam(address, corruptionType);
+
         if (TryReadDmaConflictedByte(address, out var value))
         {
             return value;
@@ -285,6 +297,29 @@ internal sealed class MemoryBus
     /// </summary>
     public void WriteByte(ushort address, byte value)
     {
+        TryCorruptOam(address, OamCorruptionType.Write);
+        WriteByteCore(address, value);
+    }
+
+    /// <summary>
+    /// Writes a byte while the CPU increment/decrement unit drives its pre-operation address.
+    /// </summary>
+    internal void WriteByteWithIncrementDecrement(
+        ushort address,
+        byte value,
+        ushort incrementDecrementAddress
+    )
+    {
+        if (IsOamBusRange(address) || IsOamBusRange(incrementDecrementAddress))
+        {
+            CorruptOam(OamCorruptionType.Write);
+        }
+
+        WriteByteCore(address, value);
+    }
+
+    private void WriteByteCore(ushort address, byte value)
+    {
         if (IsCpuWriteBlocked(address))
         {
             return;
@@ -293,6 +328,12 @@ internal sealed class MemoryBus
         WriteMappedByte(address, value);
         CpuMemoryWritten?.Invoke(this, new CpuMemoryWrittenEventArgs(address, value));
     }
+
+    /// <summary>
+    /// Applies the OAM bus write caused by a standalone 16-bit increment or decrement.
+    /// </summary>
+    internal void IncrementDecrementAddress(ushort address) =>
+        TryCorruptOam(address, OamCorruptionType.Write);
 
     /// <summary>
     /// Advances OAM DMA transfers using CPU machine cycles.
@@ -478,6 +519,88 @@ internal sealed class MemoryBus
     private static bool IsOamBusRange(ushort address) =>
         address is >= AddressMap.ObjectAttributeMemoryStart and <= AddressMap.NotUsableEnd;
 
+    private void TryCorruptOam(ushort address, OamCorruptionType corruptionType)
+    {
+        if (IsOamBusRange(address))
+        {
+            CorruptOam(corruptionType);
+        }
+    }
+
+    private void CorruptOam(OamCorruptionType corruptionType)
+    {
+        if (!_hasOamCorruptionBug || Ppu.CurrentOamScanRow is not { } row || row == 0)
+        {
+            return;
+        }
+
+        if (corruptionType is OamCorruptionType.ReadWithIncrementDecrement)
+        {
+            CorruptOamFromReadWithIncrementDecrement(row);
+        }
+
+        var currentFirstWord = ReadOamWord(row, 0);
+        var previousFirstWord = ReadOamWord(row - 1, 0);
+        var previousThirdWord = ReadOamWord(row - 1, 2);
+        var firstWord =
+            corruptionType is OamCorruptionType.Write
+                ? (ushort)(
+                    (
+                        (currentFirstWord ^ previousThirdWord)
+                        & (previousFirstWord ^ previousThirdWord)
+                    ) ^ previousThirdWord
+                )
+                : (ushort)(previousFirstWord | (currentFirstWord & previousThirdWord));
+
+        WriteOamWord(row, 0, firstWord);
+        CopyOamWords(row - 1, row, firstWordOffset: 1);
+    }
+
+    private void CorruptOamFromReadWithIncrementDecrement(int row)
+    {
+        if (row is < 4 or >= 19)
+        {
+            return;
+        }
+
+        var twoRowsBeforeFirstWord = ReadOamWord(row - 2, 0);
+        var previousFirstWord = ReadOamWord(row - 1, 0);
+        var currentFirstWord = ReadOamWord(row, 0);
+        var previousThirdWord = ReadOamWord(row - 1, 2);
+        var corruptedPreviousFirstWord = (ushort)(
+            (previousFirstWord & (twoRowsBeforeFirstWord | currentFirstWord | previousThirdWord))
+            | (twoRowsBeforeFirstWord & currentFirstWord & previousThirdWord)
+        );
+
+        WriteOamWord(row - 1, 0, corruptedPreviousFirstWord);
+        CopyOamWords(row - 1, row - 2, firstWordOffset: 0);
+        CopyOamWords(row - 1, row, firstWordOffset: 0);
+    }
+
+    private ushort ReadOamWord(int row, int word)
+    {
+        var address = (ushort)(AddressMap.ObjectAttributeMemoryStart + (row * 8) + (word * 2));
+        return (ushort)(
+            Ppu.ObjectAttributeMemory.Read(address)
+            | (Ppu.ObjectAttributeMemory.Read((ushort)(address + 1)) << 8)
+        );
+    }
+
+    private void WriteOamWord(int row, int word, ushort value)
+    {
+        var address = (ushort)(AddressMap.ObjectAttributeMemoryStart + (row * 8) + (word * 2));
+        Ppu.ObjectAttributeMemory.Write(address, (byte)value);
+        Ppu.ObjectAttributeMemory.Write((ushort)(address + 1), (byte)(value >> 8));
+    }
+
+    private void CopyOamWords(int sourceRow, int destinationRow, int firstWordOffset)
+    {
+        for (var word = firstWordOffset; word < 4; word++)
+        {
+            WriteOamWord(destinationRow, word, ReadOamWord(sourceRow, word));
+        }
+    }
+
     private bool IsCpuVideoMemoryReadBlockedByPpu(ushort address) =>
         address switch
         {
@@ -659,4 +782,11 @@ internal sealed class CpuMemoryWrittenEventArgs(ushort address, byte value) : Ev
     /// Value written to the CPU-visible address.
     /// </summary>
     public byte Value { get; } = value;
+}
+
+internal enum OamCorruptionType : byte
+{
+    Read = 0,
+    Write = 1,
+    ReadWithIncrementDecrement = 2,
 }

@@ -128,7 +128,7 @@ internal static class LoadRegisterPairInstructions
     private static void ExecuteLoadAFromAddressHlIncrement(Cpu cpu)
     {
         var address = cpu.Registers.HL;
-        cpu.Registers.A = cpu.ReadBus(address);
+        cpu.Registers.A = cpu.ReadBusWithIncrementDecrement(address);
         cpu.Registers.HL = unchecked((ushort)(address + 1));
     }
 
@@ -142,7 +142,7 @@ internal static class LoadRegisterPairInstructions
     private static void ExecuteLoadAFromAddressHlDecrement(Cpu cpu)
     {
         var address = cpu.Registers.HL;
-        cpu.Registers.A = cpu.ReadBus(address);
+        cpu.Registers.A = cpu.ReadBusWithIncrementDecrement(address);
         cpu.Registers.HL = unchecked((ushort)(address - 1));
     }
 

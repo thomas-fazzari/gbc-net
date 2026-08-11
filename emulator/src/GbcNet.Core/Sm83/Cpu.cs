@@ -211,11 +211,31 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     }
 
     /// <summary>
+    /// Reads one byte while the increment/decrement unit drives the address and consumes one machine cycle.
+    /// </summary>
+    internal byte ReadBusWithIncrementDecrement(ushort address)
+    {
+        var value = bus.ReadByteWithIncrementDecrement(address);
+        TickMachineCycle();
+        return value;
+    }
+
+    /// <summary>
     /// Writes one byte to CPU-visible memory and consumes one machine cycle.
     /// </summary>
     internal void WriteBus(ushort address, byte value)
     {
         bus.WriteByte(address, value);
+        TickMachineCycle();
+    }
+
+    private void WriteBusWithIncrementDecrement(
+        ushort address,
+        byte value,
+        ushort incrementDecrementAddress
+    )
+    {
+        bus.WriteByteWithIncrementDecrement(address, value, incrementDecrementAddress);
         TickMachineCycle();
     }
 
@@ -228,15 +248,21 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     }
 
     /// <summary>
+    /// Consumes the machine cycle used by a 16-bit increment or decrement.
+    /// </summary>
+    internal void IncrementDecrementCycle(ushort address)
+    {
+        bus.IncrementDecrementAddress(address);
+        TickMachineCycle();
+    }
+
+    /// <summary>
     /// Pushes a 16-bit value on the stack as high byte, then low byte.
     /// </summary>
     internal void PushWord(ushort value)
     {
-        Registers.SP = unchecked((ushort)(Registers.SP - 1));
-        WriteBus(Registers.SP, (byte)(value >> 8));
-
-        Registers.SP = unchecked((ushort)(Registers.SP - 1));
-        WriteBus(Registers.SP, (byte)value);
+        PushByte((byte)(value >> 8));
+        PushByte((byte)value);
     }
 
     /// <summary>
@@ -244,13 +270,20 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     /// </summary>
     internal ushort PopWord()
     {
-        var lowByte = ReadBus(Registers.SP);
+        var lowByte = ReadBusWithIncrementDecrement(Registers.SP);
         Registers.SP = unchecked((ushort)(Registers.SP + 1));
 
         var highByte = ReadBus(Registers.SP);
         Registers.SP = unchecked((ushort)(Registers.SP + 1));
 
         return (ushort)((highByte << 8) | lowByte);
+    }
+
+    private void PushByte(byte value)
+    {
+        var incrementDecrementAddress = Registers.SP;
+        Registers.SP = unchecked((ushort)(Registers.SP - 1));
+        WriteBusWithIncrementDecrement(Registers.SP, value, incrementDecrementAddress);
     }
 
     private int ExecuteNextInstruction()
@@ -324,15 +357,13 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
 
         var returnAddress = Registers.PC;
 
-        Registers.SP = unchecked((ushort)(Registers.SP - 1));
-        WriteBus(Registers.SP, (byte)(returnAddress >> 8));
+        PushByte((byte)(returnAddress >> 8));
 
         var interruptEnableAfterHighPush = bus.Interrupts.InterruptEnable;
 
-        Registers.SP = unchecked((ushort)(Registers.SP - 1));
-        var lowByteWritesInterruptFlag = Registers.SP == AddressMap.InterruptFlagRegister;
+        var lowByteWritesInterruptFlag = Registers.SP - 1 == AddressMap.InterruptFlagRegister;
         var interruptFlagBeforeLowPush = bus.Interrupts.InterruptFlag;
-        WriteBus(Registers.SP, (byte)returnAddress);
+        PushByte((byte)returnAddress);
 
         var interruptFlagForDispatch = lowByteWritesInterruptFlag
             ? interruptFlagBeforeLowPush
@@ -377,7 +408,7 @@ internal sealed class Cpu(MemoryBus bus, Action? tickMachineCycle = null)
     /// </summary>
     private byte FetchProgramByte()
     {
-        var value = ReadBus(Registers.PC);
+        var value = ReadBusWithIncrementDecrement(Registers.PC);
         Registers.PC = unchecked((ushort)(Registers.PC + 1));
         return value;
     }

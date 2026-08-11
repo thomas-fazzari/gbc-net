@@ -1,6 +1,8 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
+using GbcNet.Core.Clock;
+
 namespace GbcNet.Core.Ppu.Engines;
 
 /// <summary>
@@ -208,14 +210,12 @@ internal sealed class PpuTiming
             return LineDots < drawingEndDots ? drawingEndDots : scanlineDots;
         }
 
-        if (LineDots < NormalScanlineStatusModeDelayDots)
+        switch (LineDots)
         {
-            return NormalScanlineStatusModeDelayDots;
-        }
-
-        if (LineDots < OamScanDots)
-        {
-            return OamScanDots;
+            case < NormalScanlineStatusModeDelayDots:
+                return NormalScanlineStatusModeDelayDots;
+            case < OamScanDots:
+                return OamScanDots;
         }
 
         var drawingStartDots = GetCurrentDrawingStartDots();
@@ -248,6 +248,16 @@ internal sealed class PpuTiming
     /// Indicates that object selection is past the OAM scan dot threshold.
     /// </summary>
     public bool HasReachedOamScanEnd => LineDots >= OamScanDots;
+
+    /// <summary>
+    /// Returns the OAM row scanned during the current M-cycle.
+    /// </summary>
+    public int? CurrentOamScanRow =>
+        !FirstScanlineAfterLcdEnable
+        && LcdYCoordinate < PpuGeometry.VBlankStartLine
+        && LineDots < OamScanDots
+            ? LineDots / HardwareTiming.MachineCycleTCycles
+            : null;
 
     /// <summary>
     /// Indicates whether LY=LYC comparison is active on the current dot.
