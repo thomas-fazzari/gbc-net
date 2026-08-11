@@ -17,6 +17,7 @@ public sealed class DependencyInjectionTests
             config.Input,
             config.Emulation,
             config.Audio,
+            config.Appearance,
             config.Library,
             new BootRomOptions(),
             ConfigPath: "config.json",

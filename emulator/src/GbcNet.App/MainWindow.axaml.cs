@@ -183,6 +183,7 @@ internal sealed partial class MainWindow : Window, IDisposable
                 );
             },
             _menuAdapter.ApplyAudioConfig,
+            GbcNetApplication.ApplyTheme,
             _gamepadManager,
             loggerFactory.CreateLogger<ConfigurationPresenter>(),
             loggerFactory.CreateLogger<SettingsWindow>()

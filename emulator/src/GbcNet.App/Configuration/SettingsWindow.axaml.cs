@@ -11,6 +11,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using GbcNet.App.Configuration.Sections.Appearance;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Input;
@@ -61,6 +62,8 @@ internal sealed partial class SettingsWindow : Window
         VolumeSlider.Value = settings.Audio.VolumePercent;
         VolumeValueTextBlock.Text = $"{settings.Audio.VolumePercent}%";
         MuteAudioCheckBox.IsChecked = settings.Audio.Muted;
+        ThemeModeSelector.ItemsSource = Enum.GetValues<ThemeMode>();
+        ThemeModeSelector.SelectedItem = settings.Appearance.Theme;
 
         BuildBindingRows(
             InputTab.Keyboard,
@@ -96,6 +99,9 @@ internal sealed partial class SettingsWindow : Window
             Muted: MuteAudioCheckBox.IsChecked is true
         );
 
+    private AppearanceConfig GetAppearanceConfig() =>
+        new(ThemeModeSelector.SelectedItem is ThemeMode theme ? theme : ThemeMode.System);
+
     private static string? NormalizePath(string? path) =>
         string.IsNullOrWhiteSpace(path) ? null : path;
 
@@ -111,12 +117,16 @@ internal sealed partial class SettingsWindow : Window
     private void ShowAudioPage(object? sender, RoutedEventArgs e) =>
         ShowPage(AudioPage, AudioNavButton);
 
+    private void ShowAppearancePage(object? sender, RoutedEventArgs e) =>
+        ShowPage(AppearancePage, AppearanceNavButton);
+
     private void ShowPage(Control page, Button navButton)
     {
         CancelTransientEdits();
         BootRomPage.IsVisible = ReferenceEquals(page, BootRomPage);
         InputsPage.IsVisible = ReferenceEquals(page, InputsPage);
         AudioPage.IsVisible = ReferenceEquals(page, AudioPage);
+        AppearancePage.IsVisible = ReferenceEquals(page, AppearancePage);
         BootRomNavButton.Classes.Set(
             name: "selected",
             value: ReferenceEquals(navButton, BootRomNavButton)
@@ -128,6 +138,10 @@ internal sealed partial class SettingsWindow : Window
         AudioNavButton.Classes.Set(
             name: "selected",
             value: ReferenceEquals(navButton, AudioNavButton)
+        );
+        AppearanceNavButton.Classes.Set(
+            name: "selected",
+            value: ReferenceEquals(navButton, AppearanceNavButton)
         );
     }
 
@@ -206,7 +220,11 @@ internal sealed partial class SettingsWindow : Window
         }
 
         Close(
-            new SettingsConfig(GetBootRomConfig(), _inputDraft.Build()) { Audio = GetAudioConfig() }
+            new SettingsConfig(GetBootRomConfig(), _inputDraft.Build())
+            {
+                Appearance = GetAppearanceConfig(),
+                Audio = GetAudioConfig(),
+            }
         );
     }
 

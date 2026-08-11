@@ -28,7 +28,11 @@ internal sealed class AppConfigurationService(
     public SettingsConfig LoadSettings()
     {
         var appConfig = AppConfigurationFile.LoadOrCreate(configPath, logger);
-        return new SettingsConfig(appConfig.BootRoms, appConfig.Input) { Audio = appConfig.Audio };
+        return new SettingsConfig(appConfig.BootRoms, appConfig.Input)
+        {
+            Appearance = appConfig.Appearance,
+            Audio = appConfig.Audio,
+        };
     }
 
     public BootRomOptions LoadBootRomOptions(ICollection<string>? errors = null) =>
@@ -96,6 +100,7 @@ internal sealed class AppConfigurationService(
         );
         appConfig.Input = settings.Input;
         appConfig.Audio = settings.Audio;
+        appConfig.Appearance = settings.Appearance;
 
         AppConfigurationFile.Save(configPath, appConfig, logger);
         return ErrorOrFactory.From<IReadOnlyList<string>>(bootRomErrors);

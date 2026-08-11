@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using GbcNet.App.Configuration.Sections.Appearance;
 using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.App.Configuration.Sections.Library;
 using GbcNet.App.Emulation;
@@ -20,6 +21,10 @@ internal static class AppConfigurationFile
         ReadCommentHandling = JsonCommentHandling.Skip,
         Converters =
         {
+            new JsonStringEnumConverter<ThemeMode>(
+                JsonNamingPolicy.CamelCase,
+                allowIntegerValues: false
+            ),
             new JsonStringEnumConverter<HardwareModel>(JsonNamingPolicy.CamelCase),
             new JsonStringEnumConverter<EmulationSpeed>(
                 JsonNamingPolicy.CamelCase,

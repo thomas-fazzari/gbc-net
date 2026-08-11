@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Avalonia.Input;
 using GbcNet.App.Configuration;
+using GbcNet.App.Configuration.Sections.Appearance;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Emulation;
@@ -44,6 +45,13 @@ public sealed class AppConfigurationIntegrationTests
             .GetString()
             .Should()
             .Be("grid");
+        configJson
+            .RootElement.GetProperty("appearance")
+            .GetProperty("theme")
+            .GetString()
+            .Should()
+            .Be("system");
+        startupConfiguration.AppearanceConfig.Theme.Should().Be(ThemeMode.System);
         startupConfiguration.LibraryConfig.ViewMode.Should().Be(LibraryViewMode.Grid);
     }
 
@@ -58,9 +66,24 @@ public sealed class AppConfigurationIntegrationTests
         var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
 
         startupConfiguration.StartupErrorMessage.Should().BeNull();
+        startupConfiguration.AppearanceConfig.Theme.Should().Be(ThemeMode.System);
         startupConfiguration.AudioConfig.Should().Be(new AudioConfig());
         startupConfiguration.EmulationConfig.FastForwardEnabled.Should().BeTrue();
         startupConfiguration.LibraryConfig.ViewMode.Should().Be(LibraryViewMode.Grid);
+    }
+
+    [Fact]
+    public void Load_NullAppearanceUsesSystemTheme()
+    {
+        using var tempDirectory = TestDirectories.CreateTemporaryDirectory();
+        var configPath = Path.Combine(tempDirectory.Path, UserDataPaths.ConfigFileName);
+        Directory.CreateDirectory(tempDirectory.Path);
+        File.WriteAllText(configPath, """{"appearance":null}""");
+
+        var startupConfiguration = StartupConfigurationLoader.Load(configPath, NullLogger.Instance);
+
+        startupConfiguration.StartupErrorMessage.Should().BeNull();
+        startupConfiguration.AppearanceConfig.Theme.Should().Be(ThemeMode.System);
     }
 
     [Fact]
