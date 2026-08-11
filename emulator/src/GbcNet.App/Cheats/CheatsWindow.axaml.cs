@@ -11,6 +11,7 @@ using Avalonia.Threading;
 using ErrorOr;
 using GbcNet.Core.Cheats;
 using Microsoft.Extensions.Logging;
+using TablerIcons;
 
 namespace GbcNet.App.Cheats;
 
@@ -135,8 +136,8 @@ internal sealed partial class CheatsWindow : Window
         GameSharkNavButton.Classes.Set("selected", !gameGenie);
         PageTitleTextBlock.Text = gameGenie ? "Game Genie" : "GameShark";
         PageHelpTextBlock.Text = gameGenie
-            ? "Codes are checked top to bottom; the first matching code wins."
-            : "Codes rewrite memory every frame; for the same address, the last code wins.";
+            ? "Codes are checked from top to bottom. The first match wins."
+            : "Codes rewrite memory each frame. For duplicate addresses, the last code wins.";
 
         NameTextBox.Text = gameGenie ? _gameGenieNameDraft : _gameSharkNameDraft;
         NameTextBox[property: AutomationProperties.NameProperty] = "Cheat name (optional)";
@@ -373,30 +374,23 @@ internal sealed partial class CheatsWindow : Window
         var codeHelpText = gameGenie ? GameGenieCodeHelpText : GameSharkCodeHelpText;
         var codeTextBox = new TextBox
         {
-            Classes = { "code-input" },
+            Classes = { "field" },
+            Width = 144,
             MaxLength = gameGenie ? 32 : 8,
             Text = entry.CodeText,
             PlaceholderText = gameGenie ? "ABC-DEF or ABC-DEF-GHI" : "01VVLLHH",
         };
-        var codeEditor = new Border
-        {
-            Classes = { "input-well" },
-            Width = 144,
-            Child = codeTextBox,
-        };
 
         var nameTextBox = new TextBox
         {
-            Classes = { "code-input" },
+            Classes = { "field" },
             MaxLength = CheatCodeService.MaxNameLength,
             Text = entry.Name,
             PlaceholderText = "Name (optional)",
         };
-        var nameEditor = new Border { Classes = { "input-well" }, Child = nameTextBox };
 
         var toggle = new ToggleSwitch
         {
-            Classes = { "code-toggle" },
             IsChecked = entry.IsEnabled,
             OnContent = "On",
             OffContent = "Off",
@@ -404,15 +398,15 @@ internal sealed partial class CheatsWindow : Window
             VerticalAlignment = VerticalAlignment.Center,
         };
 
-        var moveUpButton = CreateRowActionButton("Move up");
+        var moveUpButton = CreateRowActionButton(Icons.IconArrowUp, "Move up");
         moveUpButton.IsEnabled = index != 0;
         moveUpButton.Click += (_, _) => MoveEntry(index, offset: -1);
 
-        var moveDownButton = CreateRowActionButton("Move down");
+        var moveDownButton = CreateRowActionButton(Icons.IconArrowDown, "Move down");
         moveDownButton.IsEnabled = index != entries.Count - 1;
         moveDownButton.Click += (_, _) => MoveEntry(index, offset: 1);
 
-        var removeButton = CreateRowActionButton("Remove");
+        var removeButton = CreateRowActionButton(Icons.IconTrash, "Remove");
         removeButton.Click += (_, _) => RemoveEntry(index);
 
         var actions = new StackPanel
@@ -456,9 +450,9 @@ internal sealed partial class CheatsWindow : Window
         {
             ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto"),
             ColumnSpacing = 8,
-            Children = { codeEditor, nameEditor, toggle, actions },
+            Children = { codeTextBox, nameTextBox, toggle, actions },
         };
-        Grid.SetColumn(nameEditor, 1);
+        Grid.SetColumn(nameTextBox, 1);
         Grid.SetColumn(toggle, 2);
         Grid.SetColumn(actions, 3);
 
@@ -476,7 +470,6 @@ internal sealed partial class CheatsWindow : Window
         _entryRows.Add(
             new EntryRowControls(
                 codeTextBox,
-                codeEditor,
                 nameTextBox,
                 toggle,
                 moveUpButton,
@@ -486,13 +479,17 @@ internal sealed partial class CheatsWindow : Window
         );
     }
 
-    private static Button CreateRowActionButton(string content) =>
-        new()
+    private static Button CreateRowActionButton(Icons icon, string toolTip)
+    {
+        var button = new Button
         {
-            Classes = { "chrome-button", "row-action" },
-            Content = content,
+            Classes = { "icon" },
+            Content = new TablerIcon { Icon = icon },
             VerticalAlignment = VerticalAlignment.Center,
         };
+        ToolTip.SetTip(button, toolTip);
+        return button;
+    }
 
     private static string? NormalizeName(string? name) =>
         string.IsNullOrWhiteSpace(name) ? null : name.Trim();
@@ -521,10 +518,10 @@ internal sealed partial class CheatsWindow : Window
 
     private bool ValidateEntryCodes()
     {
-        foreach (var row in _entryRows)
+        foreach (var codeEditor in _entryRows.Select(static row => row.CodeEditor))
         {
-            row.CodeEditorBorder.Classes.Remove("error");
-            row.CodeEditor[property: AutomationProperties.HelpTextProperty] = CodeHelpText;
+            codeEditor.Classes.Remove("error");
+            codeEditor[property: AutomationProperties.HelpTextProperty] = CodeHelpText;
         }
 
         _gameGenieEntriesValid = ValidateEntries(
@@ -609,7 +606,7 @@ internal sealed partial class CheatsWindow : Window
     private void MarkCodeError(int index, string message)
     {
         var row = _entryRows[index];
-        row.CodeEditorBorder.Classes.Add("error");
+        row.CodeEditor.Classes.Add("error");
         row.CodeEditor[property: AutomationProperties.HelpTextProperty] = message;
     }
 
@@ -649,7 +646,7 @@ internal sealed partial class CheatsWindow : Window
 
     private void FocusFirstInvalidCode()
     {
-        var index = _entryRows.FindIndex(row => row.CodeEditorBorder.Classes.Contains("error"));
+        var index = _entryRows.FindIndex(row => row.CodeEditor.Classes.Contains("error"));
         if (index >= 0)
         {
             PostFocus(_entryRows[index].CodeEditor);
@@ -753,7 +750,6 @@ internal sealed partial class CheatsWindow : Window
 
     private readonly record struct EntryRowControls(
         TextBox CodeEditor,
-        Border CodeEditorBorder,
         TextBox NameEditor,
         ToggleSwitch Toggle,
         Button MoveUp,

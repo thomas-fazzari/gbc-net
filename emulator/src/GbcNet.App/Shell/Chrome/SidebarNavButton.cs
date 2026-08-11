@@ -3,28 +3,29 @@
 
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
-using Avalonia.Media;
+using Avalonia.Layout;
+using TablerIcons;
 
 namespace GbcNet.App.Shell.Chrome;
 
 internal sealed class SidebarNavButton : Button
 {
-    // Reuses the Button.sidebar-item styles defined by each window.
     protected override Type StyleKeyOverride => typeof(Button);
 
-    public static readonly StyledProperty<StreamGeometry?> IconDataProperty =
-        AvaloniaProperty.Register<SidebarNavButton, StreamGeometry?>(nameof(IconData));
+    public static readonly StyledProperty<Icons?> IconProperty = AvaloniaProperty.Register<
+        SidebarNavButton,
+        Icons?
+    >(nameof(Icon));
 
     public static readonly StyledProperty<string?> LabelProperty = AvaloniaProperty.Register<
         SidebarNavButton,
         string?
     >(nameof(Label));
 
-    public StreamGeometry? IconData
+    public Icons? Icon
     {
-        get => GetValue(IconDataProperty);
-        set => SetValue(IconDataProperty, value);
+        get => GetValue(IconProperty);
+        set => SetValue(IconProperty, value);
     }
 
     public string? Label
@@ -33,16 +34,10 @@ internal sealed class SidebarNavButton : Button
         set => SetValue(LabelProperty, value);
     }
 
-    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
-    {
-        base.OnApplyTemplate(e);
-        UpdateContent();
-    }
-
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == IconDataProperty || change.Property == LabelProperty)
+        if (change.Property == IconProperty || change.Property == LabelProperty)
         {
             UpdateContent();
         }
@@ -50,20 +45,26 @@ internal sealed class SidebarNavButton : Button
 
     private void UpdateContent()
     {
-        var label = new TextBlock { Classes = { "chrome-label", "sidebar-label" }, Text = Label };
+        var label = new TextBlock
+        {
+            Classes = { "label" },
+            Text = Label,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
         Grid.SetColumn(label, 1);
 
         Content = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("16,*"),
-            ColumnSpacing = 9,
+            ColumnDefinitions = new ColumnDefinitions("20,*"),
+            ColumnSpacing = 10,
             Children =
             {
-                new PathIcon
+                new TablerIcon
                 {
-                    Width = 15,
-                    Height = 15,
-                    Data = IconData,
+                    Width = 20,
+                    Height = 20,
+                    Icon = Icon,
+                    VerticalAlignment = VerticalAlignment.Center,
                 },
                 label,
             },

@@ -1,58 +1,250 @@
 <Window
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:chrome="using:Avalonia.Controls.Chrome"
+  xmlns:library="using:GbcNet.App.Library"
   xmlns:menus="clr-namespace:GbcNet.App.Menus"
+  xmlns:ti="using:TablerIcons"
   x:Class="GbcNet.App.MainWindow"
-  Title="GbcNet"
+  x:Name="Root"
+  Title=""
+  AutomationProperties.Name="GBC.Net"
   Width="1180"
   Height="720"
   MinWidth="780"
   MinHeight="600"
   WindowStartupLocation="CenterScreen"
-  Background="{DynamicResource ChromeBackgroundBrush}"
+  WindowDecorations="Full"
+  ExtendClientAreaToDecorationsHint="True"
+  ExtendClientAreaTitleBarHeightHint="52"
+  Background="{DynamicResource SysCanvasBrush}"
 >
-  <Grid RowDefinitions="Auto,*,Auto">
-    <menus:MainMenu x:Name="MainMenu" Grid.Row="0" />
+  <Window.Styles>
+    <Style Selector="Border.library-search:focus-within">
+      <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+    </Style>
+  </Window.Styles>
+  <Grid RowDefinitions="Auto,*">
+    <Border
+      x:Name="TitleBarHost"
+      Grid.Row="0"
+      Height="52"
+      Background="{DynamicResource SysCanvasBrush}"
+      chrome:WindowDecorationProperties.ElementRole="TitleBar"
+    >
+      <Grid>
+        <Button
+          x:Name="EmulationTitleBarLeft"
+          Classes="icon titlebar"
+          IsVisible="False"
+          Margin="8,0,0,0"
+          HorizontalAlignment="Left"
+          VerticalAlignment="Center"
+          Command="{Binding CloseCommand, ElementName=MainMenu}"
+          ToolTip.Tip="Back to library"
+          AutomationProperties.Name="Back to library"
+          chrome:WindowDecorationProperties.ElementRole="User"
+        >
+          <ti:TablerIcon Icon="IconArrowLeft" />
+        </Button>
+
+        <Border
+          x:Name="LibrarySearchHost"
+          x:DataType="library:LibraryView"
+          Classes="library-search"
+          Width="380"
+          Height="36"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource SysSurfaceRaisedBrush}"
+          CornerRadius="{DynamicResource RefRadiusPill}"
+          chrome:WindowDecorationProperties.ElementRole="User"
+        >
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <ti:TablerIcon
+              Grid.Column="0"
+              Icon="IconSearch"
+              Width="18"
+              Height="18"
+              Margin="14,0,4,0"
+              VerticalAlignment="Center"
+            />
+            <TextBox
+              x:Name="LibrarySearchTextBox"
+              Grid.Column="1"
+              Text="{Binding SearchText, Mode=TwoWay}"
+              PlaceholderText="Search library"
+              Background="Transparent"
+              BorderBrush="Transparent"
+              BorderThickness="0"
+              Padding="6,0"
+              FocusAdorner="{x:Null}"
+              VerticalContentAlignment="Center"
+              AutomationProperties.Name="Search library"
+            />
+            <Grid Grid.Column="2" ColumnDefinitions="Auto,Auto,Auto">
+              <Border
+                x:Name="SearchBrowseDivider"
+                Grid.Column="0"
+                Width="1"
+                Height="20"
+                Margin="4,0"
+                Background="{DynamicResource SysBorderBrush}"
+                VerticalAlignment="Center"
+              />
+              <Button
+                x:Name="OpenRomSearchButton"
+                Grid.Column="1"
+                Classes="icon titlebar"
+                Command="{Binding OpenRomCommand, ElementName=MainMenu}"
+                ToolTip.Tip="Import a new ROM"
+                AutomationProperties.Name="Import a new ROM"
+              >
+                <ti:TablerIcon Icon="IconLibraryPlus" Width="18" Height="18" />
+              </Button>
+              <Button
+                x:Name="ClearSearchButton"
+                Grid.Column="2"
+                Classes="icon titlebar"
+                IsVisible="False"
+                Click="OnClearSearchClick"
+                ToolTip.Tip="Clear search"
+                AutomationProperties.Name="Clear search"
+              >
+                <ti:TablerIcon Icon="IconX" Width="16" Height="16" />
+              </Button>
+            </Grid>
+          </Grid>
+        </Border>
+
+        <StackPanel
+          x:Name="EmulationTitleBarCenter"
+          IsVisible="False"
+          Orientation="Horizontal"
+          Spacing="8"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+        >
+          <TextBlock
+            x:Name="RomTitleTextBlock"
+            MaxWidth="360"
+            FontSize="13"
+            FontWeight="Medium"
+            Foreground="{DynamicResource SysTextBrush}"
+            TextTrimming="CharacterEllipsis"
+            VerticalAlignment="Center"
+          />
+          <Border x:Name="EmulationStateBadge" Classes="badge emulation-state">
+            <TextBlock x:Name="EmulationStateTextBlock" Classes="label" />
+          </Border>
+        </StackPanel>
+
+        <StackPanel
+          x:Name="TitleBarActionsHost"
+          Margin="0,0,8,0"
+          HorizontalAlignment="Right"
+          VerticalAlignment="Center"
+          Orientation="Horizontal"
+          Spacing="2"
+          chrome:WindowDecorationProperties.ElementRole="User"
+        >
+          <StackPanel x:Name="LibraryTitleBarActions" Orientation="Horizontal" Spacing="2">
+            <Button
+              Classes="icon titlebar"
+              Command="{Binding ConfigurationCommand, ElementName=MainMenu}"
+              ToolTip.Tip="Settings"
+              AutomationProperties.Name="Settings"
+            >
+              <ti:TablerIcon Icon="IconSettings" />
+            </Button>
+          </StackPanel>
+
+          <StackPanel
+            x:Name="EmulationTitleBarActions"
+            IsVisible="False"
+            Orientation="Horizontal"
+            Spacing="2"
+          >
+            <ToggleButton
+              x:Name="PauseTitleBarButton"
+              Classes="icon titlebar"
+              Command="{Binding PauseCommand, ElementName=MainMenu}"
+              ToolTip.Tip="Pause or resume"
+              AutomationProperties.Name="Pause or resume emulation"
+            >
+              <ti:TablerIcon Icon="IconPlayerPause" />
+            </ToggleButton>
+            <ToggleButton
+              x:Name="FastForwardTitleBarButton"
+              Classes="icon titlebar"
+              Command="{Binding FastForwardCommand, ElementName=MainMenu}"
+              ToolTip.Tip="Fast forward"
+              AutomationProperties.Name="Toggle fast forward"
+            >
+              <ti:TablerIcon Icon="IconPlayerTrackNext" />
+            </ToggleButton>
+            <Button
+              x:Name="FullscreenTitleBarButton"
+              Classes="icon titlebar"
+              Command="{Binding FullscreenCommand, ElementName=MainMenu}"
+              ToolTip.Tip="Fullscreen"
+              AutomationProperties.Name="Toggle fullscreen"
+            >
+              <ti:TablerIcon Icon="IconArrowsMaximize" />
+            </Button>
+          </StackPanel>
+
+          <menus:MainMenu x:Name="MainMenu" />
+        </StackPanel>
+      </Grid>
+    </Border>
 
     <ContentControl x:Name="ContentHost" Grid.Row="1" />
 
     <Border
-      x:Name="StatusBar"
-      Grid.Row="2"
-      Background="{DynamicResource ChromePanelBrush}"
-      BorderBrush="{DynamicResource ChromeHairBrush}"
-      BorderThickness="0,1,0,0"
-      Padding="14,6"
+      x:Name="Notification"
+      Grid.Row="0"
+      Grid.RowSpan="2"
+      Classes="notification error"
+      Margin="24"
+      IsVisible="False"
+      HorizontalAlignment="Center"
+      VerticalAlignment="Bottom"
+      AutomationProperties.LiveSetting="Assertive"
     >
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
-        <Border
-          x:Name="StatusCoverFrame"
-          Width="18"
-          Height="18"
-          Background="{DynamicResource ChromeSurfaceBrush}"
-          CornerRadius="3"
-          IsVisible="False"
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <ScrollViewer
+          Grid.Column="0"
+          MaxWidth="400"
+          MaxHeight="160"
+          VerticalScrollBarVisibility="Auto"
         >
-          <Image x:Name="StatusCoverImage" Stretch="UniformToFill" />
-        </Border>
-        <TextBlock
-          x:Name="StatusTextBlock"
+          <ItemsControl x:Name="NotificationItemsControl">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="4" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <TextBlock
+                  Text="{Binding}"
+                  Foreground="{DynamicResource SysTextBrush}"
+                  TextWrapping="Wrap"
+                />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+        <Button
           Grid.Column="1"
-          FontSize="12"
-          Foreground="{DynamicResource ChromeMutedBrush}"
-          TextTrimming="CharacterEllipsis"
-          VerticalAlignment="Center"
-        />
-        <Border x:Name="StatusHardwareBadge" Grid.Column="2" Classes="badge" IsVisible="False">
-          <TextBlock x:Name="StatusHardwareBadgeTextBlock" Classes="badge-text" />
-        </Border>
-        <Border x:Name="StatusSpeedBadge" Grid.Column="3" Classes="badge" IsVisible="False">
-          <TextBlock
-            x:Name="StatusSpeedTextBlock"
-            Classes="badge-text"
-            TextTrimming="CharacterEllipsis"
-          />
-        </Border>
+          Classes="icon compact"
+          Click="OnDismissNotificationClick"
+          ToolTip.Tip="Dismiss"
+          AutomationProperties.Name="Dismiss notification"
+        >
+          <ti:TablerIcon Icon="IconX" Width="16" Height="16" />
+        </Button>
       </Grid>
     </Border>
   </Grid>

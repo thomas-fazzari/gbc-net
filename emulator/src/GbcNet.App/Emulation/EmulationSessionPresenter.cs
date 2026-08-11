@@ -24,7 +24,7 @@ internal sealed class EmulationSessionPresenter(
     InputRouter inputRouter,
     LibraryService libraryService,
     AppConfigurationService configurationService,
-    StatusBarPresenter statusBar,
+    ShellPresenter shell,
     MainMenu menu,
     ShellOperationRunner operationRunner,
     ILogger<EmulationSessionPresenter> logger,
@@ -33,9 +33,7 @@ internal sealed class EmulationSessionPresenter(
 )
 {
     private const int RecentRomLimit = 5;
-    private const int SaveStateSlotCount = 10;
 
-    private string? _loadedRomCoverPath;
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
     private RomStorageIdentity? _activeRomIdentity;
     private long? _playStartedAtTimestamp;
@@ -86,25 +84,24 @@ internal sealed class EmulationSessionPresenter(
         var result = await controller.OpenRomFileAsync(file);
         if (result.IsError)
         {
-            statusBar.ShowError(result.FirstError.Description);
+            shell.ShowError(result.FirstError.Description);
             return;
         }
 
         FlushPlayTime();
 
-        _loadedRomCoverPath = null;
         ClearPlayTime();
         var state = result.Value;
         ApplyRomActionResult(state);
         if (
             file.Path.IsFile
-            && state.LoadedCartridgeHeader is { } cartridgeHeader
-            && state.LoadedRomIdentity is { } identity
+            && state
+                is { LoadedCartridgeHeader: { } cartridgeHeader, LoadedRomIdentity: { } identity }
         )
         {
             try
             {
-                _loadedRomCoverPath = libraryService.RecordLoadedRom(
+                libraryService.RecordLoadedRom(
                     file.Path.LocalPath,
                     identity.HashHex,
                     state.LoadedRom,
@@ -112,13 +109,12 @@ internal sealed class EmulationSessionPresenter(
                 );
 
                 BeginPlayTime(identity);
-                ShowLoadedRomStatus(state);
                 SyncRecentRoms();
             }
             catch (InvalidOperationException exception)
             {
                 EmulationSessionPresenterLog.LibraryRecordFailed(logger, exception);
-                statusBar.ShowError(exception.Message);
+                shell.ShowError(exception.Message);
             }
         }
     }
@@ -129,7 +125,7 @@ internal sealed class EmulationSessionPresenter(
         if (file is null)
         {
             EmulationSessionPresenterLog.RecentRomUnavailable(logger);
-            statusBar.ShowError($"Recent ROM not found: {path}");
+            shell.ShowError($"Recent ROM not found: {path}");
 
             try
             {
@@ -138,7 +134,7 @@ internal sealed class EmulationSessionPresenter(
             catch (InvalidOperationException exception)
             {
                 EmulationSessionPresenterLog.RecentRomRemovalFailed(logger, exception);
-                statusBar.ShowError(exception.Message);
+                shell.ShowError(exception.Message);
             }
 
             SyncRecentRoms();
@@ -154,7 +150,7 @@ internal sealed class EmulationSessionPresenter(
         var state = await controller.ResetAsync();
         ApplyRomActionResult(state);
 
-        if (state.HasSession && !state.IsPaused && _activeRomIdentity is not null)
+        if (state is { HasSession: true, IsPaused: false } && _activeRomIdentity is not null)
         {
             ResumePlayTime();
         }
@@ -257,7 +253,7 @@ internal sealed class EmulationSessionPresenter(
         catch (ConfigurationException exception)
         {
             EmulationSessionPresenterLog.FastForwardSettingsSaveFailed(logger, exception);
-            statusBar.ShowError(exception.Message);
+            shell.ShowError(exception.Message);
         }
     }
 
@@ -286,7 +282,7 @@ internal sealed class EmulationSessionPresenter(
             inputRouter.Clear();
             SessionFaulted?.Invoke(this, EventArgs.Empty);
             SyncMenuState();
-            statusBar.ShowError(exception.Message);
+            shell.ShowError(exception.Message);
         });
     }
 
@@ -301,16 +297,19 @@ internal sealed class EmulationSessionPresenter(
 
         SyncSaveStateDates();
 
-        statusBar.ShowSpeed(
-            state.HasSession ? $"Speed {state.EffectiveSpeed.GetDisplayName()}" : string.Empty
+        shell.ShowEmulationState(
+            state.HasSession,
+            state.IsPaused,
+            state.FastForwardEnabled,
+            state.HasSession ? state.EffectiveSpeed.GetDisplayName() : string.Empty
         );
     }
 
     private void SyncSaveStateDates() =>
         menu.SetSaveStateDates(
             controller.State.HasSession
-                ? controller.GetSaveStateDates(SaveStateSlotCount)
-                : new DateTime?[SaveStateSlotCount]
+                ? controller.GetSaveStateDates(MainMenu.StateSlotCount)
+                : new DateTime?[MainMenu.StateSlotCount]
         );
 
     public void SyncRecentRoms()
@@ -322,7 +321,7 @@ internal sealed class EmulationSessionPresenter(
         catch (InvalidOperationException exception)
         {
             EmulationSessionPresenterLog.RecentRomsRefreshFailed(logger, exception);
-            statusBar.ShowError(exception.Message);
+            shell.ShowError(exception.Message);
             menu.SetRecentRoms([]);
         }
     }
@@ -340,7 +339,7 @@ internal sealed class EmulationSessionPresenter(
         var file = RomFileFilter.GetFirstDroppedRom(e.DataTransfer.TryGetFiles());
         if (file is null)
         {
-            statusBar.ShowError(RomFileFilter.UnsupportedDroppedFileMessage);
+            shell.ShowError(RomFileFilter.UnsupportedDroppedFileMessage);
             return;
         }
 
@@ -373,7 +372,7 @@ internal sealed class EmulationSessionPresenter(
         catch (InvalidOperationException exception)
         {
             EmulationSessionPresenterLog.LibraryPlayTimeRecordFailed(logger, exception);
-            statusBar.ShowError(exception.Message);
+            shell.ShowError(exception.Message);
         }
     }
 
@@ -394,11 +393,7 @@ internal sealed class EmulationSessionPresenter(
     }
 
     private void ShowLoadedRomStatus(EmulationControllerState state) =>
-        statusBar.ShowRomFileName(
-            state.LoadedRomFileName,
-            state.HardwareModel,
-            _loadedRomCoverPath
-        );
+        shell.ShowRomFileName(state.LoadedRomFileName);
 }
 
 internal static partial class EmulationSessionPresenterLog

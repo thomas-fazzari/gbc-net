@@ -2,82 +2,76 @@
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:chrome="clr-namespace:GbcNet.App.Shell.Chrome"
+  xmlns:ti="using:TablerIcons"
   x:Class="GbcNet.App.Configuration.SettingsWindow"
   Title="Configuration"
-  Width="960"
-  Height="640"
+  Width="920"
+  Height="520"
   MinWidth="760"
   MinHeight="520"
   CanResize="True"
   WindowStartupLocation="CenterOwner"
-  Background="{DynamicResource ChromeBackgroundBrush}"
+  Background="{DynamicResource SysCanvasBrush}"
 >
   <Window.Styles>
-    <Style Selector="TextBlock.form-label">
+    <Style Selector="TextBlock.page-description">
       <Setter Property="FontSize" Value="13" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
     </Style>
-    <Style Selector="TextBox.path-box">
-      <Setter Property="PlaceholderText" Value="No file selected" />
-      <Setter Property="Height" Value="30" />
-      <Setter Property="FontSize" Value="12" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+    <Style Selector="TextBlock.subtitle">
+      <Setter Property="FontSize" Value="17" />
+    </Style>
+    <Style Selector="TextBlock.section-title">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="Medium" />
+    </Style>
+    <Style Selector="Border.modal-rail">
+      <Setter Property="Padding" Value="10,16" />
+    </Style>
+    <Style Selector="ListBox.profile-list">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Padding" Value="10,0" />
-      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="ListBox.profile-list ListBoxItem">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusSmall}" />
+      <Setter Property="Margin" Value="0,0,0,2" />
       <Setter Property="FocusAdorner" Value="{x:Null}" />
     </Style>
-    <Style Selector="Border.path-well, Border.card">
-      <Setter Property="Background" Value="{DynamicResource ChromeSurfaceBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="{DynamicResource ChromeCornerRadius}" />
+    <Style Selector="ListBox.profile-list ListBoxItem:pointerover">
+      <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
     </Style>
-    <Style Selector="Border.path-well">
-      <Setter Property="Height" Value="32" />
-    </Style>
-    <Style Selector="Border.path-well:focus-within, Border.card:focus-within">
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
-    </Style>
-    <Style Selector="Button.capture-button">
-      <Setter Property="MinWidth" Value="120" />
-    </Style>
-    <Style Selector="Button.capture-button.error">
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeErrorBrush}" />
-    </Style>
-    <Style Selector="Button.capture-button.capturing">
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
-      <Setter Property="Background" Value="{DynamicResource ChromeSelectedBrush}" />
-    </Style>
-    <Style Selector="Button.input-tab">
-      <Setter Property="Background" Value="Transparent" />
+    <Style Selector="ListBox.profile-list ListBoxItem:selected">
+      <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
       <Setter Property="BorderBrush" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="{DynamicResource ChromeCornerRadius}" />
-      <Setter Property="Padding" Value="12,7" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeMutedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
     </Style>
-    <Style Selector="Button.input-tab:pointerover">
-      <Setter Property="Background" Value="{DynamicResource ChromeHoverBrush}" />
-    </Style>
-    <Style Selector="Button.input-tab:focus-visible">
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
-    </Style>
-    <Style Selector="Button.input-tab.selected">
-      <Setter Property="Background" Value="{DynamicResource ChromeSelectedBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeSelectedBorderBrush}" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+    <Style Selector="ListBox.profile-list ListBoxItem:focus-visible">
+      <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
     </Style>
   </Window.Styles>
 
   <Grid RowDefinitions="*,Auto" ColumnDefinitions="176,*">
-    <Border Grid.RowSpan="2" Classes="sidebar-panel">
+    <Border Grid.RowSpan="2" Classes="modal-rail">
       <StackPanel HorizontalAlignment="Stretch" Spacing="6">
         <chrome:SidebarNavButton
+          x:Name="GeneralNavButton"
+          Classes="modal-nav selected"
+          Icon="IconAdjustmentsHorizontal"
+          Label="General"
+          Click="ShowGeneralPage"
+          AutomationProperties.Name="General settings"
+          AutomationProperties.AutomationId="SettingsNavGeneral"
+          AutomationProperties.HelpText="Show audio and appearance settings"
+        />
+        <chrome:SidebarNavButton
           x:Name="BootRomNavButton"
-          Classes="sidebar-item selected"
-          IconData="{StaticResource IconGameBoy}"
+          Classes="modal-nav"
+          Icon="IconDeviceNintendo"
           Label="Boot ROMs"
           Click="ShowBootRomPage"
           AutomationProperties.Name="Boot ROM settings"
@@ -86,34 +80,135 @@
         />
         <chrome:SidebarNavButton
           x:Name="InputsNavButton"
-          Classes="sidebar-item"
-          IconData="{StaticResource IconGames}"
+          Classes="modal-nav"
+          Icon="IconDeviceGamepad2"
           Label="Inputs"
           Click="ShowInputsPage"
           AutomationProperties.Name="Input settings"
           AutomationProperties.AutomationId="SettingsNavInputs"
           AutomationProperties.HelpText="Show keyboard input profile settings"
         />
-        <chrome:SidebarNavButton
-          x:Name="AudioNavButton"
-          Classes="sidebar-item"
-          IconData="{StaticResource IconAudio}"
-          Label="Audio"
-          Click="ShowAudioPage"
-          AutomationProperties.Name="Audio settings"
-          AutomationProperties.AutomationId="SettingsNavAudio"
-          AutomationProperties.HelpText="Show volume and mute settings"
-        />
       </StackPanel>
     </Border>
 
-    <Grid Grid.Column="1" RowDefinitions="*" Margin="32,28,32,18">
-      <Grid x:Name="BootRomPage" RowDefinitions="Auto,*">
-        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,18">
-          <TextBlock Classes="chrome-label form-label" FontSize="18" Text="Boot ROMs" />
+    <Grid Grid.Column="1" RowDefinitions="*" Margin="24,20,24,16" MinWidth="0">
+      <Grid x:Name="GeneralPage" RowDefinitions="Auto,*">
+        <StackPanel Grid.Row="0" Spacing="3" Margin="0,0,0,14">
+          <TextBlock Classes="subtitle" Text="General" />
+          <TextBlock Classes="page-description" Text="Manage sound and appearance." />
+        </StackPanel>
+
+        <Grid
+          Grid.Row="1"
+          MaxWidth="720"
+          RowDefinitions="Auto,Auto"
+          ColumnDefinitions="*,*"
+          RowSpacing="8"
+          ColumnSpacing="12"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Top"
+        >
+          <TextBlock Grid.Row="0" Grid.Column="0" Classes="section-title" Text="Audio" />
+          <TextBlock Grid.Row="0" Grid.Column="1" Classes="section-title" Text="Theme" />
+
+          <Border Grid.Row="1" Grid.Column="0" Classes="card" Padding="12">
+            <Grid
+              RowDefinitions="32,32"
+              ColumnDefinitions="80,*,40"
+              RowSpacing="8"
+              ColumnSpacing="8"
+            >
+              <TextBlock Grid.Row="0" Classes="label" Text="Volume" VerticalAlignment="Center" />
+              <Slider
+                x:Name="VolumeSlider"
+                Grid.Row="0"
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                Minimum="0"
+                Maximum="100"
+                TickFrequency="1"
+                IsSnapToTickEnabled="True"
+                ValueChanged="UpdateVolumeValue"
+                AutomationProperties.Name="Audio volume"
+                AutomationProperties.HelpText="Playback volume from 0 to 100 percent"
+              />
+              <TextBlock
+                x:Name="VolumeValueTextBlock"
+                Grid.Row="0"
+                Grid.Column="2"
+                Classes="label"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                AutomationProperties.LiveSetting="Polite"
+              />
+
+              <TextBlock
+                Grid.Row="1"
+                Classes="label"
+                Text="Mute audio"
+                VerticalAlignment="Center"
+              />
+              <ToggleSwitch
+                x:Name="MuteAudioCheckBox"
+                Grid.Row="1"
+                Grid.Column="1"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                OnContent=""
+                OffContent=""
+                AutomationProperties.Name="Mute audio"
+                AutomationProperties.HelpText="Silence audio without changing the volume"
+              />
+            </Grid>
+          </Border>
+
+          <Border Grid.Row="1" Grid.Column="1" Classes="card" Padding="12">
+            <Border
+              x:Name="ThemeModeSelector"
+              Width="246"
+              Height="32"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Background="{DynamicResource SysSurfaceRaisedBrush}"
+              CornerRadius="{DynamicResource RefRadiusPill}"
+            >
+              <Grid ColumnDefinitions="*,*,*">
+                <RadioButton
+                  x:Name="SystemThemeRadioButton"
+                  Grid.Column="0"
+                  Classes="segmented first"
+                  GroupName="ThemeMode"
+                  Content="System"
+                  AutomationProperties.Name="Use system theme"
+                />
+                <RadioButton
+                  x:Name="LightThemeRadioButton"
+                  Grid.Column="1"
+                  Classes="segmented"
+                  GroupName="ThemeMode"
+                  Content="Light"
+                  AutomationProperties.Name="Use light theme"
+                />
+                <RadioButton
+                  x:Name="DarkThemeRadioButton"
+                  Grid.Column="2"
+                  Classes="segmented last"
+                  GroupName="ThemeMode"
+                  Content="Dark"
+                  AutomationProperties.Name="Use dark theme"
+                />
+              </Grid>
+            </Border>
+          </Border>
+        </Grid>
+      </Grid>
+
+      <Grid x:Name="BootRomPage" IsVisible="False" RowDefinitions="Auto,*">
+        <StackPanel Grid.Row="0" Spacing="3" Margin="0,0,0,14">
+          <TextBlock Classes="subtitle" Text="Boot ROMs" />
           <TextBlock
-            Classes="muted"
-            Text="Optional ROM paths. Blank values are saved as not configured."
+            Classes="page-description"
+            Text="Set optional boot ROM paths. Empty fields stay unconfigured."
           />
           <TextBlock
             x:Name="BootRomErrorTextBlock"
@@ -123,371 +218,380 @@
           />
         </StackPanel>
 
-        <Grid
+        <Border
           Grid.Row="1"
-          RowDefinitions="Auto,Auto,Auto"
-          ColumnDefinitions="48,*,72,64"
-          RowSpacing="12"
-          ColumnSpacing="8"
+          Classes="card"
+          MaxWidth="720"
+          Padding="12"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Top"
         >
-          <TextBlock Grid.Row="0" Classes="chrome-label form-label" Text="DMG" />
-          <Border Grid.Row="0" Grid.Column="1" Classes="path-well">
+          <Grid
+            RowDefinitions="Auto,Auto,Auto"
+            ColumnDefinitions="44,*,32,32"
+            RowSpacing="8"
+            ColumnSpacing="8"
+          >
+            <TextBlock Grid.Row="0" Classes="label" Text="DMG" VerticalAlignment="Center" />
             <TextBox
               x:Name="DmgBootRomPathTextBox"
-              Classes="path-box"
+              Grid.Row="0"
+              Grid.Column="1"
+              Classes="field"
+              PlaceholderText="No file selected"
               AutomationProperties.Name="DMG boot ROM path"
             />
-          </Border>
-          <Button
-            Grid.Row="0"
-            Grid.Column="2"
-            Classes="chrome-button"
-            Content="Browse"
-            Click="BrowseDmgBootRomPathAsync"
-            AutomationProperties.Name="Browse DMG boot ROM"
-          />
-          <Button
-            Grid.Row="0"
-            Grid.Column="3"
-            Classes="chrome-button"
-            Content="Clear"
-            Click="ClearDmgBootRomPath"
-            AutomationProperties.Name="Clear DMG boot ROM"
-          />
+            <Button
+              Grid.Row="0"
+              Grid.Column="2"
+              Classes="icon filled"
+              Click="BrowseDmgBootRomPathAsync"
+              ToolTip.Tip="Browse"
+              AutomationProperties.Name="Browse DMG boot ROM"
+            >
+              <ti:TablerIcon Width="16" Height="16" Icon="IconFolderOpen" />
+            </Button>
+            <Button
+              Grid.Row="0"
+              Grid.Column="3"
+              Classes="icon filled"
+              Click="ClearDmgBootRomPath"
+              ToolTip.Tip="Clear"
+              AutomationProperties.Name="Clear DMG boot ROM"
+            >
+              <ti:TablerIcon Width="16" Height="16" Icon="IconX" />
+            </Button>
 
-          <TextBlock Grid.Row="1" Classes="chrome-label form-label" Text="CGB" />
-          <Border Grid.Row="1" Grid.Column="1" Classes="path-well">
+            <TextBlock Grid.Row="1" Classes="label" Text="CGB" VerticalAlignment="Center" />
             <TextBox
               x:Name="CgbBootRomPathTextBox"
-              Classes="path-box"
+              Grid.Row="1"
+              Grid.Column="1"
+              Classes="field"
+              PlaceholderText="No file selected"
               AutomationProperties.Name="CGB boot ROM path"
             />
-          </Border>
-          <Button
-            Grid.Row="1"
-            Grid.Column="2"
-            Classes="chrome-button"
-            Content="Browse"
-            Click="BrowseCgbBootRomPathAsync"
-            AutomationProperties.Name="Browse CGB boot ROM"
-          />
-          <Button
-            Grid.Row="1"
-            Grid.Column="3"
-            Classes="chrome-button"
-            Content="Clear"
-            Click="ClearCgbBootRomPath"
-            AutomationProperties.Name="Clear CGB boot ROM"
-          />
+            <Button
+              Grid.Row="1"
+              Grid.Column="2"
+              Classes="icon filled"
+              Click="BrowseCgbBootRomPathAsync"
+              ToolTip.Tip="Browse"
+              AutomationProperties.Name="Browse CGB boot ROM"
+            >
+              <ti:TablerIcon Width="16" Height="16" Icon="IconFolderOpen" />
+            </Button>
+            <Button
+              Grid.Row="1"
+              Grid.Column="3"
+              Classes="icon filled"
+              Click="ClearCgbBootRomPath"
+              ToolTip.Tip="Clear"
+              AutomationProperties.Name="Clear CGB boot ROM"
+            >
+              <ti:TablerIcon Width="16" Height="16" Icon="IconX" />
+            </Button>
 
-          <TextBlock Grid.Row="2" Classes="chrome-label form-label" Text="SGB" />
-          <Border Grid.Row="2" Grid.Column="1" Classes="path-well">
+            <TextBlock Grid.Row="2" Classes="label" Text="SGB" VerticalAlignment="Center" />
             <TextBox
               x:Name="SgbBootRomPathTextBox"
-              Classes="path-box"
+              Grid.Row="2"
+              Grid.Column="1"
+              Classes="field"
+              PlaceholderText="No file selected"
               AutomationProperties.Name="SGB boot ROM path"
             />
-          </Border>
-          <Button
-            Grid.Row="2"
-            Grid.Column="2"
-            Classes="chrome-button"
-            Content="Browse"
-            Click="BrowseSgbBootRomPathAsync"
-            AutomationProperties.Name="Browse SGB boot ROM"
-          />
-          <Button
-            Grid.Row="2"
-            Grid.Column="3"
-            Classes="chrome-button"
-            Content="Clear"
-            Click="ClearSgbBootRomPath"
-            AutomationProperties.Name="Clear SGB boot ROM"
-          />
-        </Grid>
+            <Button
+              Grid.Row="2"
+              Grid.Column="2"
+              Classes="icon filled"
+              Click="BrowseSgbBootRomPathAsync"
+              ToolTip.Tip="Browse"
+              AutomationProperties.Name="Browse SGB boot ROM"
+            >
+              <ti:TablerIcon Width="16" Height="16" Icon="IconFolderOpen" />
+            </Button>
+            <Button
+              Grid.Row="2"
+              Grid.Column="3"
+              Classes="icon filled"
+              Click="ClearSgbBootRomPath"
+              ToolTip.Tip="Clear"
+              AutomationProperties.Name="Clear SGB boot ROM"
+            >
+              <ti:TablerIcon Width="16" Height="16" Icon="IconX" />
+            </Button>
+          </Grid>
+        </Border>
       </Grid>
 
-      <Grid x:Name="InputsPage" IsVisible="False" RowDefinitions="Auto,Auto,*" RowSpacing="14">
-        <StackPanel Grid.Row="0" Spacing="4">
-          <TextBlock Classes="chrome-label form-label" FontSize="18" Text="Inputs" />
-          <TextBlock
-            Classes="muted"
-            Text="Manage independent keyboard and gamepad profiles. Selecting a profile does not activate it."
-          />
-          <TextBlock
-            x:Name="InputValidationSummaryTextBlock"
-            Classes="error"
-            IsVisible="False"
-            AutomationProperties.Name="Input validation errors"
-          />
-        </StackPanel>
+      <Grid
+        x:Name="InputsPage"
+        IsVisible="False"
+        RowDefinitions="Auto,Auto"
+        RowSpacing="14"
+        MinWidth="0"
+      >
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="16">
+          <StackPanel Spacing="3" MinWidth="0">
+            <TextBlock Classes="subtitle" Text="Inputs" />
+            <TextBlock Classes="page-description" Text="Manage keyboard and gamepad profiles." />
+            <TextBlock
+              x:Name="InputValidationSummaryTextBlock"
+              Classes="error"
+              IsVisible="False"
+              AutomationProperties.Name="Input validation errors"
+            />
+          </StackPanel>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
-          <Button
-            x:Name="KeyboardInputTabButton"
-            Classes="input-tab selected"
-            Content="Keyboard"
-            Click="ShowKeyboardInputTab"
-            AutomationProperties.Name="Keyboard input settings"
-            AutomationProperties.AutomationId="InputTabKeyboard"
-            AutomationProperties.HelpText="Show keyboard profiles and bindings"
-          />
-          <Button
-            x:Name="GamepadInputTabButton"
-            Classes="input-tab"
-            Content="Gamepad"
-            Click="ShowGamepadInputTab"
-            AutomationProperties.Name="Gamepad input settings"
-            AutomationProperties.AutomationId="InputTabGamepad"
-            AutomationProperties.HelpText="Show gamepad profiles and bindings"
-          />
-        </StackPanel>
-
-        <Grid Grid.Row="2" ColumnDefinitions="260,*" ColumnSpacing="16" MinHeight="0">
-          <Grid RowDefinitions="Auto,*,Auto,Auto,Auto" RowSpacing="10" MinHeight="0">
-            <StackPanel Spacing="4">
-              <TextBlock Classes="chrome-label form-label" Text="Profiles" />
-              <TextBlock
-                x:Name="ProfileRailHelpTextBlock"
-                Classes="muted"
-                Text="Select a keyboard profile to edit."
+          <Border
+            Grid.Column="1"
+            MinWidth="168"
+            MaxWidth="184"
+            Height="32"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center"
+            Background="{DynamicResource SysSurfaceRaisedBrush}"
+            CornerRadius="{DynamicResource RefRadiusPill}"
+          >
+            <Grid ColumnDefinitions="*,*" MinWidth="0">
+              <ToggleButton
+                x:Name="KeyboardInputTabButton"
+                Grid.Column="0"
+                Classes="segmented first"
+                MinWidth="0"
+                HorizontalAlignment="Stretch"
+                Content="Keyboard"
+                Click="ShowKeyboardInputTab"
+                AutomationProperties.Name="Keyboard input settings"
+                AutomationProperties.AutomationId="InputTabKeyboard"
+                AutomationProperties.HelpText="Show keyboard profiles and bindings"
               />
-            </StackPanel>
-            <Border Grid.Row="1" Classes="card" Padding="6" MinHeight="0">
+              <ToggleButton
+                x:Name="GamepadInputTabButton"
+                Grid.Column="1"
+                Classes="segmented last"
+                MinWidth="0"
+                HorizontalAlignment="Stretch"
+                Content="Gamepad"
+                Click="ShowGamepadInputTab"
+                AutomationProperties.Name="Gamepad input settings"
+                AutomationProperties.AutomationId="InputTabGamepad"
+                AutomationProperties.HelpText="Show gamepad profiles and bindings"
+              />
+            </Grid>
+          </Border>
+        </Grid>
+
+        <Border
+          Grid.Row="1"
+          Classes="card"
+          MaxWidth="720"
+          Padding="12"
+          MinWidth="0"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Top"
+        >
+          <Grid ColumnDefinitions="2*,1,4*" ColumnSpacing="14" MinWidth="0">
+            <Grid Grid.Column="0" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8" MinWidth="0">
+              <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                <TextBlock Classes="section-title" Text="Profiles" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
+                  <Button
+                    x:Name="NewProfileButton"
+                    Classes="icon"
+                    Click="StartNewProfile"
+                    ToolTip.Tip="New profile"
+                    AutomationProperties.Name="New input profile"
+                  >
+                    <ti:TablerIcon Width="16" Height="16" Icon="IconPlus" />
+                  </Button>
+                  <Button
+                    Classes="icon"
+                    ToolTip.Tip="Profile actions"
+                    AutomationProperties.Name="Profile actions"
+                  >
+                    <Button.Flyout>
+                      <MenuFlyout Placement="BottomEdgeAlignedRight">
+                        <MenuItem
+                          x:Name="RenameProfileButton"
+                          Click="StartRenameProfile"
+                          AutomationProperties.Name="Rename selected input profile"
+                        >
+                          <MenuItem.Header>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                              <ti:TablerIcon Width="16" Height="16" Icon="IconPencil" />
+                              <TextBlock Text="Rename" VerticalAlignment="Center" />
+                            </StackPanel>
+                          </MenuItem.Header>
+                        </MenuItem>
+                        <MenuItem
+                          x:Name="SetActiveProfileButton"
+                          Click="SetActiveProfile"
+                          AutomationProperties.Name="Set selected input profile active"
+                        >
+                          <MenuItem.Header>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                              <ti:TablerIcon Width="16" Height="16" Icon="IconCheck" />
+                              <TextBlock Text="Set active" VerticalAlignment="Center" />
+                            </StackPanel>
+                          </MenuItem.Header>
+                        </MenuItem>
+                        <Separator />
+                        <MenuItem
+                          x:Name="DeleteProfileButton"
+                          Click="DeleteSelectedProfileAsync"
+                          AutomationProperties.Name="Delete selected input profile"
+                        >
+                          <MenuItem.Header>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                              <ti:TablerIcon Width="16" Height="16" Icon="IconTrash" />
+                              <TextBlock Text="Delete" VerticalAlignment="Center" />
+                            </StackPanel>
+                          </MenuItem.Header>
+                        </MenuItem>
+                      </MenuFlyout>
+                    </Button.Flyout>
+                    <ti:TablerIcon Width="16" Height="16" Icon="IconDots" />
+                  </Button>
+                </StackPanel>
+              </Grid>
+
               <ListBox
                 x:Name="ProfileListBox"
+                Grid.Row="1"
+                Classes="profile-list"
+                MinWidth="0"
+                MaxHeight="176"
                 SelectionChanged="SelectInputProfile"
                 AutomationProperties.Name="Keyboard input profiles"
                 AutomationProperties.AutomationId="InputProfiles"
-                AutomationProperties.HelpText="Select a profile to edit. Selection does not activate it."
+                AutomationProperties.HelpText="Edit profiles without activating them."
               />
-            </Border>
-            <Grid
-              x:Name="NameEditorPanel"
-              Grid.Row="2"
-              IsVisible="False"
-              RowDefinitions="Auto,Auto"
-              RowSpacing="6"
-            >
-              <TextBox
-                x:Name="ProfileNameTextBox"
-                PlaceholderText="Profile name"
-                KeyDown="HandleProfileNameKeyDown"
-                AutomationProperties.Name="Input profile name"
-                AutomationProperties.AutomationId="InputProfileNameEditor"
-              />
-              <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
-                <Button
-                  x:Name="CommitNameButton"
-                  Classes="chrome-button accent"
-                  Content="OK"
-                  Click="CommitProfileNameEdit"
-                />
-                <Button Classes="chrome-button" Content="Cancel" Click="CancelProfileNameEdit" />
-              </StackPanel>
-            </Grid>
-            <TextBlock
-              x:Name="ProfileErrorTextBlock"
-              Grid.Row="3"
-              Classes="error"
-              IsVisible="False"
-            />
-            <Grid
-              Grid.Row="4"
-              ColumnDefinitions="*,*"
-              RowDefinitions="30,30"
-              ColumnSpacing="8"
-              RowSpacing="8"
-            >
-              <Button
-                x:Name="NewProfileButton"
-                Grid.Row="0"
-                Grid.Column="0"
-                Classes="chrome-button"
-                Content="New"
-                Click="StartNewProfile"
-                AutomationProperties.Name="New input profile"
-              />
-              <Button
-                x:Name="RenameProfileButton"
-                Grid.Row="0"
-                Grid.Column="1"
-                Classes="chrome-button"
-                Content="Rename"
-                Click="StartRenameProfile"
-                AutomationProperties.Name="Rename selected input profile"
-              />
-              <Button
-                x:Name="DeleteProfileButton"
-                Grid.Row="1"
-                Grid.Column="0"
-                Classes="chrome-button"
-                Content="Delete"
-                Click="DeleteSelectedProfileAsync"
-                AutomationProperties.Name="Delete selected input profile"
-              />
-              <Button
-                x:Name="SetActiveProfileButton"
-                Grid.Row="1"
-                Grid.Column="1"
-                Classes="chrome-button accent"
-                Content="Set active"
-                Click="SetActiveProfile"
-                AutomationProperties.Name="Set selected input profile active"
-              />
-            </Grid>
-          </Grid>
 
-          <Grid Grid.Column="1" MinHeight="0">
-            <Grid x:Name="KeyboardInputPage" RowDefinitions="Auto,*" RowSpacing="10">
-              <StackPanel Spacing="4">
-                <TextBlock Classes="chrome-label form-label" Text="Keyboard bindings" />
-                <TextBlock
-                  Classes="muted"
-                  Text="Click a binding, then press a key. Duplicate keys are allowed but must be resolved before saving."
+              <Grid
+                x:Name="NameEditorPanel"
+                Grid.Row="2"
+                IsVisible="False"
+                RowDefinitions="Auto,Auto"
+                RowSpacing="6"
+                MinWidth="0"
+              >
+                <TextBox
+                  x:Name="ProfileNameTextBox"
+                  Classes="field"
+                  PlaceholderText="Profile name"
+                  KeyDown="HandleProfileNameKeyDown"
+                  AutomationProperties.Name="Input profile name"
+                  AutomationProperties.AutomationId="InputProfileNameEditor"
                 />
-              </StackPanel>
-              <Border Grid.Row="1" Classes="card" Padding="14" MinHeight="0">
-                <ScrollViewer
-                  HorizontalScrollBarVisibility="Disabled"
-                  VerticalScrollBarVisibility="Auto"
-                >
-                  <StackPanel x:Name="KeyboardBindingsPanel" Spacing="10" />
-                </ScrollViewer>
-              </Border>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6">
+                  <Button
+                    x:Name="CommitNameButton"
+                    Classes="primary compact"
+                    Content="OK"
+                    Click="CommitProfileNameEdit"
+                  />
+                  <Button
+                    Classes="secondary compact"
+                    Content="Cancel"
+                    Click="CancelProfileNameEdit"
+                  />
+                </StackPanel>
+              </Grid>
+              <TextBlock
+                x:Name="ProfileErrorTextBlock"
+                Grid.Row="3"
+                Classes="error"
+                IsVisible="False"
+              />
             </Grid>
 
-            <Grid
-              x:Name="GamepadInputPage"
-              IsVisible="False"
-              RowDefinitions="Auto,Auto,*"
-              RowSpacing="10"
-            >
-              <StackPanel Spacing="4">
-                <TextBlock Classes="chrome-label form-label" Text="Gamepad bindings" />
-                <TextBlock
-                  Classes="muted"
-                  Text="Choose a connected controller only to capture and display its buttons; the choice is not saved."
-                />
-              </StackPanel>
-              <StackPanel Grid.Row="1" Spacing="6">
-                <ComboBox
-                  x:Name="GamepadDeviceSelector"
-                  SelectionChanged="SelectGamepadDevice"
-                  HorizontalAlignment="Stretch"
-                  AutomationProperties.Name="Connected gamepad for capture"
-                  AutomationProperties.AutomationId="GamepadDeviceSelector"
-                  AutomationProperties.HelpText="Select a temporary connected gamepad for capture and button labels"
-                />
-                <TextBlock
-                  x:Name="GamepadAvailabilityTextBlock"
-                  Classes="error"
-                  IsVisible="False"
-                />
-                <TextBlock x:Name="GamepadNoDevicesTextBlock" Classes="muted" IsVisible="False" />
-                <TextBlock
-                  x:Name="GamepadUnsupportedTextBlock"
-                  Classes="muted"
-                  IsVisible="False"
-                  TextWrapping="Wrap"
-                />
-              </StackPanel>
-              <Border Grid.Row="2" Classes="card" Padding="14" MinHeight="0">
-                <ScrollViewer
-                  HorizontalScrollBarVisibility="Disabled"
-                  VerticalScrollBarVisibility="Auto"
-                >
-                  <StackPanel Spacing="12">
-                    <TextBlock
-                      Classes="muted"
-                      Text="Directions always use the controller's D-pad or left stick and cannot be remapped."
-                      TextWrapping="Wrap"
-                    />
-                    <TextBlock
-                      Classes="muted"
-                      Text="LT: pause, RT: fast-forward."
-                      TextWrapping="Wrap"
-                    />
-                    <StackPanel x:Name="GamepadBindingsPanel" Spacing="10" />
+            <Border Grid.Column="1" Width="1" Background="{DynamicResource SysBorderBrush}" />
+
+            <Grid Grid.Column="2" MinWidth="0">
+              <Grid
+                x:Name="KeyboardInputPage"
+                RowDefinitions="Auto,Auto"
+                RowSpacing="8"
+                MinWidth="0"
+              >
+                <TextBlock Classes="section-title" Text="Bindings" />
+                <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12" MinWidth="0">
+                  <StackPanel Grid.Column="0" Spacing="6" MinWidth="0">
+                    <TextBlock Classes="label muted" Text="Directions" />
+                    <StackPanel x:Name="KeyboardDirectionsBindingsPanel" Spacing="4" MinWidth="0" />
                   </StackPanel>
-                </ScrollViewer>
-              </Border>
+                  <StackPanel Grid.Column="1" Spacing="6" MinWidth="0">
+                    <TextBlock Classes="label muted" Text="Buttons" />
+                    <StackPanel x:Name="KeyboardButtonBindingsPanel" Spacing="4" MinWidth="0" />
+                  </StackPanel>
+                </Grid>
+              </Grid>
+
+              <Grid
+                x:Name="GamepadInputPage"
+                IsVisible="False"
+                RowDefinitions="Auto,Auto,Auto"
+                RowSpacing="10"
+                MinWidth="0"
+              >
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" MinWidth="0">
+                  <TextBlock Classes="label" Text="Controller" VerticalAlignment="Center" />
+                  <ComboBox
+                    x:Name="GamepadDeviceSelector"
+                    Grid.Column="1"
+                    Classes="field"
+                    MinWidth="0"
+                    HorizontalAlignment="Stretch"
+                    SelectionChanged="SelectGamepadDevice"
+                    AutomationProperties.Name="Connected gamepad for capture"
+                    AutomationProperties.AutomationId="GamepadDeviceSelector"
+                    AutomationProperties.HelpText="Choose a gamepad for capture and button labels"
+                  />
+                </Grid>
+                <StackPanel Grid.Row="1" Spacing="3">
+                  <TextBlock
+                    x:Name="GamepadAvailabilityTextBlock"
+                    Classes="error"
+                    IsVisible="False"
+                  />
+                  <TextBlock x:Name="GamepadNoDevicesTextBlock" Classes="muted" IsVisible="False" />
+                  <TextBlock
+                    x:Name="GamepadUnsupportedTextBlock"
+                    Classes="muted"
+                    IsVisible="False"
+                    TextWrapping="Wrap"
+                  />
+                </StackPanel>
+                <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12" MinWidth="0">
+                  <StackPanel Grid.Column="0" Spacing="6" MinWidth="0">
+                    <TextBlock Classes="label muted" Text="Buttons" />
+                    <StackPanel x:Name="GamepadButtonBindingsPanel" Spacing="4" MinWidth="0" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Spacing="6" MinWidth="0">
+                    <TextBlock Classes="label muted" Text="Menu" />
+                    <StackPanel x:Name="GamepadMenuBindingsPanel" Spacing="4" MinWidth="0" />
+                  </StackPanel>
+                </Grid>
+              </Grid>
             </Grid>
           </Grid>
-        </Grid>
-      </Grid>
-      <Grid x:Name="AudioPage" IsVisible="False" RowDefinitions="Auto,*">
-        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,18">
-          <TextBlock Classes="chrome-label form-label" FontSize="18" Text="Audio" />
-          <TextBlock Classes="muted" Text="Control playback volume and muting." />
-        </StackPanel>
-
-        <Grid
-          Grid.Row="1"
-          Width="520"
-          MaxWidth="520"
-          HorizontalAlignment="Left"
-          VerticalAlignment="Top"
-          RowDefinitions="Auto,Auto"
-          ColumnDefinitions="88,*,Auto"
-          RowSpacing="14"
-          ColumnSpacing="12"
-        >
-          <TextBlock Grid.Row="0" Classes="chrome-label form-label" Text="Volume" />
-          <Slider
-            x:Name="VolumeSlider"
-            Grid.Row="0"
-            Grid.Column="1"
-            Minimum="0"
-            Maximum="100"
-            TickFrequency="1"
-            IsSnapToTickEnabled="True"
-            ValueChanged="UpdateVolumeValue"
-            AutomationProperties.Name="Audio volume"
-            AutomationProperties.HelpText="Playback volume from 0 to 100 percent"
-          />
-          <TextBlock
-            x:Name="VolumeValueTextBlock"
-            Grid.Row="0"
-            Grid.Column="2"
-            Classes="chrome-label form-label"
-            HorizontalAlignment="Right"
-            AutomationProperties.LiveSetting="Polite"
-          />
-
-          <TextBlock Grid.Row="1" Classes="chrome-label form-label" Text="Mute audio" />
-          <ToggleSwitch
-            x:Name="MuteAudioCheckBox"
-            Grid.Row="1"
-            Grid.Column="1"
-            HorizontalAlignment="Left"
-            OnContent=""
-            OffContent=""
-            AutomationProperties.Name="Mute audio"
-            AutomationProperties.HelpText="Silence audio without changing the volume"
-          />
-        </Grid>
+        </Border>
       </Grid>
     </Grid>
 
-    <Border
-      Grid.Row="1"
-      Grid.Column="1"
-      Background="{DynamicResource ChromeBackgroundBrush}"
-      BorderBrush="{DynamicResource ChromeHairBrush}"
-      BorderThickness="0,1,0,0"
-      Padding="32,12"
-    >
+    <Border Grid.Row="1" Grid.Column="1" Classes="modal-footer">
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
         <Button
-          Classes="chrome-button"
+          Classes="secondary"
           Content="Cancel"
           Click="CancelSettings"
           AutomationProperties.Name="Cancel settings"
         />
         <Button
           x:Name="SaveButton"
-          Classes="chrome-button accent"
+          Classes="primary"
           Content="Save"
           Click="SaveSettings"
           AutomationProperties.Name="Save settings"

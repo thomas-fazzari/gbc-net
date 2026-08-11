@@ -1,122 +1,105 @@
 <UserControl
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:ti="using:TablerIcons"
   x:Class="GbcNet.App.Menus.MainMenu"
   x:Name="Root"
 >
-  <Border
-    x:Name="MenuChrome"
-    Background="{DynamicResource ChromeBackgroundBrush}"
-    BorderBrush="{DynamicResource ChromeHairBrush}"
-    BorderThickness="0,0,0,1"
+  <Button
+    x:Name="OverflowButton"
+    Classes="icon titlebar"
+    ToolTip.Tip="More actions"
+    AutomationProperties.Name="More actions"
   >
-    <Menu x:Name="WindowMenu" Background="Transparent">
-      <MenuItem x:Name="FileMenuItem" Header="_File">
-        <MenuItem
-          x:Name="OpenRomMenuItem"
-          Header="_Open ROM..."
-          InputGesture="Ctrl+O"
-          Command="{Binding OpenRomCommand, ElementName=Root}"
-        />
-        <MenuItem x:Name="OpenRecentMenuItem" Header="Open _Recent" IsEnabled="False" />
-        <Separator />
-        <MenuItem
-          x:Name="CloseWindowMenuItem"
-          Header="_Close"
-          InputGesture="Ctrl+W"
-          Command="{Binding CloseCommand, ElementName=Root}"
-        />
-      </MenuItem>
+    <Button.Flyout>
+      <MenuFlyout Placement="BottomEdgeAlignedRight">
+        <MenuItem x:Name="FileMenuItem" Header="_File">
+          <MenuItem
+            x:Name="OpenRomMenuItem"
+            Header="_Open ROM..."
+            Command="{Binding OpenRomCommand, ElementName=Root}"
+          />
+          <MenuItem x:Name="OpenRecentMenuItem" Header="Open _Recent" IsEnabled="False" />
+          <Separator />
+          <MenuItem
+            x:Name="CloseWindowMenuItem"
+            Header="_Close"
+            Command="{Binding CloseCommand, ElementName=Root}"
+          />
+        </MenuItem>
 
-      <MenuItem Header="_Settings">
-        <MenuItem
-          x:Name="ConfigurationMenuItem"
-          Header="_Configuration..."
-          InputGesture="Ctrl+C"
-          Command="{Binding ConfigurationCommand, ElementName=Root}"
-        />
-        <Separator />
-        <MenuItem
-          x:Name="ConfigurationFileLocationMenuItem"
-          Header="_Open Config File Location"
-          Command="{Binding ConfigurationFileLocationCommand, ElementName=Root}"
-        />
-        <MenuItem
-          x:Name="LogFileLocationMenuItem"
-          Header="Open _Logs Folder"
-          Command="{Binding LogFileLocationCommand, ElementName=Root}"
-        />
-      </MenuItem>
+        <MenuItem Header="_Settings">
+          <MenuItem
+            x:Name="ConfigurationMenuItem"
+            Header="_Configuration..."
+            Command="{Binding ConfigurationCommand, ElementName=Root}"
+          />
+          <Separator />
+          <MenuItem
+            x:Name="ConfigurationFileLocationMenuItem"
+            Header="_Open Config File Location"
+            Command="{Binding ConfigurationFileLocationCommand, ElementName=Root}"
+          />
+          <MenuItem
+            x:Name="LogFileLocationMenuItem"
+            Header="Open _Logs Folder"
+            Command="{Binding LogFileLocationCommand, ElementName=Root}"
+          />
+        </MenuItem>
 
-      <MenuItem Header="_Emulation">
-        <MenuItem
-          x:Name="PauseEmulationMenuItem"
-          Header="_Pause"
-          InputGesture="Space"
-          Command="{Binding PauseCommand, ElementName=Root}"
-        />
-        <MenuItem
-          x:Name="ResetEmulationMenuItem"
-          Header="_Reset"
-          InputGesture="Ctrl+R"
-          Command="{Binding ResetCommand, ElementName=Root}"
-        />
-        <MenuItem
-          x:Name="CheatsMenuItem"
-          Header="_Cheats..."
-          InputGesture="Ctrl+G"
-          Command="{Binding CheatsCommand, ElementName=Root}"
-        />
-        <MenuItem
-          x:Name="MuteAudioMenuItem"
-          Header="_Mute Audio"
-          ToggleType="CheckBox"
-          Command="{Binding MuteCommand, ElementName=Root}"
-        />
-        <Separator />
-        <MenuItem x:Name="SaveStateMenuItem" Header="Save _State" IsEnabled="False" />
-        <MenuItem x:Name="LoadStateMenuItem" Header="_Load State" IsEnabled="False" />
-        <Separator />
-        <MenuItem
-          x:Name="FastForwardMenuItem"
-          Header="_Fast Forward"
-          ToggleType="CheckBox"
-          Command="{Binding FastForwardCommand, ElementName=Root}"
-        />
-        <MenuItem x:Name="FastForwardSpeedMenuItem" Header="Fast Forward _Speed" />
-      </MenuItem>
+        <MenuItem Header="_Emulation">
+          <MenuItem
+            x:Name="PauseEmulationMenuItem"
+            Header="_Pause"
+            Command="{Binding PauseCommand, ElementName=Root}"
+          />
+          <MenuItem
+            x:Name="ResetEmulationMenuItem"
+            Header="_Reset"
+            Command="{Binding ResetCommand, ElementName=Root}"
+          />
+          <MenuItem
+            x:Name="CheatsMenuItem"
+            Header="_Cheats..."
+            Command="{Binding CheatsCommand, ElementName=Root}"
+          />
+          <MenuItem
+            x:Name="MuteAudioMenuItem"
+            Header="_Mute Audio"
+            ToggleType="CheckBox"
+            Command="{Binding MuteCommand, ElementName=Root}"
+          />
+          <Separator />
+          <MenuItem x:Name="SaveStateMenuItem" Header="Save _State" IsEnabled="False" />
+          <MenuItem x:Name="LoadStateMenuItem" Header="_Load State" IsEnabled="False" />
+          <Separator />
+          <MenuItem
+            x:Name="FastForwardMenuItem"
+            Header="_Fast Forward"
+            ToggleType="CheckBox"
+            Command="{Binding FastForwardCommand, ElementName=Root}"
+          />
+          <MenuItem x:Name="FastForwardSpeedMenuItem" Header="Fast Forward _Speed" />
+        </MenuItem>
 
-      <MenuItem Header="_View">
-        <MenuItem
-          x:Name="FullscreenMenuItem"
-          Header="_Fullscreen"
-          ToggleType="CheckBox"
-          Command="{Binding FullscreenCommand, ElementName=Root}"
-        />
-        <MenuItem
-          x:Name="MenuBarMenuItem"
-          Header="_Menu Bar"
-          ToggleType="CheckBox"
-          IsChecked="True"
-          Command="{Binding MenuBarCommand, ElementName=Root}"
-        />
-        <Separator />
-        <MenuItem
-          x:Name="StatusBarMenuItem"
-          Header="_Status Bar"
-          ToggleType="CheckBox"
-          IsChecked="True"
-          Command="{Binding StatusBarCommand, ElementName=Root}"
-        />
-      </MenuItem>
+        <MenuItem Header="_View">
+          <MenuItem
+            x:Name="FullscreenMenuItem"
+            Header="_Fullscreen"
+            ToggleType="CheckBox"
+            Command="{Binding FullscreenCommand, ElementName=Root}"
+          />
+        </MenuItem>
 
-      <MenuItem Header="_Help">
-        <MenuItem
-          x:Name="GitHubRepositoryMenuItem"
-          Header="_View on GitHub"
-          Command="{Binding GitHubRepositoryCommand, ElementName=Root}"
-        />
-      </MenuItem>
-    </Menu>
-  </Border>
+        <MenuItem Header="_Help">
+          <MenuItem
+            x:Name="GitHubRepositoryMenuItem"
+            Header="_View on GitHub"
+            Command="{Binding GitHubRepositoryCommand, ElementName=Root}"
+          />
+        </MenuItem>
+      </MenuFlyout>
+    </Button.Flyout>
+    <ti:TablerIcon Icon="IconDots" />
+  </Button>
 </UserControl>

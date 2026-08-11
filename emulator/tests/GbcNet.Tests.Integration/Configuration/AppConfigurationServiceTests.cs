@@ -5,6 +5,7 @@ using System.Text.Json;
 using ErrorOr;
 using GbcNet.App;
 using GbcNet.App.Configuration;
+using GbcNet.App.Configuration.Sections.Appearance;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Input;
@@ -104,6 +105,8 @@ public sealed class AppConfigurationServiceTests
                 Emulation = new() { FastForwardEnabled = true },
                 Input = CreateStrictInput("Alternate"),
                 Audio = new AudioConfig(25, Muted: true),
+                Appearance = new AppearanceConfig(ThemeMode.Light),
+                Library = new LibraryConfig { ViewMode = LibraryViewMode.List },
             },
             NullLogger.Instance
         );
@@ -115,6 +118,7 @@ public sealed class AppConfigurationServiceTests
                 CreateStrictInput("SpeedRun")
             )
             {
+                Appearance = new AppearanceConfig(ThemeMode.Dark),
                 Audio = new AudioConfig(75, Muted: true),
             }
         );
@@ -125,11 +129,24 @@ public sealed class AppConfigurationServiceTests
             .BootRoms.Should()
             .Be(new BootRomConfig("new-dmg.bin", "new-cgb.bin", "new-sgb.bin"));
         appConfig.Emulation.FastForwardEnabled.Should().BeTrue();
+        appConfig.Library.ViewMode.Should().Be(LibraryViewMode.List);
+        appConfig.Appearance.Theme.Should().Be(ThemeMode.Dark);
         appConfig.Audio.Should().Be(new AudioConfig(75, Muted: true));
+
+        service.LoadSettings().Appearance.Theme.Should().Be(ThemeMode.Dark);
         service.LoadSettings().Audio.Should().Be(new AudioConfig(75, Muted: true));
+
         appConfig.Input.Gamepad.ActiveProfile.Should().Be("SpeedRun");
         appConfig.Input.Keyboard.Profiles.ContainsKey("SpeedRun").Should().BeTrue();
         appConfig.Input.Gamepad.Profiles.ContainsKey("SpeedRun").Should().BeTrue();
+
+        using var configJson = JsonDocument.Parse(File.ReadAllText(configPath));
+        configJson
+            .RootElement.GetProperty("appearance")
+            .GetProperty("theme")
+            .GetString()
+            .Should()
+            .Be("dark");
     }
 
     [Fact]

@@ -11,7 +11,6 @@ using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.Library;
 using GbcNet.App.Emulation;
 using GbcNet.App.Input;
-using GbcNet.App.Library;
 using GbcNet.App.Menus;
 using GbcNet.App.Shell.Chrome;
 using Microsoft.Extensions.Logging;
@@ -20,7 +19,7 @@ namespace GbcNet.App.Shell;
 
 /// <summary>
 /// Wires <see cref="MainMenu"/> callbacks to the session/presenter/services and
-/// keeps menu check-state in sync with audio, fullscreen, and visibility state.
+/// keeps menu check-state in sync with audio and fullscreen state.
 /// </summary>
 internal sealed class MainWindowMenuAdapter(
     MainMenu mainMenu,
@@ -28,27 +27,23 @@ internal sealed class MainWindowMenuAdapter(
     EmulationSessionPresenter emulationSession,
     GamepadManager gamepadManager,
     IAudioOutput audioOutput,
+    AudioConfig audioConfig,
     AppConfigurationService configurationService,
-    StatusBarPresenter statusBar,
+    ShellPresenter shell,
     ShellOperationRunner operationRunner,
-    MenuBarVisibilityController menuBarVisibility,
-    StatusBarVisibilityController statusBarVisibility,
     ILogger<MainWindowMenuAdapter> logger
 )
 {
-    // Set by Configure() before any menu interaction.
-    private AudioConfig _audioConfig = null!;
+    private AudioConfig _audioConfig = audioConfig;
 
     public void Configure(
         EmulationView emulationView,
-        AudioConfig audioConfig,
         ConfigurationPresenter configurationPresenter
     )
     {
-        _audioConfig = audioConfig;
         ApplyAudioConfig(_audioConfig);
 
-        mainMenu.AttachNativeMenu(window);
+        mainMenu.AttachToWindow(window);
         mainMenu.OpenRom = () =>
             operationRunner.Run(() => emulationSession.OpenRomAsync(window.StorageProvider));
         mainMenu.RefreshRecentRoms = emulationSession.SyncRecentRoms;
@@ -92,8 +87,6 @@ internal sealed class MainWindowMenuAdapter(
             Dispatcher.UIThread.Post(() => emulationView.Focus(), DispatcherPriority.Input);
         };
         mainMenu.ToggleFullscreen = ToggleFullscreen;
-        mainMenu.ToggleMenuBar = menuBarVisibility.Toggle;
-        mainMenu.ToggleStatusBar = statusBarVisibility.Toggle;
         mainMenu.OpenGitHubRepository = () => operationRunner.Run(OpenGitHubRepository);
         window.Activated += (_, _) => gamepadManager.SetGameplayEnabled(enabled: true);
         window.Deactivated += (_, _) => gamepadManager.SetGameplayEnabled(enabled: false);
@@ -106,8 +99,6 @@ internal sealed class MainWindowMenuAdapter(
     {
         mainMenu.SetFullscreenState(isFullscreen: window.WindowState is WindowState.FullScreen);
         mainMenu.SetMuteState(isMuted: _audioConfig.Muted);
-        menuBarVisibility.Apply();
-        statusBarVisibility.Apply();
     }
 
     public void SyncFullscreenState(AvaloniaPropertyChangedEventArgs change)
@@ -117,7 +108,6 @@ internal sealed class MainWindowMenuAdapter(
             return;
         }
 
-        menuBarVisibility.Apply();
         mainMenu.SetFullscreenState(isFullscreen: window.WindowState is WindowState.FullScreen);
     }
 
@@ -136,17 +126,17 @@ internal sealed class MainWindowMenuAdapter(
             var result = configurationService.SaveAudioConfig(_audioConfig);
             if (result.IsError)
             {
-                statusBar.ShowError(result.FirstError.Description);
+                shell.ShowError(result.FirstError.Description);
             }
         }
         catch (ConfigurationException exception)
         {
             MainWindowLog.AudioSettingsSaveFailed(logger, exception);
-            statusBar.ShowError(exception.Message);
+            shell.ShowError(exception.Message);
         }
     }
 
-    public void SaveLibraryViewMode(LibraryView libraryView, LibraryViewMode viewMode)
+    public void SaveLibraryViewMode(LibraryViewMode viewMode)
     {
         try
         {
@@ -155,7 +145,7 @@ internal sealed class MainWindowMenuAdapter(
         catch (ConfigurationException exception)
         {
             MainWindowLog.LibrarySettingsSaveFailed(logger, exception);
-            libraryView.ShowError(exception.Message);
+            shell.ShowError(exception.Message);
         }
     }
 

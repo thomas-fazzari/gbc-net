@@ -16,7 +16,7 @@
   <ItemGroup>
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
-    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Themes.Simple" />
     <PackageReference Include="ErrorOr" />
     <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Data.Sqlite" />
@@ -33,6 +33,7 @@
     <PackageReference Include="ppy.SDL3-CS" />
     <PackageReference Include="SoundFlow" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
+    <PackageReference Include="TablerIcons.Avalonia" />
     <PackageReference Include="ZstdSharp.Port" />
   </ItemGroup>
 

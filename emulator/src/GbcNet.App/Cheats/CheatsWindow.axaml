@@ -4,74 +4,42 @@
   xmlns:chrome="clr-namespace:GbcNet.App.Shell.Chrome"
   x:Class="GbcNet.App.Cheats.CheatsWindow"
   Title="Cheats"
-  Width="960"
-  Height="640"
-  MinWidth="760"
-  MinHeight="520"
+  Width="820"
+  Height="540"
+  MinWidth="700"
+  MinHeight="460"
   CanResize="True"
   WindowStartupLocation="CenterOwner"
-  Background="{DynamicResource ChromeBackgroundBrush}"
+  Background="{DynamicResource SysCanvasBrush}"
 >
   <Window.Styles>
-    <Style Selector="TextBlock.dialog-title">
-      <Setter Property="FontSize" Value="18" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
+    <Style Selector="TextBlock.page-description">
+      <Setter Property="FontSize" Value="12" />
     </Style>
-    <Style Selector="Border.input-well, Border.code-list">
-      <Setter Property="Background" Value="{DynamicResource ChromeSurfaceBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="{DynamicResource ChromeCornerRadius}" />
+    <Style Selector="TextBlock.subtitle">
+      <Setter Property="FontSize" Value="16" />
     </Style>
-    <Style Selector="Border.input-well:focus-within">
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeFocusBorderBrush}" />
+    <Style Selector="Border.modal-rail">
+      <Setter Property="Padding" Value="8,12" />
     </Style>
-    <Style Selector="Border.input-well.error">
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeErrorBrush}" />
-    </Style>
-    <Style Selector="TextBox.code-input">
-      <Setter Property="Height" Value="34" />
-      <Setter Property="Padding" Value="10,0" />
-      <Setter Property="FontSize" Value="13" />
-      <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}" />
-      <Setter Property="Background" Value="Transparent" />
+    <Style Selector="Border.code-list">
+      <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="VerticalContentAlignment" Value="Center" />
-      <Setter Property="FocusAdorner" Value="{x:Null}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
     </Style>
     <Style Selector="Border.code-row">
-      <Setter Property="BorderBrush" Value="{DynamicResource ChromeHairBrush}" />
-      <Setter Property="Padding" Value="12" />
-    </Style>
-    <Style Selector="ToggleSwitch.code-toggle">
-      <Setter Property="FocusAdorner">
-        <FocusAdornerTemplate>
-          <Border
-            BorderBrush="{DynamicResource ChromeFocusBorderBrush}"
-            BorderThickness="1"
-            CornerRadius="{DynamicResource ChromeCornerRadius}"
-          />
-        </FocusAdornerTemplate>
-      </Setter>
-    </Style>
-    <Style Selector="Button.row-action">
-      <Setter Property="Height" Value="28" />
-      <Setter Property="Padding" Value="8,0" />
-      <Setter Property="FontSize" Value="11" />
-    </Style>
-    <Style Selector="Button.footer-action">
-      <Setter Property="MinWidth" Value="88" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
+      <Setter Property="Padding" Value="8" />
     </Style>
   </Window.Styles>
 
-  <Grid RowDefinitions="*,Auto" ColumnDefinitions="176,*">
-    <Border Grid.RowSpan="2" Classes="sidebar-panel">
+  <Grid RowDefinitions="*,Auto" ColumnDefinitions="156,*">
+    <Border Grid.RowSpan="2" Classes="modal-rail">
       <StackPanel HorizontalAlignment="Stretch" Spacing="6">
         <chrome:SidebarNavButton
           x:Name="GameGenieNavButton"
-          Classes="sidebar-item selected"
-          IconData="{StaticResource IconMagicStaff}"
+          Classes="modal-nav selected"
+          Icon="IconWand"
           Label="Game Genie"
           Click="ShowGameGeniePage"
           AutomationProperties.Name="Game Genie cheats"
@@ -80,8 +48,8 @@
         />
         <chrome:SidebarNavButton
           x:Name="GameSharkNavButton"
-          Classes="sidebar-item"
-          IconData="{StaticResource IconShark}"
+          Classes="modal-nav"
+          Icon="IconFish"
           Label="GameShark"
           Click="ShowGameSharkPage"
           AutomationProperties.Name="GameShark cheats"
@@ -92,47 +60,42 @@
     </Border>
     <Grid
       Grid.Column="1"
-      Margin="32,28,32,18"
+      Margin="20,16,20,12"
       RowDefinitions="Auto,Auto,Auto,*,Auto,Auto"
       MinHeight="0"
     >
-      <StackPanel Spacing="4" Margin="0,0,0,20">
-        <TextBlock x:Name="PageTitleTextBlock" Classes="dialog-title" Text="Game Genie" />
+      <StackPanel Spacing="2" Margin="0,0,0,12">
+        <TextBlock x:Name="PageTitleTextBlock" Classes="subtitle" Text="Game Genie" />
         <TextBlock
           x:Name="PageHelpTextBlock"
-          Classes="muted"
-          Text="Codes are checked top to bottom; the first matching code wins."
+          Classes="page-description"
+          Text="Codes are checked from top to bottom. The first match wins."
         />
       </StackPanel>
 
-      <Grid Grid.Row="1" RowDefinitions="Auto,Auto" RowSpacing="8">
-        <Border Classes="input-well">
+      <Grid Grid.Row="1" RowDefinitions="Auto,Auto" RowSpacing="6">
+        <TextBox
+          x:Name="NameTextBox"
+          Classes="field"
+          MaxLength="80"
+          PlaceholderText="Name (optional)"
+          AutomationProperties.Name="Cheat name (optional)"
+          AutomationProperties.HelpText="Optional name for the Game Genie code"
+        />
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
           <TextBox
-            x:Name="NameTextBox"
-            Classes="code-input"
-            MaxLength="80"
-            PlaceholderText="Name (optional)"
-            AutomationProperties.Name="Cheat name (optional)"
-            AutomationProperties.HelpText="Optional name for the Game Genie code"
+            x:Name="CodeTextBox"
+            Classes="field"
+            MaxLength="32"
+            PlaceholderText="ABC-DEF or ABC-DEF-GHI"
+            TextChanged="ValidateCodeInput"
+            AutomationProperties.Name="Game Genie code"
+            AutomationProperties.HelpText="Enter a six- or nine-digit Game Genie code"
           />
-        </Border>
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="10">
-          <Border Classes="input-well">
-            <TextBox
-              x:Name="CodeTextBox"
-              Classes="code-input"
-              MaxLength="32"
-              PlaceholderText="ABC-DEF or ABC-DEF-GHI"
-              TextChanged="ValidateCodeInput"
-              AutomationProperties.Name="Game Genie code"
-              AutomationProperties.HelpText="Enter a six- or nine-digit Game Genie code"
-            />
-          </Border>
           <Button
             x:Name="AddButton"
             Grid.Column="1"
-            Classes="chrome-button"
-            MinWidth="76"
+            Classes="primary"
             Content="_Add"
             Click="AddCode"
             AutomationProperties.Name="Add Game Genie code"
@@ -140,7 +103,7 @@
         </Grid>
       </Grid>
 
-      <StackPanel Grid.Row="2" Spacing="4" Margin="0,6,0,0" MinHeight="18">
+      <StackPanel Grid.Row="2" Spacing="2" Margin="0,4,0,0" MinHeight="16">
         <TextBlock
           x:Name="InputErrorTextBlock"
           Classes="error"
@@ -155,7 +118,7 @@
         />
       </StackPanel>
 
-      <Border Grid.Row="3" Classes="code-list" Margin="0,14,0,0" MinHeight="0">
+      <Border Grid.Row="3" Classes="code-list" Margin="0,10,0,0" MinHeight="0">
         <Grid>
           <TextBlock
             x:Name="EmptyStateTextBlock"
@@ -179,7 +142,7 @@
         x:Name="CounterTextBlock"
         Grid.Row="4"
         Classes="muted"
-        Margin="0,8,0,0"
+        Margin="0,4,0,0"
         HorizontalAlignment="Right"
         AutomationProperties.Name="Game Genie code count"
       />
@@ -188,20 +151,13 @@
         x:Name="ApplyErrorTextBlock"
         Grid.Row="5"
         Classes="error"
-        Margin="0,8,0,0"
+        Margin="0,4,0,0"
         IsVisible="False"
         AutomationProperties.LiveSetting="Polite"
       />
     </Grid>
 
-    <Border
-      Grid.Row="1"
-      Grid.Column="1"
-      Background="{DynamicResource ChromeBackgroundBrush}"
-      BorderBrush="{DynamicResource ChromeHairBrush}"
-      BorderThickness="0,1,0,0"
-      Padding="32,12"
-    >
+    <Border Grid.Row="1" Grid.Column="1" Classes="modal-footer">
       <Grid ColumnDefinitions="*,Auto">
         <TextBlock
           x:Name="ApplyingTextBlock"
@@ -213,14 +169,14 @@
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
           <Button
             x:Name="CancelButton"
-            Classes="chrome-button footer-action"
+            Classes="secondary"
             Content="_Cancel"
             Click="Cancel"
             AutomationProperties.Name="Cancel cheat changes"
           />
           <Button
             x:Name="ApplyButton"
-            Classes="chrome-button accent footer-action"
+            Classes="primary"
             Content="_Apply"
             Click="ApplyAsync"
             AutomationProperties.Name="Apply cheat changes"

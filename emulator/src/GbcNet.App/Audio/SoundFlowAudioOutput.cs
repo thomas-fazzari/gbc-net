@@ -7,6 +7,7 @@ using SoundFlow.Abstracts;
 using SoundFlow.Abstracts.Devices;
 using SoundFlow.Backends.MiniAudio;
 using SoundFlow.Backends.MiniAudio.Devices;
+using SoundFlow.Backends.MiniAudio.Enums;
 using SoundFlow.Enums;
 using SoundFlow.Structs;
 
@@ -125,7 +126,10 @@ internal sealed class SoundFlowAudioOutput(ILogger<SoundFlowAudioOutput> logger)
 
             try
             {
-                _engine = new MiniAudioEngine();
+                // SoundFlow 1.4.1 maps these values to native ALSA, then JACK on Linux.
+                _engine = OperatingSystem.IsLinux()
+                    ? new MiniAudioEngine([MiniAudioBackend.PulseAudio, MiniAudioBackend.Alsa])
+                    : new MiniAudioEngine();
                 _source = new SoundFlowSampleSource(_engine, _audioFormat, this);
                 _device = _engine.InitializePlaybackDevice(
                     deviceInfo: null,
