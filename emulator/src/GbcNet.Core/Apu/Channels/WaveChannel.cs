@@ -8,7 +8,7 @@ namespace GbcNet.Core.Apu.Channels;
 /// <summary>
 /// CH3 wave channel state, including CPU-visible Wave RAM.
 /// </summary>
-internal sealed class WaveChannel
+internal sealed class WaveChannel(bool usesMonochromeWaveRamAccess)
 {
     internal const ushort WaveRamStart = 0xFF30;
     internal const ushort WaveRamEnd = 0xFF3F;
@@ -35,6 +35,7 @@ internal sealed class WaveChannel
     private byte _outputLevel;
     private byte _sampleIndex;
     private byte _sampleBuffer;
+    private bool _waveRamAccessWindowOpen;
 
     /// <summary>
     /// Whether CH3 generation is currently active and reported through NR52 bit 2.
@@ -68,8 +69,17 @@ internal sealed class WaveChannel
     /// <summary>
     /// Reads CPU-visible Wave RAM, applying the active-channel lock.
     /// </summary>
-    public byte ReadWaveRam(ushort address) =>
-        IsActive ? (byte)0xFF : _waveRam[address - WaveRamStart];
+    public byte ReadWaveRam(ushort address)
+    {
+        if (!IsActive)
+        {
+            return _waveRam[address - WaveRamStart];
+        }
+
+        return usesMonochromeWaveRamAccess && !_waveRamAccessWindowOpen
+            ? (byte)0xFF
+            : _waveRam[_sampleIndex >> 1];
+    }
 
     /// <summary>
     /// Writes CPU-visible Wave RAM, applying the active-channel lock.
@@ -78,6 +88,11 @@ internal sealed class WaveChannel
     {
         if (IsActive)
         {
+            if (!usesMonochromeWaveRamAccess || _waveRamAccessWindowOpen)
+            {
+                _waveRam[_sampleIndex >> 1] = value;
+            }
+
             return;
         }
 
@@ -101,6 +116,7 @@ internal sealed class WaveChannel
         if (!DacEnabled)
         {
             IsActive = false;
+            _waveRamAccessWindowOpen = false;
         }
     }
 
@@ -138,6 +154,7 @@ internal sealed class WaveChannel
         if (_length.WriteControl((value & LengthEnableMask) != 0, triggered, context))
         {
             IsActive = false;
+            _waveRamAccessWindowOpen = false;
         }
 
         if (!triggered)
@@ -145,9 +162,15 @@ internal sealed class WaveChannel
             return;
         }
 
+        if (usesMonochromeWaveRamAccess && _waveRamAccessWindowOpen)
+        {
+            CorruptWaveRamOnRetrigger();
+        }
+
         _periodTimer = PeriodReloadBase - Period;
         _tCycleAccumulator = 0;
         _sampleIndex = 0;
+        _waveRamAccessWindowOpen = false;
         IsActive = DacEnabled;
     }
 
@@ -168,6 +191,7 @@ internal sealed class WaveChannel
         while (_tCycleAccumulator >= WavePeriodClockTCycles)
         {
             _tCycleAccumulator -= WavePeriodClockTCycles;
+            _waveRamAccessWindowOpen = false;
             _periodTimer--;
 
             if (_periodTimer > 0)
@@ -180,6 +204,7 @@ internal sealed class WaveChannel
             var sampleByte = _waveRam[_sampleIndex >> 1];
             _sampleBuffer =
                 (_sampleIndex & 1) == 0 ? (byte)(sampleByte >> 4) : (byte)(sampleByte & 0x0F);
+            _waveRamAccessWindowOpen = usesMonochromeWaveRamAccess;
         }
     }
 
@@ -191,6 +216,7 @@ internal sealed class WaveChannel
         if (_length.Clock())
         {
             IsActive = false;
+            _waveRamAccessWindowOpen = false;
         }
     }
 
@@ -206,6 +232,7 @@ internal sealed class WaveChannel
         _outputLevel = 0;
         _sampleIndex = 0;
         _sampleBuffer = 0;
+        _waveRamAccessWindowOpen = false;
         DacEnabled = false;
         IsActive = false;
     }
@@ -219,6 +246,7 @@ internal sealed class WaveChannel
             _outputLevel,
             _sampleIndex,
             _sampleBuffer,
+            _waveRamAccessWindowOpen,
             IsActive,
             DacEnabled,
             Period
@@ -256,6 +284,11 @@ internal sealed class WaveChannel
             state.OutputLevel > 3
             || state.SampleIndex > SampleIndexMask
             || state.SampleBuffer > 0x0F
+            || (state.WaveRamAccessWindowOpen && (!usesMonochromeWaveRamAccess || !state.IsActive))
+            || (
+                state.WaveRamAccessWindowOpen
+                && state.PeriodTimer != PeriodReloadBase - state.Period
+            )
             || state.Period > 0x7FF
         )
         {
@@ -295,9 +328,22 @@ internal sealed class WaveChannel
         _outputLevel = state.OutputLevel;
         _sampleIndex = state.SampleIndex;
         _sampleBuffer = state.SampleBuffer;
+        _waveRamAccessWindowOpen = state.WaveRamAccessWindowOpen;
         IsActive = state.IsActive;
         DacEnabled = state.DacEnabled;
         Period = state.Period;
+    }
+
+    private void CorruptWaveRamOnRetrigger()
+    {
+        var currentByteIndex = _sampleIndex >> 1;
+        if (currentByteIndex < 4)
+        {
+            _waveRam[0] = _waveRam[currentByteIndex];
+            return;
+        }
+
+        Array.Copy(_waveRam, currentByteIndex & ~3, _waveRam, 0, 4);
     }
 }
 
@@ -309,6 +355,7 @@ internal readonly record struct WaveChannelState(
     byte OutputLevel,
     byte SampleIndex,
     byte SampleBuffer,
+    bool WaveRamAccessWindowOpen,
     bool IsActive,
     bool DacEnabled,
     ushort Period

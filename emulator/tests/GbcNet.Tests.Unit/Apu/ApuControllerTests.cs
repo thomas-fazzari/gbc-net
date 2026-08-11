@@ -773,21 +773,99 @@ public sealed class ApuControllerTests
         apu.ReadRegister(0xFF3F).Should().Be(0xCD);
     }
 
-    [Fact]
-    public void WaveRam_ActiveCpuReadReturnsFfAndWriteIsIgnored()
+    [Theory]
+    [InlineData(HardwareModel.Dmg)]
+    [InlineData(HardwareModel.Sgb)]
+    public void WaveRam_ActiveMonochromeAccessesCurrentByteOnlyDuringFetchCycle(HardwareModel model)
     {
-        ApuController apu = new(ApuModelSpec.Dmg);
+        // Pan Docs `audio-registers.md`: monochrome Wave RAM is accessible only during
+        // CH3's own read cycle, and the current byte wins over the CPU address.
+        ApuController apu = new(GetModelSpec(model));
 
         apu.WriteRegister(0xFF30, 0xAB);
+        apu.WriteRegister(0xFF3F, 0xCD);
         apu.WriteRegister(0xFF26, 0x80);
         apu.WriteRegister(0xFF1A, 0x80);
-        apu.WriteRegister(0xFF1E, 0x80);
+        apu.WriteRegister(0xFF1D, 0xFE);
+        apu.WriteRegister(0xFF1E, 0x87);
 
-        apu.WriteRegister(0xFF30, 0xCD);
+        apu.WriteRegister(0xFF3F, 0xEE);
+        apu.ReadRegister(0xFF3F).Should().Be(0xFF);
+        apu.Tick(2);
+        apu.ReadRegister(0xFF3F).Should().Be(0xFF);
 
+        apu.Tick(2);
+        apu.ReadRegister(0xFF3F).Should().Be(0xAB);
+        apu.WriteRegister(0xFF3F, 0x12);
+
+        apu.Tick(2);
         apu.ReadRegister(0xFF30).Should().Be(0xFF);
+        apu.WriteRegister(0xFF30, 0x34);
+
         apu.WriteRegister(0xFF1A, 0x00);
-        apu.ReadRegister(0xFF30).Should().Be(0xAB);
+        apu.ReadRegister(0xFF30).Should().Be(0x12);
+        apu.ReadRegister(0xFF3F).Should().Be(0xCD);
+    }
+
+    [Fact]
+    public void WaveRam_ActiveCgbAlwaysRedirectsAccessToCurrentByte()
+    {
+        // Pan Docs `audio-registers.md`: CGB gives CH3 priority and redirects every CPU
+        // address to the byte currently being read.
+        ApuController apu = new(ApuModelSpec.Cgb);
+        apu.WriteRegister(0xFF30, 0xAB);
+        apu.WriteRegister(0xFF31, 0xCD);
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF1A, 0x80);
+        apu.WriteRegister(0xFF1D, 0xFE);
+        apu.WriteRegister(0xFF1E, 0x87);
+
+        apu.WriteRegister(0xFF3F, 0x12);
+        apu.ReadRegister(0xFF3F).Should().Be(0x12);
+        apu.Tick(8);
+        apu.ReadRegister(0xFF30).Should().Be(0xCD);
+        apu.WriteRegister(0xFF30, 0xEF);
+
+        apu.WriteRegister(0xFF1E, 0x87);
+        apu.WriteRegister(0xFF1A, 0x00);
+        apu.ReadRegister(0xFF30).Should().Be(0x12);
+        apu.ReadRegister(0xFF31).Should().Be(0xEF);
+    }
+
+    [Theory]
+    [InlineData(HardwareModel.Dmg, 8, 0xA2, 0xA1, 0xA2, 0xA3)]
+    [InlineData(HardwareModel.Dmg, 36, 0xA8, 0xA9, 0xAA, 0xAB)]
+    [InlineData(HardwareModel.Sgb, 36, 0xA8, 0xA9, 0xAA, 0xAB)]
+    public void WriteRegister_RetriggeringMonochromeChannel3DuringFetchCorruptsWaveRam(
+        HardwareModel model,
+        int tCycles,
+        byte expected0,
+        byte expected1,
+        byte expected2,
+        byte expected3
+    )
+    {
+        // Pan Docs `audio-details.md`: monochrome retrigger corruption copies only the
+        // current byte within bytes 0-3, or the current aligned four-byte block otherwise.
+        ApuController apu = new(GetModelSpec(model));
+        for (ushort address = 0xFF30; address <= 0xFF3F; address++)
+        {
+            apu.WriteRegister(address, (byte)(0xA0 + address - 0xFF30));
+        }
+
+        apu.WriteRegister(0xFF26, 0x80);
+        apu.WriteRegister(0xFF1A, 0x80);
+        apu.WriteRegister(0xFF1D, 0xFF);
+        apu.WriteRegister(0xFF1E, 0x87);
+        apu.Tick(tCycles);
+
+        apu.WriteRegister(0xFF1E, 0x87);
+        apu.WriteRegister(0xFF1A, 0x00);
+
+        apu.ReadRegister(0xFF30).Should().Be(expected0);
+        apu.ReadRegister(0xFF31).Should().Be(expected1);
+        apu.ReadRegister(0xFF32).Should().Be(expected2);
+        apu.ReadRegister(0xFF33).Should().Be(expected3);
     }
 
     [Fact]

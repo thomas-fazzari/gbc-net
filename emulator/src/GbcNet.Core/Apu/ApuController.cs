@@ -77,7 +77,7 @@ internal sealed class ApuController(ApuModelSpec modelSpec)
     private readonly PulseChannel _channel1 = new();
     private readonly Channel1Sweep _channel1Sweep = new();
     private readonly PulseChannel _channel2 = new();
-    private readonly WaveChannel _channel3 = new();
+    private readonly WaveChannel _channel3 = new(modelSpec.UsesMonochromeWaveRamAccess);
     private readonly NoiseChannel _channel4 = new();
     private readonly SampleBuffer<ApuStereoSample> _sampleBuffer = new(modelSpec.OutputClockHz);
     private readonly ApuOutputFilter _outputFilter = new(

@@ -13,6 +13,7 @@ internal readonly record struct ApuModelSpec
     private ApuModelSpec(
         bool isPcmOutputRegisterEnabled,
         bool allowsLengthWritesWhenPoweredOff,
+        bool usesMonochromeWaveRamAccess,
         int outputClockHz,
         double highPassChargeFactorPerTCycle,
         ushort divApuDoubleSpeedFallingEdgeMask
@@ -20,6 +21,7 @@ internal readonly record struct ApuModelSpec
     {
         IsPcmOutputRegisterEnabled = isPcmOutputRegisterEnabled;
         AllowsLengthWritesWhenPoweredOff = allowsLengthWritesWhenPoweredOff;
+        UsesMonochromeWaveRamAccess = usesMonochromeWaveRamAccess;
         OutputClockHz = outputClockHz;
         HighPassChargeFactorPerTCycle = highPassChargeFactorPerTCycle;
         DivApuDoubleSpeedFallingEdgeMask = divApuDoubleSpeedFallingEdgeMask;
@@ -32,6 +34,7 @@ internal readonly record struct ApuModelSpec
         new(
             isPcmOutputRegisterEnabled: false,
             allowsLengthWritesWhenPoweredOff: true,
+            usesMonochromeWaveRamAccess: true,
             outputClockHz: 4_194_304,
             highPassChargeFactorPerTCycle: 0.999958,
             divApuDoubleSpeedFallingEdgeMask: DivApuNormalSpeedFallingEdgeMask
@@ -44,6 +47,7 @@ internal readonly record struct ApuModelSpec
         new(
             isPcmOutputRegisterEnabled: true,
             allowsLengthWritesWhenPoweredOff: false,
+            usesMonochromeWaveRamAccess: false,
             outputClockHz: 4_194_304,
             highPassChargeFactorPerTCycle: 0.998943,
             divApuDoubleSpeedFallingEdgeMask: 1 << 13
@@ -56,6 +60,7 @@ internal readonly record struct ApuModelSpec
         new(
             isPcmOutputRegisterEnabled: false,
             allowsLengthWritesWhenPoweredOff: true,
+            usesMonochromeWaveRamAccess: true,
             outputClockHz: 4_295_454,
             highPassChargeFactorPerTCycle: 0.999958,
             divApuDoubleSpeedFallingEdgeMask: DivApuNormalSpeedFallingEdgeMask
@@ -70,6 +75,11 @@ internal readonly record struct ApuModelSpec
     /// Indicates whether NRx1 length timers remain writable while NR52 is off.
     /// </summary>
     public bool AllowsLengthWritesWhenPoweredOff { get; }
+
+    /// <summary>
+    /// Indicates whether active CH3 Wave RAM access uses the monochrome timing window.
+    /// </summary>
+    public bool UsesMonochromeWaveRamAccess { get; }
 
     /// <summary>
     /// Source clock used by the fixed-rate output sample scheduler.

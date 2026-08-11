@@ -259,6 +259,71 @@ public sealed class ApuStateTests
     }
 
     [Fact]
+    public void RestoreState_PreservesMonochromeWaveRamAccessWindow()
+    {
+        // Pan Docs `audio-registers.md`: monochrome Wave RAM access is limited to CH3's
+        // current read cycle, so this transient window must survive a save-state.
+        ApuController original = new(ApuModelSpec.Dmg);
+        original.WriteRegister(0xFF30, 0xAB);
+        original.WriteRegister(0xFF26, 0x80);
+        original.WriteRegister(0xFF1A, 0x80);
+        original.WriteRegister(0xFF1D, 0xFE);
+        original.WriteRegister(0xFF1E, 0x87);
+        original.Tick(4);
+        var checkpoint = original.CaptureState();
+        checkpoint.Channel3.WaveRamAccessWindowOpen.Should().BeTrue();
+
+        var restored = Restored(ApuModelSpec.Dmg, checkpoint);
+
+        restored.ReadRegister(0xFF3F).Should().Be(0xAB);
+        restored.Tick(2);
+        restored.ReadRegister(0xFF3F).Should().Be(0xFF);
+    }
+
+    [Fact]
+    public void RestoreState_RejectsMonochromeWaveRamAccessWindowOnCgbBeforeMutation()
+    {
+        ApuController target = new(ApuModelSpec.Cgb);
+        var before = target.CaptureState();
+        var malformed = before with
+        {
+            Channel3 = before.Channel3 with { WaveRamAccessWindowOpen = true },
+        };
+
+        FluentActions
+            .Invoking(() => target.RestoreState(malformed))
+            .Should()
+            .ThrowExactly<ArgumentException>();
+        target
+            .CaptureState()
+            .Should()
+            .BeEquivalentTo(before, options => options.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void RestoreState_RejectsWaveRamAccessWindowWithUnreloadedTimerBeforeMutation()
+    {
+        ApuController target = new(ApuModelSpec.Dmg);
+        target.WriteRegister(0xFF30, 0xAB);
+        target.WriteRegister(0xFF26, 0x80);
+        target.WriteRegister(0xFF1A, 0x80);
+        target.WriteRegister(0xFF1D, 0xFE);
+        target.WriteRegister(0xFF1E, 0x87);
+        target.Tick(4);
+        var state = target.CaptureState();
+        var malformed = state with { Channel3 = state.Channel3 with { PeriodTimer = 1 } };
+
+        FluentActions
+            .Invoking(() => target.RestoreState(malformed))
+            .Should()
+            .ThrowExactly<ArgumentException>();
+        target
+            .CaptureState()
+            .Should()
+            .BeEquivalentTo(state, options => options.WithStrictOrdering());
+    }
+
+    [Fact]
     public void RestoreState_ContinuesNoiseLfsrWidthAndEnvelopeExactly()
     {
         var original = CreateNoise(ApuModelSpec.Cgb);
