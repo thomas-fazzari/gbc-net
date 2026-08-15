@@ -10,6 +10,13 @@ internal static class FileUtils
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
 
+    public static bool IsExpectedFileSystemException(Exception exception) =>
+        exception
+            is IOException
+                or UnauthorizedAccessException
+                or ArgumentException
+                or NotSupportedException;
+
     public static void TryDeleteRegularFile(string path, Action<Exception> onFailure)
     {
         try

@@ -65,7 +65,7 @@ internal static class AppConfigurationFile
                 innerException: exception
             );
         }
-        catch (Exception exception) when (IsExpectedFileException(exception))
+        catch (Exception exception) when (FileUtils.IsExpectedFileSystemException(exception))
         {
             throw new ConfigurationException(
                 message: "Configuration file could not be read: " + exception.Message,
@@ -87,7 +87,7 @@ internal static class AppConfigurationFile
             );
             File.Move(sourceFileName: temporaryPath, destFileName: path, overwrite: true);
         }
-        catch (Exception exception) when (IsExpectedFileException(exception))
+        catch (Exception exception) when (FileUtils.IsExpectedFileSystemException(exception))
         {
             FileUtils.TryDeleteRegularFile(
                 temporaryPath,
@@ -150,13 +150,6 @@ internal static class AppConfigurationFile
                 },
             },
         };
-
-    private static bool IsExpectedFileException(Exception exception) =>
-        exception
-            is IOException
-                or UnauthorizedAccessException
-                or ArgumentException
-                or NotSupportedException;
 }
 
 internal static partial class AppConfigurationFileLog

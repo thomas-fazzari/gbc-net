@@ -4,6 +4,7 @@
 using GbcNet.App.Database;
 using GbcNet.App.Database.Entities;
 using GbcNet.Core.Cartridges;
+using GbcNet.Core.Cheats;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -39,7 +40,7 @@ public sealed class DatabaseMigratorTests
         var romPath = Path.Combine(temporaryDirectory.Path, "GAME.gb");
 
         var contextFactory = new TestDbContextFactory(databasePath);
-        var originalRom = LibraryRom.Opened(
+        var originalRom = LibraryRom.Create(
             new string('A', 64),
             romPath,
             Path.GetFileName(romPath),
@@ -68,7 +69,7 @@ public sealed class DatabaseMigratorTests
             savedRom.CartridgeTitle.Should().Be("ORIGINAL");
 
             context.Roms.Add(
-                LibraryRom.Opened(
+                LibraryRom.Create(
                     new string('B', 64),
                     romPath,
                     Path.GetFileName(romPath),
@@ -92,6 +93,39 @@ public sealed class DatabaseMigratorTests
             .ContainSingle()
             .Which.RomHash.Should()
             .Be(originalRom.RomHash);
+    }
+
+    [Fact]
+    public void Migrate_EnumMappingUpgradePreservesStoredCheatCodes()
+    {
+        using var temporaryDirectory = TestDirectories.CreateTemporaryDirectory();
+        Directory.CreateDirectory(temporaryDirectory.Path);
+        var databasePath = Path.Combine(temporaryDirectory.Path, "gbcnet.sqlite");
+        var romHash = new string('A', 64);
+        var contextFactory = new TestDbContextFactory(databasePath);
+
+        using (var context = contextFactory.CreateDbContext())
+        {
+            var previousMigration = context.Database.GetMigrations().SkipLast(1).Last();
+            context.Database.Migrate(previousMigration);
+            context.Database.ExecuteSqlInterpolated(
+                $"""
+                INSERT INTO cheat_codes (rom_hash, type, sort_order, code, name, is_enabled)
+                VALUES ({romHash}, 0, 0, '068-55F-E66', 'Infinite lives', 1);
+                """
+            );
+        }
+
+        DatabaseMigrator.Migrate(contextFactory, databasePath, NullLogger.Instance);
+
+        using var verificationContext = contextFactory.CreateDbContext();
+        var storedCode = verificationContext.CheatCodes.Should().ContainSingle().Which;
+        storedCode.RomHash.Should().Be(romHash);
+        storedCode.Type.Should().Be(CheatCodeType.GameGenie);
+        storedCode.SortOrder.Should().Be(0);
+        storedCode.Code.Should().Be("068-55F-E66");
+        storedCode.Name.Should().Be("Infinite lives");
+        storedCode.IsEnabled.Should().BeTrue();
     }
 
     [Fact]

@@ -9,13 +9,21 @@ namespace GbcNet.App.Database.Configurations;
 
 internal sealed class StoredCheatCodeConfiguration : IEntityTypeConfiguration<StoredCheatCode>
 {
+    private const int RomHashMaxLength = 64;
+    private const int CheatCodeTypeMaxLength = 9;
+    private const int CheatCodeMaxLength = 11;
+    private const int NameMaxLength = 80;
+
     public void Configure(EntityTypeBuilder<StoredCheatCode> builder)
     {
         builder.ToTable(
             "cheat_codes",
             table =>
             {
-                table.HasCheckConstraint("CK_cheat_codes_type", "\"type\" IN (0, 1)");
+                table.HasCheckConstraint(
+                    "CK_cheat_codes_type",
+                    "\"type\" IN ('GameGenie', 'GameShark')"
+                );
                 table.HasCheckConstraint(
                     "CK_cheat_codes_sort_order",
                     "\"sort_order\" BETWEEN 0 AND 19"
@@ -45,11 +53,17 @@ internal sealed class StoredCheatCodeConfiguration : IEntityTypeConfiguration<St
         builder
             .Property(entry => entry.RomHash)
             .HasColumnName("rom_hash")
-            .HasColumnType("char(64)");
-        builder.Property(entry => entry.Type).HasColumnName("type");
+            .HasMaxLength(RomHashMaxLength);
+        builder
+            .Property(entry => entry.Type)
+            .HasColumnName("type")
+            .HasMaxLength(CheatCodeTypeMaxLength);
         builder.Property(entry => entry.SortOrder).HasColumnName("sort_order");
-        builder.Property(entry => entry.Code).HasColumnName("code").HasColumnType("varchar(11)");
-        builder.Property(entry => entry.Name).HasColumnName("name").HasColumnType("varchar(80)");
+        builder
+            .Property(entry => entry.Code)
+            .HasColumnName("code")
+            .HasMaxLength(CheatCodeMaxLength);
+        builder.Property(entry => entry.Name).HasColumnName("name").HasMaxLength(NameMaxLength);
         builder.Property(entry => entry.IsEnabled).HasColumnName("is_enabled");
     }
 }

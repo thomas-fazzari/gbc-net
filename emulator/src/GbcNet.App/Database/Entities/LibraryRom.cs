@@ -11,27 +11,7 @@ internal sealed class LibraryRom
     [UsedImplicitly]
     private LibraryRom() { }
 
-    private LibraryRom(
-        string romHash,
-        string lastKnownPath,
-        string fileName,
-        string? cartridgeTitle,
-        CartridgeHardwareKind hardwareKind,
-        string noIntroHash,
-        DateTimeOffset openedAt
-    )
-    {
-        RomHash = romHash;
-        LastKnownPath = lastKnownPath;
-        FileName = fileName;
-        CartridgeTitle = cartridgeTitle;
-        HardwareKind = hardwareKind;
-        NoIntroHash = noIntroHash;
-        LastOpenedAt = openedAt;
-        LaunchCount = 1;
-    }
-
-    public string RomHash { get; } = string.Empty;
+    public string RomHash { get; private init; } = string.Empty;
 
     public string LastKnownPath { get; private set; } = string.Empty;
 
@@ -55,7 +35,7 @@ internal sealed class LibraryRom
 
     public string? CoverPath { get; private set; }
 
-    public static LibraryRom Opened(
+    public static LibraryRom Create(
         string romHash,
         string lastKnownPath,
         string fileName,
@@ -63,16 +43,20 @@ internal sealed class LibraryRom
         CartridgeHardwareKind hardwareKind,
         string noIntroHash,
         DateTimeOffset openedAt
-    ) =>
-        new(
-            romHash: romHash,
-            lastKnownPath: lastKnownPath,
-            fileName: fileName,
-            cartridgeTitle: cartridgeTitle,
-            hardwareKind,
-            noIntroHash,
-            openedAt
-        );
+    )
+    {
+        return new LibraryRom
+        {
+            RomHash = romHash,
+            LastKnownPath = lastKnownPath,
+            FileName = fileName,
+            CartridgeTitle = cartridgeTitle,
+            HardwareKind = hardwareKind,
+            NoIntroHash = noIntroHash,
+            LastOpenedAt = openedAt,
+            LaunchCount = 1,
+        };
+    }
 
     public void RecordOpen(
         string lastKnownPath,

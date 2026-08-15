@@ -14,7 +14,7 @@ internal sealed class TestDbContextFactory : IDbContextFactory<GbcNetDbContext>
 {
     private readonly DbContextOptions<GbcNetDbContext> _options;
     private readonly Action? _beforeCreate;
-    private readonly TimeProvider? _timeProvider;
+    private readonly TimeProvider _timeProvider;
 
     public TestDbContextFactory(
         string databasePath,
@@ -34,7 +34,7 @@ internal sealed class TestDbContextFactory : IDbContextFactory<GbcNetDbContext>
 
         _options = builder.Options;
         _beforeCreate = beforeCreate;
-        _timeProvider = timeProvider;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     public GbcNetDbContext CreateDbContext()

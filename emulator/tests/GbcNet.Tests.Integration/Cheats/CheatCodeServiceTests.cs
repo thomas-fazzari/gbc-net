@@ -508,7 +508,7 @@ public sealed class CheatCodeServiceTests
         }
 
         await db.Database.ExecuteSqlAsync(
-            $"INSERT INTO cheat_codes (rom_hash, type, sort_order, code, name, is_enabled) VALUES ({hash}, {(int)type}, {sortOrder}, {code}, {name}, {isEnabled})",
+            $"INSERT INTO cheat_codes (rom_hash, type, sort_order, code, name, is_enabled) VALUES ({hash}, {type.ToString()}, {sortOrder}, {code}, {name}, {isEnabled})",
             TestContext.Current.CancellationToken
         );
     }

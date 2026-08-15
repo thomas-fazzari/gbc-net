@@ -157,23 +157,20 @@ public sealed class LibraryServiceTests
     }
 
     [Fact]
-    public void SaveChanges_PreservesExplicitTimestampsWithoutTimeProvider()
+    public void SaveChanges_StampsTimestampsWithDefaultTimeProvider()
     {
         using var test = new LibraryTestContext();
-        var addedAt = new DateTimeOffset(2026, 6, 1, 1, 2, 3, TimeSpan.Zero);
-        var updatedAt = addedAt.AddMinutes(5);
-        var openedAt = addedAt.AddMinutes(10);
-        var rom = LibraryRom.Opened(
-            "manual",
-            Path.Combine(test.DatabasePath, "manual.gb"),
-            "manual.gb",
+        var openedAt = new DateTimeOffset(2026, 6, 1, 1, 2, 3, TimeSpan.Zero);
+        var rom = LibraryRom.Create(
+            "default-provider",
+            Path.Combine(test.DatabasePath, "default-provider.gb"),
+            "default-provider.gb",
             cartridgeTitle: null,
             CartridgeHardwareKind.GB,
             "0000000000000000000000000000000000000000",
             openedAt
         );
-        rom.StampCreated(addedAt);
-        rom.StampUpdated(updatedAt);
+        var beforeSave = TimeProvider.System.GetUtcNow();
 
         using (var db = new TestDbContextFactory(test.DatabasePath).CreateDbContext())
         {
@@ -181,10 +178,11 @@ public sealed class LibraryServiceTests
             db.SaveChanges();
         }
 
+        var afterSave = TimeProvider.System.GetUtcNow();
         using var readDb = new TestDbContextFactory(test.DatabasePath).CreateDbContext();
         var saved = readDb.Roms.Should().ContainSingle().Which;
-        saved.AddedAt.Should().Be(addedAt);
-        saved.UpdatedAt.Should().Be(updatedAt);
+        saved.AddedAt.Should().BeOnOrAfter(beforeSave).And.BeOnOrBefore(afterSave);
+        saved.UpdatedAt.Should().Be(saved.AddedAt);
         saved.LastOpenedAt.Should().Be(openedAt);
     }
 
@@ -196,7 +194,7 @@ public sealed class LibraryServiceTests
         var secondOpenedAt = firstOpenedAt.AddHours(1);
         var romPath = Path.Combine(test.DatabasePath, "async.gb");
         var createdAt = test.TimeProvider.GetUtcNow();
-        var rom = LibraryRom.Opened(
+        var rom = LibraryRom.Create(
             "async",
             romPath,
             "async.gb",
@@ -883,7 +881,7 @@ public sealed class LibraryServiceTests
     )
     {
         var lastOpened = DateTimeOffset.Parse(lastOpenedAt, CultureInfo.InvariantCulture);
-        var rom = LibraryRom.Opened(
+        var rom = LibraryRom.Create(
             romHash,
             Path.Combine(databasePath, fileName),
             fileName,
@@ -893,8 +891,6 @@ public sealed class LibraryServiceTests
             lastOpened
         );
         var createdAt = DateTimeOffset.Parse(addedAt ?? lastOpenedAt, CultureInfo.InvariantCulture);
-        rom.StampCreated(createdAt);
-        rom.StampUpdated(createdAt);
         for (var i = 1; i < launchCount; i++)
         {
             rom.RecordOpen(
@@ -913,7 +909,10 @@ public sealed class LibraryServiceTests
         }
 
         rom.SetCoverPath(coverPath);
-        using var db = new TestDbContextFactory(databasePath).CreateDbContext();
+        using var db = new TestDbContextFactory(
+            databasePath,
+            timeProvider: new TestTimeProvider(createdAt)
+        ).CreateDbContext();
         db.Roms.Add(rom);
         db.SaveChanges();
     }

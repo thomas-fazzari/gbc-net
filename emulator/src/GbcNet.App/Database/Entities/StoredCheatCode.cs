@@ -11,7 +11,7 @@ internal sealed class StoredCheatCode
     [UsedImplicitly]
     private StoredCheatCode() { }
 
-    internal StoredCheatCode(
+    public static StoredCheatCode Create(
         string romHash,
         CheatCodeType type,
         int sortOrder,
@@ -20,23 +20,26 @@ internal sealed class StoredCheatCode
         string? name = null
     )
     {
-        RomHash = romHash;
-        Type = type;
-        SortOrder = sortOrder;
-        Code = code;
-        IsEnabled = isEnabled;
-        Name = name;
+        return new StoredCheatCode
+        {
+            RomHash = romHash,
+            Type = type,
+            SortOrder = sortOrder,
+            Code = code,
+            IsEnabled = isEnabled,
+            Name = name,
+        };
     }
 
-    public string RomHash { get; } = string.Empty;
+    public string RomHash { get; private init; } = string.Empty;
 
-    public CheatCodeType Type { get; }
+    public CheatCodeType Type { get; private init; }
 
-    public int SortOrder { get; }
+    public int SortOrder { get; private init; }
 
-    public string Code { get; } = string.Empty;
+    public string Code { get; private init; } = string.Empty;
 
-    public string? Name { get; }
+    public string? Name { get; private init; }
 
-    public bool IsEnabled { get; }
+    public bool IsEnabled { get; private init; }
 }

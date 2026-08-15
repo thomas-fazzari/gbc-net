@@ -216,7 +216,7 @@ internal sealed class AppConfigurationService(
             var resolvedPath = Path.GetFullPath(path, Path.GetFullPath(configDirectoryPath));
             bytes = File.ReadAllBytes(resolvedPath);
         }
-        catch (Exception exception) when (IsExpectedPathException(exception))
+        catch (Exception exception) when (FileUtils.IsExpectedFileSystemException(exception))
         {
             throw new ConfigurationException(
                 $"{label} boot ROM file could not be read: {exception.Message}"
@@ -272,13 +272,6 @@ internal sealed class AppConfigurationService(
             return null;
         }
     }
-
-    private static bool IsExpectedPathException(Exception exception) =>
-        exception
-            is IOException
-                or UnauthorizedAccessException
-                or ArgumentException
-                or NotSupportedException;
 }
 
 internal static partial class AppConfigurationServiceLog

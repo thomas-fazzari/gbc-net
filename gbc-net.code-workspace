@@ -143,8 +143,6 @@
         "program": "${workspaceFolder:Source}/GbcNet.App/bin/Debug/net10.0/GbcNet.dll",
         "cwd": "${workspaceFolder:Root}",
         "preLaunchTask": "build",
-        "console": "internalConsole",
-        "justMyCode": true
       },
       {
         "name": "Launch GBC.Net (Release)",
@@ -153,8 +151,6 @@
         "program": "${workspaceFolder:Source}/GbcNet.App/bin/Release/net10.0/GbcNet.dll",
         "cwd": "${workspaceFolder:Root}",
         "preLaunchTask": "build-release",
-        "console": "internalConsole",
-        "justMyCode": true
       }
     ]
   },
@@ -162,7 +158,7 @@
     "recommendations": [
       "csharpier.csharpier-vscode",
       "EditorConfig.EditorConfig",
-      "ms-dotnettools.csdevkit",
+      "JetBrains.resharper-code",
       "vscode.json-language-features",
     ]
   }

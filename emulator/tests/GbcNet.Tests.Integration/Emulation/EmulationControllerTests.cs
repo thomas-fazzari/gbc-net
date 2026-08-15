@@ -42,7 +42,7 @@ public sealed class EmulationControllerTests
         await using (var db = test.DbContextFactory.CreateDbContext())
         {
             db.CheatCodes.Add(
-                new StoredCheatCode(
+                StoredCheatCode.Create(
                     Convert.ToHexString(SHA256.HashData(romB)),
                     CheatCodeType.GameGenie,
                     sortOrder: 0,
@@ -109,6 +109,20 @@ public sealed class EmulationControllerTests
         {
             await controller.StopAsync();
         }
+    }
+
+    [Fact]
+    public void Constructor_RejectsUndefinedFastForwardSpeed()
+    {
+        using var test = new ControllerTestContext();
+
+        var exception = FluentActions
+            .Invoking(() => test.CreateController(fastForwardSpeed: (EmulationSpeed)999))
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>()
+            .Which;
+
+        exception.ParamName.Should().Be("fastForwardSpeed");
     }
 
     [Fact]
@@ -440,7 +454,10 @@ public sealed class EmulationControllerTests
         internal CheatCodeService CreateCheatCodeService(IInterceptor interceptor) =>
             new(new TestDbContextFactory(DatabasePath, interceptor));
 
-        public EmulationController CreateController(CheatCodeService? cheatCodes = null) =>
+        public EmulationController CreateController(
+            CheatCodeService? cheatCodes = null,
+            EmulationSpeed fastForwardSpeed = EmulationSpeed.Two
+        ) =>
             new(
                 new BootRomOptions(),
                 AudioOutput,
@@ -454,7 +471,7 @@ public sealed class EmulationControllerTests
                 static _ => { },
                 static _ => { },
                 fastForwardEnabled: false,
-                EmulationSpeed.Two
+                fastForwardSpeed
             );
 
         public void Dispose()

@@ -21,11 +21,10 @@ internal readonly record struct LibraryQuery(
     SortDirection? Direction = null
 )
 {
-    public bool IsAscending =>
-        (
-            Direction
-            ?? (Sort is LibrarySortField.Title ? SortDirection.Ascending : SortDirection.Descending)
-        ).IsAscending();
+    public bool IsAscending => (Direction ?? GetDefaultDirection(Sort)).IsAscending();
+
+    public static SortDirection GetDefaultDirection(LibrarySortField sort) =>
+        sort is LibrarySortField.Title ? SortDirection.Ascending : SortDirection.Descending;
 
     public bool RequiresNoIntro =>
         !string.IsNullOrWhiteSpace(SearchText)
@@ -291,7 +290,7 @@ internal sealed class LibraryService(
                 );
             }
             catch (Exception exception)
-                when ((exception is FileNotFoundException or DirectoryNotFoundException)
+                when (exception is FileNotFoundException or DirectoryNotFoundException
                     && !File.Exists(sourceImagePath)
                 )
             {
@@ -393,7 +392,7 @@ internal sealed class LibraryService(
         {
             coverPath = null;
             db.Roms.Add(
-                LibraryRom.Opened(
+                LibraryRom.Create(
                     romHash,
                     fullPath,
                     Path.GetFileName(fullPath),

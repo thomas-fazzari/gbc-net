@@ -28,13 +28,7 @@ internal sealed class CheatCodeService(IDbContextFactory<GbcNetDbContext> dbCont
         {
             await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
             var storedCodes = await db
-                .CheatCodes.Where(entry =>
-                    entry.RomHash == storedRomHash
-                    && (
-                        entry.Type == CheatCodeType.GameGenie
-                        || entry.Type == CheatCodeType.GameShark
-                    )
-                )
+                .CheatCodes.Where(entry => entry.RomHash == storedRomHash)
                 .OrderBy(entry => entry.Type)
                 .ThenBy(entry => entry.SortOrder)
                 .Select(entry => new
@@ -106,13 +100,7 @@ internal sealed class CheatCodeService(IDbContextFactory<GbcNetDbContext> dbCont
             );
 
             await db
-                .CheatCodes.Where(entry =>
-                    entry.RomHash == storedRomHash
-                    && (
-                        entry.Type == CheatCodeType.GameGenie
-                        || entry.Type == CheatCodeType.GameShark
-                    )
-                )
+                .CheatCodes.Where(entry => entry.RomHash == storedRomHash)
                 .ExecuteDeleteAsync(cancellationToken);
 
             var gameGenieSortOrder = 0;
@@ -125,7 +113,7 @@ internal sealed class CheatCodeService(IDbContextFactory<GbcNetDbContext> dbCont
                         : gameSharkSortOrder++;
 
                 db.CheatCodes.Add(
-                    new StoredCheatCode(
+                    StoredCheatCode.Create(
                         storedRomHash,
                         entry.Code.Type,
                         sortOrder,

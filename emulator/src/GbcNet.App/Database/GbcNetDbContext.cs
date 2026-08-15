@@ -12,12 +12,12 @@ namespace GbcNet.App.Database;
 
 internal sealed class GbcNetDbContext : DbContext
 {
-    private readonly TimeProvider? _timeProvider;
+    private readonly TimeProvider _timeProvider;
 
-    public GbcNetDbContext(
-        DbContextOptions<GbcNetDbContext> options,
-        TimeProvider? timeProvider = null
-    )
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
+        configurationBuilder.Properties<Enum>().HaveConversion<string>();
+
+    public GbcNetDbContext(DbContextOptions<GbcNetDbContext> options, TimeProvider timeProvider)
         : base(options)
     {
         _timeProvider = timeProvider;
@@ -54,12 +54,8 @@ internal sealed class GbcNetDbContext : DbContext
 
     private void StampLibraryEntries()
     {
-        if (_timeProvider is null)
-        {
-            return;
-        }
-
         var timestamp = _timeProvider.GetUtcNow();
+
         foreach (var entry in ChangeTracker.Entries<LibraryRom>())
         {
             switch (entry.State)
@@ -85,6 +81,6 @@ internal sealed class GbcNetDbContextFactory : IDesignTimeDbContextFactory<GbcNe
         var options = SqliteDbContextOptions
             .Configure(new DbContextOptionsBuilder<GbcNetDbContext>(), databasePath)
             .Options;
-        return new GbcNetDbContext(options);
+        return new GbcNetDbContext(options, TimeProvider.System);
     }
 }

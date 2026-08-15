@@ -144,18 +144,14 @@ internal sealed partial class MainWindow : Window, IDisposable
             emulationView.Focus();
             SetEmulationTitleBar(isEmulating: true);
         };
-        _emulationSession.SessionClosed += (_, _) =>
+        EventHandler sessionEnded = (_, _) =>
         {
             ContentHost.Content = libraryView;
             SetEmulationTitleBar(isEmulating: false);
             _libraryPresenter.Refresh();
         };
-        _emulationSession.SessionFaulted += (_, _) =>
-        {
-            ContentHost.Content = libraryView;
-            SetEmulationTitleBar(isEmulating: false);
-            _libraryPresenter.Refresh();
-        };
+        _emulationSession.SessionClosed += sessionEnded;
+        _emulationSession.SessionFaulted += sessionEnded;
 
         _menuAdapter = new MainWindowMenuAdapter(
             MainMenu,
@@ -275,7 +271,7 @@ internal sealed partial class MainWindow : Window, IDisposable
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
-        if (!e.Handled && e.Key is Key.Escape && WindowState is WindowState.FullScreen)
+        if (e is { Handled: false, Key: Key.Escape } && WindowState is WindowState.FullScreen)
         {
             WindowState = WindowState.Normal;
             e.Handled = true;

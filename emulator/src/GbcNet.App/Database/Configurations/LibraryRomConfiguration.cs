@@ -40,7 +40,6 @@ internal sealed class LibraryRomConfiguration : IEntityTypeConfiguration<Library
         builder
             .Property(entry => entry.HardwareKind)
             .HasColumnName("hardware_kind")
-            .HasConversion<string>()
             .HasMaxLength(3);
         builder
             .Property(entry => entry.NoIntroHash)

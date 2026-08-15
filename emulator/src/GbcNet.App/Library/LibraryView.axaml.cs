@@ -205,7 +205,7 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
             return;
         }
 
-        var defaultDirection = GetDefaultSortDirection(value);
+        var defaultDirection = LibraryQuery.GetDefaultDirection(value);
         if (_tableSortMode != value)
         {
             _tableSortMode = value;
@@ -251,9 +251,6 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
 
         QueryChanged?.Invoke();
     }
-
-    private static SortDirection GetDefaultSortDirection(LibrarySortField sortMode) =>
-        sortMode is LibrarySortField.Title ? SortDirection.Ascending : SortDirection.Descending;
 
     private void UpdateSortIndicators() =>
         _propertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
