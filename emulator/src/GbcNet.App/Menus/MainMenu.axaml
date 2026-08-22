@@ -96,7 +96,11 @@
             x:Name="GitHubRepositoryMenuItem"
             Header="_View on GitHub"
             Command="{Binding GitHubRepositoryCommand, ElementName=Root}"
-          />
+          >
+            <MenuItem.Icon>
+              <ti:TablerIcon Icon="IconBrandGithub" />
+            </MenuItem.Icon>
+          </MenuItem>
         </MenuItem>
       </MenuFlyout>
     </Button.Flyout>

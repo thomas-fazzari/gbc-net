@@ -28,8 +28,11 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
     <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+  </Style>
+  <Style Selector="MenuItem /template/ Border#root > Grid">
+    <Setter Property="Margin" Value="8,0" />
   </Style>
   <Style Selector="MenuItem:pointerover /template/ Border#root, MenuItem:selected /template/ Border#root">
     <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
@@ -75,7 +78,7 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="0,999,999,0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMediumRight}" />
     <Setter Property="FocusAdorner" Value="{x:Null}" />
   </Style>
   <Style Selector="ComboBox /template/ ToggleButton#toggle:pointerover, ComboBox /template/ ToggleButton#toggle:pressed, ComboBox /template/ ToggleButton#toggle:checked">
@@ -87,7 +90,7 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="0,999,999,0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMediumRight}" />
   </Style>
   <Style Selector="ComboBox /template/ ToggleButton#toggle:pointerover /template/ ContentPresenter#PART_ContentPresenter, ComboBox /template/ ToggleButton#toggle:pressed /template/ ContentPresenter#PART_ContentPresenter, ComboBox /template/ ToggleButton#toggle:checked /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="Transparent" />
@@ -111,7 +114,7 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusSmall}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
     <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
     <Setter Property="HorizontalContentAlignment" Value="Left" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -157,7 +160,7 @@
     <Setter Property="Background" Value="{DynamicResource CompTooltipBackgroundBrush}" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusSmall}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
     <Setter Property="Foreground" Value="{DynamicResource CompTooltipTextBrush}" />
     <Setter Property="FontFamily" Value="{DynamicResource SysFontFamily}" />
     <Setter Property="FontSize" Value="{DynamicResource RefFontSizeLabel}" />
@@ -184,10 +187,10 @@
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="FocusAdorner" Value="{x:Null}" />
   </Style>
-  <Style Selector="Button:focus-visible, ToggleButton:focus-visible, ComboBox:focus-visible, ToggleSwitch:focus-visible">
+  <Style Selector="Button:focus-visible, ToggleButton:focus-visible, RadioButton:focus-visible, ComboBox:focus-visible, TextBox:focus-within, ToggleSwitch:focus-visible">
     <Setter Property="FocusAdorner" Value="{x:Null}" />
-    <Setter Property="BorderBrush" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysTextMutedBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
   </Style>
   <Style Selector="ToggleSwitch:focus-visible">
     <Setter Property="Opacity" Value="0.82" />
@@ -234,7 +237,7 @@
     <Setter Property="Height" Value="{DynamicResource RefControlHeightSmall}" />
     <Setter Property="MinWidth" Value="72" />
     <Setter Property="Padding" Value="{DynamicResource CompButtonPadding}" />
-    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusPill}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -330,8 +333,8 @@
   <Style Selector="Button.icon:focus-visible, ToggleButton.icon:focus-visible">
     <Setter Property="FocusAdorner" Value="{x:Null}" />
     <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
-    <Setter Property="BorderBrush" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysTextMutedBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
   </Style>
   <Style Selector="Button.icon:disabled, ToggleButton.icon:disabled">
     <Setter Property="Background" Value="Transparent" />
@@ -348,7 +351,10 @@
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
   </Style>
-  <Style Selector="Button.primary /template/ ContentPresenter#PART_ContentPresenter, Button.secondary /template/ ContentPresenter#PART_ContentPresenter, Button.destructive /template/ ContentPresenter#PART_ContentPresenter, Button.icon /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.icon /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="Button.primary /template/ ContentPresenter#PART_ContentPresenter, Button.secondary /template/ ContentPresenter#PART_ContentPresenter, Button.destructive /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
+  </Style>
+  <Style Selector="Button.icon /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.icon /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusPill}" />
   </Style>
   <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter, Button.secondary:disabled /template/ ContentPresenter#PART_ContentPresenter, Button.destructive:disabled /template/ ContentPresenter#PART_ContentPresenter">
@@ -412,8 +418,8 @@
   </Style>
   <Style Selector="TextBox.field:focus-within, ComboBox.field:focus-visible">
     <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
-    <Setter Property="BorderBrush" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SysTextMutedBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
   </Style>
   <Style Selector="TextBox.field.error, TextBox.field.error:focus-within">
     <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
@@ -434,10 +440,10 @@
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
   <Style Selector="ToggleButton.segmented.left, ToggleButton.segmented.first, RadioButton.segmented.first">
-    <Setter Property="CornerRadius" Value="999,0,0,999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMediumLeft}" />
   </Style>
   <Style Selector="ToggleButton.segmented.right, ToggleButton.segmented.last, RadioButton.segmented.last">
-    <Setter Property="CornerRadius" Value="0,999,999,0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMediumRight}" />
   </Style>
   <Style Selector="ToggleButton.segmented:pointerover, ToggleButton.segmented:focus-visible, RadioButton.segmented:pointerover, RadioButton.segmented:focus-visible">
     <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
@@ -446,6 +452,7 @@
   <Style Selector="ToggleButton.segmented:checked, RadioButton.segmented:checked">
     <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="ToggleButton.segmented:checked ti|TablerIcon, RadioButton.segmented:checked ti|TablerIcon">
     <Setter Property="Brush" Value="{DynamicResource SysTextBrush}" />
@@ -456,13 +463,17 @@
     <Setter Property="BorderThickness" Value="0" />
   </Style>
   <Style Selector="ToggleButton.segmented.left /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segmented.first /template/ ContentPresenter#PART_ContentPresenter, RadioButton.segmented.first /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="CornerRadius" Value="999,0,0,999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMediumLeft}" />
   </Style>
   <Style Selector="ToggleButton.segmented.right /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segmented.last /template/ ContentPresenter#PART_ContentPresenter, RadioButton.segmented.last /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="CornerRadius" Value="0,999,999,0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMediumRight}" />
   </Style>
   <Style Selector="ToggleButton.segmented:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segmented:focus-visible /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segmented:checked /template/ ContentPresenter#PART_ContentPresenter, RadioButton.segmented:pointerover /template/ ContentPresenter#PART_ContentPresenter, RadioButton.segmented:focus-visible /template/ ContentPresenter#PART_ContentPresenter, RadioButton.segmented:checked /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+  </Style>
+  <Style Selector="Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter, ToggleButton:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource SysTextMutedBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
   </Style>
   <Style Selector="RadioButton.segmented">
     <Setter Property="FocusAdorner" Value="{x:Null}" />

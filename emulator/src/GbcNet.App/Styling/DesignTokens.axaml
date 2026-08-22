@@ -2,10 +2,12 @@
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 >
-  <FontFamily x:Key="SysFontFamily">avares://GbcNet/Assets/Fonts#Instrument Sans</FontFamily>
+  <FontFamily x:Key="SysFontFamily">avares://GbcNet/Assets/Fonts#IBM Plex Sans</FontFamily>
 
   <CornerRadius x:Key="RefRadiusSmall">4</CornerRadius>
   <CornerRadius x:Key="RefRadiusMedium">10</CornerRadius>
+  <CornerRadius x:Key="RefRadiusMediumLeft">10,0,0,10</CornerRadius>
+  <CornerRadius x:Key="RefRadiusMediumRight">0,10,10,0</CornerRadius>
   <CornerRadius x:Key="RefRadiusLarge">16</CornerRadius>
   <CornerRadius x:Key="RefRadiusPill">999</CornerRadius>
 

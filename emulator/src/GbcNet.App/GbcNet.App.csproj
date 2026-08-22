@@ -42,10 +42,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AvaloniaResource Include="Assets\Fonts\InstrumentSans-*.ttf" />
+    <AvaloniaResource Include="Assets\Fonts\IBMPlexSans-*.ttf" />
     <AvaloniaResource Include="Assets\Images\*.png" />
     <None Remove="Assets\Metadata\**\*" />
     <EmbeddedResource Include="Assets\Metadata\no-intro-index.gz" />
-    <None Include="Assets\Fonts\InstrumentSans-OFL.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Assets\Fonts\IBMPlexSans-OFL.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

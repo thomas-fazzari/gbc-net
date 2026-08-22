@@ -9,7 +9,7 @@
   <UserControl.Styles>
     <Style Selector="ComboBox.library-filter">
       <Setter Property="HorizontalAlignment" Value="Left" />
-      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusPill}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
     </Style>
     <Style Selector="ComboBox.library-filter.hardware-filter">
       <Setter Property="Width" Value="156" />
@@ -58,7 +58,7 @@
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusSmall}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
       <Setter Property="Foreground" Value="{DynamicResource SysTextMutedBrush}" />
       <Setter Property="FontSize" Value="11" />
       <Setter Property="FontWeight" Value="Medium" />
@@ -68,6 +68,7 @@
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
     </Style>
     <Style Selector="Button.library-sort-header:pointerover /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
@@ -146,6 +147,7 @@
       <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusPill}" />
     </Style>
     <Style Selector="Button.tile-actions:pointerover /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
@@ -230,18 +232,18 @@
 
             <Border
               Grid.Column="3"
-              Width="64"
-              Height="32"
+              Width="72"
+              Height="36"
               Background="{DynamicResource SysSurfaceRaisedBrush}"
-              CornerRadius="{DynamicResource RefRadiusPill}"
+              CornerRadius="{DynamicResource RefRadiusMedium}"
               VerticalAlignment="Center"
             >
               <StackPanel Spacing="0" Orientation="Horizontal">
                 <ToggleButton
                   x:Name="GridViewToggle"
                   Classes="segmented left"
-                  Width="32"
-                  MinWidth="32"
+                  Width="36"
+                  MinWidth="36"
                   Padding="0"
                   Tag="Grid"
                   Click="OnViewModeChanged"
@@ -253,8 +255,8 @@
                 <ToggleButton
                   x:Name="ListViewToggle"
                   Classes="segmented right"
-                  Width="32"
-                  MinWidth="32"
+                  Width="36"
+                  MinWidth="36"
                   Padding="0"
                   Tag="List"
                   Click="OnViewModeChanged"
