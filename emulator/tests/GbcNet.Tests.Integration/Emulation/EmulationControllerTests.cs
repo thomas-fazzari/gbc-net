@@ -126,6 +126,22 @@ public sealed class EmulationControllerTests
     }
 
     [Fact]
+    public void SetFastForwardSpeed_RejectsUndefinedSpeedWithoutChangingState()
+    {
+        using var test = new ControllerTestContext();
+        var controller = test.CreateController();
+
+        var exception = FluentActions
+            .Invoking(() => controller.SetFastForwardSpeed((EmulationSpeed)999))
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>()
+            .Which;
+
+        exception.ParamName.Should().Be("speed");
+        controller.State.FastForwardSpeed.Should().Be(EmulationSpeed.Two);
+    }
+
+    [Fact]
     public async Task SetCheatCodesAsync_WithoutActiveSessionReturnsNotFound()
     {
         using var test = new ControllerTestContext();

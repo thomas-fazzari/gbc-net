@@ -165,14 +165,7 @@ internal sealed class EmulationSession
 
     public void SetFastForward(bool enabled, EmulationSpeed speed)
     {
-        if (!Enum.IsDefined(speed))
-        {
-            throw new ArgumentOutOfRangeException(
-                paramName: nameof(speed),
-                actualValue: speed,
-                message: "Fast-forward speed must be one of the supported GUI multipliers."
-            );
-        }
+        speed.EnsureDefined(nameof(speed));
 
         var enabledChanged =
             Interlocked.Exchange(location1: ref _isFastForwardEnabled, value: enabled ? 1 : 0)

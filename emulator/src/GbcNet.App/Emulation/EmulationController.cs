@@ -45,13 +45,9 @@ internal sealed class EmulationController(
     private CheatCodeEntry[] _cheatCodes = [];
 
     private bool _fastForwardEnabled = fastForwardEnabled;
-    private EmulationSpeed _fastForwardSpeed = Enum.IsDefined(fastForwardSpeed)
-        ? fastForwardSpeed
-        : throw new ArgumentOutOfRangeException(
-            paramName: nameof(fastForwardSpeed),
-            actualValue: fastForwardSpeed,
-            message: "Fast-forward speed must be one of the supported GUI multipliers."
-        );
+    private EmulationSpeed _fastForwardSpeed = fastForwardSpeed.EnsureDefined(
+        nameof(fastForwardSpeed)
+    );
 
     public EmulationControllerState State =>
         new(
@@ -90,7 +86,7 @@ internal sealed class EmulationController(
 
     public void SetFastForwardSpeed(EmulationSpeed speed)
     {
-        _fastForwardSpeed = speed;
+        _fastForwardSpeed = speed.EnsureDefined(nameof(speed));
         ApplyFastForwardSettings();
     }
 

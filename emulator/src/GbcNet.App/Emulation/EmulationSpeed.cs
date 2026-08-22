@@ -29,6 +29,20 @@ internal static class EmulationSpeedExtensions
 {
     extension(EmulationSpeed speed)
     {
+        public EmulationSpeed EnsureDefined(string parameterName)
+        {
+            if (!Enum.IsDefined(speed))
+            {
+                throw new ArgumentOutOfRangeException(
+                    paramName: parameterName,
+                    actualValue: speed,
+                    message: "Fast-forward speed must be one of the supported GUI multipliers."
+                );
+            }
+
+            return speed;
+        }
+
         public string GetDisplayName() =>
             speed switch
             {
