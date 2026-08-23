@@ -39,7 +39,7 @@ internal static class DependencyInjection
     private static void AddAppServices(IServiceCollection services)
     {
         // Audio
-        services.AddSingleton<IAudioOutput, SoundFlowAudioOutput>();
+        services.AddSingleton<IAudioOutput, SdlAudioOutput>();
 
         // Database
         services.AddSingleton(TimeProvider.System);
