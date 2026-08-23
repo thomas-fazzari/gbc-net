@@ -68,52 +68,18 @@ internal static class UserDataPaths
         Path.Combine(GetDataDirectoryPath(), LogDirectoryName, path3: LogFileName);
 
     private static string GetConfigDirectoryPath() =>
-        OperatingSystem.IsMacOS() || OperatingSystem.IsWindows()
-            ? Path.Combine(
-                GetKnownFolder(Environment.SpecialFolder.ApplicationData),
-                DesktopDirectoryName
-            )
-            : Path.Combine(
-                GetXdgDirectoryPath(
-                    Environment.GetEnvironmentVariable("XDG_CONFIG_HOME"),
-                    GetUserProfilePath(),
-                    fallbackDirectoryName: ".config"
-                ),
-                LinuxDirectoryName
-            );
+        GetApplicationDirectoryPath(Environment.SpecialFolder.ApplicationData);
 
     private static string GetDataDirectoryPath() =>
-        OperatingSystem.IsMacOS() || OperatingSystem.IsWindows()
-            ? Path.Combine(
-                GetKnownFolder(Environment.SpecialFolder.LocalApplicationData),
-                DesktopDirectoryName
+        GetApplicationDirectoryPath(Environment.SpecialFolder.LocalApplicationData);
+
+    private static string GetApplicationDirectoryPath(Environment.SpecialFolder folder) =>
+        Path.GetFullPath(
+            Path.Combine(
+                Environment.GetFolderPath(folder, Environment.SpecialFolderOption.Create),
+                OperatingSystem.IsMacOS() || OperatingSystem.IsWindows()
+                    ? DesktopDirectoryName
+                    : LinuxDirectoryName
             )
-            : Path.Combine(
-                GetXdgDirectoryPath(
-                    Environment.GetEnvironmentVariable("XDG_DATA_HOME"),
-                    GetUserProfilePath(),
-                    fallbackDirectoryName: Path.Combine(".local", "share")
-                ),
-                LinuxDirectoryName
-            );
-
-    private static string GetKnownFolder(Environment.SpecialFolder folder) =>
-        Environment.GetFolderPath(folder, Environment.SpecialFolderOption.Create);
-
-    internal static string GetXdgDirectoryPath(
-        string? configuredPath,
-        string userProfilePath,
-        string fallbackDirectoryName
-    )
-    {
-        var directoryPath =
-            !string.IsNullOrWhiteSpace(configuredPath) && Path.IsPathFullyQualified(configuredPath)
-                ? configuredPath
-                : Path.Combine(userProfilePath, fallbackDirectoryName);
-
-        return Path.GetFullPath(directoryPath);
-    }
-
-    private static string GetUserProfilePath() =>
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        );
 }

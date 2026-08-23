@@ -97,7 +97,7 @@ internal interface IHardwareProfile
     /// <summary>
     /// Creates the LCD/PPU engine for this hardware model.
     /// </summary>
-    IPpuEngine CreatePpuEngine();
+    PpuEngineBase CreatePpuEngine();
 
     /// <summary>
     /// Maps an OAM DMA source address to the memory address read by this hardware model.

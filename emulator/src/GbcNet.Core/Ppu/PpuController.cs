@@ -14,7 +14,7 @@ namespace GbcNet.Core.Ppu;
 /// </summary>
 internal sealed class PpuController(
     InterruptController interrupts,
-    IPpuEngine engine,
+    PpuEngineBase engine,
     int videoRamBankCount,
     bool isVideoRamBankRegisterEnabled,
     bool isColorPaletteIndexRegisterEnabled,

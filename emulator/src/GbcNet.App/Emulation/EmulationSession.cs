@@ -149,7 +149,7 @@ internal sealed class EmulationSession
 
         return QueueMachineOperation(gameBoy =>
         {
-            gameBoy.Cheats.SetCodes(codes);
+            gameBoy.SetCheatCodes(codes);
             return true;
         });
     }

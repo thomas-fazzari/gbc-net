@@ -314,7 +314,7 @@ internal sealed class EmulationController(
         }
 
         var gameBoy = new GameBoy(cartridge, hardwareModel, _bootRomOptions);
-        gameBoy.Cheats.SetCodes(codes);
+        gameBoy.SetCheatCodes(codes);
         _session = new EmulationSession(
             gameBoy,
             audioOutput,

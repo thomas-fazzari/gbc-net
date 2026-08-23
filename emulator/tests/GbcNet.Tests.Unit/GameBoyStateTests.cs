@@ -76,13 +76,15 @@ public sealed class GameBoyStateTests
         var gameBoy = new GameBoy(TestRomFactory.LoadCartridge(), HardwareModel.Dmg);
         var cpu = gameBoy.Cpu;
         var before = cpu.CaptureState();
-        var state = before with
-        {
-            Registers = before.Registers with { PC = 0x2345 },
-            RunState = (CpuRunState)runState,
-            HaltBugPending = haltBugPending,
-            Ime = (ImeState)ime,
-        };
+        var state = new CpuState(
+            Registers: before.Registers with
+            {
+                PC = 0x2345,
+            },
+            RunState: (CpuRunState)runState,
+            HaltBugPending: haltBugPending,
+            Ime: (ImeState)ime
+        );
 
         var exception = FluentActions
             .Invoking(() => cpu.RestoreState(state))
@@ -364,10 +366,10 @@ public sealed class GameBoyStateTests
             HardwareModel.Cgb,
             new BootRomOptions { CgbBootRom = BootRomTestFactory.CreateCgb() }
         );
-        gameBoy.Cheats.SetCodes([CheatCodeParser.Parse(CheatCodeType.GameGenie, "AA1-00F")]);
+        gameBoy.SetCheatCodes([CheatCodeParser.Parse(CheatCodeType.GameGenie, "AA1-00F")]);
         var state = gameBoy.CaptureSaveState();
 
-        gameBoy.Cheats.SetCodes([CheatCodeParser.Parse(CheatCodeType.GameGenie, "BB1-00F")]);
+        gameBoy.SetCheatCodes([CheatCodeParser.Parse(CheatCodeType.GameGenie, "BB1-00F")]);
         gameBoy.Bus.WriteByte(AddressMap.BootRomDisableRegister, 0x01);
         gameBoy.Bus.ReadByte(0x0100).Should().Be(0xBB);
 
@@ -394,7 +396,7 @@ public sealed class GameBoyStateTests
         var state = gameBoy.CaptureState();
         var originalCode = CheatCodeParser.Parse(CheatCodeType.GameGenie, "0A1-B9F");
         var replacementCode = CheatCodeParser.Parse(CheatCodeType.GameGenie, "0C1-B9F");
-        gameBoy.Cheats.SetCodes([originalCode]);
+        gameBoy.SetCheatCodes([originalCode]);
         Exception? captureException = null;
         Exception? restoreException = null;
         Exception? gameGenieException = null;
@@ -402,7 +404,7 @@ public sealed class GameBoyStateTests
         {
             captureException = Record.Exception(gameBoy.CaptureState);
             restoreException = Record.Exception(() => gameBoy.RestoreState(state));
-            gameGenieException = Record.Exception(() => gameBoy.Cheats.SetCodes([replacementCode]));
+            gameGenieException = Record.Exception(() => gameBoy.SetCheatCodes([replacementCode]));
         };
 
         gameBoy.Step();

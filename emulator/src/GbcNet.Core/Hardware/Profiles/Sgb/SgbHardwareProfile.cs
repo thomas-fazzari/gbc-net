@@ -50,7 +50,7 @@ internal sealed class SgbHardwareProfile : IHardwareProfile
 
     public bool IsCgbUndocumentedFf74RegisterEnabled => false;
 
-    public IPpuEngine CreatePpuEngine() =>
+    public PpuEngineBase CreatePpuEngine() =>
         new DmgPixelRulesPpuEngine<DmgShadePixelOutput>(
             usesCgbWindowBehavior: false,
             requestsMode2InterruptBeforeVBlank: false,

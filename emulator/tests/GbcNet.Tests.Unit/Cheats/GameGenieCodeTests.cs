@@ -19,9 +19,10 @@ public sealed class GameGenieCodeTests
         int compareValue
     )
     {
-        GameGenieCode.TryParse(text, out var code).Should().BeTrue();
+        CheatCode.TryParse(CheatCodeType.GameGenie, text, out var code).Should().BeTrue();
 
-        code.ReplacementValue.Should().Be(replacementValue);
+        code.Type.Should().Be(CheatCodeType.GameGenie);
+        code.Value.Should().Be(replacementValue);
         code.Address.Should().Be(address);
         code.CompareValue.Should().Be(compareValue < 0 ? null : (byte?)compareValue);
     }
@@ -31,7 +32,7 @@ public sealed class GameGenieCodeTests
     [InlineData("  068-55f-e66  ")]
     public void TryParse_NormalizesAcceptedForms(string text)
     {
-        GameGenieCode.TryParse(text, out var code).Should().BeTrue();
+        CheatCode.TryParse(CheatCodeType.GameGenie, text, out var code).Should().BeTrue();
 
         code.CanonicalCode.Should().Be("068-55F-E66");
         code.ToString().Should().Be(code.CanonicalCode);
@@ -43,7 +44,7 @@ public sealed class GameGenieCodeTests
     [InlineData("12F-FF8", 0x7FFF)]
     public void TryParse_AcceptsEntireRomAddressRange(string text, ushort address)
     {
-        GameGenieCode.TryParse(text, out var code).Should().BeTrue();
+        CheatCode.TryParse(CheatCodeType.GameGenie, text, out var code).Should().BeTrue();
 
         code.Address.Should().Be(address);
     }
@@ -60,7 +61,7 @@ public sealed class GameGenieCodeTests
     [InlineData("068-55F-EZ6")]
     public void TryParse_RejectsMalformedOrNonRomCodes(string text)
     {
-        GameGenieCode.TryParse(text, out var code).Should().BeFalse();
+        CheatCode.TryParse(CheatCodeType.GameGenie, text, out var code).Should().BeFalse();
 
         code.IsValid.Should().BeFalse();
         code.CanonicalCode.Should().Be(string.Empty);
@@ -70,12 +71,15 @@ public sealed class GameGenieCodeTests
     [Fact]
     public void TryParse_PreservesIgnoredHNibbleWithoutChangingDecodedCode()
     {
-        GameGenieCode.TryParse("068-55F-E06", out var first).Should().BeTrue();
-        GameGenieCode.TryParse("068-55F-EF6", out var second).Should().BeTrue();
+        CheatCode.TryParse(CheatCodeType.GameGenie, "068-55F-E06", out var first).Should().BeTrue();
+        CheatCode
+            .TryParse(CheatCodeType.GameGenie, "068-55F-EF6", out var second)
+            .Should()
+            .BeTrue();
 
         second.CanonicalCode.Should().NotBe(first.CanonicalCode);
         second.Address.Should().Be(first.Address);
-        second.ReplacementValue.Should().Be(first.ReplacementValue);
+        second.Value.Should().Be(first.Value);
         second.CompareValue.Should().Be(first.CompareValue);
     }
 }

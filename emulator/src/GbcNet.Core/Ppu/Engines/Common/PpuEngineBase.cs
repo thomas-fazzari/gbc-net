@@ -9,7 +9,6 @@ namespace GbcNet.Core.Ppu.Engines;
 /// Shared LCD timing and render orchestration for the current PPU engines.
 /// </summary>
 internal abstract class PpuEngineBase(int frameBufferBytesPerPixel, LcdPixelFormat framePixelFormat)
-    : IPpuEngine
 {
     protected const int TileLineMask = PpuTileData.TileSizePixels - 1;
     protected const int BackgroundFifoCapacity = PpuTileData.TileSizePixels * 2;

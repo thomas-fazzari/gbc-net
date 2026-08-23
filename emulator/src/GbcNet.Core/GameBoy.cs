@@ -64,7 +64,6 @@ public sealed class GameBoy
 
         var bootRom = BootRom.Create(hardwareProfile.Model, options);
         Bus = new MemoryBus(cartridge, hardwareProfile, bootRom);
-        Cheats = new CheatController(this, Bus);
         Bus.Serial.ByteTransferred += OnSerialByteTransferred;
         _clock = new MachineClock(Bus);
         Cpu = new Cpu(Bus, _clock.TickMachineCycle);
@@ -120,9 +119,16 @@ public sealed class GameBoy
     }
 
     /// <summary>
-    /// Controls cheat codes applied by this machine.
+    /// Replaces all active cheat codes for this machine.
     /// </summary>
-    public CheatController Cheats { get; }
+    /// <remarks>
+    /// Called from the machine thread between <see cref="Step"/> calls.
+    /// </remarks>
+    public void SetCheatCodes(ReadOnlySpan<CheatCode> codes)
+    {
+        ThrowIfStepping();
+        Bus.SetCheatCodes(codes);
+    }
 
     /// <summary>
     /// Executes one CPU step and advances hardware that runs from CPU cycles.

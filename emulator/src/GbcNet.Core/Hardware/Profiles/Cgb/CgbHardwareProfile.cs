@@ -56,7 +56,7 @@ internal sealed class CgbHardwareProfile(CgbOperatingMode operatingMode) : IHard
 
     public bool IsCgbUndocumentedFf74RegisterEnabled => OperatingMode is CgbOperatingMode.Cgb;
 
-    public IPpuEngine CreatePpuEngine() =>
+    public PpuEngineBase CreatePpuEngine() =>
         OperatingMode is CgbOperatingMode.Cgb
             ? new CgbPpuEngine()
             : new DmgPixelRulesPpuEngine<CgbDmgCompatibilityPixelOutput>(
