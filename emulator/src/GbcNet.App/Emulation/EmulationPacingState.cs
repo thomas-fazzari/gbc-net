@@ -57,7 +57,11 @@ internal sealed class EmulationPacingState
         int revision
     )
     {
-        if (revision == Revision && cpuHz == CpuHz && speedMultiplier.Equals(SpeedMultiplier))
+        if (
+            revision == Revision
+            && cpuHz == CpuHz
+            && speedMultiplier.CompareTo(SpeedMultiplier) == 0
+        )
         {
             return false;
         }

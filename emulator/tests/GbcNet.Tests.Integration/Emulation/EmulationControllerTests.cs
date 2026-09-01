@@ -63,7 +63,7 @@ public sealed class EmulationControllerTests
             var active = activeResult.Value;
             active.LoadedRomIdentity.Should().NotBeNull();
             active
-                .LoadedRomIdentity!.HashHex.Should()
+                .LoadedRomIdentity.HashHex.Should()
                 .Be(Convert.ToHexString(SHA256.HashData(romA)));
 
             await FluentActions
@@ -76,8 +76,8 @@ public sealed class EmulationControllerTests
             controller.State.LoadedRom.ToArray().Should().Equal(active.LoadedRom.ToArray());
             controller.State.LoadedRomIdentity.Should().NotBeNull();
             controller
-                .State.LoadedRomIdentity!.HashHex.Should()
-                .Be(active.LoadedRomIdentity!.HashHex);
+                .State.LoadedRomIdentity.HashHex.Should()
+                .Be(active.LoadedRomIdentity.HashHex);
             controller.State.LoadedRomFileName.Should().Be(active.LoadedRomFileName);
             controller.State.CheatCodes.ToArray().Should().Equal(expectedCodes);
 

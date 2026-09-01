@@ -49,7 +49,7 @@ internal sealed class ShellOperationRunner(Action<Exception> handleError, ILogge
                 {
                     ShellOperationRunnerLog.UnexpectedOperationFailed(
                         logger,
-                        completed.Exception!.GetBaseException()
+                        completed.Exception.GetBaseException()
                     );
                 }
             },
