@@ -1,8 +1,8 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using GbcNet.App.Database;
-using GbcNet.App.Database.Entities;
+using GbcNet.App.Entities;
+using GbcNet.App.Infrastructure.Persistence;
 using GbcNet.Core.Cartridges;
 using GbcNet.Core.Cheats;
 using Microsoft.Data.Sqlite;

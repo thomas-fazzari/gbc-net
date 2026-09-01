@@ -10,6 +10,8 @@ using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.App.Configuration.Sections.Library;
 using GbcNet.App.Emulation;
+using GbcNet.App.Infrastructure.Configuration;
+using GbcNet.App.Infrastructure.Storage;
 using GbcNet.App.Input;
 using GbcNet.Core;
 using GbcNet.Core.Joypad;

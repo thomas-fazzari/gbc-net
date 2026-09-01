@@ -9,7 +9,6 @@ using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using GbcNet.App.Configuration.Sections.Library;
 using GbcNet.App.Shell.Chrome;
-using GbcNet.App.Sorting;
 
 namespace GbcNet.App.Library;
 

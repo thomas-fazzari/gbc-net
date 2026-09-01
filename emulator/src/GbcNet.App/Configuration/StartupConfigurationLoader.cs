@@ -5,6 +5,7 @@ using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.App.Configuration.Sections.Library;
+using GbcNet.App.Infrastructure.Configuration;
 using GbcNet.Core;
 using Microsoft.Extensions.Logging;
 
@@ -48,7 +49,7 @@ internal static class StartupConfigurationLoader
             ValidateFallbackConfig(inputConfig);
         }
 
-        if (!AudioConfig.IsValidVolume(audioConfig.VolumePercent))
+        if (audioConfig is null || !AudioConfig.IsValidVolume(audioConfig.VolumePercent))
         {
             startupErrors.Add("Audio volume must be between 0 and 100 percent.");
             audioConfig = new AudioConfig();

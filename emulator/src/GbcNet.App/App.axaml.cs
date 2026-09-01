@@ -5,7 +5,8 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using GbcNet.App.Configuration;
-using GbcNet.App.Database;
+using GbcNet.App.Infrastructure.Persistence;
+using GbcNet.App.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -54,6 +55,6 @@ internal sealed class GbcNetApplication : Application
             UserDataPaths.LibraryDatabasePath,
             services
                 .GetRequiredService<ILoggerFactory>()
-                .CreateLogger("GbcNet.App.Database.DatabaseMigrator")
+                .CreateLogger("GbcNet.App.Infrastructure.Persistence.DatabaseMigrator")
         );
 }

@@ -4,10 +4,10 @@
 using System.Globalization;
 using ErrorOr;
 using GbcNet.App;
-using GbcNet.App.Database.Entities;
+using GbcNet.App.Entities;
+using GbcNet.App.Infrastructure.Storage;
 using GbcNet.App.Library;
 using GbcNet.App.Saves;
-using GbcNet.App.Sorting;
 using GbcNet.Core.Cartridges;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;

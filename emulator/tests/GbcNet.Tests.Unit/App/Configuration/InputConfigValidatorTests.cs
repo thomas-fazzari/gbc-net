@@ -4,6 +4,7 @@
 using Avalonia.Input;
 using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.Input;
+using GbcNet.App.Infrastructure.Configuration;
 
 namespace GbcNet.Tests.Unit.App.Configuration;
 

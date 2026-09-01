@@ -5,7 +5,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
-using GbcNet.App.Audio;
 using GbcNet.App.Cheats;
 using GbcNet.App.Configuration;
 using GbcNet.App.Emulation;
@@ -30,7 +29,6 @@ internal sealed partial class MainWindow : Window, IDisposable
     private readonly ShellOperationRunner _operationRunner;
     private readonly ShellPresenter _shell;
     private readonly MainWindowMenuAdapter _menuAdapter;
-    private readonly ILogger<MainWindow> _logger;
     private readonly HashSet<Key> _pressedKeys = [];
     private bool _closeAfterAsyncStop;
     private bool _isEmulating;
@@ -49,7 +47,6 @@ internal sealed partial class MainWindow : Window, IDisposable
         ILoggerFactory loggerFactory
     )
     {
-        _logger = logger;
         InitializeComponent();
 
         _libraryView = new LibraryView();
@@ -79,8 +76,8 @@ internal sealed partial class MainWindow : Window, IDisposable
             saveStateFileService,
             cheatCodeService,
             OnFrameCompleted,
-            handleFault: OnEmulationFaulted,
-            handlePersistenceError: OnPersistenceError,
+            handleFault: exception => OnEmulationFaulted(exception, logger),
+            handlePersistenceError: exception => OnPersistenceError(exception, logger),
             fastForwardEnabled: startupConfiguration.EmulationConfig.FastForwardEnabled,
             startupConfiguration.EmulationConfig.FastForwardSpeed
         );
@@ -303,15 +300,15 @@ internal sealed partial class MainWindow : Window, IDisposable
         _framePresenter.Enqueue(frame);
     }
 
-    private void OnPersistenceError(Exception exception)
+    private void OnPersistenceError(Exception exception, ILogger logger)
     {
-        MainWindowLog.PersistenceFailed(_logger, exception);
+        MainWindowLog.PersistenceFailed(logger, exception);
         Dispatcher.UIThread.Post(() => _shell.ShowError(exception.Message));
     }
 
-    private void OnEmulationFaulted(Exception exception)
+    private void OnEmulationFaulted(Exception exception, ILogger logger)
     {
-        MainWindowLog.EmulationFaulted(_logger, exception);
+        MainWindowLog.EmulationFaulted(logger, exception);
         _emulationSession.ShowFault(exception);
     }
 

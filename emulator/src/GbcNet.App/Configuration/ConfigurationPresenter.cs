@@ -6,6 +6,8 @@ using Avalonia.Controls;
 using ErrorOr;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.Input;
+using GbcNet.App.Infrastructure.Configuration;
+using GbcNet.App.Infrastructure.Storage;
 using GbcNet.App.Input;
 using GbcNet.App.Shell.Chrome;
 using GbcNet.Core;

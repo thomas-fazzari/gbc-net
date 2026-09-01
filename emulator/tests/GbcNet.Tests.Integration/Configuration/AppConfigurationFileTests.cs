@@ -5,6 +5,8 @@ using System.Text.Json;
 using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Library;
+using GbcNet.App.Infrastructure.Configuration;
+using GbcNet.App.Infrastructure.Storage;
 using GbcNet.Core.Hardware;
 using Microsoft.Extensions.Logging.Abstractions;
 

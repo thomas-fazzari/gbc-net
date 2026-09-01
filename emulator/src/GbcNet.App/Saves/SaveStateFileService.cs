@@ -4,6 +4,7 @@
 using System.Buffers.Binary;
 using System.Globalization;
 using System.Security.Cryptography;
+using GbcNet.App.Infrastructure.Storage;
 using GbcNet.Core.Hardware;
 using Microsoft.Extensions.Logging;
 
@@ -17,7 +18,7 @@ internal sealed class SaveStateFileService(
     ILogger<SaveStateFileService> logger
 ) : IDisposable
 {
-    private static readonly byte[] _magic = "GBCNETST"u8.ToArray();
+    private static readonly byte[] _magic = [.. "GBCNETST"u8];
 
     private const byte FormatVersion = 1;
     private const string FileExtension = ".gbstate";
@@ -214,7 +215,7 @@ internal sealed class SaveStateFileService(
     private static byte[] Compress(ReadOnlySpan<byte> payload)
     {
         using var compressor = new ZstdSharp.Compressor();
-        return compressor.Wrap(payload).ToArray();
+        return [.. compressor.Wrap(payload)];
     }
 
     private static byte[] Decompress(ReadOnlySpan<byte> compressedPayload, int payloadLength)

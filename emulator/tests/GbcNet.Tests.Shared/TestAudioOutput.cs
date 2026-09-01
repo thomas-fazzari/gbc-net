@@ -1,7 +1,7 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using GbcNet.App.Audio;
+using GbcNet.App.Emulation;
 using GbcNet.Core.Apu;
 
 namespace GbcNet.Tests.Shared;

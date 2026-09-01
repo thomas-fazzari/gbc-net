@@ -5,7 +5,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
-using GbcNet.App.Audio;
 using GbcNet.App.Saves;
 using GbcNet.Core;
 using GbcNet.Core.Apu;

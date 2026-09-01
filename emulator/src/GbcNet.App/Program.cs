@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using Avalonia;
-using GbcNet.App.Configuration;
+using GbcNet.App.Infrastructure.Storage;
 using Serilog;
 
 namespace GbcNet.App;

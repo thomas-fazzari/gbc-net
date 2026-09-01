@@ -1,0 +1,260 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:ti="using:TablerIcons"
+  x:Class="GbcNet.App.Shell.MainMenu"
+  x:Name="Root"
+  Width="300"
+>
+  <UserControl.Styles>
+    <Style Selector="Button.menu-action, ToggleButton.menu-action">
+      <Setter Property="Height" Value="30" />
+      <Setter Property="Padding" Value="10,0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="{DynamicResource RefRadius}" />
+      <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.menu-action:pointerover, ToggleButton.menu-action:pointerover">
+      <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.menu-action, ToggleButton.menu-action:pointerover, ToggleButton.menu-action:pressed, ToggleButton.menu-action:checked">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.menu-action:pressed, ToggleButton.menu-action:pressed, ToggleButton.menu-action:checked">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.menu-action:pressed /template/ ContentPresenter, ToggleButton.menu-action:pressed /template/ ContentPresenter, ToggleButton.menu-action:checked /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ToggleButton.menu-action /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ComboBox.menu-field">
+      <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ComboBox.menu-field:pointerover, ComboBox.menu-field:focus-visible">
+      <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
+    </Style>
+    <Style Selector="Button.menu-secondary">
+      <Setter Property="MinWidth" Value="0" />
+      <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Button.menu-secondary /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Button.menu-secondary:pointerover, Button.menu-secondary:pressed">
+      <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+    </Style>
+    <Style Selector="Button.menu-secondary:pointerover /template/ ContentPresenter, Button.menu-secondary:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+    </Style>
+    <Style Selector="TextBlock.menu-section-title">
+      <Setter Property="Margin" Value="10,0,10,4" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="Medium" />
+      <Setter Property="Foreground" Value="{DynamicResource SysTextMutedBrush}" />
+    </Style>
+    <Style Selector="TextBlock.menu-subsection-title">
+      <Setter Property="Margin" Value="10,0,10,4" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Border
+    Background="{DynamicResource SysSurfaceRaisedBrush}"
+    CornerRadius="{DynamicResource RefRadius}"
+    Padding="8,10"
+  >
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+      <Grid>
+        <StackPanel x:Name="LibrarySection" Spacing="1">
+          <TextBlock Classes="menu-section-title" Text="Library" />
+          <Button
+            Classes="menu-action"
+            Content="Open ROM..."
+            Command="{Binding OpenRomCommand, ElementName=Root}"
+            AutomationProperties.Name="Open ROM"
+          />
+          <Separator Margin="0,6" />
+          <Button
+            Classes="menu-action"
+            Content="Open Config File Location"
+            Command="{Binding ConfigurationFileLocationCommand, ElementName=Root}"
+            AutomationProperties.Name="Open config file location"
+          />
+          <Button
+            Classes="menu-action"
+            Content="Open Logs Folder"
+            Command="{Binding LogFileLocationCommand, ElementName=Root}"
+            AutomationProperties.Name="Open logs folder"
+          />
+          <Button
+            Classes="menu-action"
+            Content="View on GitHub"
+            Command="{Binding GitHubRepositoryCommand, ElementName=Root}"
+            AutomationProperties.Name="View GBC.Net on GitHub"
+          />
+        </StackPanel>
+
+        <StackPanel x:Name="EmulationSection" IsVisible="False" Spacing="1">
+          <TextBlock Classes="menu-section-title" Text="Emulation" />
+          <Button
+            x:Name="PauseButton"
+            Classes="menu-action"
+            Content="Pause"
+            Command="{Binding PauseCommand, ElementName=Root}"
+            AutomationProperties.Name="Pause or resume emulation"
+          />
+          <Button
+            Classes="menu-action"
+            Content="Reset"
+            Command="{Binding ResetCommand, ElementName=Root}"
+            AutomationProperties.Name="Reset emulation"
+          />
+          <Button
+            Classes="menu-action"
+            Content="Cheats..."
+            Command="{Binding CheatsCommand, ElementName=Root}"
+            AutomationProperties.Name="Open cheats"
+          />
+          <ToggleButton
+            x:Name="MuteButton"
+            Classes="menu-action"
+            Command="{Binding MuteCommand, ElementName=Root}"
+            AutomationProperties.Name="Mute audio"
+          >
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="Mute Audio" VerticalAlignment="Center" />
+              <ti:TablerIcon
+                Grid.Column="1"
+                Width="16"
+                Height="16"
+                StrokeWidth="2"
+                Brush="{DynamicResource SysTextBrush}"
+                Icon="IconCheck"
+                IsVisible="{Binding IsChecked, ElementName=MuteButton}"
+              />
+            </Grid>
+          </ToggleButton>
+          <ToggleButton
+            x:Name="FastForwardButton"
+            Classes="menu-action"
+            Command="{Binding FastForwardCommand, ElementName=Root}"
+            AutomationProperties.Name="Toggle fast forward"
+          >
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="Fast Forward" VerticalAlignment="Center" />
+              <ti:TablerIcon
+                Grid.Column="1"
+                Width="16"
+                Height="16"
+                StrokeWidth="2"
+                Brush="{DynamicResource SysTextBrush}"
+                Icon="IconCheck"
+                IsVisible="{Binding IsChecked, ElementName=FastForwardButton}"
+              />
+            </Grid>
+          </ToggleButton>
+
+          <Grid
+            Margin="10,2,10,4"
+            RowDefinitions="32"
+            ColumnDefinitions="Auto,72"
+            ColumnSpacing="10"
+            HorizontalAlignment="Left"
+          >
+            <TextBlock
+              Grid.Row="0"
+              Grid.Column="0"
+              Classes="label muted"
+              Text="Fast Forward Speed"
+              VerticalAlignment="Center"
+            />
+            <ComboBox
+              x:Name="FastForwardSpeedComboBox"
+              Grid.Row="0"
+              Grid.Column="1"
+              Classes="field menu-field"
+              Height="32"
+              SelectionChanged="OnFastForwardSpeedSelectionChanged"
+              AutomationProperties.Name="Fast forward speed"
+            />
+          </Grid>
+
+          <Separator Margin="0,4" />
+          <TextBlock Classes="menu-subsection-title" Text="Save State" />
+          <Grid Margin="10,0,10,2" RowDefinitions="34,32" RowSpacing="6">
+            <ComboBox
+              x:Name="StateSlotComboBox"
+              Grid.Row="0"
+              Classes="field menu-field"
+              Height="34"
+              HorizontalAlignment="Stretch"
+              SelectionChanged="OnStateSlotSelectionChanged"
+              AutomationProperties.Name="State slot"
+            />
+            <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8">
+              <Button
+                Grid.Column="0"
+                Classes="primary compact"
+                Content="Save"
+                Command="{Binding SaveStateCommand, ElementName=Root}"
+                AutomationProperties.Name="Save state"
+              />
+              <Button
+                Grid.Column="1"
+                Classes="secondary compact menu-secondary"
+                Content="Load"
+                Command="{Binding LoadStateCommand, ElementName=Root}"
+                AutomationProperties.Name="Load state"
+              />
+            </Grid>
+          </Grid>
+
+          <Separator Margin="0,5" />
+          <Button
+            Classes="menu-action"
+            Content="Configuration..."
+            Command="{Binding ConfigurationCommand, ElementName=Root}"
+            AutomationProperties.Name="Open configuration"
+          />
+          <Button
+            Classes="menu-action"
+            Content="Open Config File Location"
+            Command="{Binding ConfigurationFileLocationCommand, ElementName=Root}"
+            AutomationProperties.Name="Open config file location"
+          />
+          <Button
+            Classes="menu-action"
+            Content="Open Logs Folder"
+            Command="{Binding LogFileLocationCommand, ElementName=Root}"
+            AutomationProperties.Name="Open logs folder"
+          />
+          <Button
+            Classes="menu-action"
+            Content="View on GitHub"
+            Command="{Binding GitHubRepositoryCommand, ElementName=Root}"
+            AutomationProperties.Name="View GBC.Net on GitHub"
+          />
+        </StackPanel>
+      </Grid>
+    </ScrollViewer>
+  </Border>
+</UserControl>

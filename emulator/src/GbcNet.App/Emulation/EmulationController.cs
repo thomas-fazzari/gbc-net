@@ -3,7 +3,6 @@
 
 using Avalonia.Platform.Storage;
 using ErrorOr;
-using GbcNet.App.Audio;
 using GbcNet.App.Cheats;
 using GbcNet.App.Saves;
 using GbcNet.Core;

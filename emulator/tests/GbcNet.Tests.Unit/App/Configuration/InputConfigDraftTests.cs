@@ -4,6 +4,7 @@
 using Avalonia.Input;
 using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.Input;
+using GbcNet.App.Infrastructure.Configuration;
 using GbcNet.App.Input;
 using GbcNet.Core.Joypad;
 

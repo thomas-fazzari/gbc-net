@@ -1,7 +1,7 @@
 <Window
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-  xmlns:menus="clr-namespace:GbcNet.App.Menus"
+  xmlns:shell="clr-namespace:GbcNet.App.Shell"
   xmlns:ti="using:TablerIcons"
   x:Class="GbcNet.App.MainWindow"
   x:Name="Root"
@@ -15,6 +15,19 @@
   WindowDecorations="Full"
   Background="{DynamicResource SysCanvasBrush}"
 >
+  <Window.Styles>
+    <Style Selector="Button.toolbar-action, ToggleButton.toolbar-action, Button.toolbar-action:pointerover, Button.toolbar-action:pressed, ToggleButton.toolbar-action:pointerover, ToggleButton.toolbar-action:pressed, ToggleButton.toolbar-action:checked">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Button.toolbar-action /template/ ContentPresenter, ToggleButton.toolbar-action /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+  </Window.Styles>
+
   <Grid RowDefinitions="Auto,*">
     <Border
       x:Name="AppToolbarHost"
@@ -65,11 +78,11 @@
           HorizontalAlignment="Right"
           VerticalAlignment="Center"
           Orientation="Horizontal"
-          Spacing="2"
+          Spacing="6"
         >
           <ToggleButton
             x:Name="PauseToolbarButton"
-            Classes="icon"
+            Classes="icon toolbar-action"
             Command="{Binding PauseCommand, ElementName=MainMenu}"
             ToolTip.Tip="Pause or resume"
             AutomationProperties.Name="Pause or resume emulation"
@@ -78,7 +91,7 @@
           </ToggleButton>
           <ToggleButton
             x:Name="FastForwardToolbarButton"
-            Classes="icon"
+            Classes="icon toolbar-action"
             Command="{Binding FastForwardCommand, ElementName=MainMenu}"
             ToolTip.Tip="Fast forward"
             AutomationProperties.Name="Toggle fast forward"
@@ -87,7 +100,7 @@
           </ToggleButton>
           <Button
             x:Name="FullscreenToolbarButton"
-            Classes="icon"
+            Classes="icon toolbar-action"
             Command="{Binding FullscreenCommand, ElementName=MainMenu}"
             ToolTip.Tip="Fullscreen"
             AutomationProperties.Name="Toggle fullscreen"
@@ -95,7 +108,7 @@
             <ti:TablerIcon Icon="IconArrowsMaximize" />
           </Button>
           <Button
-            Classes="icon"
+            Classes="icon toolbar-action"
             Click="OnToggleActionsClick"
             ToolTip.Tip="More actions"
             AutomationProperties.Name="More actions"
@@ -110,7 +123,7 @@
 
     <Grid x:Name="ActionsOverlay" Grid.Row="0" Grid.RowSpan="2" IsVisible="False">
       <Border Background="Transparent" PointerPressed="OnActionsOverlayBackdropPressed" />
-      <menus:MainMenu
+      <shell:MainMenu
         x:Name="MainMenu"
         MaxHeight="520"
         Margin="0,68,8,0"

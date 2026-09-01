@@ -1,10 +1,12 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using GbcNet.App.Audio;
 using GbcNet.App.Cheats;
 using GbcNet.App.Configuration;
-using GbcNet.App.Database;
+using GbcNet.App.Emulation;
+using GbcNet.App.Infrastructure.Audio;
+using GbcNet.App.Infrastructure.Persistence;
+using GbcNet.App.Infrastructure.Storage;
 using GbcNet.App.Input;
 using GbcNet.App.Library;
 using GbcNet.App.Saves;

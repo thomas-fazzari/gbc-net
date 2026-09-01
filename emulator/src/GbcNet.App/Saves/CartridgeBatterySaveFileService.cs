@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Globalization;
+using GbcNet.App.Infrastructure.Storage;
 using GbcNet.Core.Cartridges;
 using Microsoft.Extensions.Logging;
 

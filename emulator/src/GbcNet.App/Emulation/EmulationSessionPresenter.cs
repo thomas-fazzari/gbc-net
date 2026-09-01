@@ -10,7 +10,6 @@ using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.App.Input;
 using GbcNet.App.Library;
-using GbcNet.App.Menus;
 using GbcNet.App.Saves;
 using GbcNet.App.Shell;
 using GbcNet.App.Shell.Chrome;

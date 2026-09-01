@@ -4,9 +4,9 @@
 using System.Data.Common;
 using System.Security.Cryptography;
 using ErrorOr;
-using GbcNet.App.Database;
-using GbcNet.App.Database.Entities;
-using GbcNet.App.Sorting;
+using GbcNet.App.Entities;
+using GbcNet.App.Infrastructure.Persistence;
+using GbcNet.App.Infrastructure.Storage;
 using GbcNet.Core.Cartridges;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

@@ -8,12 +8,12 @@
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
-        <ResourceInclude Source="avares://GbcNet/Styling/DesignTokens.axaml" />
+        <ResourceInclude Source="avares://GbcNet/Shell/Styling/DesignTokens.axaml" />
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Application.Resources>
   <Application.Styles>
     <SimpleTheme />
-    <StyleInclude Source="avares://GbcNet/Styling/ComponentStyles.axaml" />
+    <StyleInclude Source="avares://GbcNet/Shell/Styling/ComponentStyles.axaml" />
   </Application.Styles>
 </Application>

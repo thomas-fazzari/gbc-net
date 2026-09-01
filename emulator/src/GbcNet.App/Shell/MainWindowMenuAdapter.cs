@@ -4,13 +4,11 @@
 using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Threading;
-using GbcNet.App.Audio;
 using GbcNet.App.Configuration;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.Library;
 using GbcNet.App.Emulation;
 using GbcNet.App.Input;
-using GbcNet.App.Menus;
 using GbcNet.App.Shell.Chrome;
 using Microsoft.Extensions.Logging;
 

@@ -3,8 +3,8 @@
 
 using System.Data.Common;
 using System.Security.Cryptography;
-using GbcNet.App.Database;
-using GbcNet.App.Database.Entities;
+using GbcNet.App.Entities;
+using GbcNet.App.Infrastructure.Persistence;
 using GbcNet.Core.Cheats;
 using Microsoft.EntityFrameworkCore;
 
