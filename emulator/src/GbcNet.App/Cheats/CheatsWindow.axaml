@@ -25,7 +25,7 @@
     <Style Selector="Border.code-list">
       <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource RefRadius}" />
     </Style>
     <Style Selector="Border.code-row">
       <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />

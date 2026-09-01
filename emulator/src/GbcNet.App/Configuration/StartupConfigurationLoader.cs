@@ -1,7 +1,6 @@
 // Copyright (C) 2026 thomas-fazzari
 // SPDX-License-Identifier: GPL-3.0-only
 
-using GbcNet.App.Configuration.Sections.Appearance;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.Emulation;
 using GbcNet.App.Configuration.Sections.Input;
@@ -15,7 +14,6 @@ internal sealed record StartupConfiguration(
     InputConfig InputConfig,
     EmulationConfig EmulationConfig,
     AudioConfig AudioConfig,
-    AppearanceConfig AppearanceConfig,
     LibraryConfig LibraryConfig,
     BootRomOptions BootRomOptions,
     string ConfigPath,
@@ -50,7 +48,7 @@ internal static class StartupConfigurationLoader
             ValidateFallbackConfig(inputConfig);
         }
 
-        if (audioConfig is null || !AudioConfig.IsValidVolume(audioConfig.VolumePercent))
+        if (!AudioConfig.IsValidVolume(audioConfig.VolumePercent))
         {
             startupErrors.Add("Audio volume must be between 0 and 100 percent.");
             audioConfig = new AudioConfig();
@@ -65,7 +63,6 @@ internal static class StartupConfigurationLoader
             inputConfig,
             appConfig.Emulation,
             audioConfig,
-            appConfig.Appearance,
             appConfig.Library,
             bootRomOptions,
             configPath,

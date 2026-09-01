@@ -32,8 +32,6 @@ internal sealed class EmulationSessionPresenter(
     TimeProvider? timeProvider = null
 )
 {
-    private const int RecentRomLimit = 5;
-
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
     private RomStorageIdentity? _activeRomIdentity;
     private long? _playStartedAtTimestamp;
@@ -109,7 +107,6 @@ internal sealed class EmulationSessionPresenter(
                 );
 
                 BeginPlayTime(identity);
-                SyncRecentRoms();
             }
             catch (InvalidOperationException exception)
             {
@@ -137,7 +134,6 @@ internal sealed class EmulationSessionPresenter(
                 shell.ShowError(exception.Message);
             }
 
-            SyncRecentRoms();
             return;
         }
 
@@ -306,25 +302,11 @@ internal sealed class EmulationSessionPresenter(
     }
 
     private void SyncSaveStateDates() =>
-        menu.SetSaveStateDates(
+        menu.SetStateSlotDates(
             controller.State.HasSession
                 ? controller.GetSaveStateDates(MainMenu.StateSlotCount)
                 : new DateTime?[MainMenu.StateSlotCount]
         );
-
-    public void SyncRecentRoms()
-    {
-        try
-        {
-            menu.SetRecentRoms(libraryService.GetRoms(limit: RecentRomLimit));
-        }
-        catch (InvalidOperationException exception)
-        {
-            EmulationSessionPresenterLog.RecentRomsRefreshFailed(logger, exception);
-            shell.ShowError(exception.Message);
-            menu.SetRecentRoms([]);
-        }
-    }
 
     private static void DragDrop_OnDragOver(object? sender, DragEventArgs e)
     {
@@ -418,7 +400,4 @@ internal static partial class EmulationSessionPresenterLog
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Fast-forward settings could not be saved.")]
     internal static partial void FastForwardSettingsSaveFailed(ILogger logger, Exception exception);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Recent ROM list could not be refreshed.")]
-    internal static partial void RecentRomsRefreshFailed(ILogger logger, Exception exception);
 }

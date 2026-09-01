@@ -4,9 +4,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using Avalonia.Styling;
 using GbcNet.App.Configuration;
-using GbcNet.App.Configuration.Sections.Appearance;
 using GbcNet.App.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,7 +35,6 @@ internal sealed class GbcNetApplication : Application
                     "GbcNet.App.Configuration.StartupConfigurationLoader"
                 )
             );
-            ApplyTheme(startupConfiguration.AppearanceConfig.Theme);
             _services = DependencyInjection.BuildServiceProvider(startupConfiguration);
             MigrateDatabase(_services);
             desktop.MainWindow = _services.GetRequiredService<MainWindow>();
@@ -49,23 +46,6 @@ internal sealed class GbcNetApplication : Application
         }
 
         base.OnFrameworkInitializationCompleted();
-    }
-
-    internal static ThemeVariant GetThemeVariant(ThemeMode theme) =>
-        theme switch
-        {
-            ThemeMode.System => ThemeVariant.Default,
-            ThemeMode.Light => ThemeVariant.Light,
-            ThemeMode.Dark => ThemeVariant.Dark,
-            _ => throw new ArgumentOutOfRangeException(nameof(theme), theme, message: null),
-        };
-
-    internal static void ApplyTheme(ThemeMode theme)
-    {
-        if (Current is { } application)
-        {
-            application.RequestedThemeVariant = GetThemeVariant(theme);
-        }
     }
 
     private static void MigrateDatabase(IServiceProvider services) =>

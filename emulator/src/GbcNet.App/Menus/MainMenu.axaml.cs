@@ -4,9 +4,7 @@
 using System.Windows.Input;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Threading;
 using GbcNet.App.Emulation;
-using GbcNet.App.Library;
 
 namespace GbcNet.App.Menus;
 
@@ -35,13 +33,15 @@ internal sealed partial class MainMenu : UserControl
     );
     internal const int StateSlotCount = 10;
 
-    private readonly MenuItem[] _saveStateSlotMenuItems = new MenuItem[StateSlotCount];
-    private readonly MenuItem[] _loadStateSlotMenuItems = new MenuItem[StateSlotCount];
     private readonly List<MenuCommand> _commands = [];
-    private readonly List<(MenuItem Item, EmulationSpeed Speed)> _fastForwardSpeedMenuItems = [];
+    private readonly ComboBoxItem[] _stateSlotItems = new ComboBoxItem[StateSlotCount];
+    private readonly bool[] _stateSlotHasData = new bool[StateSlotCount];
+    private readonly EmulationSpeed[] _fastForwardSpeeds = Enum.GetValues<EmulationSpeed>();
     private bool _emulationActionsEnabled;
     private bool _pauseEnabled;
     private bool _cheatsEnabled;
+    private bool _synchronizingFastForwardSpeed;
+    private int _selectedStateSlotIndex;
 
     public MainMenu()
     {
@@ -57,24 +57,12 @@ internal sealed partial class MainMenu : UserControl
         CheatsCommand = CreateCommand(_ => OpenCheats?.Invoke(), () => _cheatsEnabled);
         MuteCommand = CreateCommand(_ => ToggleMute?.Invoke());
         SaveStateCommand = CreateCommand(
-            parameter =>
-            {
-                if (parameter is int slotIndex)
-                {
-                    SaveState?.Invoke(slotIndex);
-                }
-            },
+            _ => SaveState?.Invoke(_selectedStateSlotIndex),
             () => _emulationActionsEnabled
         );
         LoadStateCommand = CreateCommand(
-            parameter =>
-            {
-                if (parameter is int slotIndex)
-                {
-                    LoadState?.Invoke(slotIndex);
-                }
-            },
-            () => _emulationActionsEnabled
+            _ => LoadState?.Invoke(_selectedStateSlotIndex),
+            () => _emulationActionsEnabled && _stateSlotHasData[_selectedStateSlotIndex]
         );
         FastForwardCommand = CreateCommand(_ => ToggleFastForward?.Invoke());
         FastForwardSpeedCommand = CreateCommand(parameter =>
@@ -84,26 +72,16 @@ internal sealed partial class MainMenu : UserControl
                 SetFastForwardSpeed?.Invoke(speed);
             }
         });
-        OpenRecentRomCommand = CreateCommand(parameter =>
-        {
-            if (parameter is string path)
-            {
-                OpenRecentRom?.Invoke(path);
-            }
-        });
-        FullscreenCommand = CreateCommand(_ => RequestFullscreenToggle());
+        FullscreenCommand = CreateCommand(_ => ToggleFullscreen?.Invoke());
         GitHubRepositoryCommand = CreateCommand(_ => OpenGitHubRepository?.Invoke());
 
         InitializeComponent();
-
-        ConfigureMenu();
+        ConfigurePanel();
     }
 
+    public event EventHandler? ActionInvoked;
+
     public Action? OpenRom { get; set; }
-
-    public Action? RefreshRecentRoms { get; set; }
-
-    public Action<string>? OpenRecentRom { get; set; }
 
     public Action? Close { get; set; }
 
@@ -159,8 +137,6 @@ internal sealed partial class MainMenu : UserControl
 
     public ICommand FastForwardSpeedCommand { get; }
 
-    public ICommand OpenRecentRomCommand { get; }
-
     public ICommand FullscreenCommand { get; }
 
     public ICommand GitHubRepositoryCommand { get; }
@@ -170,8 +146,8 @@ internal sealed partial class MainMenu : UserControl
     public void SetEmulationActionsEnabled(bool isEnabled)
     {
         _emulationActionsEnabled = isEnabled;
-        SaveStateMenuItem.IsEnabled = isEnabled;
-        LoadStateMenuItem.IsEnabled = isEnabled;
+        LibrarySection.IsVisible = !isEnabled;
+        EmulationSection.IsVisible = isEnabled;
         SetPauseState(isEnabled: isEnabled, isPaused: false);
         RefreshCommandStates();
     }
@@ -182,60 +158,54 @@ internal sealed partial class MainMenu : UserControl
         RefreshCommandStates();
     }
 
-    public void SetSaveStateDates(IReadOnlyList<DateTime?> dates)
+    public void SetStateSlotDates(IReadOnlyList<DateTime?> dates)
     {
         for (var slotIndex = 0; slotIndex < StateSlotCount; slotIndex++)
         {
             var date = dates[index: slotIndex];
-            var header = date is not null
+            _stateSlotHasData[slotIndex] = date is not null;
+            _stateSlotItems[slotIndex].Content = date is not null
                 ? $"Slot {slotIndex + 1} — {date:g}"
                 : $"Slot {slotIndex + 1}";
-            _saveStateSlotMenuItems[slotIndex].Header = header;
-            _loadStateSlotMenuItems[slotIndex].Header = header;
-            _loadStateSlotMenuItems[slotIndex].IsEnabled = date is not null;
         }
 
-        LoadStateMenuItem.IsEnabled =
-            _emulationActionsEnabled && dates.Any(date => date is not null);
+        RefreshCommandStates();
     }
 
     public void SetPauseState(bool isEnabled, bool isPaused)
     {
         _pauseEnabled = isEnabled;
-        PauseEmulationMenuItem.Header = isPaused ? "Resume" : "Pause";
+        PauseButton.Content = isPaused ? "Resume" : "Pause";
         RefreshCommandStates();
     }
 
     public void SetFastForwardState(bool isEnabled, EmulationSpeed speed)
     {
-        FastForwardMenuItem.IsChecked = isEnabled;
+        FastForwardToggleButton.IsChecked = isEnabled;
 
-        foreach (var (item, itemSpeed) in _fastForwardSpeedMenuItems)
+        var selectedIndex = Array.IndexOf(_fastForwardSpeeds, speed);
+        if (selectedIndex < 0 || FastForwardSpeedComboBox.SelectedIndex == selectedIndex)
         {
-            item.IsChecked = itemSpeed == speed;
+            return;
         }
+
+        _synchronizingFastForwardSpeed = true;
+        FastForwardSpeedComboBox.SelectedIndex = selectedIndex;
+        _synchronizingFastForwardSpeed = false;
     }
 
-    public void SetMuteState(bool isMuted) => MuteAudioMenuItem.IsChecked = isMuted;
-
-    public void SetFullscreenState(bool isFullscreen) =>
-        FullscreenMenuItem.IsChecked = isFullscreen;
-
-    public void SetRecentRoms(IReadOnlyList<LibraryEntry> entries)
-    {
-        OpenRecentMenuItem.Items.Clear();
-
-        OpenRecentMenuItem.IsEnabled = entries.Count > 0;
-
-        foreach (var entry in entries)
-        {
-            OpenRecentMenuItem.Items.Add(CreateRecentRomMenuItem(entry));
-        }
-    }
+    public void SetMuteState(bool isMuted) => MuteToggleButton.IsChecked = isMuted;
 
     private MenuCommand CreateCommand(Action<object?> execute, Func<bool>? canExecute = null)
     {
-        var command = new MenuCommand(execute, canExecute);
+        var command = new MenuCommand(
+            parameter =>
+            {
+                execute(parameter);
+                ActionInvoked?.Invoke(this, EventArgs.Empty);
+            },
+            canExecute
+        );
         _commands.Add(command);
         return command;
     }
@@ -248,26 +218,27 @@ internal sealed partial class MainMenu : UserControl
         }
     }
 
-    private void RequestFullscreenToggle()
+    private void ConfigurePanel()
     {
-        OverflowButton.Flyout?.Hide();
-        Dispatcher.UIThread.Post(() => ToggleFullscreen?.Invoke(), DispatcherPriority.Background);
-    }
+        for (var slotIndex = 0; slotIndex < StateSlotCount; slotIndex++)
+        {
+            var item = new ComboBoxItem { Content = $"Slot {slotIndex + 1}" };
+            _stateSlotItems[slotIndex] = item;
+            StateSlotComboBox.Items.Add(item);
+        }
 
-    private void ConfigureMenu()
-    {
-        FileMenuItem.SubmenuOpened += (_, _) => RefreshRecentRoms?.Invoke();
-        OpenRomMenuItem.InputGesture = _openRomGesture;
-        CloseWindowMenuItem.InputGesture = _closeGesture;
-        ConfigurationMenuItem.InputGesture = _configurationGesture;
-        PauseEmulationMenuItem.InputGesture = _pauseGesture;
-        ResetEmulationMenuItem.InputGesture = _resetGesture;
-        CheatsMenuItem.InputGesture = _cheatsGesture;
-        MuteAudioMenuItem.InputGesture = _muteGesture;
-        FastForwardMenuItem.InputGesture = _fastForwardGesture;
-        FullscreenMenuItem.InputGesture = _fullscreenGesture;
-        ConfigureStateSlotMenuItems();
-        ConfigureFastForwardSpeedMenuItems();
+        StateSlotComboBox.SelectedIndex = 0;
+
+        _synchronizingFastForwardSpeed = true;
+        foreach (var speed in _fastForwardSpeeds)
+        {
+            FastForwardSpeedComboBox.Items.Add(
+                new ComboBoxItem { Content = speed.GetDisplayName() }
+            );
+        }
+
+        FastForwardSpeedComboBox.SelectedIndex = 0;
+        _synchronizingFastForwardSpeed = false;
     }
 
     private void ConfigureKeyBindings(Window window)
@@ -286,54 +257,32 @@ internal sealed partial class MainMenu : UserControl
     private static void AddKeyBinding(Window window, KeyGesture gesture, ICommand command) =>
         window.KeyBindings.Add(new KeyBinding { Gesture = gesture, Command = command });
 
-    private void ConfigureStateSlotMenuItems()
+    private void OnStateSlotSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        for (var slotIndex = 0; slotIndex < StateSlotCount; slotIndex++)
+        var selectedIndex = StateSlotComboBox.SelectedIndex;
+        if (selectedIndex < 0 || selectedIndex >= StateSlotCount)
         {
-            var saveItem = CreateStateSlotMenuItem(slotIndex, SaveStateCommand);
-            var loadItem = CreateStateSlotMenuItem(slotIndex, LoadStateCommand);
-
-            _saveStateSlotMenuItems[slotIndex] = saveItem;
-            _loadStateSlotMenuItems[slotIndex] = loadItem;
-            SaveStateMenuItem.Items.Add(saveItem);
-            LoadStateMenuItem.Items.Add(loadItem);
+            return;
         }
+
+        _selectedStateSlotIndex = selectedIndex;
+        RefreshCommandStates();
     }
 
-    private static MenuItem CreateStateSlotMenuItem(int slotIndex, ICommand command) =>
-        new()
-        {
-            Header = $"Slot {slotIndex + 1}",
-            Command = command,
-            CommandParameter = slotIndex,
-        };
-
-    private void ConfigureFastForwardSpeedMenuItems()
+    private void OnFastForwardSpeedSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        foreach (var speed in Enum.GetValues<EmulationSpeed>())
+        var selectedIndex = FastForwardSpeedComboBox.SelectedIndex;
+        if (
+            _synchronizingFastForwardSpeed
+            || selectedIndex < 0
+            || selectedIndex >= _fastForwardSpeeds.Length
+        )
         {
-            var item = CreateFastForwardSpeedMenuItem(speed);
-            _fastForwardSpeedMenuItems.Add((item, speed));
-            FastForwardSpeedMenuItem.Items.Add(item);
+            return;
         }
+
+        FastForwardSpeedCommand.Execute(_fastForwardSpeeds[selectedIndex]);
     }
-
-    private MenuItem CreateFastForwardSpeedMenuItem(EmulationSpeed speed) =>
-        new()
-        {
-            Header = speed.GetDisplayName(),
-            ToggleType = MenuItemToggleType.CheckBox,
-            Command = FastForwardSpeedCommand,
-            CommandParameter = speed,
-        };
-
-    private MenuItem CreateRecentRomMenuItem(LibraryEntry entry) =>
-        new()
-        {
-            Header = entry.FileName,
-            Command = OpenRecentRomCommand,
-            CommandParameter = entry.LastKnownPath,
-        };
 
     private sealed class MenuCommand(Action<object?> execute, Func<bool>? canExecute) : ICommand
     {

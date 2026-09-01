@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using Avalonia.Controls;
 using ErrorOr;
-using GbcNet.App.Configuration.Sections.Appearance;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.Input;
 using GbcNet.App.Input;
@@ -21,7 +20,6 @@ internal sealed class ConfigurationPresenter(
     Action<BootRomOptions> setBootRomOptions,
     Action<InputConfig> applyInputConfig,
     Action<AudioConfig> applyAudioConfig,
-    Action<ThemeMode> applyTheme,
     GamepadManager gamepadManager,
     ILogger<ConfigurationPresenter> logger,
     ILogger settingsLogger
@@ -41,7 +39,6 @@ internal sealed class ConfigurationPresenter(
             var defaults = AppConfigurationFile.CreateDefault();
             settings = new SettingsConfig(defaults.BootRoms, defaults.Input)
             {
-                Appearance = defaults.Appearance,
                 Audio = defaults.Audio,
             };
         }
@@ -119,7 +116,6 @@ internal sealed class ConfigurationPresenter(
 
         applyInputConfig(settings.Input);
         applyAudioConfig(settings.Audio);
-        applyTheme(settings.Appearance.Theme);
         ReloadBootRomOptions();
 
         if (result.Value.Count != 0)

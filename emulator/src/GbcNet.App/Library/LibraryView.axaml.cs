@@ -27,6 +27,7 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
     public LibraryView()
     {
         InitializeComponent();
+        LibrarySearchTextBox.TextChanged += OnSearchTextChanged;
 
         _hardwareFilter = LibraryHardwareFilter.All;
         _regionFilter = LibraryRegionFilter.All;
@@ -39,6 +40,8 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
     public Action<LibraryEntry>? ClearCoverRequested { get; set; }
     public Action<LibraryEntry>? RemoveRequested { get; set; }
     public Action? OpenRomRequested { get; set; }
+    public Action? ConfigurationRequested { get; set; }
+    public Action? ActionsRequested { get; set; }
     public Action? QueryChanged { get; set; }
     public Action<LibraryViewMode>? ViewModeChanged { get; set; }
 
@@ -89,6 +92,8 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
             Region: _regionFilter,
             Direction: _tableSortDirection
         );
+
+    public void FocusSearch() => LibrarySearchTextBox.Focus();
 
     public void SetViewMode(LibraryViewMode viewMode)
     {
@@ -159,6 +164,20 @@ internal sealed partial class LibraryView : UserControl, INotifyPropertyChanged
         || _tableSortMode is not null;
 
     private void OnOpenRomClick(object? sender, RoutedEventArgs e) => OpenRomRequested?.Invoke();
+
+    private void OnConfigurationClick(object? sender, RoutedEventArgs e) =>
+        ConfigurationRequested?.Invoke();
+
+    private void OnActionsClick(object? sender, RoutedEventArgs e) => ActionsRequested?.Invoke();
+
+    private void OnClearSearchClick(object? sender, RoutedEventArgs e)
+    {
+        SearchText = string.Empty;
+        FocusSearch();
+    }
+
+    private void OnSearchTextChanged(object? sender, TextChangedEventArgs e) =>
+        ClearSearchButton.IsVisible = !string.IsNullOrEmpty(LibrarySearchTextBox.Text);
 
     private void OnViewModeChanged(object? sender, RoutedEventArgs e)
     {

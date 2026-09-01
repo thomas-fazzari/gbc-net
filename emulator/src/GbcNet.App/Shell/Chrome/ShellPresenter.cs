@@ -9,7 +9,6 @@ namespace GbcNet.App.Shell.Chrome;
 
 internal sealed class ShellPresenter(
     TextBlock romTitle,
-    Border emulationStateBadge,
     TextBlock emulationState,
     ToggleButton pauseButton,
     ToggleButton fastForwardButton,
@@ -43,7 +42,7 @@ internal sealed class ShellPresenter(
         pauseButton.IsChecked = isPaused;
         fastForwardButton.IsChecked = fastForwardEnabled;
         emulationState.Text = isPaused ? "Paused" : effectiveSpeed.Replace('x', '×');
-        emulationStateBadge.IsVisible = hasSession;
+        emulationState.IsVisible = hasSession && (isPaused || fastForwardEnabled);
     }
 
     private static string GetRomDisplayTitle(string fileName)

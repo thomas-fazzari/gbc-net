@@ -30,11 +30,10 @@ public sealed class ShellPresenterTests
     [Fact]
     public void ShowEmulationState_UsesPausedStateBeforeEffectiveSpeed()
     {
-        var badge = new Border();
         var state = new TextBlock();
         var pause = new ToggleButton();
         var fastForward = new ToggleButton();
-        var presenter = CreatePresenter(badge, state, pause, fastForward);
+        var presenter = CreatePresenter(state, pause, fastForward);
 
         presenter.ShowEmulationState(
             hasSession: true,
@@ -44,7 +43,7 @@ public sealed class ShellPresenterTests
         );
 
         state.Text.Should().Be("Paused");
-        badge.IsVisible.Should().BeTrue();
+        state.IsVisible.Should().BeTrue();
         pause.IsChecked.Should().BeTrue();
         fastForward.IsChecked.Should().BeTrue();
     }
@@ -68,17 +67,17 @@ public sealed class ShellPresenterTests
     }
 
     [Theory]
-    [InlineData(false, "1x", "1×")]
-    [InlineData(true, "8x", "8×")]
-    public void ShowEmulationState_UsesCompactNeutralSpeedLabel(
+    [InlineData(false, "1x", "1×", false)]
+    [InlineData(true, "8x", "8×", true)]
+    public void ShowEmulationState_HidesNormalSpeedLabel(
         bool fastForwardEnabled,
         string effectiveSpeed,
-        string expectedLabel
+        string expectedLabel,
+        bool expectedVisible
     )
     {
-        var badge = new Border();
         var state = new TextBlock();
-        var presenter = CreatePresenter(badge: badge, state: state);
+        var presenter = CreatePresenter(state: state);
 
         presenter.ShowEmulationState(
             hasSession: true,
@@ -88,11 +87,10 @@ public sealed class ShellPresenterTests
         );
 
         state.Text.Should().Be(expectedLabel);
-        badge.Classes.Should().NotContain("active");
+        state.IsVisible.Should().Be(expectedVisible);
     }
 
     private static ShellPresenter CreatePresenter(
-        Border? badge = null,
         TextBlock? state = null,
         ToggleButton? pause = null,
         ToggleButton? fastForward = null,
@@ -102,7 +100,6 @@ public sealed class ShellPresenterTests
     ) =>
         new(
             romTitle ?? new TextBlock(),
-            badge ?? new Border(),
             state ?? new TextBlock(),
             pause ?? new ToggleButton(),
             fastForward ?? new ToggleButton(),

@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Diagnostics;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using GbcNet.App.Audio;
@@ -18,8 +17,7 @@ using Microsoft.Extensions.Logging;
 namespace GbcNet.App.Shell;
 
 /// <summary>
-/// Wires <see cref="MainMenu"/> callbacks to the session/presenter/services and
-/// keeps menu check-state in sync with audio and fullscreen state.
+/// Wires <see cref="MainMenu"/> callbacks to the session, presenters, and services.
 /// </summary>
 internal sealed class MainWindowMenuAdapter(
     MainMenu mainMenu,
@@ -46,11 +44,6 @@ internal sealed class MainWindowMenuAdapter(
         mainMenu.AttachToWindow(window);
         mainMenu.OpenRom = () =>
             operationRunner.Run(() => emulationSession.OpenRomAsync(window.StorageProvider));
-        mainMenu.RefreshRecentRoms = emulationSession.SyncRecentRoms;
-        mainMenu.OpenRecentRom = path =>
-            operationRunner.Run(() =>
-                emulationSession.OpenRecentRomAsync(window.StorageProvider, path)
-            );
         mainMenu.Close = () => operationRunner.Run(emulationSession.StopAsync);
         mainMenu.OpenConfiguration = () =>
             operationRunner.Run(() => configurationPresenter.OpenAsync(window));
@@ -92,24 +85,9 @@ internal sealed class MainWindowMenuAdapter(
         window.Deactivated += (_, _) => gamepadManager.SetGameplayEnabled(enabled: false);
         SyncMenuState();
         emulationSession.SyncMenuState();
-        emulationSession.SyncRecentRoms();
     }
 
-    public void SyncMenuState()
-    {
-        mainMenu.SetFullscreenState(isFullscreen: window.WindowState is WindowState.FullScreen);
-        mainMenu.SetMuteState(isMuted: _audioConfig.Muted);
-    }
-
-    public void SyncFullscreenState(AvaloniaPropertyChangedEventArgs change)
-    {
-        if (change.Property != Window.WindowStateProperty)
-        {
-            return;
-        }
-
-        mainMenu.SetFullscreenState(isFullscreen: window.WindowState is WindowState.FullScreen);
-    }
+    public void SyncMenuState() => mainMenu.SetMuteState(isMuted: _audioConfig.Muted);
 
     public void ApplyAudioConfig(AudioConfig config)
     {

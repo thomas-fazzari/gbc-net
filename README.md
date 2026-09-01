@@ -10,16 +10,6 @@
   A Game Boy, Game Boy Color & Super Game Boy emulator written in C#
 </p>
 
-<h2>Work in Progress</h2>
-<p>
-  This project is under active development. Core emulation is functional, but some features are incomplete and bugs are expected.
-</p>
-
-<p align="center">
-  <img src="docs/assets/app.png" alt="GBC.Net app" width="600" />
-  <img src="docs/assets/emulation.png" alt="GBC.Net in-game" width="600" />
-</p>
-
 <h2>Getting Started</h2>
 
 <p>Run it from source with:</p>

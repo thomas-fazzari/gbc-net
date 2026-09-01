@@ -37,7 +37,6 @@
       <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
       <Setter Property="Margin" Value="0,0,0,2" />
       <Setter Property="FocusAdorner" Value="{x:Null}" />
     </Style>
@@ -93,26 +92,23 @@
     </Border>
 
     <Grid Grid.Column="1" RowDefinitions="*" Margin="24,20,24,16" MinWidth="0">
-      <Grid x:Name="GeneralPage" RowDefinitions="Auto,*">
+      <Grid x:Name="GeneralPage" RowDefinitions="Auto,*" ColumnDefinitions="*,*">
         <StackPanel Grid.Row="0" Spacing="3" Margin="0,0,0,14">
           <TextBlock Classes="subtitle" Text="General" />
-          <TextBlock Classes="page-description" Text="Manage sound and appearance." />
+          <TextBlock Classes="page-description" Text="Manage sound." />
         </StackPanel>
 
         <Grid
           Grid.Row="1"
-          MaxWidth="720"
+          MinWidth="354"
           RowDefinitions="Auto,Auto"
-          ColumnDefinitions="*,*"
           RowSpacing="8"
-          ColumnSpacing="12"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Top"
         >
-          <TextBlock Grid.Row="0" Grid.Column="0" Classes="section-title" Text="Audio" />
-          <TextBlock Grid.Row="0" Grid.Column="1" Classes="section-title" Text="Theme" />
+          <TextBlock Grid.Row="0" Classes="section-title" Text="Audio" />
 
-          <Border Grid.Row="1" Grid.Column="0" Classes="card" Padding="12">
+          <Border Grid.Row="1" Classes="card" Padding="12">
             <Grid
               RowDefinitions="32,32"
               ColumnDefinitions="80,*,40"
@@ -161,45 +157,6 @@
                 AutomationProperties.HelpText="Silence audio without changing the volume"
               />
             </Grid>
-          </Border>
-
-          <Border Grid.Row="1" Grid.Column="1" Classes="card" Padding="12" VerticalAlignment="Top">
-            <Border
-              x:Name="ThemeModeSelector"
-              Width="246"
-              Height="32"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Center"
-              Background="{DynamicResource SysSurfaceRaisedBrush}"
-              CornerRadius="{DynamicResource RefRadiusMedium}"
-            >
-              <Grid ColumnDefinitions="*,*,*">
-                <RadioButton
-                  x:Name="SystemThemeRadioButton"
-                  Grid.Column="0"
-                  Classes="segmented first"
-                  GroupName="ThemeMode"
-                  Content="System"
-                  AutomationProperties.Name="Use system theme"
-                />
-                <RadioButton
-                  x:Name="LightThemeRadioButton"
-                  Grid.Column="1"
-                  Classes="segmented"
-                  GroupName="ThemeMode"
-                  Content="Light"
-                  AutomationProperties.Name="Use light theme"
-                />
-                <RadioButton
-                  x:Name="DarkThemeRadioButton"
-                  Grid.Column="2"
-                  Classes="segmented last"
-                  GroupName="ThemeMode"
-                  Content="Dark"
-                  AutomationProperties.Name="Use dark theme"
-                />
-              </Grid>
-            </Border>
           </Border>
         </Grid>
       </Grid>
@@ -353,7 +310,7 @@
             HorizontalAlignment="Right"
             VerticalAlignment="Center"
             Background="{DynamicResource SysSurfaceRaisedBrush}"
-            CornerRadius="{DynamicResource RefRadiusMedium}"
+            CornerRadius="{DynamicResource RefRadius}"
           >
             <Grid ColumnDefinitions="*,*" MinWidth="0">
               <ToggleButton

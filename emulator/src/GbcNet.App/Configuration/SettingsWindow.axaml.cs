@@ -11,7 +11,6 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
-using GbcNet.App.Configuration.Sections.Appearance;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Input;
@@ -62,9 +61,6 @@ internal sealed partial class SettingsWindow : Window
         VolumeSlider.Value = settings.Audio.VolumePercent;
         VolumeValueTextBlock.Text = $"{settings.Audio.VolumePercent}%";
         MuteAudioCheckBox.IsChecked = settings.Audio.Muted;
-        SystemThemeRadioButton.IsChecked = settings.Appearance.Theme == ThemeMode.System;
-        LightThemeRadioButton.IsChecked = settings.Appearance.Theme == ThemeMode.Light;
-        DarkThemeRadioButton.IsChecked = settings.Appearance.Theme == ThemeMode.Dark;
 
         BuildBindingRows(
             InputTab.Keyboard,
@@ -109,16 +105,6 @@ internal sealed partial class SettingsWindow : Window
             VolumePercent: (int)Math.Round(VolumeSlider.Value),
             Muted: MuteAudioCheckBox.IsChecked is true
         );
-
-    private AppearanceConfig GetAppearanceConfig()
-    {
-        if (DarkThemeRadioButton.IsChecked is true)
-        {
-            return new(ThemeMode.Dark);
-        }
-
-        return new(LightThemeRadioButton.IsChecked is true ? ThemeMode.Light : ThemeMode.System);
-    }
 
     private static string? NormalizePath(string? path) =>
         string.IsNullOrWhiteSpace(path) ? null : path;
@@ -227,11 +213,7 @@ internal sealed partial class SettingsWindow : Window
         }
 
         Close(
-            new SettingsConfig(GetBootRomConfig(), _inputDraft.Build())
-            {
-                Appearance = GetAppearanceConfig(),
-                Audio = GetAudioConfig(),
-            }
+            new SettingsConfig(GetBootRomConfig(), _inputDraft.Build()) { Audio = GetAudioConfig() }
         );
     }
 

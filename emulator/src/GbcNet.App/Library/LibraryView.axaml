@@ -5,24 +5,27 @@
   xmlns:library="using:GbcNet.App.Library"
   xmlns:ti="using:TablerIcons"
   x:Class="GbcNet.App.Library.LibraryView"
+  x:Name="Root"
 >
   <UserControl.Styles>
+    <Style Selector="Border.library-search:focus-within">
+      <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
+    </Style>
     <Style Selector="ComboBox.library-filter">
       <Setter Property="HorizontalAlignment" Value="Left" />
-      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
     </Style>
     <Style Selector="ComboBox.library-filter.hardware-filter">
-      <Setter Property="Width" Value="156" />
+      <Setter Property="Width" Value="144" />
     </Style>
     <Style Selector="ComboBox.library-filter.region-filter">
-      <Setter Property="Width" Value="144" />
+      <Setter Property="Width" Value="128" />
     </Style>
     <Style Selector="Button.library-tile">
       <Setter Property="Padding" Value="8" />
       <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource RefRadius}" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="VerticalContentAlignment" Value="Stretch" />
     </Style>
@@ -35,7 +38,7 @@
     </Style>
     <Style Selector="TableView.library-list-row">
       <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
-      <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
+      <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="FontSize" Value="13" />
@@ -43,9 +46,9 @@
     <Style Selector="TableView.library-list-row TableViewColumnHeader">
       <Setter Property="Height" Value="32" />
       <Setter Property="Padding" Value="10,0" />
-      <Setter Property="Background" Value="{DynamicResource SysSurfaceBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource SysBorderBrush}" />
-      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
       <Setter Property="Foreground" Value="{DynamicResource SysTextMutedBrush}" />
       <Setter Property="FontSize" Value="11" />
       <Setter Property="FontWeight" Value="Medium" />
@@ -58,7 +61,7 @@
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource RefRadius}" />
       <Setter Property="Foreground" Value="{DynamicResource SysTextMutedBrush}" />
       <Setter Property="FontSize" Value="11" />
       <Setter Property="FontWeight" Value="Medium" />
@@ -68,7 +71,7 @@
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="CornerRadius" Value="{DynamicResource RefRadiusMedium}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource RefRadius}" />
     </Style>
     <Style Selector="Button.library-sort-header:pointerover /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="{DynamicResource SysSurfaceRaisedBrush}" />
@@ -181,577 +184,614 @@
     </Style>
   </UserControl.Styles>
 
-  <Border x:Name="LibraryPageBackground" Background="{DynamicResource SysCanvasBrush}">
-    <Border
-      Margin="8,0,8,8"
-      Padding="12,8,12,12"
-      Background="{DynamicResource SysSurfaceBrush}"
-      CornerRadius="{DynamicResource RefRadiusLarge}"
-    >
-      <Grid x:Name="LibraryViewport">
-        <Grid
-          x:Name="LibraryContent"
-          MaxWidth="1440"
-          Width="{Binding Bounds.Width, ElementName=LibraryViewport}"
-          HorizontalAlignment="Center"
-          RowDefinitions="40,*"
-          RowSpacing="8"
-        >
-          <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
-            <ComboBox
-              x:Name="HardwareFilter"
-              Grid.Column="0"
-              Classes="field library-filter hardware-filter"
-              SelectedIndex="0"
-              SelectionChanged="OnHardwareFilterChanged"
-              ToolTip.Tip="Hardware"
-              AutomationProperties.Name="Filter by hardware"
-            >
-              <ComboBoxItem Tag="All">Any system</ComboBoxItem>
-              <ComboBoxItem Tag="Gb">Game Boy</ComboBoxItem>
-              <ComboBoxItem Tag="Gbc">Game Boy Color</ComboBoxItem>
-              <ComboBoxItem Tag="Sgb">Super Game Boy</ComboBoxItem>
-            </ComboBox>
+  <Border x:Name="LibraryPageBackground" Padding="16" Background="{DynamicResource SysCanvasBrush}">
+    <Grid x:Name="LibraryViewport">
+      <Grid
+        x:Name="LibraryContent"
+        MaxWidth="1288"
+        Width="{Binding Bounds.Width, ElementName=LibraryViewport}"
+        HorizontalAlignment="Center"
+        RowDefinitions="40,*"
+        RowSpacing="8"
+      >
+        <Grid ColumnDefinitions="280,144,128,*" ColumnSpacing="8">
+          <Border
+            Grid.Column="0"
+            Classes="library-search"
+            Width="280"
+            Height="36"
+            Background="{DynamicResource SysSurfaceRaisedBrush}"
+            CornerRadius="{DynamicResource RefRadius}"
+            VerticalAlignment="Center"
+          >
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <ti:TablerIcon
+                Grid.Column="0"
+                Icon="IconSearch"
+                Width="18"
+                Height="18"
+                Margin="12,0,4,0"
+                VerticalAlignment="Center"
+              />
+              <TextBox
+                x:Name="LibrarySearchTextBox"
+                Grid.Column="1"
+                Text="{Binding SearchText, ElementName=Root, Mode=TwoWay}"
+                PlaceholderText="Search library"
+                Background="Transparent"
+                BorderBrush="Transparent"
+                BorderThickness="0"
+                Padding="6,0"
+                FocusAdorner="{x:Null}"
+                VerticalContentAlignment="Center"
+                AutomationProperties.Name="Search library"
+              />
+              <Button
+                x:Name="ClearSearchButton"
+                Grid.Column="2"
+                Classes="icon"
+                IsVisible="False"
+                Click="OnClearSearchClick"
+                ToolTip.Tip="Clear search"
+                AutomationProperties.Name="Clear search"
+              >
+                <ti:TablerIcon Icon="IconX" Width="16" Height="16" />
+              </Button>
+            </Grid>
+          </Border>
 
-            <ComboBox
-              x:Name="RegionFilter"
-              Grid.Column="1"
-              Classes="field library-filter region-filter"
-              SelectedIndex="0"
-              SelectionChanged="OnRegionFilterChanged"
-              ToolTip.Tip="Region"
-              AutomationProperties.Name="Filter by region"
-            >
-              <ComboBoxItem Tag="All">Any region</ComboBoxItem>
-              <ComboBoxItem Tag="Japan">Japan</ComboBoxItem>
-              <ComboBoxItem Tag="Usa">USA</ComboBoxItem>
-              <ComboBoxItem Tag="Europe">Europe</ComboBoxItem>
-              <ComboBoxItem Tag="World">World</ComboBoxItem>
-              <ComboBoxItem Tag="Other">Other</ComboBoxItem>
-            </ComboBox>
+          <ComboBox
+            x:Name="HardwareFilter"
+            Grid.Column="1"
+            Classes="field library-filter hardware-filter"
+            SelectedIndex="0"
+            SelectionChanged="OnHardwareFilterChanged"
+            ToolTip.Tip="Hardware"
+            AutomationProperties.Name="Filter by hardware"
+          >
+            <ComboBoxItem Tag="All">Any system</ComboBoxItem>
+            <ComboBoxItem Tag="Gb">Game Boy</ComboBoxItem>
+            <ComboBoxItem Tag="Gbc">Game Boy Color</ComboBoxItem>
+            <ComboBoxItem Tag="Sgb">Super Game Boy</ComboBoxItem>
+          </ComboBox>
 
-            <Border
-              Grid.Column="3"
-              Width="72"
-              Height="36"
-              Background="{DynamicResource SysSurfaceRaisedBrush}"
-              CornerRadius="{DynamicResource RefRadiusMedium}"
-              VerticalAlignment="Center"
-            >
-              <StackPanel Spacing="0" Orientation="Horizontal">
-                <ToggleButton
-                  x:Name="GridViewToggle"
-                  Classes="segmented left"
-                  Width="36"
-                  MinWidth="36"
-                  Padding="0"
-                  Tag="Grid"
-                  Click="OnViewModeChanged"
-                  ToolTip.Tip="Grid view"
-                  AutomationProperties.Name="Grid view"
-                >
-                  <ti:TablerIcon Width="16" Height="16" Icon="IconLayoutGrid" />
-                </ToggleButton>
-                <ToggleButton
-                  x:Name="ListViewToggle"
-                  Classes="segmented right"
-                  Width="36"
-                  MinWidth="36"
-                  Padding="0"
-                  Tag="List"
-                  Click="OnViewModeChanged"
-                  ToolTip.Tip="List view"
-                  AutomationProperties.Name="List view"
-                >
-                  <ti:TablerIcon Width="16" Height="16" Icon="IconList" />
-                </ToggleButton>
-              </StackPanel>
-            </Border>
-          </Grid>
+          <ComboBox
+            x:Name="RegionFilter"
+            Grid.Column="2"
+            Classes="field library-filter region-filter"
+            SelectedIndex="0"
+            SelectionChanged="OnRegionFilterChanged"
+            ToolTip.Tip="Region"
+            AutomationProperties.Name="Filter by region"
+          >
+            <ComboBoxItem Tag="All">Any region</ComboBoxItem>
+            <ComboBoxItem Tag="Japan">Japan</ComboBoxItem>
+            <ComboBoxItem Tag="Usa">USA</ComboBoxItem>
+            <ComboBoxItem Tag="Europe">Europe</ComboBoxItem>
+            <ComboBoxItem Tag="World">World</ComboBoxItem>
+            <ComboBoxItem Tag="Other">Other</ComboBoxItem>
+          </ComboBox>
+        </Grid>
 
-          <Grid Grid.Row="1">
-            <ScrollViewer
-              x:Name="LibraryScrollViewer"
-              HorizontalScrollBarVisibility="Disabled"
-              VerticalScrollBarVisibility="Auto"
-            >
-              <Grid>
-                <ItemsControl x:Name="RomGridControl">
-                  <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                      <WrapPanel Orientation="Horizontal" />
-                    </ItemsPanelTemplate>
-                  </ItemsControl.ItemsPanel>
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="library:LibraryTile">
-                      <Grid Width="176" Height="252" Margin="4">
-                        <Button
-                          Classes="library-tile"
-                          Click="OnRomTileClick"
-                          AutomationProperties.Name="{Binding UserFriendlyTitle}"
-                        >
-                          <Grid RowDefinitions="160,48,*">
-                            <Border
-                              Grid.Row="0"
-                              Height="160"
-                              Background="{DynamicResource SysSurfaceRaisedBrush}"
-                              ClipToBounds="True"
-                              CornerRadius="{DynamicResource RefRadiusSmall}"
-                            >
-                              <Grid>
-                                <Image
-                                  Source="{Binding CoverBitmap}"
-                                  IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNotNull}}"
-                                  Stretch="Fill"
-                                />
-                                <TextBlock
-                                  Text="ROM"
-                                  IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNull}}"
-                                  Foreground="{DynamicResource SysTextMutedBrush}"
-                                  FontSize="22"
-                                  FontWeight="Medium"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"
-                                />
-                              </Grid>
-                            </Border>
-                            <TextBlock
-                              Grid.Row="1"
-                              Margin="0,8,0,0"
-                              Text="{Binding UserFriendlyTitle}"
-                              Foreground="{DynamicResource SysTextBrush}"
-                              FontSize="12"
-                              FontWeight="Medium"
-                              MaxLines="2"
-                              TextTrimming="WordEllipsis"
-                              TextWrapping="Wrap"
-                              VerticalAlignment="Top"
-                            />
-                            <Grid Grid.Row="2" ColumnDefinitions="*,Auto,28" ColumnSpacing="4">
-                              <StackPanel
-                                Height="24"
-                                Spacing="4"
-                                Orientation="Horizontal"
-                                VerticalAlignment="Bottom"
-                              >
-                                <ti:TablerIcon
-                                  Width="16"
-                                  Height="16"
-                                  Icon="IconClock"
-                                  Brush="{DynamicResource SysTextMutedBrush}"
-                                />
-                                <TextBlock
-                                  Text="{Binding PlayTimeText}"
-                                  Foreground="{DynamicResource SysTextMutedBrush}"
-                                  FontSize="11"
-                                  VerticalAlignment="Center"
-                                />
-                              </StackPanel>
-                              <Border
-                                Grid.Column="1"
-                                Classes="badge tile-badge"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Bottom"
-                              >
-                                <TextBlock
-                                  Text="{Binding HardwareText}"
-                                  Classes="label"
-                                  VerticalAlignment="Center"
-                                />
-                              </Border>
+        <Grid Grid.Row="1">
+          <ScrollViewer
+            x:Name="LibraryScrollViewer"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto"
+          >
+            <Grid>
+              <ItemsControl x:Name="RomGridControl">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="library:LibraryTile">
+                    <Grid Width="176" Height="252" Margin="4">
+                      <Button
+                        Classes="library-tile"
+                        Click="OnRomTileClick"
+                        AutomationProperties.Name="{Binding UserFriendlyTitle}"
+                      >
+                        <Grid RowDefinitions="160,48,*">
+                          <Border
+                            Grid.Row="0"
+                            Height="160"
+                            Background="{DynamicResource SysSurfaceRaisedBrush}"
+                            ClipToBounds="True"
+                            CornerRadius="4"
+                          >
+                            <Grid>
+                              <Image
+                                Source="{Binding CoverBitmap}"
+                                IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNotNull}}"
+                                Stretch="Fill"
+                              />
+                              <TextBlock
+                                Text="ROM"
+                                IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNull}}"
+                                Foreground="{DynamicResource SysTextMutedBrush}"
+                                FontSize="22"
+                                FontWeight="Medium"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                              />
                             </Grid>
-                          </Grid>
-                        </Button>
-                        <Button
-                          Classes="tile-actions"
-                          Margin="0,0,8,8"
-                          HorizontalAlignment="Right"
-                          VerticalAlignment="Bottom"
-                          Loaded="OnTileActionsButtonLoaded"
-                          ToolTip.Tip="ROM actions"
-                          AutomationProperties.Name="ROM actions"
-                        >
-                          <ti:TablerIcon Width="16" Height="16" Icon="IconDots" />
-                        </Button>
-                      </Grid>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </Grid>
-            </ScrollViewer>
-            <TableView
-              x:Name="RomTableView"
-              IsVisible="False"
-              Classes="library-list-row"
-              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-              SelectionChanged="OnRomTileClick"
-            >
-              <TableView.Resources>
-                <SolidColorBrush
-                  x:Key="ThemeBackgroundBrush"
-                  Color="{DynamicResource RefColorSurface}"
-                />
-                <SolidColorBrush
-                  x:Key="ThemeControlMidBrush"
-                  Color="{DynamicResource RefColorSurface}"
-                />
-                <SolidColorBrush
-                  x:Key="ThemeControlHighlightMidBrush"
-                  Color="{DynamicResource RefColorSurfaceRaised}"
-                />
-                <SolidColorBrush
-                  x:Key="ThemeControlHighlightHighBrush"
-                  Color="{DynamicResource RefColorBorder}"
-                />
-                <SolidColorBrush
-                  x:Key="ThemeAccentBrush4"
-                  Color="{DynamicResource RefColorSurfaceRaised}"
-                />
-                <SolidColorBrush
-                  x:Key="ThemeAccentBrush3"
-                  Color="{DynamicResource RefColorBorder}"
-                />
-                <SolidColorBrush
-                  x:Key="ThemeAccentBrush2"
-                  Color="{DynamicResource RefColorBorder}"
-                />
-                <SolidColorBrush
-                  x:Key="ThemeForegroundBrush"
-                  Color="{DynamicResource RefColorText}"
-                />
-                <SolidColorBrush
-                  x:Key="ThemeForegroundLowBrush"
-                  Color="{DynamicResource RefColorTextMuted}"
-                />
-                <SolidColorBrush
-                  x:Key="ThemeBorderMidBrush"
-                  Color="{DynamicResource RefColorBorder}"
-                />
-                <Thickness x:Key="TableViewRowPadding">0</Thickness>
-                <Thickness x:Key="TableViewCellPadding">8,4</Thickness>
-              </TableView.Resources>
-              <TableView.Columns>
-                <TableViewColumn
-                  Header="Cover"
-                  Width="60"
-                  CanUserResize="False"
-                  HorizontalContentAlignment="Center"
-                >
-                  <TableViewColumn.CellTemplate>
-                    <DataTemplate x:DataType="library:LibraryTile">
-                      <Border
-                        Width="44"
-                        Height="44"
-                        Background="{DynamicResource SysSurfaceRaisedBrush}"
-                        ClipToBounds="True"
-                        CornerRadius="{DynamicResource RefRadiusSmall}"
-                      >
-                        <Grid>
-                          <Image
-                            Source="{Binding CoverBitmap}"
-                            IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNotNull}}"
-                            Stretch="Fill"
-                          />
+                          </Border>
                           <TextBlock
-                            Text="ROM"
-                            IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNull}}"
-                            Foreground="{DynamicResource SysTextMutedBrush}"
-                            FontSize="10"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
+                            Grid.Row="1"
+                            Margin="0,8,0,0"
+                            Text="{Binding UserFriendlyTitle}"
+                            Foreground="{DynamicResource SysTextBrush}"
+                            FontSize="12"
+                            FontWeight="Medium"
+                            MaxLines="2"
+                            TextTrimming="WordEllipsis"
+                            TextWrapping="Wrap"
+                            VerticalAlignment="Top"
                           />
+                          <Grid Grid.Row="2" ColumnDefinitions="*,Auto,28" ColumnSpacing="4">
+                            <StackPanel
+                              Height="24"
+                              Spacing="4"
+                              Orientation="Horizontal"
+                              VerticalAlignment="Bottom"
+                            >
+                              <ti:TablerIcon
+                                Width="16"
+                                Height="16"
+                                Icon="IconClock"
+                                Brush="{DynamicResource SysTextMutedBrush}"
+                              />
+                              <TextBlock
+                                Text="{Binding PlayTimeText}"
+                                Foreground="{DynamicResource SysTextMutedBrush}"
+                                FontSize="11"
+                                VerticalAlignment="Center"
+                              />
+                            </StackPanel>
+                            <Border
+                              Grid.Column="1"
+                              Classes="badge tile-badge"
+                              HorizontalAlignment="Right"
+                              VerticalAlignment="Bottom"
+                            >
+                              <TextBlock
+                                Text="{Binding HardwareText}"
+                                Classes="label"
+                                VerticalAlignment="Center"
+                              />
+                            </Border>
+                          </Grid>
                         </Grid>
-                      </Border>
-                    </DataTemplate>
-                  </TableViewColumn.CellTemplate>
-                </TableViewColumn>
-                <TableViewColumn Header="ROM" Width="*" CanUserResize="False">
-                  <TableViewColumn.HeaderTemplate>
-                    <DataTemplate x:CompileBindings="False">
-                      <Button
-                        Classes="library-sort-header"
-                        Tag="Title"
-                        Click="OnTableSortClick"
-                        ToolTip.Tip="Sort by title"
-                        AutomationProperties.Name="Sort by title"
-                      >
-                        <StackPanel Spacing="8" Orientation="Horizontal">
-                          <TextBlock Text="ROM" />
-                          <ti:TablerIcon
-                            Width="16"
-                            Height="16"
-                            Icon="IconSortAscending"
-                            IsVisible="{Binding $parent[UserControl].IsTitleSortAscending}"
-                          />
-                          <ti:TablerIcon
-                            Width="16"
-                            Height="16"
-                            Icon="IconSortDescending"
-                            IsVisible="{Binding $parent[UserControl].IsTitleSortDescending}"
-                          />
-                        </StackPanel>
                       </Button>
-                    </DataTemplate>
-                  </TableViewColumn.HeaderTemplate>
-                  <TableViewColumn.CellTemplate>
-                    <DataTemplate x:DataType="library:LibraryTile">
-                      <StackPanel Spacing="2" VerticalAlignment="Center">
-                        <TextBlock
-                          Text="{Binding UserFriendlyTitle}"
-                          Foreground="{DynamicResource SysTextBrush}"
-                          FontSize="13"
-                          FontWeight="Medium"
-                          TextTrimming="CharacterEllipsis"
-                          MaxLines="1"
-                          TextWrapping="NoWrap"
-                        />
-                        <TextBlock
-                          Text="{Binding CartridgeTitle}"
-                          IsVisible="{Binding HasCartridgeTitle}"
-                          Foreground="{DynamicResource SysTextMutedBrush}"
-                          FontSize="11"
-                          TextTrimming="CharacterEllipsis"
-                          MaxLines="1"
-                          TextWrapping="NoWrap"
-                        />
-                      </StackPanel>
-                    </DataTemplate>
-                  </TableViewColumn.CellTemplate>
-                </TableViewColumn>
-                <TableViewColumn
-                  Header="System"
-                  Width="96"
-                  x:DataType="library:LibraryTile"
-                  Binding="{Binding HardwareText}"
-                />
-                <TableViewColumn Header="Region" Width="108">
-                  <TableViewColumn.CellTemplate>
-                    <DataTemplate x:DataType="library:LibraryTile">
-                      <StackPanel Spacing="4" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border
-                          Width="21"
-                          Height="14"
-                          IsVisible="{Binding HasJapan}"
-                          ClipToBounds="True"
-                          CornerRadius="2"
-                        >
-                          <Image Source="avares://GbcNet/Assets/Images/japan.png" Stretch="Fill" />
-                        </Border>
-                        <Border
-                          Width="21"
-                          Height="14"
-                          IsVisible="{Binding HasUsa}"
-                          ClipToBounds="True"
-                          CornerRadius="2"
-                        >
-                          <Image Source="avares://GbcNet/Assets/Images/usa.png" Stretch="Fill" />
-                        </Border>
-                        <Border
-                          Width="21"
-                          Height="14"
-                          IsVisible="{Binding HasEurope}"
-                          ClipToBounds="True"
-                          CornerRadius="2"
-                        >
-                          <Image Source="avares://GbcNet/Assets/Images/europe.png" Stretch="Fill" />
-                        </Border>
-                        <Border
-                          Width="21"
-                          Height="14"
-                          IsVisible="{Binding HasWorld}"
-                          ClipToBounds="True"
-                          CornerRadius="2"
-                        >
-                          <Image Source="avares://GbcNet/Assets/Images/world.png" Stretch="Fill" />
-                        </Border>
-                        <TextBlock
-                          IsVisible="{Binding HasOther}"
-                          Text="Other"
-                          Foreground="{DynamicResource SysActiveBrush}"
-                          FontSize="12"
-                          VerticalAlignment="Center"
-                        />
-                      </StackPanel>
-                    </DataTemplate>
-                  </TableViewColumn.CellTemplate>
-                </TableViewColumn>
-                <TableViewColumn
-                  Header="Time Played"
-                  Width="112"
-                  x:DataType="library:LibraryTile"
-                  Binding="{Binding PlayTimeText}"
-                  HorizontalContentAlignment="Right"
-                >
-                  <TableViewColumn.HeaderTemplate>
-                    <DataTemplate x:CompileBindings="False">
                       <Button
-                        Classes="library-sort-header numeric-column-header"
-                        Tag="MostTimePlayed"
-                        Click="OnTableSortClick"
-                        ToolTip.Tip="Sort by time played"
-                        AutomationProperties.Name="Sort by time played"
-                      >
-                        <StackPanel Spacing="8" Orientation="Horizontal">
-                          <TextBlock Text="Time Played" />
-                          <ti:TablerIcon
-                            Width="16"
-                            Height="16"
-                            Icon="IconSortAscending"
-                            IsVisible="{Binding $parent[UserControl].IsTimePlayedSortAscending}"
-                          />
-                          <ti:TablerIcon
-                            Width="16"
-                            Height="16"
-                            Icon="IconSortDescending"
-                            IsVisible="{Binding $parent[UserControl].IsTimePlayedSortDescending}"
-                          />
-                        </StackPanel>
-                      </Button>
-                    </DataTemplate>
-                  </TableViewColumn.HeaderTemplate>
-                </TableViewColumn>
-                <TableViewColumn
-                  Header="Plays"
-                  Width="80"
-                  x:DataType="library:LibraryTile"
-                  Binding="{Binding PlayCountText}"
-                  HorizontalContentAlignment="Right"
-                >
-                  <TableViewColumn.HeaderTemplate>
-                    <DataTemplate x:CompileBindings="False">
-                      <Button
-                        Classes="library-sort-header numeric-column-header"
-                        Tag="MostPlayed"
-                        Click="OnTableSortClick"
-                        ToolTip.Tip="Sort by plays"
-                        AutomationProperties.Name="Sort by plays"
-                      >
-                        <StackPanel Spacing="8" Orientation="Horizontal">
-                          <TextBlock Text="Plays" />
-                          <ti:TablerIcon
-                            Width="16"
-                            Height="16"
-                            Icon="IconSortAscending"
-                            IsVisible="{Binding $parent[UserControl].IsPlaysSortAscending}"
-                          />
-                          <ti:TablerIcon
-                            Width="16"
-                            Height="16"
-                            Icon="IconSortDescending"
-                            IsVisible="{Binding $parent[UserControl].IsPlaysSortDescending}"
-                          />
-                        </StackPanel>
-                      </Button>
-                    </DataTemplate>
-                  </TableViewColumn.HeaderTemplate>
-                </TableViewColumn>
-                <TableViewColumn
-                  Header="Last played"
-                  Width="120"
-                  x:DataType="library:LibraryTile"
-                  Binding="{Binding LastPlayedText}"
-                  HorizontalContentAlignment="Right"
-                >
-                  <TableViewColumn.HeaderTemplate>
-                    <DataTemplate x:CompileBindings="False">
-                      <Button
-                        Classes="library-sort-header numeric-column-header"
-                        Tag="LastOpened"
-                        Click="OnTableSortClick"
-                        ToolTip.Tip="Sort by last played"
-                        AutomationProperties.Name="Sort by last played"
-                      >
-                        <StackPanel Spacing="8" Orientation="Horizontal">
-                          <TextBlock Text="Last played" />
-                          <ti:TablerIcon
-                            Width="16"
-                            Height="16"
-                            Icon="IconSortAscending"
-                            IsVisible="{Binding $parent[UserControl].IsLastPlayedSortAscending}"
-                          />
-                          <ti:TablerIcon
-                            Width="16"
-                            Height="16"
-                            Icon="IconSortDescending"
-                            IsVisible="{Binding $parent[UserControl].IsLastPlayedSortDescending}"
-                          />
-                        </StackPanel>
-                      </Button>
-                    </DataTemplate>
-                  </TableViewColumn.HeaderTemplate>
-                </TableViewColumn>
-                <TableViewColumn
-                  Header="Actions"
-                  Width="72"
-                  CanUserResize="False"
-                  HorizontalContentAlignment="Left"
-                >
-                  <TableViewColumn.CellTemplate>
-                    <DataTemplate x:DataType="library:LibraryTile">
-                      <Button
-                        Classes="tile-actions table-actions"
-                        HorizontalAlignment="Left"
+                        Classes="tile-actions"
+                        Margin="0,0,8,8"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom"
                         Loaded="OnTileActionsButtonLoaded"
                         ToolTip.Tip="ROM actions"
                         AutomationProperties.Name="ROM actions"
                       >
                         <ti:TablerIcon Width="16" Height="16" Icon="IconDots" />
                       </Button>
-                    </DataTemplate>
-                  </TableViewColumn.CellTemplate>
-                </TableViewColumn>
-              </TableView.Columns>
-            </TableView>
-
-            <Grid x:Name="EmptyState">
-              <StackPanel
-                MaxWidth="360"
-                Spacing="12"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-              >
-                <Border
-                  Width="48"
-                  Height="48"
-                  Background="{DynamicResource SysSurfaceRaisedBrush}"
-                  CornerRadius="{DynamicResource RefRadiusLarge}"
-                  HorizontalAlignment="Center"
-                >
-                  <ti:TablerIcon
-                    Icon="IconDeviceGamepad2"
-                    Width="24"
-                    Height="24"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                  />
-                </Border>
-                <TextBlock x:Name="EmptyStateText" Classes="subtitle" TextAlignment="Center" />
-                <TextBlock
-                  x:Name="EmptyStateDescription"
-                  Classes="body muted"
-                  TextAlignment="Center"
-                  TextWrapping="Wrap"
-                />
-                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                  <Button
-                    x:Name="OpenRomButton"
-                    Classes="primary"
-                    Content="Open ROM"
-                    Click="OnOpenRomClick"
-                    AutomationProperties.Name="Open ROM"
-                  />
-                  <Button
-                    x:Name="ClearFiltersButton"
-                    Classes="secondary"
-                    Content="Clear filters"
-                    Click="ClearFilters"
-                  />
-                </StackPanel>
-              </StackPanel>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
             </Grid>
+          </ScrollViewer>
+          <TableView
+            x:Name="RomTableView"
+            IsVisible="False"
+            Classes="library-list-row"
+            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+            SelectionChanged="OnRomTileClick"
+          >
+            <TableView.Resources>
+              <SolidColorBrush x:Key="ThemeBackgroundBrush" Color="Transparent" />
+              <SolidColorBrush x:Key="ThemeControlMidBrush" Color="Transparent" />
+              <SolidColorBrush
+                x:Key="ThemeControlHighlightMidBrush"
+                Color="{DynamicResource RefColorSurfaceRaised}"
+              />
+              <SolidColorBrush
+                x:Key="ThemeControlHighlightHighBrush"
+                Color="{DynamicResource RefColorBorder}"
+              />
+              <SolidColorBrush
+                x:Key="ThemeAccentBrush4"
+                Color="{DynamicResource RefColorSurfaceRaised}"
+              />
+              <SolidColorBrush x:Key="ThemeAccentBrush3" Color="{DynamicResource RefColorBorder}" />
+              <SolidColorBrush x:Key="ThemeAccentBrush2" Color="{DynamicResource RefColorBorder}" />
+              <SolidColorBrush
+                x:Key="ThemeForegroundBrush"
+                Color="{DynamicResource RefColorText}"
+              />
+              <SolidColorBrush
+                x:Key="ThemeForegroundLowBrush"
+                Color="{DynamicResource RefColorTextMuted}"
+              />
+              <SolidColorBrush x:Key="ThemeBorderMidBrush" Color="Transparent" />
+              <Thickness x:Key="TableViewRowPadding">0</Thickness>
+              <Thickness x:Key="TableViewCellPadding">8,4</Thickness>
+            </TableView.Resources>
+            <TableView.Columns>
+              <TableViewColumn
+                Header="Cover"
+                Width="60"
+                CanUserResize="False"
+                HorizontalContentAlignment="Center"
+              >
+                <TableViewColumn.CellTemplate>
+                  <DataTemplate x:DataType="library:LibraryTile">
+                    <Border
+                      Width="44"
+                      Height="44"
+                      Background="{DynamicResource SysSurfaceRaisedBrush}"
+                      ClipToBounds="True"
+                      CornerRadius="4"
+                    >
+                      <Grid>
+                        <Image
+                          Source="{Binding CoverBitmap}"
+                          IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNotNull}}"
+                          Stretch="Fill"
+                        />
+                        <TextBlock
+                          Text="ROM"
+                          IsVisible="{Binding CoverBitmap, Converter={x:Static converters:ObjectConverters.IsNull}}"
+                          Foreground="{DynamicResource SysTextMutedBrush}"
+                          FontSize="10"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                        />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </TableViewColumn.CellTemplate>
+              </TableViewColumn>
+              <TableViewColumn Header="ROM" Width="*" CanUserResize="False">
+                <TableViewColumn.HeaderTemplate>
+                  <DataTemplate x:CompileBindings="False">
+                    <Button
+                      Classes="library-sort-header"
+                      Tag="Title"
+                      Click="OnTableSortClick"
+                      ToolTip.Tip="Sort by title"
+                      AutomationProperties.Name="Sort by title"
+                    >
+                      <StackPanel Spacing="8" Orientation="Horizontal">
+                        <TextBlock Text="ROM" />
+                        <ti:TablerIcon
+                          Width="16"
+                          Height="16"
+                          Icon="IconSortAscending"
+                          IsVisible="{Binding $parent[UserControl].IsTitleSortAscending}"
+                        />
+                        <ti:TablerIcon
+                          Width="16"
+                          Height="16"
+                          Icon="IconSortDescending"
+                          IsVisible="{Binding $parent[UserControl].IsTitleSortDescending}"
+                        />
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </TableViewColumn.HeaderTemplate>
+                <TableViewColumn.CellTemplate>
+                  <DataTemplate x:DataType="library:LibraryTile">
+                    <StackPanel Spacing="2" VerticalAlignment="Center">
+                      <TextBlock
+                        Text="{Binding UserFriendlyTitle}"
+                        Foreground="{DynamicResource SysTextBrush}"
+                        FontSize="13"
+                        FontWeight="Medium"
+                        TextTrimming="CharacterEllipsis"
+                        MaxLines="1"
+                        TextWrapping="NoWrap"
+                      />
+                      <TextBlock
+                        Text="{Binding CartridgeTitle}"
+                        IsVisible="{Binding HasCartridgeTitle}"
+                        Foreground="{DynamicResource SysTextMutedBrush}"
+                        FontSize="11"
+                        TextTrimming="CharacterEllipsis"
+                        MaxLines="1"
+                        TextWrapping="NoWrap"
+                      />
+                    </StackPanel>
+                  </DataTemplate>
+                </TableViewColumn.CellTemplate>
+              </TableViewColumn>
+              <TableViewColumn
+                Header="System"
+                Width="96"
+                x:DataType="library:LibraryTile"
+                Binding="{Binding HardwareText}"
+              />
+              <TableViewColumn Header="Region" Width="108">
+                <TableViewColumn.CellTemplate>
+                  <DataTemplate x:DataType="library:LibraryTile">
+                    <StackPanel Spacing="4" Orientation="Horizontal" VerticalAlignment="Center">
+                      <Border
+                        Width="21"
+                        Height="14"
+                        IsVisible="{Binding HasJapan}"
+                        ClipToBounds="True"
+                        CornerRadius="2"
+                      >
+                        <Image Source="avares://GbcNet/Assets/Images/japan.png" Stretch="Fill" />
+                      </Border>
+                      <Border
+                        Width="21"
+                        Height="14"
+                        IsVisible="{Binding HasUsa}"
+                        ClipToBounds="True"
+                        CornerRadius="2"
+                      >
+                        <Image Source="avares://GbcNet/Assets/Images/usa.png" Stretch="Fill" />
+                      </Border>
+                      <Border
+                        Width="21"
+                        Height="14"
+                        IsVisible="{Binding HasEurope}"
+                        ClipToBounds="True"
+                        CornerRadius="2"
+                      >
+                        <Image Source="avares://GbcNet/Assets/Images/europe.png" Stretch="Fill" />
+                      </Border>
+                      <Border
+                        Width="21"
+                        Height="14"
+                        IsVisible="{Binding HasWorld}"
+                        ClipToBounds="True"
+                        CornerRadius="2"
+                      >
+                        <Image Source="avares://GbcNet/Assets/Images/world.png" Stretch="Fill" />
+                      </Border>
+                      <TextBlock
+                        IsVisible="{Binding HasOther}"
+                        Text="Other"
+                        Foreground="{DynamicResource SysActiveBrush}"
+                        FontSize="12"
+                        VerticalAlignment="Center"
+                      />
+                    </StackPanel>
+                  </DataTemplate>
+                </TableViewColumn.CellTemplate>
+              </TableViewColumn>
+              <TableViewColumn
+                Header="Time Played"
+                Width="112"
+                x:DataType="library:LibraryTile"
+                Binding="{Binding PlayTimeText}"
+                HorizontalContentAlignment="Right"
+              >
+                <TableViewColumn.HeaderTemplate>
+                  <DataTemplate x:CompileBindings="False">
+                    <Button
+                      Classes="library-sort-header numeric-column-header"
+                      Tag="MostTimePlayed"
+                      Click="OnTableSortClick"
+                      ToolTip.Tip="Sort by time played"
+                      AutomationProperties.Name="Sort by time played"
+                    >
+                      <StackPanel Spacing="8" Orientation="Horizontal">
+                        <TextBlock Text="Time Played" />
+                        <ti:TablerIcon
+                          Width="16"
+                          Height="16"
+                          Icon="IconSortAscending"
+                          IsVisible="{Binding $parent[UserControl].IsTimePlayedSortAscending}"
+                        />
+                        <ti:TablerIcon
+                          Width="16"
+                          Height="16"
+                          Icon="IconSortDescending"
+                          IsVisible="{Binding $parent[UserControl].IsTimePlayedSortDescending}"
+                        />
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </TableViewColumn.HeaderTemplate>
+              </TableViewColumn>
+              <TableViewColumn
+                Header="Plays"
+                Width="80"
+                x:DataType="library:LibraryTile"
+                Binding="{Binding PlayCountText}"
+                HorizontalContentAlignment="Right"
+              >
+                <TableViewColumn.HeaderTemplate>
+                  <DataTemplate x:CompileBindings="False">
+                    <Button
+                      Classes="library-sort-header numeric-column-header"
+                      Tag="MostPlayed"
+                      Click="OnTableSortClick"
+                      ToolTip.Tip="Sort by plays"
+                      AutomationProperties.Name="Sort by plays"
+                    >
+                      <StackPanel Spacing="8" Orientation="Horizontal">
+                        <TextBlock Text="Plays" />
+                        <ti:TablerIcon
+                          Width="16"
+                          Height="16"
+                          Icon="IconSortAscending"
+                          IsVisible="{Binding $parent[UserControl].IsPlaysSortAscending}"
+                        />
+                        <ti:TablerIcon
+                          Width="16"
+                          Height="16"
+                          Icon="IconSortDescending"
+                          IsVisible="{Binding $parent[UserControl].IsPlaysSortDescending}"
+                        />
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </TableViewColumn.HeaderTemplate>
+              </TableViewColumn>
+              <TableViewColumn
+                Header="Last played"
+                Width="120"
+                x:DataType="library:LibraryTile"
+                Binding="{Binding LastPlayedText}"
+                HorizontalContentAlignment="Right"
+              >
+                <TableViewColumn.HeaderTemplate>
+                  <DataTemplate x:CompileBindings="False">
+                    <Button
+                      Classes="library-sort-header numeric-column-header"
+                      Tag="LastOpened"
+                      Click="OnTableSortClick"
+                      ToolTip.Tip="Sort by last played"
+                      AutomationProperties.Name="Sort by last played"
+                    >
+                      <StackPanel Spacing="8" Orientation="Horizontal">
+                        <TextBlock Text="Last played" />
+                        <ti:TablerIcon
+                          Width="16"
+                          Height="16"
+                          Icon="IconSortAscending"
+                          IsVisible="{Binding $parent[UserControl].IsLastPlayedSortAscending}"
+                        />
+                        <ti:TablerIcon
+                          Width="16"
+                          Height="16"
+                          Icon="IconSortDescending"
+                          IsVisible="{Binding $parent[UserControl].IsLastPlayedSortDescending}"
+                        />
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </TableViewColumn.HeaderTemplate>
+              </TableViewColumn>
+              <TableViewColumn
+                Header="Actions"
+                Width="72"
+                CanUserResize="False"
+                HorizontalContentAlignment="Left"
+              >
+                <TableViewColumn.CellTemplate>
+                  <DataTemplate x:DataType="library:LibraryTile">
+                    <Button
+                      Classes="tile-actions table-actions"
+                      HorizontalAlignment="Left"
+                      Loaded="OnTileActionsButtonLoaded"
+                      ToolTip.Tip="ROM actions"
+                      AutomationProperties.Name="ROM actions"
+                    >
+                      <ti:TablerIcon Width="16" Height="16" Icon="IconDots" />
+                    </Button>
+                  </DataTemplate>
+                </TableViewColumn.CellTemplate>
+              </TableViewColumn>
+            </TableView.Columns>
+          </TableView>
+
+          <Grid x:Name="EmptyState">
+            <StackPanel
+              MaxWidth="360"
+              Spacing="12"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+            >
+              <Border
+                Width="48"
+                Height="48"
+                Background="{DynamicResource SysSurfaceRaisedBrush}"
+                CornerRadius="{DynamicResource RefRadius}"
+                HorizontalAlignment="Center"
+              >
+                <ti:TablerIcon
+                  Icon="IconDeviceGamepad2"
+                  Width="24"
+                  Height="24"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                />
+              </Border>
+              <TextBlock x:Name="EmptyStateText" Classes="subtitle" TextAlignment="Center" />
+              <TextBlock
+                x:Name="EmptyStateDescription"
+                Classes="body muted"
+                TextAlignment="Center"
+                TextWrapping="Wrap"
+              />
+              <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                <Button
+                  x:Name="OpenRomButton"
+                  Classes="primary"
+                  Content="Open ROM"
+                  Click="OnOpenRomClick"
+                  AutomationProperties.Name="Open ROM"
+                />
+                <Button
+                  x:Name="ClearFiltersButton"
+                  Classes="secondary"
+                  Content="Clear filters"
+                  Click="ClearFilters"
+                />
+              </StackPanel>
+            </StackPanel>
           </Grid>
         </Grid>
       </Grid>
-    </Border>
+
+      <StackPanel
+        x:Name="LibraryActionsRail"
+        Margin="0,4,0,0"
+        Orientation="Horizontal"
+        Spacing="8"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Top"
+      >
+        <StackPanel Orientation="Horizontal" Spacing="4">
+          <ToggleButton
+            x:Name="GridViewToggle"
+            Classes="icon"
+            Tag="Grid"
+            Click="OnViewModeChanged"
+            ToolTip.Tip="Grid view"
+            AutomationProperties.Name="Grid view"
+          >
+            <ti:TablerIcon Width="16" Height="16" Icon="IconLayoutGrid" />
+          </ToggleButton>
+          <ToggleButton
+            x:Name="ListViewToggle"
+            Classes="icon"
+            Tag="List"
+            Click="OnViewModeChanged"
+            ToolTip.Tip="List view"
+            AutomationProperties.Name="List view"
+          >
+            <ti:TablerIcon Width="16" Height="16" Icon="IconList" />
+          </ToggleButton>
+        </StackPanel>
+
+        <Button
+          x:Name="ConfigurationButton"
+          Classes="icon"
+          Click="OnConfigurationClick"
+          ToolTip.Tip="Settings"
+          AutomationProperties.Name="Settings"
+        >
+          <ti:TablerIcon Icon="IconSettings" />
+        </Button>
+
+        <Button
+          x:Name="ActionsButton"
+          Classes="icon"
+          Click="OnActionsClick"
+          ToolTip.Tip="More actions"
+          AutomationProperties.Name="More actions"
+        >
+          <ti:TablerIcon Icon="IconDots" />
+        </Button>
+      </StackPanel>
+    </Grid>
   </Border>
 </UserControl>

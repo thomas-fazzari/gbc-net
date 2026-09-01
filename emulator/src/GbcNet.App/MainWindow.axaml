@@ -1,13 +1,11 @@
 <Window
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-  xmlns:chrome="using:Avalonia.Controls.Chrome"
-  xmlns:library="using:GbcNet.App.Library"
   xmlns:menus="clr-namespace:GbcNet.App.Menus"
   xmlns:ti="using:TablerIcons"
   x:Class="GbcNet.App.MainWindow"
   x:Name="Root"
-  Title=""
+  Title="GBC.Net"
   AutomationProperties.Name="GBC.Net"
   Width="1180"
   Height="720"
@@ -15,111 +13,30 @@
   MinHeight="600"
   WindowStartupLocation="CenterScreen"
   WindowDecorations="Full"
-  ExtendClientAreaToDecorationsHint="True"
-  ExtendClientAreaTitleBarHeightHint="52"
   Background="{DynamicResource SysCanvasBrush}"
 >
-  <Window.Styles>
-    <Style Selector="Border.library-search:focus-within">
-      <Setter Property="Background" Value="{DynamicResource SysBorderBrush}" />
-    </Style>
-  </Window.Styles>
   <Grid RowDefinitions="Auto,*">
     <Border
-      x:Name="TitleBarHost"
+      x:Name="AppToolbarHost"
       Grid.Row="0"
-      Height="52"
+      Height="40"
+      IsVisible="False"
       Background="{DynamicResource SysCanvasBrush}"
-      chrome:WindowDecorationProperties.ElementRole="TitleBar"
     >
       <Grid>
         <Button
-          x:Name="EmulationTitleBarLeft"
-          Classes="icon titlebar"
-          IsVisible="False"
-          Margin="8,0,0,0"
+          Classes="icon"
+          Margin="12,0,0,0"
           HorizontalAlignment="Left"
           VerticalAlignment="Center"
           Command="{Binding CloseCommand, ElementName=MainMenu}"
           ToolTip.Tip="Back to library"
           AutomationProperties.Name="Back to library"
-          chrome:WindowDecorationProperties.ElementRole="User"
         >
           <ti:TablerIcon Icon="IconArrowLeft" />
         </Button>
 
-        <Border
-          x:Name="LibrarySearchHost"
-          x:DataType="library:LibraryView"
-          Classes="library-search"
-          Width="380"
-          Height="36"
-          HorizontalAlignment="Center"
-          VerticalAlignment="Center"
-          Background="{DynamicResource SysSurfaceRaisedBrush}"
-          CornerRadius="{DynamicResource RefRadiusPill}"
-          chrome:WindowDecorationProperties.ElementRole="User"
-        >
-          <Grid ColumnDefinitions="Auto,*,Auto">
-            <ti:TablerIcon
-              Grid.Column="0"
-              Icon="IconSearch"
-              Width="18"
-              Height="18"
-              Margin="14,0,4,0"
-              VerticalAlignment="Center"
-            />
-            <TextBox
-              x:Name="LibrarySearchTextBox"
-              Grid.Column="1"
-              Text="{Binding SearchText, Mode=TwoWay}"
-              PlaceholderText="Search library"
-              Background="Transparent"
-              BorderBrush="Transparent"
-              BorderThickness="0"
-              Padding="6,0"
-              FocusAdorner="{x:Null}"
-              VerticalContentAlignment="Center"
-              AutomationProperties.Name="Search library"
-            />
-            <Grid Grid.Column="2" ColumnDefinitions="Auto,Auto,Auto">
-              <Border
-                x:Name="SearchBrowseDivider"
-                Grid.Column="0"
-                Width="1"
-                Height="20"
-                Margin="4,0"
-                Background="{DynamicResource SysBorderBrush}"
-                VerticalAlignment="Center"
-              />
-              <Button
-                x:Name="OpenRomSearchButton"
-                Grid.Column="1"
-                Classes="icon titlebar"
-                Command="{Binding OpenRomCommand, ElementName=MainMenu}"
-                ToolTip.Tip="Import a new ROM"
-                AutomationProperties.Name="Import a new ROM"
-              >
-                <ti:TablerIcon Icon="IconLibraryPlus" Width="18" Height="18" />
-              </Button>
-              <Button
-                x:Name="ClearSearchButton"
-                Grid.Column="2"
-                Classes="icon titlebar"
-                IsVisible="False"
-                Click="OnClearSearchClick"
-                ToolTip.Tip="Clear search"
-                AutomationProperties.Name="Clear search"
-              >
-                <ti:TablerIcon Icon="IconX" Width="16" Height="16" />
-              </Button>
-            </Grid>
-          </Grid>
-        </Border>
-
         <StackPanel
-          x:Name="EmulationTitleBarCenter"
-          IsVisible="False"
           Orientation="Horizontal"
           Spacing="8"
           HorizontalAlignment="Center"
@@ -134,72 +51,73 @@
             TextTrimming="CharacterEllipsis"
             VerticalAlignment="Center"
           />
-          <Border x:Name="EmulationStateBadge" Classes="badge emulation-state">
-            <TextBlock x:Name="EmulationStateTextBlock" Classes="label" />
-          </Border>
+          <TextBlock
+            x:Name="EmulationStateTextBlock"
+            Classes="label"
+            IsVisible="False"
+            Foreground="{DynamicResource SysTextMutedBrush}"
+            VerticalAlignment="Center"
+          />
         </StackPanel>
 
         <StackPanel
-          x:Name="TitleBarActionsHost"
-          Margin="0,0,8,0"
+          Margin="0,0,12,0"
           HorizontalAlignment="Right"
           VerticalAlignment="Center"
           Orientation="Horizontal"
           Spacing="2"
-          chrome:WindowDecorationProperties.ElementRole="User"
         >
-          <StackPanel x:Name="LibraryTitleBarActions" Orientation="Horizontal" Spacing="2">
-            <Button
-              Classes="icon titlebar"
-              Command="{Binding ConfigurationCommand, ElementName=MainMenu}"
-              ToolTip.Tip="Settings"
-              AutomationProperties.Name="Settings"
-            >
-              <ti:TablerIcon Icon="IconSettings" />
-            </Button>
-          </StackPanel>
-
-          <StackPanel
-            x:Name="EmulationTitleBarActions"
-            IsVisible="False"
-            Orientation="Horizontal"
-            Spacing="2"
+          <ToggleButton
+            x:Name="PauseToolbarButton"
+            Classes="icon"
+            Command="{Binding PauseCommand, ElementName=MainMenu}"
+            ToolTip.Tip="Pause or resume"
+            AutomationProperties.Name="Pause or resume emulation"
           >
-            <ToggleButton
-              x:Name="PauseTitleBarButton"
-              Classes="icon titlebar"
-              Command="{Binding PauseCommand, ElementName=MainMenu}"
-              ToolTip.Tip="Pause or resume"
-              AutomationProperties.Name="Pause or resume emulation"
-            >
-              <ti:TablerIcon Icon="IconPlayerPause" />
-            </ToggleButton>
-            <ToggleButton
-              x:Name="FastForwardTitleBarButton"
-              Classes="icon titlebar"
-              Command="{Binding FastForwardCommand, ElementName=MainMenu}"
-              ToolTip.Tip="Fast forward"
-              AutomationProperties.Name="Toggle fast forward"
-            >
-              <ti:TablerIcon Icon="IconPlayerTrackNext" />
-            </ToggleButton>
-            <Button
-              x:Name="FullscreenTitleBarButton"
-              Classes="icon titlebar"
-              Command="{Binding FullscreenCommand, ElementName=MainMenu}"
-              ToolTip.Tip="Fullscreen"
-              AutomationProperties.Name="Toggle fullscreen"
-            >
-              <ti:TablerIcon Icon="IconArrowsMaximize" />
-            </Button>
-          </StackPanel>
-
-          <menus:MainMenu x:Name="MainMenu" />
+            <ti:TablerIcon Icon="IconPlayerPause" />
+          </ToggleButton>
+          <ToggleButton
+            x:Name="FastForwardToolbarButton"
+            Classes="icon"
+            Command="{Binding FastForwardCommand, ElementName=MainMenu}"
+            ToolTip.Tip="Fast forward"
+            AutomationProperties.Name="Toggle fast forward"
+          >
+            <ti:TablerIcon Icon="IconPlayerTrackNext" />
+          </ToggleButton>
+          <Button
+            x:Name="FullscreenToolbarButton"
+            Classes="icon"
+            Command="{Binding FullscreenCommand, ElementName=MainMenu}"
+            ToolTip.Tip="Fullscreen"
+            AutomationProperties.Name="Toggle fullscreen"
+          >
+            <ti:TablerIcon Icon="IconArrowsMaximize" />
+          </Button>
+          <Button
+            Classes="icon"
+            Click="OnToggleActionsClick"
+            ToolTip.Tip="More actions"
+            AutomationProperties.Name="More actions"
+          >
+            <ti:TablerIcon Icon="IconDots" />
+          </Button>
         </StackPanel>
       </Grid>
     </Border>
 
     <ContentControl x:Name="ContentHost" Grid.Row="1" />
+
+    <Grid x:Name="ActionsOverlay" Grid.Row="0" Grid.RowSpan="2" IsVisible="False">
+      <Border Background="Transparent" PointerPressed="OnActionsOverlayBackdropPressed" />
+      <menus:MainMenu
+        x:Name="MainMenu"
+        MaxHeight="520"
+        Margin="0,68,8,0"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Top"
+      />
+    </Grid>
 
     <Border
       x:Name="Notification"

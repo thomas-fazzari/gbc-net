@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Diagnostics.CodeAnalysis;
-using GbcNet.App.Configuration.Sections.Appearance;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
 using GbcNet.App.Configuration.Sections.Emulation;
@@ -13,13 +12,6 @@ namespace GbcNet.App.Configuration;
 
 internal sealed class AppConfig
 {
-    [AllowNull]
-    public AppearanceConfig Appearance
-    {
-        get;
-        set => field = value ?? new AppearanceConfig();
-    } = new();
-
     [AllowNull]
     public InputConfig Input
     {

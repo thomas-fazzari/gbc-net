@@ -22,22 +22,18 @@ namespace GbcNet.App;
 
 internal sealed partial class MainWindow : Window, IDisposable
 {
-    private const double DefaultTitleBarSpacing = 8;
-    private const double MacOsTitleBarLeftInset = 88;
-    private const double WindowsTitleBarLeftInset = 32;
-    private const double WindowsTitleBarSpacing = 48;
-
     private readonly EmulationSessionPresenter _emulationSession;
     private readonly GamepadManager _gamepadManager;
     private readonly LcdFramePresenter _framePresenter;
+    private readonly LibraryView _libraryView;
     private readonly LibraryPresenter _libraryPresenter;
-    private readonly MacOsTitleBar _macOsTitleBar;
     private readonly ShellOperationRunner _operationRunner;
     private readonly ShellPresenter _shell;
     private readonly MainWindowMenuAdapter _menuAdapter;
     private readonly ILogger<MainWindow> _logger;
     private readonly HashSet<Key> _pressedKeys = [];
     private bool _closeAfterAsyncStop;
+    private bool _isEmulating;
     private int _closeStopStarted;
 
     public MainWindow(
@@ -55,27 +51,19 @@ internal sealed partial class MainWindow : Window, IDisposable
     {
         _logger = logger;
         InitializeComponent();
-        ScalingChanged += (_, _) => UpdateTitleBarInsets();
-        _macOsTitleBar = new MacOsTitleBar(this);
-        FullscreenTitleBarButton.IsVisible = !OperatingSystem.IsWindows();
-        UpdateTitleBarInsets();
-        LibrarySearchTextBox.TextChanged += OnLibrarySearchTextChanged;
-        UpdateSearchAction();
 
-        var libraryView = new LibraryView();
-        libraryView.SetViewMode(startupConfiguration.LibraryConfig.ViewMode);
-        LibrarySearchHost.DataContext = libraryView;
+        _libraryView = new LibraryView();
+        _libraryView.SetViewMode(startupConfiguration.LibraryConfig.ViewMode);
         var emulationView = new EmulationView();
-        ContentHost.Content = libraryView;
+        ContentHost.Content = _libraryView;
 
         _framePresenter = new LcdFramePresenter(emulationView.Screen);
 
         _shell = new ShellPresenter(
             RomTitleTextBlock,
-            EmulationStateBadge,
             EmulationStateTextBlock,
-            PauseTitleBarButton,
-            FastForwardTitleBarButton,
+            PauseToolbarButton,
+            FastForwardToolbarButton,
             Notification,
             NotificationItemsControl
         );
@@ -127,9 +115,14 @@ internal sealed partial class MainWindow : Window, IDisposable
         );
 
         _gamepadManager.Start();
-        libraryView.OpenRomRequested = () => MainMenu.OpenRomCommand.Execute(parameter: null);
+        _libraryView.OpenRomRequested = () => MainMenu.OpenRomCommand.Execute(parameter: null);
+        _libraryView.ConfigurationRequested = () =>
+            MainMenu.ConfigurationCommand.Execute(parameter: null);
+        _libraryView.ActionsRequested = ToggleActionsOverlay;
+        MainMenu.ActionInvoked += (_, _) => CloseActionsOverlay();
+        SetEmulationToolbar(isEmulating: false);
         _libraryPresenter = new LibraryPresenter(
-            libraryView,
+            _libraryView,
             libraryService,
             _operationRunner,
             StorageProvider,
@@ -142,12 +135,12 @@ internal sealed partial class MainWindow : Window, IDisposable
         {
             ContentHost.Content = emulationView;
             emulationView.Focus();
-            SetEmulationTitleBar(isEmulating: true);
+            SetEmulationToolbar(isEmulating: true);
         };
         EventHandler sessionEnded = (_, _) =>
         {
-            ContentHost.Content = libraryView;
-            SetEmulationTitleBar(isEmulating: false);
+            ContentHost.Content = _libraryView;
+            SetEmulationToolbar(isEmulating: false);
             _libraryPresenter.Refresh();
         };
         _emulationSession.SessionClosed += sessionEnded;
@@ -180,14 +173,13 @@ internal sealed partial class MainWindow : Window, IDisposable
                 );
             },
             _menuAdapter.ApplyAudioConfig,
-            GbcNetApplication.ApplyTheme,
             _gamepadManager,
             loggerFactory.CreateLogger<ConfigurationPresenter>(),
             loggerFactory.CreateLogger<SettingsWindow>()
         );
 
         _menuAdapter.Configure(emulationView, configurationPresenter);
-        libraryView.ViewModeChanged = _menuAdapter.SaveLibraryViewMode;
+        _libraryView.ViewModeChanged = _menuAdapter.SaveLibraryViewMode;
         _emulationSession.AttachDragDrop(this);
         _libraryPresenter.Refresh();
 
@@ -214,29 +206,20 @@ internal sealed partial class MainWindow : Window, IDisposable
         }
     }
 
-    protected override void OnOpened(EventArgs e)
-    {
-        base.OnOpened(e);
-        UpdateTitleBarInsets();
-    }
-
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        // Fires during base Window construction, before _menuAdapter is assigned.
-        _menuAdapter?.SyncFullscreenState(change);
 
-        if (change.Property == WindowStateProperty && TitleBarHost is { } titleBar)
+        if (change.Property != WindowStateProperty)
         {
-            titleBar.IsVisible = WindowState is not WindowState.FullScreen;
+            return;
         }
 
-        if (
-            change.Property == WindowDecorationMarginProperty
-            || change.Property == OffScreenMarginProperty
-        )
+        UpdateEmulationToolbarVisibility();
+
+        if (WindowState is WindowState.FullScreen && ActionsOverlay is { } overlay)
         {
-            UpdateTitleBarInsets();
+            overlay.IsVisible = false;
         }
     }
 
@@ -248,7 +231,6 @@ internal sealed partial class MainWindow : Window, IDisposable
 
     public void Dispose()
     {
-        _macOsTitleBar.Dispose();
         _gamepadManager.Dispose();
         _libraryPresenter.Dispose();
         _framePresenter.Dispose();
@@ -271,15 +253,22 @@ internal sealed partial class MainWindow : Window, IDisposable
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        if (e is { Handled: false, Key: Key.Escape } && ActionsOverlay.IsVisible)
+        {
+            CloseActionsOverlay();
+            e.Handled = true;
+        }
+
         if (e is { Handled: false, Key: Key.Escape } && WindowState is WindowState.FullScreen)
         {
             WindowState = WindowState.Normal;
             e.Handled = true;
         }
 
-        if (!e.Handled && IsSearchGesture(e) && LibrarySearchHost.IsVisible)
+        if (!e.Handled && IsSearchGesture(e) && !_isEmulating)
         {
-            LibrarySearchTextBox.Focus();
+            CloseActionsOverlay();
+            _libraryView.FocusSearch();
             e.Handled = true;
         }
 
@@ -326,67 +315,35 @@ internal sealed partial class MainWindow : Window, IDisposable
         _emulationSession.ShowFault(exception);
     }
 
-    private void SetEmulationTitleBar(bool isEmulating)
+    private void SetEmulationToolbar(bool isEmulating)
     {
-        LibrarySearchHost.IsVisible = !isEmulating;
-        LibraryTitleBarActions.IsVisible = !isEmulating;
-        EmulationTitleBarLeft.IsVisible = isEmulating;
-        EmulationTitleBarCenter.IsVisible = isEmulating;
-        EmulationTitleBarActions.IsVisible = isEmulating;
+        _isEmulating = isEmulating;
+        MainMenu.SetEmulationActionsEnabled(isEmulating);
+        MainMenu.Margin = new Thickness(0, isEmulating ? 48 : 68, 8, 8);
+        CloseActionsOverlay();
+        UpdateEmulationToolbarVisibility();
     }
 
-    private void OnClearSearchClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private void UpdateEmulationToolbarVisibility()
     {
-        LibrarySearchTextBox.Text = string.Empty;
-        LibrarySearchTextBox.Focus();
+        if (AppToolbarHost is { } toolbar)
+        {
+            toolbar.IsVisible = _isEmulating && WindowState is not WindowState.FullScreen;
+        }
     }
 
-    private void OnLibrarySearchTextChanged(object? sender, TextChangedEventArgs e) =>
-        UpdateSearchAction();
+    private void OnToggleActionsClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) =>
+        ToggleActionsOverlay();
 
-    private void UpdateSearchAction()
+    private void OnActionsOverlayBackdropPressed(object? sender, PointerPressedEventArgs e)
     {
-        var hasSearchText = !string.IsNullOrEmpty(LibrarySearchTextBox.Text);
-        ClearSearchButton.IsVisible = hasSearchText;
-        OpenRomSearchButton.IsVisible = !hasSearchText;
-        SearchBrowseDivider.IsVisible = !hasSearchText;
+        CloseActionsOverlay();
+        e.Handled = true;
     }
 
-    private void UpdateTitleBarInsets()
-    {
-        if (TitleBarActionsHost is null || EmulationTitleBarLeft is null)
-        {
-            return;
-        }
+    private void ToggleActionsOverlay() => ActionsOverlay.IsVisible = !ActionsOverlay.IsVisible;
 
-        double left;
-        if (OperatingSystem.IsMacOS())
-        {
-            left = MacOsTitleBarLeftInset;
-        }
-        else if (OperatingSystem.IsWindows())
-        {
-            left = WindowsTitleBarLeftInset;
-        }
-        else
-        {
-            left =
-                Math.Max(WindowDecorationMargin.Left, OffScreenMargin.Left)
-                + DefaultTitleBarSpacing;
-        }
-
-        var rightSpacing = OperatingSystem.IsWindows()
-            ? WindowsTitleBarSpacing
-            : DefaultTitleBarSpacing;
-        var right =
-            Math.Max(
-                Math.Max(WindowDecorationMargin.Right, OffScreenMargin.Right),
-                WindowsTitleBar.GetCaptionButtonsWidth(this)
-            ) + rightSpacing;
-
-        EmulationTitleBarLeft.Margin = new Thickness(left, 0, 0, 0);
-        TitleBarActionsHost.Margin = new Thickness(0, 0, right, 0);
-    }
+    private void CloseActionsOverlay() => ActionsOverlay.IsVisible = false;
 
     private void OnDismissNotificationClick(
         object? sender,
