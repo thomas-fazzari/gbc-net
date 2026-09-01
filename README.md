@@ -37,3 +37,9 @@ make integration   # Integration tests only
 | Game Boy Color | Functional       | [Mooneye CGB](emulator/tests/GbcNet.Tests.Unit/RomTesting/Mooneye/MooneyeCgbRomTests.cs), [cgb-acid2](emulator/tests/GbcNet.Tests.Unit/RomTesting/Visual/CgbAcid2VisualRomTests.cs)                                                                                                                        | Some CGB-specific edge cases remain                                                               |
 | Super Game Boy | Functional (HLE) | [SGB boot/model](emulator/tests/GbcNet.Tests.Unit/RomTesting/Mooneye/MooneyeSgbRomTests.cs), [SGB commands](emulator/tests/GbcNet.Tests.Unit/Sgb/SgbControllerTests.cs)                                                                                                                                    | Optional SNES-side commands and SGB2 are unsupported                                              |
 | Cartridges     | Partial          | [MBC1](emulator/tests/GbcNet.Tests.Unit/Cartridges/Mbc1CartridgeTests.cs), [MBC2](emulator/tests/GbcNet.Tests.Unit/Cartridges/Mbc2CartridgeTests.cs), [MBC3](emulator/tests/GbcNet.Tests.Unit/Cartridges/Mbc3CartridgeTests.cs), [MBC5](emulator/tests/GbcNet.Tests.Unit/Cartridges/Mbc5CartridgeTests.cs) | Uncommon mappers remain unsupported. MBC5 rumble state is emulated without host vibration output. |
+
+<h2>Contributors</h2>
+
+<a href="https://github.com/thomas-fazzari/gbc-net/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=thomas-fazzari/gbc-net" alt="GBC.Net contributors">
+</a>

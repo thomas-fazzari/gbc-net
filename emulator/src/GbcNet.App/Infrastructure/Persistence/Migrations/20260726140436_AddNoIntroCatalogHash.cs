@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿// Copyright (C) 2026 GBC.Net Contributors
+// SPDX-License-Identifier: GPL-3.0-only
+
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 

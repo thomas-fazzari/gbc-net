@@ -1,4 +1,4 @@
-// Copyright (C) 2026 thomas-fazzari
+// Copyright (C) 2026 GBC.Net Contributors
 // SPDX-License-Identifier: GPL-3.0-only
 
 using System.Globalization;

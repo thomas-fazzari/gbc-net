@@ -1,24 +1,14 @@
 open System
-open System.Collections.Generic
 open System.Diagnostics
 open System.Globalization
 open System.IO
 open System.Text
 open System.Text.RegularExpressions
 
-type GitStatus =
-    | Renamed of source: string * destination: string
-    | Copied of source: string * destination: string
-    | Modified of path: string
-    | Deleted
-    | Ignored
-
 type UpdateResult =
     | Unchanged
     | Changed
-    | Failed of file: string * error: string
-
-let normalizeGitPath (file: string) = file.Replace('\\', '/')
+    | Failed of error: string
 
 let copyrightHeader =
     Regex(
@@ -29,16 +19,29 @@ let copyrightHeader =
         TimeSpan.FromSeconds 1.0
     )
 
+let license = "GPL-3.0-only"
+
 let isSpdxLine (line: string) =
     line.StartsWith("// SPDX-License-Identifier: ", StringComparison.Ordinal)
 
 let isHeaderLine line =
     isSpdxLine line || copyrightHeader.IsMatch line
 
+let skipExistingHeader (lines: ResizeArray<string>) =
+    let mutable index = 0
+
+    while index < lines.Count && isHeaderLine lines[index] do
+        index <- index + 1
+
+    if index < lines.Count && lines[index].Length = 0 then
+        index + 1
+    else
+        index
+
 let usage (writer: TextWriter) =
     writer.WriteLine(
         """Usage: dotnet fsi scripts/copyrights.fsx -- [--check]
-Adds GPL-3.0-only headers to tracked C# files using per-file git author names."""
+Adds GPL-3.0-only headers to tracked C# files."""
     )
 
 let runGit (arguments: string array) =
@@ -64,101 +67,18 @@ let runGit (arguments: string array) =
 
     output
 
-let parseStatus (fields: string array) =
-    match fields with
-    | [| status; source; destination |] when status.StartsWith("R", StringComparison.Ordinal) ->
-        Renamed(source, destination)
-    | [| status; source; destination |] when status.StartsWith("C", StringComparison.Ordinal) ->
-        Copied(source, destination)
-    | [| status; _ |] when status.StartsWith("D", StringComparison.Ordinal) -> Deleted
-    | [| _; path |] -> Modified path
-    | _ -> Ignored
-
-let readContributorsByFile () =
-    let contributors = Dictionary<string, ResizeArray<string>>(StringComparer.Ordinal)
-
-    let addContributor file contributor =
-        let file = normalizeGitPath file
-        let exists, fileContributors = contributors.TryGetValue file
-
-        let fileContributors =
-            if exists then
-                fileContributors
-            else
-                let created = ResizeArray<string>()
-                contributors.Add(file, created)
-                created
-
-        if
-            not (
-                fileContributors
-                |> Seq.exists (fun existing -> StringComparer.Ordinal.Equals(existing, contributor))
-            )
-        then
-            fileContributors.Add contributor
-
-    let copyContributors source destination removeSource =
-        let source = normalizeGitPath source
-        let destination = normalizeGitPath destination
-
-        match contributors.TryGetValue source with
-        | false, _ -> ()
-        | true, sourceContributors ->
-            for contributor in Seq.toArray sourceContributors do
-                addContributor destination contributor
-
-            if removeSource then
-                contributors.Remove source |> ignore
-
-    let mutable author = String.Empty
-
-    let logOutput =
-        runGit
-            [| "log"
-               "--reverse"
-               "--format=%x1e%aN"
-               "--name-status"
-               "-M"
-               "--"
-               "*.cs" |]
-
-    let logLines =
-        logOutput.Split([| '\r'; '\n' |], StringSplitOptions.RemoveEmptyEntries)
-
-    logLines
-    |> Array.iter (fun line ->
-        if line[0] = '\u001e' then
-            author <- line[1..]
-        else if author.Length > 0 then
-            match parseStatus (line.Split '\t') with
-            | Renamed(source, destination) ->
-                copyContributors source destination true
-                addContributor destination author
-            | Copied(source, destination) ->
-                copyContributors source destination false
-                addContributor destination author
-            | Modified path -> addContributor path author
-            | Deleted
-            | Ignored -> ())
-
-    contributors
-
-let contributorsFor (contributorsByFile: Dictionary<string, ResizeArray<string>>) file =
-    match contributorsByFile.TryGetValue(normalizeGitPath file) with
-    | true, contributors when contributors.Count > 0 -> " " + String.Join(", ", contributors)
-    | _ -> String.Empty
-
 let readFileWithEncoding (path: string) =
-    let defaultEncoding =
-        UTF8Encoding(encoderShouldEmitUTF8Identifier = false) :> Encoding
-
     use reader =
-        new StreamReader(path, defaultEncoding, detectEncodingFromByteOrderMarks = true)
+        new StreamReader(
+            path,
+            UTF8Encoding(encoderShouldEmitUTF8Identifier = false),
+            detectEncodingFromByteOrderMarks = true
+        )
 
     let text = reader.ReadToEnd()
     text, reader.CurrentEncoding
 
-let updateFile check year license contributorsByFile file : UpdateResult =
+let updateFile check year file : UpdateResult =
     try
         let text, encoding = readFileWithEncoding file
 
@@ -173,24 +93,16 @@ let updateFile check year license contributorsByFile file : UpdateResult =
         if lines.Count > 0 && lines[lines.Count - 1].Length = 0 then
             lines.RemoveAt(lines.Count - 1)
 
-        let mutable index = 0
-
-        while index < lines.Count && isHeaderLine lines[index] do
-            index <- index + 1
-
-            if index < lines.Count && isSpdxLine lines[index] then
-                index <- index + 1
-
-            if index < lines.Count && lines[index].Length = 0 then
-                index <- index + 1
+        let contentStart = skipExistingHeader lines
 
         let header =
-            [| $"// Copyright (C) {year}{contributorsFor contributorsByFile file}"
+            [| $"// Copyright (C) {year} GBC.Net Contributors"
                $"// SPDX-License-Identifier: {license}"
                String.Empty |]
 
         let newText =
-            String.Join(newline, Seq.append header (lines |> Seq.skip index)) + newline
+            String.Join(newline, Seq.append header (lines |> Seq.skip contentStart))
+            + newline
 
         if String.Equals(newText, text, StringComparison.Ordinal) then
             Unchanged
@@ -200,7 +112,7 @@ let updateFile check year license contributorsByFile file : UpdateResult =
 
             Changed
     with ex ->
-        Failed(file, ex.Message)
+        Failed ex.Message
 
 let args = fsi.CommandLineArgs |> Array.skip 1
 
@@ -216,28 +128,26 @@ let check =
         usage Console.Error
         exit 2
 
-let year =
+let readYear () =
     let value = Environment.GetEnvironmentVariable "COPYRIGHT_YEAR"
 
     if String.IsNullOrWhiteSpace value then
         DateTimeOffset.Now.Year.ToString CultureInfo.InvariantCulture
+    elif value.Length <> 4 || not (value |> Seq.forall Char.IsAsciiDigit) then
+        invalidOp "COPYRIGHT_YEAR must contain exactly four digits."
     else
         value
 
-let license = "GPL-3.0-only"
-
 let run () =
+    let year = readYear ()
     let lsFilesOutput = runGit [| "ls-files"; "-z"; "--"; "*.cs" |]
 
     let files =
         lsFilesOutput.Split('\u0000', StringSplitOptions.RemoveEmptyEntries)
         |> Array.filter File.Exists
 
-    let contributorsByFile = readContributorsByFile ()
-
     let results =
-        files
-        |> Array.Parallel.map (fun file -> file, updateFile check year license contributorsByFile file)
+        files |> Array.Parallel.map (fun file -> file, updateFile check year file)
 
     let changedFiles =
         results
@@ -249,7 +159,7 @@ let run () =
     let failures =
         results
         |> Array.choose (function
-            | _, Failed(file, message) -> Some(file, message)
+            | file, Failed message -> Some(file, message)
             | _ -> None)
         |> Array.sortWith (fun (left, _) (right, _) -> StringComparer.Ordinal.Compare(left, right))
 

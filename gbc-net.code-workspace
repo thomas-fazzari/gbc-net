@@ -2,7 +2,7 @@
   "folders": [
     {
       "name": "Agents",
-      "path": ".omp"
+      "path": ".agents"
     },
     {
       "name": "Source",
@@ -25,7 +25,6 @@
       "**/SKILL.md": "markdown"
     },
     "files.exclude": {
-      "**/.omp": true,
       "**/.idea": true,
       "**/LICENSE": true,
       "**/.config": true,
