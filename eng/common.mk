@@ -1,0 +1,15 @@
+SOLUTION := GbcNet.slnx
+APP := src/GbcNet.App/GbcNet.App.csproj
+TEST_PROJECT := tests/GbcNet.Tests/GbcNet.Tests.csproj
+ICON := src/GbcNet.App/Assets/Icon.png
+COVERAGE_SETTINGS := $(CURDIR)/tests/coverage.settings.xml
+COVERAGE_DIR := $(CURDIR)/artifacts
+
+CONFIGURATION ?= Debug
+RUN_CONFIGURATION ?= Debug
+RUNTIME ?= osx-arm64
+TEST_ARGS ?=
+
+DOTNET ?= dotnet
+
+export APP RUN_CONFIGURATION DOTNET

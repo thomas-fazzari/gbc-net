@@ -25,7 +25,7 @@ jobs:
       matrix:
         include:
           - configuration: Debug
-            target: tests
+            target: test
           - configuration: Release
             target: coverage
 
@@ -35,7 +35,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          global-json-file: emulator/global.json
+          global-json-file: global.json
 
       - name: Install dependencies
         run: make install
@@ -55,6 +55,6 @@ jobs:
         if: matrix.configuration == 'Release'
         uses: codecov/codecov-action@v7
         with:
-          files: ./artifacts/unit.cobertura.xml,./artifacts/integration.cobertura.xml
+          files: ./artifacts/coverage.cobertura.xml
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}

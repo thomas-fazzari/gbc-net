@@ -6,11 +6,11 @@
     },
     {
       "name": "Source",
-      "path": "emulator/src"
+      "path": "src"
     },
     {
       "name": "Tests",
-      "path": "emulator/tests"
+      "path": "tests"
     }
   ],
   "settings": {
@@ -61,7 +61,7 @@
           "install"
         ],
         "options": {
-          "cwd": "${workspaceFolder:Source}/../.."
+          "cwd": "${workspaceFolder:Source}/.."
         },
         "problemMatcher": []
       },
@@ -70,11 +70,11 @@
         "type": "process",
         "command": "make",
         "args": [
-          "lint",
+          "build",
           "CONFIGURATION=Debug"
         ],
         "options": {
-          "cwd": "${workspaceFolder:Source}/../.."
+          "cwd": "${workspaceFolder:Source}/.."
         },
         "group": {
           "kind": "build",
@@ -87,11 +87,11 @@
         "type": "process",
         "command": "make",
         "args": [
-          "lint",
+          "build",
           "CONFIGURATION=Release"
         ],
         "options": {
-          "cwd": "${workspaceFolder:Source}/../.."
+          "cwd": "${workspaceFolder:Source}/.."
         },
         "problemMatcher": "$msCompile"
       },
@@ -103,7 +103,7 @@
           "lint"
         ],
         "options": {
-          "cwd": "${workspaceFolder:Source}/../.."
+          "cwd": "${workspaceFolder:Source}/.."
         },
         "problemMatcher": "$msCompile"
       },
@@ -112,10 +112,10 @@
         "type": "process",
         "command": "make",
         "args": [
-          "tests"
+          "test"
         ],
         "options": {
-          "cwd": "${workspaceFolder:Source}/../.."
+          "cwd": "${workspaceFolder:Source}/.."
         },
         "group": {
           "kind": "test",
@@ -133,7 +133,7 @@
         "type": "coreclr",
         "request": "launch",
         "program": "${workspaceFolder:Source}/GbcNet.App/bin/Debug/net10.0/GbcNet.dll",
-        "cwd": "${workspaceFolder:Source}/../..",
+        "cwd": "${workspaceFolder:Source}/..",
         "preLaunchTask": "build",
       },
       {
@@ -141,7 +141,7 @@
         "type": "coreclr",
         "request": "launch",
         "program": "${workspaceFolder:Source}/GbcNet.App/bin/Release/net10.0/GbcNet.dll",
-        "cwd": "${workspaceFolder:Source}/../..",
+        "cwd": "${workspaceFolder:Source}/..",
         "preLaunchTask": "build-release",
       }
     ]

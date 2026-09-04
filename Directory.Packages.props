@@ -1,0 +1,44 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Avalonia" Version="12.1.1" />
+    <PackageVersion Include="Avalonia.Desktop" Version="12.1.1" />
+    <PackageVersion Include="Avalonia.Themes.Simple" Version="12.1.1" />
+    <PackageVersion Include="ErrorOr" Version="2.1.1" />
+    <PackageVersion Include="JetBrains.Annotations" Version="2026.2.0" />
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="10.0.11" />
+    <PackageVersion Include="ppy.SDL3-CS" Version="2026.722.0" />
+    <PackageVersion Include="Serilog.Extensions.Logging" Version="10.0.0" />
+    <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
+    <PackageVersion Include="TablerIcons.Avalonia" Version="3.44.0" />
+    <PackageVersion Include="ZstdSharp.Port" Version="0.8.8" />
+  </ItemGroup>
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="AwesomeAssertions" Version="9.6.0" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.10.0" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.HangDump" Version="2.3.3" />
+    <PackageVersion Include="xunit.v3.mtp-v2" Version="4.0.0" />
+  </ItemGroup>
+  <ItemGroup Label="Analyzers">
+    <GlobalPackageReference
+      Include="Roslynator.Analyzers"
+      Version="5.0.0"
+      PrivateAssets="all"
+      IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
+    />
+    <GlobalPackageReference
+      Include="Meziantou.Analyzer"
+      Version="3.0.200"
+      PrivateAssets="all"
+      IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
+    />
+  </ItemGroup>
+</Project>

@@ -24,19 +24,19 @@ make
 <p>Integration tests exercise filesystem and database behavior.</p>
 
 ```sh
-make tests         # All tests
+make test          # All tests
 make unit          # Unit tests only
 make integration   # Integration tests only
 ```
 
 <h2>Compatibility</h2>
 
-| Target         | Status           | Coverage                                                                                                                                                                                                                                                                                                   | Limitations                                                                                       |
-| -------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Game Boy       | Functional       | [Mooneye](emulator/tests/GbcNet.Tests.Unit/RomTesting/Mooneye/MooneyeAcceptanceRomTests.cs), [Blargg](emulator/tests/GbcNet.Tests.Unit/RomTesting/Blargg), [dmg-acid2](emulator/tests/GbcNet.Tests.Unit/RomTesting/Visual/DmgAcid2VisualRomTests.cs)                                                       | Hardware edge cases may remain                                                                    |
-| Game Boy Color | Functional       | [Mooneye CGB](emulator/tests/GbcNet.Tests.Unit/RomTesting/Mooneye/MooneyeCgbRomTests.cs), [cgb-acid2](emulator/tests/GbcNet.Tests.Unit/RomTesting/Visual/CgbAcid2VisualRomTests.cs)                                                                                                                        | Some CGB-specific edge cases remain                                                               |
-| Super Game Boy | Functional (HLE) | [SGB boot/model](emulator/tests/GbcNet.Tests.Unit/RomTesting/Mooneye/MooneyeSgbRomTests.cs), [SGB commands](emulator/tests/GbcNet.Tests.Unit/Sgb/SgbControllerTests.cs)                                                                                                                                    | Optional SNES-side commands and SGB2 are unsupported                                              |
-| Cartridges     | Partial          | [MBC1](emulator/tests/GbcNet.Tests.Unit/Cartridges/Mbc1CartridgeTests.cs), [MBC2](emulator/tests/GbcNet.Tests.Unit/Cartridges/Mbc2CartridgeTests.cs), [MBC3](emulator/tests/GbcNet.Tests.Unit/Cartridges/Mbc3CartridgeTests.cs), [MBC5](emulator/tests/GbcNet.Tests.Unit/Cartridges/Mbc5CartridgeTests.cs) | Uncommon mappers remain unsupported. MBC5 rumble state is emulated without host vibration output. |
+| Target         | Status           | Coverage                                                                                                                                                                                                                                                               | Limitations                                                                                       |
+| -------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Game Boy       | Functional       | [Mooneye](tests/GbcNet.Tests/Unit/RomTesting/Mooneye/MooneyeAcceptanceRomTests.cs), [Blargg](tests/GbcNet.Tests/Unit/RomTesting/Blargg), [dmg-acid2](tests/GbcNet.Tests/Unit/RomTesting/Visual/DmgAcid2VisualRomTests.cs)                                              | Hardware edge cases may remain                                                                    |
+| Game Boy Color | Functional       | [Mooneye CGB](tests/GbcNet.Tests/Unit/RomTesting/Mooneye/MooneyeCgbRomTests.cs), [cgb-acid2](tests/GbcNet.Tests/Unit/RomTesting/Visual/CgbAcid2VisualRomTests.cs)                                                                                                      | Some CGB-specific edge cases remain                                                               |
+| Super Game Boy | Functional (HLE) | [SGB boot/model](tests/GbcNet.Tests/Unit/RomTesting/Mooneye/MooneyeSgbRomTests.cs), [SGB commands](tests/GbcNet.Tests/Unit/Sgb/SgbControllerTests.cs)                                                                                                                  | Optional SNES-side commands and SGB2 are unsupported                                              |
+| Cartridges     | Partial          | [MBC1](tests/GbcNet.Tests/Unit/Cartridges/Mbc1CartridgeTests.cs), [MBC2](tests/GbcNet.Tests/Unit/Cartridges/Mbc2CartridgeTests.cs), [MBC3](tests/GbcNet.Tests/Unit/Cartridges/Mbc3CartridgeTests.cs), [MBC5](tests/GbcNet.Tests/Unit/Cartridges/Mbc5CartridgeTests.cs) | Uncommon mappers remain unsupported. MBC5 rumble state is emulated without host vibration output. |
 
 <h2>Contributors</h2>
 

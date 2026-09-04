@@ -1,77 +1,28 @@
-DOTNET_WORKSPACE := emulator
-SOLUTION := GbcNet.slnx
-APP := src/GbcNet.App/GbcNet.App.csproj
-UNIT_TESTS := tests/GbcNet.Tests.Unit/GbcNet.Tests.Unit.csproj
-INTEGRATION_TESTS := tests/GbcNet.Tests.Integration/GbcNet.Tests.Integration.csproj
-ICON := src/GbcNet.App/Assets/Icon.png
-COVERAGE_SETTINGS := $(CURDIR)/$(DOTNET_WORKSPACE)/tests/coverage.settings.xml
-COVERAGE_DIR := $(CURDIR)/artifacts
-CONFIGURATION ?= Debug
-RUN_CONFIGURATION ?= Release
-RUNTIME ?= osx-arm64
-TEST_ARGS ?=
-
-DOTNET ?= dotnet
-
 .DEFAULT_GOAL := run
 MAKEFLAGS += --no-builtin-rules --warn-undefined-variables
 
-.PHONY: install setup init run start format-check lint check fix format fmt tests unit integration coverage bundle package pack icons copyrights contributors
+include eng/common.mk
+include eng/build.mk
 
-install: ## Restore dependencies and configure Git hooks
-	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) restore $(SOLUTION)
-	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) tool restore
+.PHONY: install run check bundle icons copyrights contributors
+
+install: restore
 	git config core.hooksPath .githooks
 
-setup init: install
-
 run:
-	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) run --project $(APP) --configuration $(RUN_CONFIGURATION)
+	@sh ./eng/scripts/run.sh
 
-start: run
+check: lint test
 
-format-check:
-	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) tool run csharpier check .
-
-lint: format-check
-	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) build $(SOLUTION) --configuration $(CONFIGURATION)
-	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) tool run dotnet-ef migrations has-pending-model-changes --project $(APP) --startup-project $(APP) --configuration $(CONFIGURATION) --no-build
-
-check: lint
-
-format: ## Fix C# formatting
-	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) tool run csharpier format .
-
-fix fmt: format
-
-tests: unit integration ## Run all tests
-
-unit: ## Run unit tests
-	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) run --project $(UNIT_TESTS) --configuration $(CONFIGURATION) -- $(TEST_ARGS)
-
-integration: ## Run filesystem and database integration tests
-	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) run --project $(INTEGRATION_TESTS) --configuration $(CONFIGURATION) -- $(TEST_ARGS)
-
-coverage: ## Run all tests and write Cobertura coverage
-	mkdir -p "$(COVERAGE_DIR)"
-	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) run --project $(UNIT_TESTS) --configuration $(CONFIGURATION) -- --coverage --coverage-output-format cobertura --coverage-output "$(COVERAGE_DIR)/unit.cobertura.xml" --coverage-settings "$(COVERAGE_SETTINGS)" $(TEST_ARGS)
-	cd "$(DOTNET_WORKSPACE)" && $(DOTNET) run --project $(INTEGRATION_TESTS) --configuration $(CONFIGURATION) -- --coverage --coverage-output-format cobertura --coverage-output "$(COVERAGE_DIR)/integration.cobertura.xml" --coverage-settings "$(COVERAGE_SETTINGS)" $(TEST_ARGS)
-
-
-bundle: ## Create platform application bundle
+bundle:
 	@case "$(RUNTIME)" in \
-		osx-*) packaging/macos/create-app-bundle.sh "$(DOTNET_WORKSPACE)/$(APP)" "$(RUNTIME)" ;; \
-		linux-*) packaging/linux/create-app-bundle.sh "$(DOTNET_WORKSPACE)/$(APP)" "$(RUNTIME)" ;; \
+		osx-*) sh ./eng/scripts/create-macos-bundle.sh "$(APP)" "$(RUNTIME)" ;; \
+		linux-*) sh ./eng/scripts/create-linux-bundle.sh "$(APP)" "$(RUNTIME)" ;; \
 		*) echo "Unsupported RUNTIME: $(RUNTIME)" >&2; exit 1 ;; \
 	esac
 
-package pack: bundle
+icons:
+	@sh ./eng/scripts/generate-icons.sh "$(ICON)"
 
-icons: ## Generate app icons from Icon.png (GbcNet.App/Assets)
-	packaging/generate-icons.sh "$(DOTNET_WORKSPACE)/$(ICON)"
-
-copyrights: ## Update copyright notices
-	$(DOTNET) fsi scripts/copyrights.fsx --
-
-contributors: ## List project contributors
-	@git shortlog --all --summary | awk '{ sub(/^[[:space:]]*[0-9]+[[:space:]]+/, ""); if (!seen[tolower($$0)]++) contributors[++count] = $$0 } END { printf "Total : %d contributors(s)\n", count; print "----------------------------------------"; for (i = 1; i <= count; i++) print contributors[i] }'
+copyrights:
+	@sh ./eng/scripts/copyrights.sh

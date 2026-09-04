@@ -1,0 +1,26 @@
+// Copyright (C) 2026 GBC.Net Contributors
+// SPDX-License-Identifier: GPL-3.0-only
+
+namespace GbcNet.Tests.Unit.RomTesting.Utils.ResultObservers;
+
+/// <summary>
+/// Mooneye test-rom report sequences: a Fibonacci-like prefix signals pass,
+/// a run of the failure byte signals fail.
+/// </summary>
+internal static class MooneyeReport
+{
+    /// <summary>
+    /// Gets the byte repeated by a canonical failure report.
+    /// </summary>
+    public const byte FailureByte = 0x42;
+
+    /// <summary>
+    /// Gets the canonical six-byte pass report.
+    /// </summary>
+    public static readonly byte[] PassReport = [0x03, 0x05, 0x08, 0x0D, 0x15, 0x22];
+
+    /// <summary>
+    /// Gets the canonical six-byte failure report.
+    /// </summary>
+    public static readonly byte[] FailReport = [.. Enumerable.Repeat(FailureByte, 6)];
+}

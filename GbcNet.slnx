@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Source/">
+    <Project Path="src/GbcNet.App/GbcNet.App.csproj" />
+    <Project Path="src/GbcNet.Core/GbcNet.Core.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/GbcNet.Tests/GbcNet.Tests.csproj" />
+  </Folder>
+</Solution>
