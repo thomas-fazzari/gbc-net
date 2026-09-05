@@ -63,68 +63,6 @@ internal static class RomTestRunner
         return new RomTestResult(RomTestStatus.TimedOut, machineCycles, GetSnapshots(observers));
     }
 
-    /// <summary>
-    /// Runs a set of ROM paths in parallel and indexes each result by its relative path.
-    /// </summary>
-    /// <param name="relativePaths">The stable path keys to run.</param>
-    /// <param name="run">The thread-safe operation that runs one path.</param>
-    /// <returns>A case-sensitive result map.</returns>
-    public static IReadOnlyDictionary<string, RomTestResult> RunAll(
-        IReadOnlyList<string> relativePaths,
-        Func<string, RomTestResult> run
-    )
-    {
-        ArgumentNullException.ThrowIfNull(relativePaths);
-        ArgumentNullException.ThrowIfNull(run);
-
-        return relativePaths
-            .AsParallel()
-            .WithDegreeOfParallelism(Environment.ProcessorCount)
-            .ToDictionary(static relativePath => relativePath, run, StringComparer.Ordinal);
-    }
-
-    /// <summary>
-    /// Creates xUnit theory rows and lazily runs every ROM when the result map is first read.
-    /// </summary>
-    /// <param name="relativePaths">Paths relative to <paramref name="romDirectory"/>.</param>
-    /// <param name="romDirectory">The directory that contains the ROM files.</param>
-    /// <param name="maxMachineCycles">The soft M-cycle limit for each ROM.</param>
-    /// <param name="protocol">The protocol used to detect pass and fail reports.</param>
-    /// <param name="hardwareModel">The emulated hardware model.</param>
-    public static RomSuite CreateSuite(
-        IReadOnlyList<string> relativePaths,
-        string romDirectory,
-        int maxMachineCycles,
-        RomTestProtocol protocol = RomTestProtocol.Blargg,
-        HardwareModel hardwareModel = HardwareModel.Dmg
-    )
-    {
-        ArgumentNullException.ThrowIfNull(relativePaths);
-        ArgumentNullException.ThrowIfNull(romDirectory);
-
-        var rows = new TheoryData<string>();
-        foreach (var relativePath in relativePaths)
-        {
-            rows.Add(relativePath);
-        }
-
-        return new(
-            rows,
-            new Lazy<IReadOnlyDictionary<string, RomTestResult>>(() =>
-                RunAll(
-                    relativePaths,
-                    relativePath =>
-                    {
-                        var romPath = Path.Combine(romDirectory, relativePath);
-                        var rom = File.ReadAllBytes(romPath);
-
-                        return Run(rom, maxMachineCycles, protocol, hardwareModel);
-                    }
-                )
-            )
-        );
-    }
-
     private static RomTestResult? CreateTerminalResult(
         IReadOnlyList<IRomResultObserver> observers,
         int machineCycles

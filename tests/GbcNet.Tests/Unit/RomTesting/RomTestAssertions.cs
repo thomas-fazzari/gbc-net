@@ -15,22 +15,4 @@ internal static class RomTestAssertions
     {
         (result.Status is RomTestStatus.Passed).Should().BeTrue(result.ToFailureMessage());
     }
-
-    /// <summary>
-    /// Finds a ROM result by relative path and asserts that it passed.
-    /// </summary>
-    public static void AssertPassed(
-        IReadOnlyDictionary<string, RomTestResult> results,
-        string relativePath
-    )
-    {
-        ArgumentNullException.ThrowIfNull(results);
-        ArgumentNullException.ThrowIfNull(relativePath);
-
-        var result = results.Should().ContainKey(relativePath).WhoseValue;
-
-        (result.Status is RomTestStatus.Passed)
-            .Should()
-            .BeTrue(relativePath + Environment.NewLine + result.ToFailureMessage());
-    }
 }

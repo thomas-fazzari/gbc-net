@@ -6,32 +6,26 @@ using GbcNet.Tests.Unit.RomTesting.Utils;
 
 namespace GbcNet.Tests.Unit.RomTesting.Mooneye;
 
-[Collection<RomTestCollectionDefinition>]
 public sealed class MooneyeSgbRomTests
 {
     private const string RomDirectory = "RomTesting/Resources/Mooneye/acceptance";
     private const int MaxMachineCycles = 20_000_000;
 
-    private static readonly string[] _romRelativePaths =
-    [
-        "boot_div-S.gb",
-        "boot_div2-S.gb",
-        "boot_hwio-S.gb",
-        "boot_regs-sgb.gb",
-    ];
-
-    private static readonly RomSuite _roms = RomTestRunner.CreateSuite(
-        _romRelativePaths,
-        RomDirectory,
-        MaxMachineCycles,
-        RomTestProtocol.Mooneye,
-        HardwareModel.Sgb
-    );
-
-    public static TheoryData<string> RomRelativePathRows => _roms.Rows;
+    public static TheoryData<string> RomRelativePathRows =>
+        ["boot_div-S.gb", "boot_div2-S.gb", "boot_hwio-S.gb", "boot_regs-sgb.gb"];
 
     [Theory]
     [MemberData(nameof(RomRelativePathRows))]
-    public void SgbRomPasses(string relativePath) =>
-        RomTestAssertions.AssertPassed(_roms.Results, relativePath);
+    public void SgbRomPasses(string relativePath)
+    {
+        var rom = File.ReadAllBytes(Path.Combine(RomDirectory, relativePath));
+        var result = RomTestRunner.Run(
+            rom,
+            MaxMachineCycles,
+            RomTestProtocol.Mooneye,
+            HardwareModel.Sgb
+        );
+
+        RomTestAssertions.AssertPassed(result);
+    }
 }

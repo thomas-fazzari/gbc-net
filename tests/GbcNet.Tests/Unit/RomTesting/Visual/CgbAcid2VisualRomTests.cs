@@ -7,7 +7,6 @@ using GbcNet.Tests.Unit.RomTesting.Utils;
 
 namespace GbcNet.Tests.Unit.RomTesting.Visual;
 
-[Collection<RomTestCollectionDefinition>]
 public sealed class CgbAcid2VisualRomTests
 {
     private const string RomPath = "RomTesting/Resources/Visual/cgb-acid2/cgb-acid2.gbc";

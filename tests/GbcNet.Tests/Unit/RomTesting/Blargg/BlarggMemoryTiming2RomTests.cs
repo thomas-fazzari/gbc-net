@@ -5,30 +5,26 @@ using GbcNet.Tests.Unit.RomTesting.Utils;
 
 namespace GbcNet.Tests.Unit.RomTesting.Blargg;
 
-[Collection<RomTestCollectionDefinition>]
 public sealed class BlarggMemoryTiming2RomTests
 {
     private const string RomDirectory = "RomTesting/Resources/Blargg/mem_timing-2";
     private const int MaxMachineCycles = 50_000_000;
 
-    private static readonly string[] _romFileNames =
-    [
-        "mem_timing.gb",
-        "rom_singles/01-read_timing.gb",
-        "rom_singles/02-write_timing.gb",
-        "rom_singles/03-modify_timing.gb",
-    ];
-
-    private static readonly RomSuite _roms = RomTestRunner.CreateSuite(
-        _romFileNames,
-        RomDirectory,
-        MaxMachineCycles
-    );
-
-    public static TheoryData<string> RomFileNameRows => _roms.Rows;
+    public static TheoryData<string> RomFileNameRows =>
+        [
+            "mem_timing.gb",
+            "rom_singles/01-read_timing.gb",
+            "rom_singles/02-write_timing.gb",
+            "rom_singles/03-modify_timing.gb",
+        ];
 
     [Theory]
     [MemberData(nameof(RomFileNameRows))]
-    public void MemoryTiming2RomPasses(string fileName) =>
-        RomTestAssertions.AssertPassed(_roms.Results, fileName);
+    public void MemoryTiming2RomPasses(string fileName)
+    {
+        var rom = File.ReadAllBytes(Path.Combine(RomDirectory, fileName));
+        var result = RomTestRunner.Run(rom, MaxMachineCycles);
+
+        RomTestAssertions.AssertPassed(result);
+    }
 }
