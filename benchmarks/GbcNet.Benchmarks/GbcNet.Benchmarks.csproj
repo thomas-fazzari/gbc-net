@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsPublishable>false</IsPublishable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+    <ProjectReference Include="../../src/GbcNet.Core/GbcNet.Core.csproj" />
+    <ProjectReference Include="../../src/GbcNet.App/GbcNet.App.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content
+      Include="../../tests/GbcNet.Tests/Unit/RomTesting/Resources/Visual/dmg-acid2/dmg-acid2.gb"
+      Link="Roms/dmg-acid2.gb"
+      CopyToOutputDirectory="PreserveNewest"
+    />
+    <Content
+      Include="../../tests/GbcNet.Tests/Unit/RomTesting/Resources/Visual/cgb-acid2/cgb-acid2.gbc"
+      Link="Roms/cgb-acid2.gbc"
+      CopyToOutputDirectory="PreserveNewest"
+    />
+  </ItemGroup>
+</Project>

@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Benchmarks/">
+    <Project Path="benchmarks/GbcNet.Benchmarks/GbcNet.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/Source/">
     <Project Path="src/GbcNet.App/GbcNet.App.csproj" />
     <Project Path="src/GbcNet.Core/GbcNet.Core.csproj" />

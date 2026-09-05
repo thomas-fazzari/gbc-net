@@ -11,6 +11,10 @@
     {
       "name": "Tests",
       "path": "tests"
+    },
+    {
+      "name": "Benchmarks",
+      "path": "benchmarks"
     }
   ],
   "settings": {
@@ -101,6 +105,18 @@
         "command": "make",
         "args": [
           "lint"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Source}/.."
+        },
+        "problemMatcher": "$msCompile"
+      },
+      {
+        "label": "benchmark",
+        "type": "process",
+        "command": "make",
+        "args": [
+          "benchmark"
         ],
         "options": {
           "cwd": "${workspaceFolder:Source}/.."

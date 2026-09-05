@@ -4,7 +4,7 @@ MAKEFLAGS += --no-builtin-rules --warn-undefined-variables
 include eng/common.mk
 include eng/build.mk
 
-.PHONY: install run check bundle icons copyrights
+.PHONY: install run check benchmark bundle icons copyrights
 
 install: restore
 	git config core.hooksPath .githooks
@@ -13,6 +13,9 @@ run:
 	@"$(DOTNET)" run --project "$(APP)" --configuration "$(RUN_CONFIGURATION)"
 
 check: lint test
+
+benchmark:
+	@"$(DOTNET)" run --project "$(BENCHMARK_PROJECT)" --configuration Release -- --artifacts "$(CURDIR)/artifacts/benchmarks" $(BENCHMARK_ARGS)
 
 bundle:
 	@case "$(RUNTIME)" in \

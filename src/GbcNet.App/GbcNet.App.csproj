@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="GbcNet.Tests" />
+    <InternalsVisibleTo Include="GbcNet.Benchmarks" />
   </ItemGroup>
 
   <ItemGroup>

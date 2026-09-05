@@ -64,7 +64,9 @@ internal sealed class SgbBorderRenderer
     private readonly byte[] _attributeMap = new byte[AttributeMapWidth * AttributeMapHeight];
     private bool _borderReady;
     private byte[]? _borderCachePixels;
-    private byte[]? _borderGameBoyPixels;
+    private readonly byte[] _gameBoyPixels = new byte[
+        PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * Rgb555BytesPerPixel
+    ];
     private bool _borderCacheDirty = true;
     private byte[]? _visibleFramePixels;
     private byte[]? _lastBootFramePixels;
@@ -168,7 +170,8 @@ internal sealed class SgbBorderRenderer
 
         if (!_borderReady && !IsSolidRgb555(gameBoyPixels, 0x7FFF))
         {
-            _lastBootFramePixels = gameBoyPixels;
+            _lastBootFramePixels ??= new byte[gameBoyPixels.Length];
+            gameBoyPixels.CopyTo(_lastBootFramePixels, 0);
         }
 
         return _borderReady ? CreateSgbFrame(gameBoyPixels) : CreateGameBoyFrame(gameBoyPixels);
@@ -456,11 +459,7 @@ internal sealed class SgbBorderRenderer
     private byte[] ColorizeFrame(LcdFrame frame)
     {
         var source = frame.Pixels.Span;
-        var target = _borderReady
-            ? _borderGameBoyPixels ??= new byte[
-                PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * Rgb555BytesPerPixel
-            ]
-            : new byte[PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * Rgb555BytesPerPixel];
+        var target = _gameBoyPixels;
 
         for (var pixel = 0; pixel < source.Length; pixel++)
         {
@@ -529,15 +528,14 @@ internal sealed class SgbBorderRenderer
 
     private byte[] SetVisibleRgb555Pixels(byte[] pixels)
     {
-        _visibleFramePixels = pixels;
+        _visibleFramePixels ??= new byte[pixels.Length];
+        pixels.CopyTo(_visibleFramePixels, 0);
         return pixels;
     }
 
-    private static byte[] CreateSolidRgb555Pixels(ushort color)
+    private byte[] CreateSolidRgb555Pixels(ushort color)
     {
-        var pixels = new byte[
-            PpuGeometry.FrameWidth * PpuGeometry.FrameHeight * Rgb555BytesPerPixel
-        ];
+        var pixels = _gameBoyPixels;
         for (var pixel = 0; pixel < PpuGeometry.FrameWidth * PpuGeometry.FrameHeight; pixel++)
         {
             WriteRgb555(pixels, pixel, color);
@@ -575,13 +573,27 @@ internal sealed class SgbBorderRenderer
         }
     }
 
-    private static LcdFrame CreateGameBoyFrame(byte[] gameBoyPixels) =>
-        LcdFrame.FromOwnedPixels(
-            PpuGeometry.FrameWidth,
-            PpuGeometry.FrameHeight,
-            LcdPixelFormat.Rgb555Le,
-            gameBoyPixels
-        );
+    private static LcdFrame CreateGameBoyFrame(ReadOnlySpan<byte> gameBoyPixels)
+    {
+        var pixels = ArrayPool<byte>.Shared.Rent(gameBoyPixels.Length);
+        try
+        {
+            gameBoyPixels.CopyTo(pixels);
+            return LcdFrame.FromPooledPixels(
+                PpuGeometry.FrameWidth,
+                PpuGeometry.FrameHeight,
+                LcdPixelFormat.Rgb555Le,
+                ArrayPool<byte>.Shared,
+                pixels,
+                gameBoyPixels.Length
+            );
+        }
+        catch
+        {
+            ArrayPool<byte>.Shared.Return(pixels);
+            throw;
+        }
+    }
 
     private byte[] GetBorderCachePixels()
     {

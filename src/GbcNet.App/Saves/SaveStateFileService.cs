@@ -212,13 +212,13 @@ internal sealed class SaveStateFileService(
         return File.Exists(path) ? File.GetLastWriteTime(path) : null;
     }
 
-    private static byte[] Compress(ReadOnlySpan<byte> payload)
+    internal static byte[] Compress(ReadOnlySpan<byte> payload)
     {
         using var compressor = new ZstdSharp.Compressor();
         return [.. compressor.Wrap(payload)];
     }
 
-    private static byte[] Decompress(ReadOnlySpan<byte> compressedPayload, int payloadLength)
+    internal static byte[] Decompress(ReadOnlySpan<byte> compressedPayload, int payloadLength)
     {
         var payload = new byte[payloadLength];
         using var decompressor = new ZstdSharp.Decompressor();

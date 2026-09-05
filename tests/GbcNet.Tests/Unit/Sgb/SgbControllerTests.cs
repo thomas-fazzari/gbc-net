@@ -39,21 +39,47 @@ public sealed class SgbControllerTests
         Rgb555Assertions.PixelEquals(colorized, GameBoyPixelIndex(x: 16, y: 0), expected: 0x4444);
     }
 
-    [Fact]
-    public void ApplyPalettes_MaskFreezeKeepsPreviousVisibleFrame()
+    // Pan Docs: System Control Commands, MASK_EN keeps displaying the current picture.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ApplyPalettes_MaskFreezeKeepsPreviousVisibleFrame(bool withBorder)
     {
         var sgb = new SgbController(commandsEnabled: true);
         WriteSgbPacket(sgb, command: 0x00, Pal01Payload);
+        if (withBorder)
+        {
+            ApplyBorderTransfers(sgb, new byte[4096], new byte[4096]);
+        }
 
-        var firstFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 1));
+        using var firstInput = CreateDmgFrame(shade: 1);
+        using var nextInput = CreateDmgFrame(shade: 2);
+        using var firstFrame = sgb.ApplyPalettes(firstInput);
         WriteSgbPacket(sgb, command: 0x17, [0x01]);
-        var frozenFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 2));
+        using var frozenFrame = sgb.ApplyPalettes(nextInput);
         WriteSgbPacket(sgb, command: 0x17, [0x00]);
-        var currentFrame = sgb.ApplyPalettes(CreateDmgFrame(shade: 2));
+        using var currentFrame = sgb.ApplyPalettes(nextInput);
 
-        Rgb555Assertions.PixelEquals(firstFrame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x2222);
-        Rgb555Assertions.PixelEquals(frozenFrame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x2222);
-        Rgb555Assertions.PixelEquals(currentFrame, GameBoyPixelIndex(x: 0, y: 0), expected: 0x3333);
+        var pixelIndex = withBorder ? (40 * 256) + 48 : 0;
+        Rgb555Assertions.PixelEquals(firstFrame, pixelIndex, expected: 0x2222);
+        Rgb555Assertions.PixelEquals(frozenFrame, pixelIndex, expected: 0x2222);
+        Rgb555Assertions.PixelEquals(currentFrame, pixelIndex, expected: 0x3333);
+    }
+
+    [Fact]
+    public void ApplyPalettes_DisposedOutputDoesNotOwnFrozenPixels()
+    {
+        var sgb = new SgbController(commandsEnabled: true);
+        WriteSgbPacket(sgb, command: 0x00, Pal01Payload);
+        using var input = CreateDmgFrame(shade: 1);
+        sgb.ApplyPalettes(input).Dispose();
+
+        WriteSgbPacket(sgb, command: 0x17, [0x02]);
+        sgb.ApplyPalettes(input).Dispose();
+        WriteSgbPacket(sgb, command: 0x17, [0x01]);
+        using var frozen = sgb.ApplyPalettes(input);
+
+        Rgb555Assertions.PixelEquals(frozen, 0, expected: 0x2222);
     }
 
     [Fact]
