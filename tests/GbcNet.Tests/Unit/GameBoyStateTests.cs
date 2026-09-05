@@ -192,6 +192,21 @@ public sealed class GameBoyStateTests
     }
 
     [Fact]
+    public void RestoreSaveState_RejectsTrailingJsonBeforeMutatingMachine()
+    {
+        var gameBoy = new GameBoy(TestRomFactory.LoadCartridge(), HardwareModel.Dmg);
+        var payload = gameBoy.CaptureSaveState();
+        gameBoy.Bus.WriteByte(AddressMap.HighRamStart, 0xAB);
+
+        FluentActions
+            .Invoking(() => gameBoy.RestoreSaveState([.. payload, .. "{}"u8]))
+            .Should()
+            .ThrowExactly<InvalidDataException>();
+
+        gameBoy.Bus.ReadByte(AddressMap.HighRamStart).Should().Be(0xAB);
+    }
+
+    [Fact]
     public void RestoreSaveState_RejectsPayloadWithoutRequiredMember()
     {
         var gameBoy = new GameBoy(TestRomFactory.LoadCartridge(), HardwareModel.Dmg);

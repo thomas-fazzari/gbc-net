@@ -9,7 +9,6 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
-using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using GbcNet.App.Configuration.Sections.Audio;
 using GbcNet.App.Configuration.Sections.BootRom;
@@ -249,10 +248,7 @@ internal sealed partial class SettingsWindow : Window
 
     private void SelectInputProfile(object? sender, SelectionChangedEventArgs e)
     {
-        if (
-            _refreshingProfiles
-            || ProfileListBox.SelectedItem is not ListBoxItem { Tag: string name }
-        )
+        if (_refreshingProfiles || ProfileListBox.SelectedItem is not InputProfileSummary profile)
         {
             return;
         }
@@ -260,8 +256,8 @@ internal sealed partial class SettingsWindow : Window
         CancelTransientEdits();
         ShowProfileResult(
             _activeInputTab is InputTab.Keyboard
-                ? _inputDraft.SelectKeyboardProfile(name)
-                : _inputDraft.SelectGamepadProfile(name)
+                ? _inputDraft.SelectKeyboardProfile(profile.Name)
+                : _inputDraft.SelectGamepadProfile(profile.Name)
         );
         RefreshBindings(_activeInputTab);
         RefreshActionStates();
@@ -562,48 +558,14 @@ internal sealed partial class SettingsWindow : Window
     private void RefreshProfiles()
     {
         _refreshingProfiles = true;
-        ProfileListBox.SelectionChanged -= SelectInputProfile;
         try
         {
-            ProfileListBox.Items.Clear();
-            foreach (var profile in CurrentProfiles)
-            {
-                var item = new ListBoxItem
-                {
-                    Tag = profile.Name,
-                    IsSelected = profile.IsSelected,
-                    MinHeight = 32,
-                    Padding = new Thickness(horizontal: 8, vertical: 5),
-                    HorizontalContentAlignment = HorizontalAlignment.Stretch,
-                    Content = new Grid
-                    {
-                        MinWidth = 0,
-                        ColumnDefinitions = new ColumnDefinitions("*,Auto"),
-                        Children =
-                        {
-                            new TextBlock
-                            {
-                                Text = profile.Name,
-                                MinWidth = 0,
-                                TextTrimming = TextTrimming.CharacterEllipsis,
-                                VerticalAlignment = VerticalAlignment.Center,
-                            },
-                            new TextBlock
-                            {
-                                Text = profile.IsActive ? "Active" : string.Empty,
-                                Classes = { "label", "active" },
-                                VerticalAlignment = VerticalAlignment.Center,
-                            },
-                        },
-                    },
-                };
-                Grid.SetColumn(((Grid)item.Content).Children[1], 1);
-                ProfileListBox.Items.Add(item);
-            }
+            var profiles = CurrentProfiles;
+            ProfileListBox.ItemsSource = profiles;
+            ProfileListBox.SelectedItem = profiles.FirstOrDefault(profile => profile.IsSelected);
         }
         finally
         {
-            ProfileListBox.SelectionChanged += SelectInputProfile;
             _refreshingProfiles = false;
         }
     }
@@ -653,22 +615,13 @@ internal sealed partial class SettingsWindow : Window
     private void RefreshGamepadDevices()
     {
         _refreshingDevices = true;
-        GamepadDeviceSelector.SelectionChanged -= SelectGamepadDevice;
         try
         {
-            GamepadDeviceSelector.Items.Clear();
-            foreach (var device in _gamepadManager.ConnectedDevices)
-            {
-                GamepadDeviceSelector.Items.Add(
-                    new ComboBoxItem { Tag = device.DeviceId, Content = device.DisplayLabel }
-                );
-            }
-
-            GamepadDeviceSelector.SelectedItem = GamepadDeviceSelector
-                .Items.OfType<ComboBoxItem>()
-                .FirstOrDefault(item =>
-                    item.Tag is uint id && id == _gamepadManager.SelectedDeviceId
-                );
+            var devices = _gamepadManager.ConnectedDevices;
+            GamepadDeviceSelector.ItemsSource = devices;
+            GamepadDeviceSelector.SelectedItem = devices.FirstOrDefault(device =>
+                device.DeviceId == _gamepadManager.SelectedDeviceId
+            );
             GamepadDeviceSelector.IsEnabled =
                 _gamepadManager.IsAvailable && _gamepadManager.ConnectedDevices.Length != 0;
 
@@ -697,7 +650,6 @@ internal sealed partial class SettingsWindow : Window
         }
         finally
         {
-            GamepadDeviceSelector.SelectionChanged += SelectGamepadDevice;
             _refreshingDevices = false;
         }
     }
@@ -711,7 +663,7 @@ internal sealed partial class SettingsWindow : Window
 
         CancelCapture();
         _gamepadManager.SetSelectedDevice(
-            GamepadDeviceSelector.SelectedItem is ComboBoxItem { Tag: uint id } ? id : null
+            (GamepadDeviceSelector.SelectedItem as GamepadDeviceSnapshot)?.DeviceId
         );
         RefreshBindings(InputTab.Gamepad);
     }

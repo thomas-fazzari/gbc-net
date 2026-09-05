@@ -6,10 +6,10 @@ COVERAGE_SETTINGS := $(CURDIR)/tests/coverage.settings.xml
 COVERAGE_DIR := $(CURDIR)/artifacts
 
 CONFIGURATION ?= Debug
-RUN_CONFIGURATION ?= Debug
+RUN_CONFIGURATION ?= Release
 RUNTIME ?= osx-arm64
 TEST_ARGS ?=
 
 DOTNET ?= dotnet
 
-export APP RUN_CONFIGURATION DOTNET
+export DOTNET

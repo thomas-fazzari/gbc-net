@@ -359,15 +359,7 @@ internal static class GameBoyStateCodec
     {
         try
         {
-            var reader = new Utf8JsonReader(bytes);
-            using var document = JsonDocument.ParseValue(ref reader);
-
-            if (reader.Read())
-            {
-                throw new JsonException("Save-state payload contains trailing JSON.");
-            }
-
-            var payload = document.RootElement.Deserialize<GameBoyStatePayload>(_options);
+            var payload = JsonSerializer.Deserialize<GameBoyStatePayload>(bytes, _options);
 
             if (payload.FormatVersion != FormatVersion)
             {

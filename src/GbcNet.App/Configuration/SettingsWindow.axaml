@@ -2,6 +2,8 @@
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:chrome="clr-namespace:GbcNet.App.Shell.Chrome"
+  xmlns:input="clr-namespace:GbcNet.App.Input"
+  xmlns:inputConfig="clr-namespace:GbcNet.App.Configuration.Sections.Input"
   xmlns:ti="using:TablerIcons"
   x:Class="GbcNet.App.Configuration.SettingsWindow"
   Title="Configuration"
@@ -33,6 +35,9 @@
       <Setter Property="Padding" Value="0" />
     </Style>
     <Style Selector="ListBox.profile-list ListBoxItem">
+      <Setter Property="MinHeight" Value="32" />
+      <Setter Property="Padding" Value="8,5" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="Foreground" Value="{DynamicResource SysTextBrush}" />
       <Setter Property="BorderBrush" Value="Transparent" />
@@ -425,7 +430,27 @@
                 AutomationProperties.Name="Keyboard input profiles"
                 AutomationProperties.AutomationId="InputProfiles"
                 AutomationProperties.HelpText="Edit profiles without activating them."
-              />
+              >
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="inputConfig:InputProfileSummary">
+                    <Grid MinWidth="0" ColumnDefinitions="*,Auto">
+                      <TextBlock
+                        Text="{CompiledBinding Name}"
+                        MinWidth="0"
+                        TextTrimming="CharacterEllipsis"
+                        VerticalAlignment="Center"
+                      />
+                      <TextBlock
+                        Grid.Column="1"
+                        Text="Active"
+                        IsVisible="{CompiledBinding IsActive}"
+                        Classes="label active"
+                        VerticalAlignment="Center"
+                      />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
 
               <Grid
                 x:Name="NameEditorPanel"
@@ -506,7 +531,13 @@
                     AutomationProperties.Name="Connected gamepad for capture"
                     AutomationProperties.AutomationId="GamepadDeviceSelector"
                     AutomationProperties.HelpText="Choose a gamepad for capture and button labels"
-                  />
+                  >
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="input:GamepadDeviceSnapshot">
+                        <TextBlock Text="{CompiledBinding DisplayLabel}" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
                 </Grid>
                 <StackPanel Grid.Row="1" Spacing="3">
                   <TextBlock

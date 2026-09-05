@@ -4,13 +4,13 @@ MAKEFLAGS += --no-builtin-rules --warn-undefined-variables
 include eng/common.mk
 include eng/build.mk
 
-.PHONY: install run check bundle icons copyrights contributors
+.PHONY: install run check bundle icons copyrights
 
 install: restore
 	git config core.hooksPath .githooks
 
 run:
-	@sh ./eng/scripts/run.sh
+	@"$(DOTNET)" run --project "$(APP)" --configuration "$(RUN_CONFIGURATION)"
 
 check: lint test
 
